@@ -1,0 +1,6 @@
+Changes
+MANIFEST
+Makefile.PL
+README
+t/00-load.t
+lib/Games/Blockminer.pm

@@ -1,0 +1,8 @@
+#!/opt/perl/bin/perl
+use Games::Blockminer::Client;
+
+my $game = Games::Blockminer::Client->new;
+
+my $scene = "XXX XXX\nXXX XXX\nX X X X\n";
+
+$game->start;
