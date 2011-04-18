@@ -1,6 +1,7 @@
 package Games::Blockminer::Client;
 use common::sense;
 use Games::Blockminer::Client::Frontend;
+use Games::Blockminer::Client::MapChunk;
 use AnyEvent;
 
 =head1 NAME
@@ -26,6 +27,11 @@ sub new {
    bless $self, $class;
 
    $self->{front} = Games::Blockminer::Client::Frontend->new;
+
+   my $chnk = Games::Blockminer::Client::MapChunk->new;
+   $chnk->random_fill;
+
+   $self->{front}->set_chunk (0, 0, $chnk);
 
    return $self
 }

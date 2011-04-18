@@ -45,6 +45,13 @@ sub new {
 
 my ($WIDTH, $HEIGHT) = (400, 400);
 
+sub set_chunk {
+   my ($self, $world_x, $world_y, $chunk) = @_;
+   warn "set chunk: $world_x $world_y $chunk\n";
+   $self->{chunks}->[$world_x]->[$world_y] = $chunk;
+   $self->compile_scene;
+}
+
 sub _get_texfmt {
    my ($surface) = @_;
    my $ncol = $surface->format->BytesPerPixel;
@@ -99,18 +106,16 @@ sub init_app {
    glFogfv_p (GL_FOG_COLOR, 0.5, 0.5, 0.5, 1);
    glFogf (GL_FOG_DENSITY, 0.35);
    glHint (GL_FOG_HINT, GL_DONT_CARE);
-   glFogf (GL_FOG_START, 10);
-   glFogf (GL_FOG_END,   40);
+   glFogf (GL_FOG_START, 40);
+   glFogf (GL_FOG_END,   80);
 
    glGenTextures_p(1);
 
    $self->load_texture ("res/filth.x11.32x32.png", 1);
-
-   $self->compile_scene;
 }
 
-sub render_quad {
-   my ($self, $x, $y, $z) = @_;
+sub _render_quad {
+   my ($x, $y, $z, $light) = @_;
 
    my @indices  = qw/4 5 6 7   1 2 6 5   0 1 5 4 0 3 2 1   0 4 7 3   2 3 7 6/;
    my @vertices = (
@@ -135,6 +140,7 @@ sub render_quad {
          my $index  = $indices[ 4 * $face + $vertex ];
          my $coords = $vertices[$index];
 
+         glColor3d ($light, $light, $light);
          glTexCoord2d(@{$uv[$vertex]});
          glVertex3d($coords->[0] + $x, $coords->[1] + $y, $coords->[2] + $z);
       }
@@ -145,19 +151,24 @@ sub compile_scene {
    my ($self) = @_;
 
    $self->{scene} = OpenGL::List::glpList {
-      my $light = 1;
-      glColor3d ($light, $light, $light);
-               glPushMatrix;
-   glBegin (GL_QUADS);
-      for my $z (-20 .. 10) {
-         for my $d (-20 .. 20) {
-            for ( -20 .. 20 ) {
-               $self->render_quad ($_ * 5, $d * 5, $z * 5);
+      glPushMatrix;
+      glBegin (GL_QUADS);
+
+      my $chnk = $self->{chunks}->[0]->[0]->{map};
+      warn "compile map: $chnk\n";
+      for (my $x = 0; $x < $Games::Blockminer::Client::MapChunk::SIZE; $x++) {
+         for (my $y = 0; $y < $Games::Blockminer::Client::MapChunk::SIZE; $y++) {
+            for (my $z = 0; $z < $Games::Blockminer::Client::MapChunk::SIZE; $z++) {
+               my $c = $chnk->[$x]->[$y]->[$z];
+               if ($c->[0] eq 'X') {
+                  _render_quad ($x * 2, $y * 2, $z * 2, ((1 / 20) * $c->[1]) + 0.1);
+               }
             }
          }
       }
-   glEnd;
-               glPopMatrix;
+
+      glEnd;
+      glPopMatrix;
 
    };
 }
@@ -169,7 +180,7 @@ sub render_scene {
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity;
-   gluPerspective (60, $WIDTH / $HEIGHT, 1, 40);
+   gluPerspective (60, $WIDTH / $HEIGHT, 0.3, 60);
 
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity;
@@ -244,9 +255,9 @@ sub input_key_down : event_cb {
    #    /    |    \
    #-135 -180/180  135
    if ($name eq 'space') {
-      $self->{view_pos}->[1] -= 5;
+      $self->{view_pos}->[1] -= 1;
    } elsif ($name eq 'return') {
-      $self->{view_pos}->[1] += 5;
+      $self->{view_pos}->[1] += 1;
    } elsif ($name eq 'f') {
       $self->change_look_lock (not $self->{look_lock});
    } elsif (grep { $name eq $_ } qw/a s d w/) {
