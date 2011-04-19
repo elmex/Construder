@@ -32,6 +32,7 @@ sub new {
    $chnk->random_fill;
 
    $self->{front}->set_chunk (0, 0, $chnk);
+   $self->{front}->change_look_lock (1);
 
    return $self
 }

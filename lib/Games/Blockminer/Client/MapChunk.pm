@@ -19,7 +19,7 @@ A chunk of the Blockminer world.
 
 =cut
 
-our ($SIZE) = 25;
+our ($SIZE) = 30;
 
 sub new {
    my $this  = shift;
@@ -43,7 +43,8 @@ sub random_fill {
             my $t = 'X';
             if (int (rand ($SIZE)) == $SIZE - 1) {
                $t = ' ';
-            } elsif (int (rand ($SIZE)) == $SIZE - 1) {
+            } elsif (int (rand ($SIZE * $SIZE * $SIZE)) <= 3) {
+            warn "PUTLIGHT $x $y $z\n";
                push @lights, [$x, $y, $z];
             }
             $map->[$x]->[$y]->[$z] = [$t, 0];
@@ -98,20 +99,33 @@ sub random_fill {
    for (@lights) {
       my ($x, $y, $z) = @$_;
       warn "LIGHT $x, $y, $z\n";
-      for (my $xi = -10; $xi <= 10; $xi++) {
-         for (my $yi = -10; $yi <= 10; $yi++) {
-            for (my $zi = -10; $zi <= 10; $zi++) {
+      my $DIST = 20;
+      for (my $xi = -$DIST; $xi <= $DIST; $xi++) {
+         for (my $yi = -$DIST; $yi <= $DIST; $yi++) {
+            for (my $zi = -$DIST; $zi <= $DIST; $zi++) {
+               my $dist = (abs ($xi) + abs ($yi) + abs ($zi)) / 3;
+               next if $dist > 6.6;
                my ($tile) = _map_get_if_exists ($map, $x + $xi, $y + $yi, $z + $zi);
                # TODO: fix light :)
-               my $dist = (abs ($xi) * abs ($yi) * abs ($zi)) ** (1/3);
-               my $level = (10 - $dist) * 2;
-
-               $tile->[1] = $level;
+               my $level = (($dist ** 2) * (-20 / 6.6 ** 2)) + 20;
+               $tile->[1] = $level if $tile->[1] < $level;
             }
          }
       }
    }
 
+   for (my $x = 0; $x < $SIZE; $x++) {
+      my $plane_light;
+      for (my $y = 0; $y < $SIZE; $y++) {
+         for (my $z = 0; $z < $SIZE; $z++) {
+            my ($tile) = _map_get_if_exists ($map, $x, $y, $z);
+            $plane_light .= sprintf "%-4.1f ", $tile->[1];
+            $tile->[1] = int $tile->[1];
+         }
+         $plane_light .= "\n";
+      }
+      warn "plane $x:\n$plane_light\n";
+   }
    $self->{map} = $map;
 }
 

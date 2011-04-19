@@ -43,7 +43,7 @@ sub new {
    return $self
 }
 
-my ($WIDTH, $HEIGHT) = (400, 400);
+my ($WIDTH, $HEIGHT) = (600, 400);
 
 sub set_chunk {
    my ($self, $world_x, $world_y, $chunk) = @_;
@@ -85,7 +85,6 @@ sub init_app {
    $self->{sdl_event} = SDL::Event->new;
 
    $self->{view_pos} = [0, 0, -20];
-   $self->change_look_lock (1);
 
    glDepthFunc(GL_LESS);
    glEnable (GL_DEPTH_TEST);
@@ -116,6 +115,7 @@ sub init_app {
 
 sub _render_quad {
    my ($x, $y, $z, $light) = @_;
+   #d#warn "QUAD $x $y $z $light\n";
 
    my @indices  = qw/4 5 6 7   1 2 6 5   0 1 5 4 0 3 2 1   0 4 7 3   2 3 7 6/;
    my @vertices = (
@@ -180,7 +180,7 @@ sub render_scene {
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity;
-   gluPerspective (60, $WIDTH / $HEIGHT, 0.3, 60);
+   gluPerspective (75, $WIDTH / $HEIGHT, 0.3, 60);
 
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity;
@@ -265,13 +265,20 @@ sub input_key_down : event_cb {
          $name eq 'w'        ? -1
          : ($name eq 's'     ?  1
                              :  0),
-         $name eq 'a'        ? -1
-         : ($name eq 'd'     ?  1
+         $name eq 'a'        ?  1
+         : ($name eq 'd'     ? -1
                              :  0),
       );
 
-      my $xd =  sin (deg2rad ($self->{yrotate}));# - 180));
-      my $yd = -cos (deg2rad ($self->{yrotate}));# - 180));
+      my ($xd, $yd);
+      if ($xdir) {
+         $xd =  sin (deg2rad ($self->{yrotate}));# - 180));
+         $yd = -cos (deg2rad ($self->{yrotate}));# - 180));
+      } else {
+         $xdir = $ydir;
+         $xd =  sin (deg2rad ($self->{yrotate} + 90));# - 180));
+         $yd = -cos (deg2rad ($self->{yrotate} + 90));# - 180));
+      }
 
       warn "MOVE " . rad2deg ($self->{yrotate}) . " | $xdir,$ydir | $xd,$yd\n";
 
