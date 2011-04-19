@@ -19,7 +19,7 @@ A chunk of the Blockminer world.
 
 =cut
 
-our ($SIZE) = 30;
+our ($SIZE) = 20;
 
 sub new {
    my $this  = shift;
@@ -47,7 +47,7 @@ sub random_fill {
             warn "PUTLIGHT $x $y $z\n";
                push @lights, [$x, $y, $z];
             }
-            $map->[$x]->[$y]->[$z] = [$t, 0];
+            $map->[$x]->[$y]->[$z] = [$t, 0, 1];
          }
       }
    }
@@ -56,6 +56,7 @@ sub random_fill {
    my $last_blk_cnt = 0;
    for (1..10) {
       my $new_map = [];
+      my $invis_blk = 0;
       my $blk_cnt = 0;
       for (my $x = 0; $x < $SIZE; $x++) {
          for (my $y = 0; $y < $SIZE; $y++) {
@@ -81,6 +82,12 @@ sub random_fill {
                $cnt++ if $back->[0]  eq ' ';
 
                $n->[0] = ' ' if $cnt >= 2;
+               if ($cnt == 0) {
+                  $n->[2] = 0;
+                  $invis_blk++;
+               } else {
+                  $n->[2] = 1;
+               }
                #d#warn "$x $y $z: $cnt\n";
 
                $blk_cnt++ if $n->[0] ne ' ';
@@ -90,7 +97,7 @@ sub random_fill {
          }
       }
       $map = $new_map;
-      warn "erode $_: $blk_cnt blocks (last $last_blk_cnt)\n";
+      warn "erode $_: $blk_cnt blocks (last $last_blk_cnt, inv $invis_blk)\n";
       last if $last_blk_cnt == $blk_cnt;
       $last_blk_cnt = $blk_cnt;
       $blk_cnt = 0;
@@ -114,18 +121,18 @@ sub random_fill {
       }
    }
 
-   for (my $x = 0; $x < $SIZE; $x++) {
-      my $plane_light;
-      for (my $y = 0; $y < $SIZE; $y++) {
-         for (my $z = 0; $z < $SIZE; $z++) {
-            my ($tile) = _map_get_if_exists ($map, $x, $y, $z);
-            $plane_light .= sprintf "%-4.1f ", $tile->[1];
-            $tile->[1] = int $tile->[1];
-         }
-         $plane_light .= "\n";
-      }
-      warn "plane $x:\n$plane_light\n";
-   }
+   #d# for (my $x = 0; $x < $SIZE; $x++) {
+   #d#    my $plane_light;
+   #d#    for (my $y = 0; $y < $SIZE; $y++) {
+   #d#       for (my $z = 0; $z < $SIZE; $z++) {
+   #d#          my ($tile) = _map_get_if_exists ($map, $x, $y, $z);
+   #d#          $plane_light .= sprintf "%-4.1f ", $tile->[1];
+   #d#          $tile->[1] = int $tile->[1];
+   #d#       }
+   #d#       $plane_light .= "\n";
+   #d#    }
+   #d#    warn "plane $x:\n$plane_light\n";
+   #d# }
    $self->{map} = $map;
 }
 
@@ -137,12 +144,24 @@ sub _map_get_if_exists {
 }
 
 sub update_visibility {
+   my ($self) = @_;
    # find out which blocks are possibly visible by defining
    # the outer "hull" of the chunk.
    #
    # TODO: find out how to do this iteratively if new chunks
    #       are "joining"
    #       Just reevaluate this, taking into account the adjacent chunks.
+
+#   my $map = $self->{map};
+
+#   for (my $x = 0; $x < $SIZE; $x++) {
+#      for (my $y = 0; $y < $SIZE; $y++) {
+#         for (my $z = 0; $z < $SIZE; $z++) {
+#            my ($tile) = _map_get_if_exists ($map, $x, $y, $z);
+#         }
+#      }
+#   }
+
 }
 
 =back

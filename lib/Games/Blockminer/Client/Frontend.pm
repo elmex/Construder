@@ -91,10 +91,10 @@ sub init_app {
    glMatrixMode(GL_PROJECTION);
    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
    glEnable (GL_BLEND);
-   glCullFace (GL_BACK);
    glEnable (GL_CULL_FACE);
+   glCullFace (GL_BACK);
 
-   glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+   glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
    glEnable (GL_TEXTURE_2D);
    glEnable (GL_FOG);
    glClearColor (0.5,0.5,0.5,1);
@@ -135,6 +135,8 @@ sub _render_quad {
    );
 
 
+   glBindTexture (GL_TEXTURE_2D, 1);
+   glBegin (GL_QUADS);
    foreach my $face ( 0 .. 5 ) {
       foreach my $vertex ( 0 .. 3 ) {
          my $index  = $indices[ 4 * $face + $vertex ];
@@ -145,6 +147,7 @@ sub _render_quad {
          glVertex3d($coords->[0] + $x, $coords->[1] + $y, $coords->[2] + $z);
       }
    }
+   glEnd;
 }
 
 sub compile_scene {
@@ -152,7 +155,7 @@ sub compile_scene {
 
    $self->{scene} = OpenGL::List::glpList {
       glPushMatrix;
-      glBegin (GL_QUADS);
+    #  glBegin (GL_QUADS);
 
       my $chnk = $self->{chunks}->[0]->[0]->{map};
       warn "compile map: $chnk\n";
@@ -160,14 +163,14 @@ sub compile_scene {
          for (my $y = 0; $y < $Games::Blockminer::Client::MapChunk::SIZE; $y++) {
             for (my $z = 0; $z < $Games::Blockminer::Client::MapChunk::SIZE; $z++) {
                my $c = $chnk->[$x]->[$y]->[$z];
-               if ($c->[0] eq 'X') {
+               if ($c->[2] && $c->[0] eq 'X') {
                   _render_quad ($x * 2, $y * 2, $z * 2, ((1 / 20) * $c->[1]) + 0.1);
                }
             }
          }
       }
 
-      glEnd;
+    #  glEnd;
       glPopMatrix;
 
    };
@@ -187,6 +190,23 @@ sub render_scene {
    glRotatef ($self->{xrotate}, 1, 0, 0);
    glRotatef ($self->{yrotate}, 0, 1, 0);
    glTranslatef (@{$self->{view_pos}});
+
+   glBindTexture (GL_TEXTURE_2D, 0);
+   glBegin (GL_LINES);
+   glColor3d (1, 0, 0);
+   glVertex3d(0, 0, 0);
+   glVertex3d(5, 0, 0);
+
+   glColor4d (0.2, 1, 0.2, 1);
+   glVertex3d(0, 0, 0);
+   glVertex3d(0, 5, 0);
+
+   glColor4d (0.2, 0.2, 1, 1);
+   glVertex3d(0, 0, 0);
+   glVertex3d(0, 0, 5);
+   glEnd;
+
+   _render_quad (0, 0, 0, 1);
 
    glCallList ($self->{scene});
 
@@ -219,15 +239,19 @@ sub setup_event_poller {
          }
       }
 
- #     if (delete $self->{change}) {
+      if (delete $self->{change}) {
+         warn "player status: pos: @{$self->{view_pos}}, rotx: $self->{xrotate}, roty: $self->{yrotate}\n";
+      }
          $self->render_scene;
- #     }
+      #}
    };
 }
 
 sub change_look_lock : event_cb {
    my ($self, $enabled) = @_;
 
+   $self->{xrotate} = 0;
+   $self->{yrotate} = 0;
    $self->{look_lock} = $enabled;
 
    if ($enabled) {
@@ -279,8 +303,6 @@ sub input_key_down : event_cb {
          $xd =  sin (deg2rad ($self->{yrotate} + 90));# - 180));
          $yd = -cos (deg2rad ($self->{yrotate} + 90));# - 180));
       }
-
-      warn "MOVE " . rad2deg ($self->{yrotate}) . " | $xdir,$ydir | $xd,$yd\n";
 
       $self->{view_pos}->[2] += ($yd * $xdir) * 2.5;
       $self->{view_pos}->[0] += ($xd * $xdir) * 2.5;
