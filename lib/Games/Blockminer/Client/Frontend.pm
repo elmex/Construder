@@ -11,6 +11,8 @@ use OpenGL qw(:all);
 use OpenGL::List;
 use AnyEvent;
 use Math::Trig qw/deg2rad rad2deg pi/;
+use Time::HiRes qw/gettimeofday tv_interval/;
+use Math::VectorReal;
 
 use base qw/Object::Event/;
 
@@ -38,6 +40,7 @@ sub new {
 
    $self->init_object_events;
    $self->init_app;
+   $self->init_physics;
    $self->setup_event_poller;
 
    return $self
@@ -46,10 +49,26 @@ sub new {
 my ($WIDTH, $HEIGHT) = (600, 400);
 
 sub set_chunk {
-   my ($self, $world_x, $world_y, $chunk) = @_;
-   warn "set chunk: $world_x $world_y $chunk\n";
-   $self->{chunks}->[$world_x]->[$world_y] = $chunk;
+   my ($self, $pos, $chunk) = @_;
+   warn "set chunk: $pos $chunk\n";
+   my ($x, $y, $z) = (
+      int ($pos->x / $Games::Blockminer::Client::MapChunk::SIZE),
+      int ($pos->y / $Games::Blockminer::Client::MapChunk::SIZE),
+      int ($pos->z / $Games::Blockminer::Client::MapChunk::SIZE),
+   );
+   $self->{chunks}->[$x]->[$y]->[$z] = $chunk;
    $self->compile_scene;
+}
+
+sub get_chunk {
+   my ($self, $pos) = @_;
+   my ($x, $y, $z) = (
+      int ($pos->x / $Games::Blockminer::Client::MapChunk::SIZE),
+      int ($pos->y / $Games::Blockminer::Client::MapChunk::SIZE),
+      int ($pos->z / $Games::Blockminer::Client::MapChunk::SIZE),
+   );
+   return undef if $x < 0 || $y < 0 || $z < 0; # FIXME: make 8 quadrants chunk collections
+   $self->{chunks}->[$x]->[$y]->[$z]
 }
 
 sub _get_texfmt {
@@ -78,13 +97,19 @@ sub load_texture {
       ${$img->get_pixels_ptr});
 }
 
+sub init_physics {
+   my ($self) = @_;
+   $self->{phys_obj}->{player} = {
+      pos => vector (0, 0, -5),#-25, -50, -25),
+      vel => vector (0, 0, 0),
+   };
+}
+
 sub init_app {
    my ($self) = @_;
    $self->{app} = SDLx::App->new (
       title => "Blockminer 0.01alpha", width => $WIDTH, height => $HEIGHT, gl => 1);
    $self->{sdl_event} = SDL::Event->new;
-
-   $self->{view_pos} = [0, 0, -20];
 
    glDepthFunc(GL_LESS);
    glEnable (GL_DEPTH_TEST);
@@ -117,27 +142,39 @@ sub _render_quad {
    my ($x, $y, $z, $light) = @_;
    #d#warn "QUAD $x $y $z $light\n";
 
-   my @indices  = qw/4 5 6 7   1 2 6 5   0 1 5 4 0 3 2 1   0 4 7 3   2 3 7 6/;
+   #                 front    top      back     left     right    bottom
+   my @indices  = qw/0 1 2 3  1 5 6 2  7 6 5 4  4 5 1 0  3 2 6 7  3 7 4 0/;
+   my @normals = (
+      [ 0, 0,-1],
+      [ 0, 1, 0],
+      [ 0, 0, 1],
+      [-1, 0, 0],
+      [ 1, 0, 0],
+      [ 0,-1, 0],
+   ),
    my @vertices = (
-      [ -1, -1, -1 ],
-      [ 1,  -1, -1 ],
-      [ 1,  1,  -1 ],
-      [ -1, 1,  -1 ],
-      [ -1, -1, 1 ],
-      [ 1,  -1, 1 ],
+      [ 0,  0,  0 ],
+      [ 0,  1,  0 ],
+      [ 1,  1,  0 ],
+      [ 1,  0,  0 ],
+
+      [ 0,  0,  1 ],
+      [ 0,  1,  1 ],
       [ 1,  1,  1 ],
-      [ -1, 1,  1 ]);
+      [ 1,  0,  1 ],
+   );
+
    my @uv = (
+    #  w  h
+      [1, 1],
       [1, 0],
       [0, 0],
       [0, 1],
-      [1, 1],
    );
 
-
-   glBindTexture (GL_TEXTURE_2D, 1);
-   glBegin (GL_QUADS);
    foreach my $face ( 0 .. 5 ) {
+      # glNormal3d (@{$normals[$face]}); # we dont use OpenGL lighting!
+
       foreach my $vertex ( 0 .. 3 ) {
          my $index  = $indices[ 4 * $face + $vertex ];
          my $coords = $vertices[$index];
@@ -147,7 +184,6 @@ sub _render_quad {
          glVertex3d($coords->[0] + $x, $coords->[1] + $y, $coords->[2] + $z);
       }
    }
-   glEnd;
 }
 
 sub compile_scene {
@@ -155,22 +191,26 @@ sub compile_scene {
 
    $self->{scene} = OpenGL::List::glpList {
       glPushMatrix;
-    #  glBegin (GL_QUADS);
+      glBindTexture (GL_TEXTURE_2D, 1);
+      glBegin (GL_QUADS);
+       #  glBegin (GL_QUADS);
 
-      my $chnk = $self->{chunks}->[0]->[0]->{map};
-      warn "compile map: $chnk\n";
-      for (my $x = 0; $x < $Games::Blockminer::Client::MapChunk::SIZE; $x++) {
-         for (my $y = 0; $y < $Games::Blockminer::Client::MapChunk::SIZE; $y++) {
-            for (my $z = 0; $z < $Games::Blockminer::Client::MapChunk::SIZE; $z++) {
-               my $c = $chnk->[$x]->[$y]->[$z];
-               if ($c->[2] && $c->[0] eq 'X') {
-                  _render_quad ($x * 2, $y * 2, $z * 2, ((1 / 20) * $c->[1]) + 0.1);
+         my $chnk = $self->get_chunk (vector (0, 0, 0));
+         $chnk = $chnk->{map};
+         warn "compile map: $chnk\n";
+         for (my $x = 0; $x < $Games::Blockminer::Client::MapChunk::SIZE; $x++) {
+            for (my $y = 0; $y < $Games::Blockminer::Client::MapChunk::SIZE; $y++) {
+               for (my $z = 0; $z < $Games::Blockminer::Client::MapChunk::SIZE; $z++) {
+                  my $c = $chnk->[$x]->[$y]->[$z];
+                  if ($c->[2] && $c->[0] eq 'X') {
+                     _render_quad ($x, $y, $z, ((1 / 20) * $c->[1]) + 0.1);
+                  }
                }
             }
          }
-      }
 
-    #  glEnd;
+      glEnd;
+       #  glEnd;
       glPopMatrix;
 
    };
@@ -187,9 +227,10 @@ sub render_scene {
 
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity;
+   # move and rotate the world:
    glRotatef ($self->{xrotate}, 1, 0, 0);
    glRotatef ($self->{yrotate}, 0, 1, 0);
-   glTranslatef (@{$self->{view_pos}});
+   glTranslatef ($self->{phys_obj}->{player}->{pos}->array);
 
    glBindTexture (GL_TEXTURE_2D, 0);
    glBegin (GL_LINES);
@@ -206,7 +247,10 @@ sub render_scene {
    glVertex3d(0, 0, 5);
    glEnd;
 
+   glBindTexture (GL_TEXTURE_2D, 1);
+   glBegin (GL_QUADS);
    _render_quad (0, 0, 0, 1);
+   glEnd;
 
    glCallList ($self->{scene});
 
@@ -217,7 +261,14 @@ sub setup_event_poller {
    my ($self) = @_;
 
    my $sdle = $self->{sdl_event};
+   my $ltime = [gettimeofday];
    $self->{poll_w} = AE::timer 0, 0.005, sub {
+      my $ctime = [gettimeofday];
+      my $dt = tv_interval ($ltime, $ctime);
+      $ltime = $ctime;
+
+      #d# $self->physics_tick ($dt);
+
       SDL::Events::pump_events();
 
       while (SDL::Events::poll_event($sdle)) {
@@ -240,11 +291,32 @@ sub setup_event_poller {
       }
 
       if (delete $self->{change}) {
-         warn "player status: pos: @{$self->{view_pos}}, rotx: $self->{xrotate}, roty: $self->{yrotate}\n";
+         warn "player status: pos: $self->{phys_obj}->{player}->{pos}, rotx: $self->{xrotate}, roty: $self->{yrotate}\n";
       }
          $self->render_scene;
       #}
    };
+}
+
+sub physics_tick : event_cb {
+   my ($self, $dt) = @_;
+
+   my $gforce = vector (0, 0.01, 0);
+
+   my $player = $self->{phys_obj}->{player};
+   $player->{vel} += $gforce;
+
+   $player->{pos} += $player->{vel};
+   my $chunk = $self->get_chunk ($player->{pos});
+   if ($chunk) {
+      my ($dvec) = $chunk->collide ($player->{pos}, 1);
+      if (defined $dvec) {
+         $player->{pos} -= $dvec;
+         $player->{vel} = vector (0, 0, 0);
+      }
+   }
+
+   # collide!
 }
 
 sub change_look_lock : event_cb {
@@ -279,9 +351,13 @@ sub input_key_down : event_cb {
    #    /    |    \
    #-135 -180/180  135
    if ($name eq 'space') {
-      $self->{view_pos}->[1] -= 1;
+      $self->{phys_obj}->{player}->{vel} += vector (0, -1, 0);
    } elsif ($name eq 'return') {
-      $self->{view_pos}->[1] += 1;
+      $self->{phys_obj}->{player}->{vel} += vector (0, 1, 0);
+   } elsif ($name eq 'y') {
+      $self->{phys_obj}->{player}->{pos} += vector (0, -1, 0);
+   } elsif ($name eq 'x') {
+      $self->{phys_obj}->{player}->{pos} += vector (0, 1, 0);
    } elsif ($name eq 'f') {
       $self->change_look_lock (not $self->{look_lock});
    } elsif (grep { $name eq $_ } qw/a s d w/) {
@@ -304,8 +380,7 @@ sub input_key_down : event_cb {
          $yd = -cos (deg2rad ($self->{yrotate} + 90));# - 180));
       }
 
-      $self->{view_pos}->[2] += ($yd * $xdir) * 2.5;
-      $self->{view_pos}->[0] += ($xd * $xdir) * 2.5;
+      $self->{phys_obj}->{player}->{pos} += vector(($xd * $xdir) * 2.5, 0, ($yd * $xdir) * 2.5);
    }
    $self->{change} = 1;
 }

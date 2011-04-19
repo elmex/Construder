@@ -1,5 +1,6 @@
 package Games::Blockminer::Client::MapChunk;
 use common::sense;
+use Math::VectorReal;
 
 =head1 NAME
 
@@ -19,7 +20,7 @@ A chunk of the Blockminer world.
 
 =cut
 
-our ($SIZE) = 20;
+our ($SIZE) = 35;
 
 sub new {
    my $this  = shift;
@@ -41,10 +42,11 @@ sub random_fill {
       for (my $y = 0; $y < $SIZE; $y++) {
          for (my $z = 0; $z < $SIZE; $z++) {
             my $t = 'X';
-            if (int (rand ($SIZE)) == $SIZE - 1) {
+            if (int (rand ($SIZE * $SIZE * $SIZE)) <= 1) {
+               warn "PUTHOLE $x $y $z\n";
                $t = ' ';
             } elsif (int (rand ($SIZE * $SIZE * $SIZE)) <= 3) {
-            warn "PUTLIGHT $x $y $z\n";
+               warn "PUTLIGHT $x $y $z\n";
                push @lights, [$x, $y, $z];
             }
             $map->[$x]->[$y]->[$z] = [$t, 0, 1];
@@ -81,9 +83,16 @@ sub random_fill {
                $cnt++ if $front->[0] eq ' ';
                $cnt++ if $back->[0]  eq ' ';
 
-               $n->[0] = ' ' if $cnt >= 2;
-               if ($cnt == 0) {
+               $n->[0] = ' ' if $cnt >= 1;
+
+               if ($cnt == 0
+                   && not (
+                      $x == 0 || $x == $SIZE - 1
+                      || $y == 0 || $y == $SIZE - 1
+                      || $z == 0 || $z == $SIZE - 1)
+               ) {
                   $n->[2] = 0;
+                  # FIXME: need to checkout why this fails with so few seeds
                   $invis_blk++;
                } else {
                   $n->[2] = 1;
@@ -141,6 +150,48 @@ sub _map_get_if_exists {
    return ["X", 0] if $x < 0     || $y < 0     || $z < 0;
    return ["X", 0] if $x >= $SIZE || $y >= $SIZE || $z >= $SIZE;
    $map->[$x]->[$y]->[$z]
+}
+
+sub _collide_quad {
+   my ($base, $pos, $rad) = @_;
+
+   my ($norm, $d) = plane ($base, $base + vector (0, 0, 1), $base + vector (1, 0, 1));
+   my $distance = $norm . $pos;
+   if ($distance <= $rad) {
+      return $norm * ($rad - $distance);
+   }
+}
+
+# collide sphere at $pos with radius $rad
+sub collide {
+   my ($self, $pos, $rad) = @_;
+   $pos = vector ($pos->x - int ($pos->x / $SIZE),
+                  $pos->y - int ($pos->y / $SIZE),
+                  $pos->z - int ($pos->z / $SIZE));
+
+   # find the 6 adjacent blocks
+   # and check:
+   #   bottom of top
+   #   top of bottom
+   #   and the interiors of the 4 adjacent blocks
+
+   warn "POS COLLIDE $pos\n";
+#   my $map = $self->{map};
+#   for (my $x = 0; $x < $SIZE; $x++) {
+#      for (my $y = 0; $y < $SIZE; $y++) {
+#         for (my $z = 0; $z < $SIZE; $z++) {
+#            my $blok = $map->[$x]->[$y]->[$z];
+#            if ($blok->[0] eq 'X') {
+#               warn "CHECK $x $y $z..\n";
+#               my $d = _collide_quad (vector ($x, $y, $z), $pos, $rad);
+#               warn "COLLIDE $d\n";
+# #              return $d if $d;
+#            }
+#         }
+#      }
+#   }
+
+   undef
 }
 
 sub update_visibility {

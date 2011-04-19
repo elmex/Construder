@@ -3,6 +3,7 @@ use common::sense;
 use Games::Blockminer::Client::Frontend;
 use Games::Blockminer::Client::MapChunk;
 use AnyEvent;
+use Math::VectorReal;
 
 =head1 NAME
 
@@ -31,7 +32,7 @@ sub new {
    my $chnk = Games::Blockminer::Client::MapChunk->new;
    $chnk->random_fill;
 
-   $self->{front}->set_chunk (0, 0, $chnk);
+   $self->{front}->set_chunk (vector (0, 0, 0), $chnk);
    $self->{front}->change_look_lock (1);
 
    return $self
