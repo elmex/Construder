@@ -1,5 +1,7 @@
 #!/opt/perl/bin/perl
+use common::sense;
 use Games::Blockminer::Client;
+srand ($ARGV[0] || 10);
 
 my $game = Games::Blockminer::Client->new;
 

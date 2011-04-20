@@ -31,6 +31,22 @@ sub new {
    return $self
 }
 
+sub _neighbours {
+   my ($map, $x, $y, $z) = @_;
+ #  my ($cur, $top, $bot, $left, $right, $front, $back) 
+   my @n = (
+      _map_get_if_exists ($map, $x, $y,     $z),
+      _map_get_if_exists ($map, $x, $y + 1, $z),
+      _map_get_if_exists ($map, $x, $y - 1, $z),
+      _map_get_if_exists ($map, $x - 1, $y, $z),
+      _map_get_if_exists ($map, $x + 1, $y, $z),
+      _map_get_if_exists ($map, $x, $y,     $z + 1),
+      _map_get_if_exists ($map, $x, $y,     $z - 1),
+   );
+   @n
+ #  my ($cur, $top, $bot, $left, $right, $front, $back) 
+}
+
 sub random_fill {
    my ($self) = @_;
 
@@ -42,7 +58,7 @@ sub random_fill {
       for (my $y = 0; $y < $SIZE; $y++) {
          for (my $z = 0; $z < $SIZE; $z++) {
             my $t = 'X';
-            if (int (rand ($SIZE * $SIZE * $SIZE)) <= 1) {
+            if (int (rand ($SIZE * $SIZE * $SIZE)) <= 100) {
                warn "PUTHOLE $x $y $z\n";
                $t = ' ';
             } elsif (int (rand ($SIZE * $SIZE * $SIZE)) <= 3) {
@@ -56,22 +72,14 @@ sub random_fill {
 
    # erode:
    my $last_blk_cnt = 0;
-   for (1..10) {
+   for (1..4) {
       my $new_map = [];
-      my $invis_blk = 0;
       my $blk_cnt = 0;
       for (my $x = 0; $x < $SIZE; $x++) {
          for (my $y = 0; $y < $SIZE; $y++) {
             for (my $z = 0; $z < $SIZE; $z++) {
-               my ($cur, $top, $bot, $left, $right, $front, $back) = (
-                  _map_get_if_exists ($map, $x, $y,     $z),
-                  _map_get_if_exists ($map, $x, $y + 1, $z),
-                  _map_get_if_exists ($map, $x, $y - 1, $z),
-                  _map_get_if_exists ($map, $x - 1, $y, $z),
-                  _map_get_if_exists ($map, $x + 1, $y, $z),
-                  _map_get_if_exists ($map, $x, $y,     $z + 1),
-                  _map_get_if_exists ($map, $x, $y,     $z - 1),
-               );
+               my ($cur, $top, $bot, $left, $right, $front, $back)
+                  = _neighbours ($map, $x, $y, $z);
 
                my $n = [@$cur];
 
@@ -85,20 +93,6 @@ sub random_fill {
 
                $n->[0] = ' ' if $cnt >= 1;
 
-               if ($cnt == 0
-                   && not (
-                      $x == 0 || $x == $SIZE - 1
-                      || $y == 0 || $y == $SIZE - 1
-                      || $z == 0 || $z == $SIZE - 1)
-               ) {
-                  $n->[2] = 0;
-                  # FIXME: need to checkout why this fails with so few seeds
-                  $invis_blk++;
-               } else {
-                  $n->[2] = 1;
-               }
-               #d#warn "$x $y $z: $cnt\n";
-
                $blk_cnt++ if $n->[0] ne ' ';
 
                $new_map->[$x]->[$y]->[$z] = $n;
@@ -106,10 +100,38 @@ sub random_fill {
          }
       }
       $map = $new_map;
-      warn "erode $_: $blk_cnt blocks (last $last_blk_cnt, inv $invis_blk)\n";
+      warn "erode $_: $blk_cnt blocks (last $last_blk_cnt)\n";
       last if $last_blk_cnt == $blk_cnt;
       $last_blk_cnt = $blk_cnt;
       $blk_cnt = 0;
+   }
+
+
+   for (my $x = 0; $x < $SIZE; $x++) {
+      for (my $y = 0; $y < $SIZE; $y++) {
+         for (my $z = 0; $z < $SIZE; $z++) {
+            my ($cur, $top, $bot, $left, $right, $front, $back)
+               = _neighbours ($map, $x, $y, $z);
+            my $cnt = 0;
+            $cnt++ if $top->[0]   eq ' ';
+            $cnt++ if $bot->[0]   eq ' ';
+            $cnt++ if $left->[0]  eq ' ';
+            $cnt++ if $right->[0] eq ' ';
+            $cnt++ if $front->[0] eq ' ';
+            $cnt++ if $back->[0]  eq ' ';
+
+            if ($cnt == 0
+                && not (
+                   $x == 0 || $x == $SIZE - 1
+                   || $y == 0 || $y == $SIZE - 1
+                   || $z == 0 || $z == $SIZE - 1)
+            ) {
+               $cur->[2] = 0;
+            } else {
+               $cur->[2] = 1;
+            }
+         }
+      }
    }
 
    for (@lights) {
@@ -130,18 +152,19 @@ sub random_fill {
       }
    }
 
-   #d# for (my $x = 0; $x < $SIZE; $x++) {
-   #d#    my $plane_light;
-   #d#    for (my $y = 0; $y < $SIZE; $y++) {
-   #d#       for (my $z = 0; $z < $SIZE; $z++) {
-   #d#          my ($tile) = _map_get_if_exists ($map, $x, $y, $z);
-   #d#          $plane_light .= sprintf "%-4.1f ", $tile->[1];
-   #d#          $tile->[1] = int $tile->[1];
-   #d#       }
-   #d#       $plane_light .= "\n";
-   #d#    }
-   #d#    warn "plane $x:\n$plane_light\n";
-   #d# }
+   for (my $x = 0; $x < $SIZE; $x++) {
+      my $plane_light;
+      for (my $y = 0; $y < $SIZE; $y++) {
+         for (my $z = 0; $z < $SIZE; $z++) {
+            my ($tile) = _map_get_if_exists ($map, $x, $y, $z);
+            #$plane_light .= sprintf "%-4.1f ", $tile->[1];
+            $plane_light .= "$tile->[0]|$tile->[2] ";
+ #           $tile->[1] = int $tile->[1];
+         }
+         $plane_light .= "\n";
+      }
+      warn "plane $x:\n$plane_light\n";
+   }
    $self->{map} = $map;
 }
 
@@ -165,9 +188,9 @@ sub _collide_quad {
 # collide sphere at $pos with radius $rad
 sub collide {
    my ($self, $pos, $rad) = @_;
-   $pos = vector ($pos->x - int ($pos->x / $SIZE),
-                  $pos->y - int ($pos->y / $SIZE),
-                  $pos->z - int ($pos->z / $SIZE));
+   $pos = -vector ($pos->x - $SIZE * int ($pos->x / $SIZE),
+                   $pos->y - $SIZE * int ($pos->y / $SIZE),
+                   $pos->z - $SIZE * int ($pos->z / $SIZE));
 
    # find the 6 adjacent blocks
    # and check:
@@ -175,7 +198,25 @@ sub collide {
    #   top of bottom
    #   and the interiors of the 4 adjacent blocks
 
-   warn "POS COLLIDE $pos\n";
+   # the "current" block
+   my $block_pos = vector (int $pos->x, int $pos->y, int $pos->z);
+
+   my $map = $self->{map};
+   my ($cur, $top, $bot, $left, $right, $front, $back)
+      = _neighbours ($map, $pos->array);
+
+ #  warn "check collision $pos $rad\n";
+   if ($bot->[2] && $bot->[0] eq 'X') {
+      my ($n, $d) = plane (
+         $block_pos, $block_pos + vector (1, 0, 1), $block_pos + vector (1, 0, 0)
+      );
+      my $dist = ($pos - $block_pos) . $n;
+      warn "DIST FROM PLANE $dist $rad\n";
+      if ($dist < $rad) {
+         return vector (0, -1, 0) * ($rad - $dist);
+      }
+      warn "POS COLLIDE $dist | $pos | $n\n";
+   }
 #   my $map = $self->{map};
 #   for (my $x = 0; $x < $SIZE; $x++) {
 #      for (my $y = 0; $y < $SIZE; $y++) {

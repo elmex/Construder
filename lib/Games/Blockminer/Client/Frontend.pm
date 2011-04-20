@@ -100,7 +100,7 @@ sub load_texture {
 sub init_physics {
    my ($self) = @_;
    $self->{phys_obj}->{player} = {
-      pos => vector (0, 0, -5),#-25, -50, -25),
+      pos => vector (-10, -40, -10),#-25, -50, -25),
       vel => vector (0, 0, 0),
    };
 }
@@ -267,7 +267,7 @@ sub setup_event_poller {
       my $dt = tv_interval ($ltime, $ctime);
       $ltime = $ctime;
 
-      #d# $self->physics_tick ($dt);
+      $self->physics_tick ($dt);
 
       SDL::Events::pump_events();
 
@@ -311,7 +311,8 @@ sub physics_tick : event_cb {
    if ($chunk) {
       my ($dvec) = $chunk->collide ($player->{pos}, 1);
       if (defined $dvec) {
-         $player->{pos} -= $dvec;
+         $player->{pos} += $dvec;
+         warn "delta collision $dvec\n";
          $player->{vel} = vector (0, 0, 0);
       }
    }
@@ -351,13 +352,13 @@ sub input_key_down : event_cb {
    #    /    |    \
    #-135 -180/180  135
    if ($name eq 'space') {
-      $self->{phys_obj}->{player}->{vel} += vector (0, -1, 0);
+      $self->{phys_obj}->{player}->{vel} += vector (0, -0.2, 0);
    } elsif ($name eq 'return') {
-      $self->{phys_obj}->{player}->{vel} += vector (0, 1, 0);
+      $self->{phys_obj}->{player}->{vel} += vector (0, 0.5, 0);
    } elsif ($name eq 'y') {
-      $self->{phys_obj}->{player}->{pos} += vector (0, -1, 0);
+      $self->{phys_obj}->{player}->{pos} += vector (0, -0.2, 0);
    } elsif ($name eq 'x') {
-      $self->{phys_obj}->{player}->{pos} += vector (0, 1, 0);
+      $self->{phys_obj}->{player}->{pos} += vector (0, 0.5, 0);
    } elsif ($name eq 'f') {
       $self->change_look_lock (not $self->{look_lock});
    } elsif (grep { $name eq $_ } qw/a s d w/) {
