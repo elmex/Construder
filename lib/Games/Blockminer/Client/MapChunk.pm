@@ -175,22 +175,62 @@ sub _map_get_if_exists {
    $map->[$x]->[$y]->[$z]
 }
 
-sub _collide_quad {
-   my ($base, $pos, $rad) = @_;
-
-   my ($norm, $d) = plane ($base, $base + vector (0, 0, 1), $base + vector (1, 0, 1));
-   my $distance = $norm . $pos;
-   if ($distance <= $rad) {
-      return $norm * ($rad - $distance);
+sub _closest_pt_point_aabb {
+   my ($pt, $box_min, $box_max) = @_;
+   my @pt  = $pt->array;
+   my @box_min = $box_min->array;
+   my @box_max = $box_max->array;
+   my @out;
+   for (0..2) {
+      my $pv = $pt[$_];
+      $pv = $box_min[$_] if $pv < $box_min[$_];
+      $pv = $box_max[$_] if $pv > $box_max[$_];
+      push @out, $pv;
    }
+   vector (@out)
+}
+
+#sub _sqdist_pt_aabb {
+#   my ($pt, $box_min, $box_max) = @_;
+#   my @pt  = $pt->array;
+#   my @box_min = $box_min->array;
+#   my @box_max = $box_max->array;
+#   my $dist;
+#   for (0..2) {
+#      my $pv = $pt[$_];
+#      $pv = if $pv < $box_min[$_];
+#      $pv = if $pv > $box_max[$_];
+#      push @out, $pv;
+#   }
+#   vector (@out)
+#}
+
+sub _collide_box {
+   my ($box, $pos) = @_;
+   my $max = $box + vector (1, 1, 1);
+   my $abpt = _closest_pt_point_aabb ($pos, $box, $max);
+   my $dv = $pos - $abpt;
+   return ($dv, $abpt)
+}
+
+sub _is_solid_box {
+   my ($map, $box) = @_;
+   my $b = _map_get_if_exists ($map, $box->array);
+   $b->[2] && $b->[0] ne ' '
 }
 
 # collide sphere at $pos with radius $rad
 sub collide {
-   my ($self, $pos, $rad) = @_;
+   my ($self, $pos, $rad, $rcoll, $rec) = @_;
+   my $orig_pos = $pos;
    $pos = -vector ($pos->x - $SIZE * int ($pos->x / $SIZE),
                    $pos->y - $SIZE * int ($pos->y / $SIZE),
                    $pos->z - $SIZE * int ($pos->z / $SIZE));
+   #d# warn "player global $orig_pos, local $pos\n";
+
+   if ($rec > 5) {
+      return ($orig_pos);
+   }
 
    # find the 6 adjacent blocks
    # and check:
@@ -198,25 +238,55 @@ sub collide {
    #   top of bottom
    #   and the interiors of the 4 adjacent blocks
 
-   # the "current" block
-   my $block_pos = vector (int $pos->x, int $pos->y, int $pos->z);
 
    my $map = $self->{map};
-   my ($cur, $top, $bot, $left, $right, $front, $back)
-      = _neighbours ($map, $pos->array);
+#   my ($cur, $top, $bot, $left, $right, $front, $back)
+#      = _neighbours ($map, $pos->array);
 
- #  warn "check collision $pos $rad\n";
-   if ($bot->[2] && $bot->[0] eq 'X') {
-      my ($n, $d) = plane (
-         $block_pos, $block_pos + vector (1, 0, 1), $block_pos + vector (1, 0, 0)
-      );
-      my $dist = ($pos - $block_pos) . $n;
-      warn "DIST FROM PLANE $dist $rad\n";
-      if ($dist < $rad) {
-         return vector (0, -1, 0) * ($rad - $dist);
+   # the "current" block
+   my $my_box = vector (int $pos->x, int $pos->y, int $pos->z);
+
+   for my $x (-1..1) {
+      for my $y (-1..1) {
+         for my $z (-1..1) {
+            my $cur_box = $my_box + vector ($x, $y, $z);
+            next unless _is_solid_box ($map, $cur_box);
+            my ($dv, $ipt) = _collide_box ($cur_box, $pos);
+            #d#warn "solid box at $cur_box, dist vec $dv |"
+            #d#     . (sprintf "%9.4f", $dv->length)
+            #d#     . "|, coll point $ipt\n";
+            if ($dv->length == 0) { # ouch, directly in the side?
+               $dv = vector (0, 0.1, 0); # shoot him up :->
+            }
+            if ($dv->length < $rad) {
+               my $back_dist = ($rad - $dv->length) + 0.00001;
+               my $new_pos = $orig_pos - ($dv->norm * $back_dist);
+               $$rcoll = 1;
+               return $self->collide ($new_pos, $rad, $rcoll, $rec + 1);
+            }
+         }
       }
-      warn "POS COLLIDE $dist | $pos | $n\n";
    }
+
+   return ($orig_pos);
+#   my $block_pos = vector (int $pos->x, int $pos->y, int $pos->z);
+#
+#   my $map = $self->{map};
+#   my ($cur, $top, $bot, $left, $right, $front, $back)
+#      = _neighbours ($map, $pos->array);
+#
+# #  warn "check collision $pos $rad\n";
+#   if ($bot->[2] && $bot->[0] eq 'X') {
+#      my ($n, $d) = plane (
+#         $block_pos, $block_pos + vector (1, 0, 1), $block_pos + vector (1, 0, 0)
+#      );
+#      my $dist = ($pos - $block_pos) . $n;
+#      warn "DIST FROM PLANE $dist $rad\n";
+#      if ($dist < $rad) {
+#         return vector (0, -1, 0) * ($rad - $dist);
+#      }
+#      warn "POS COLLIDE $dist | $pos | $n\n";
+#   }
 #   my $map = $self->{map};
 #   for (my $x = 0; $x < $SIZE; $x++) {
 #      for (my $y = 0; $y < $SIZE; $y++) {

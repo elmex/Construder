@@ -99,6 +99,7 @@ sub load_texture {
 
 sub init_physics {
    my ($self) = @_;
+
    $self->{phys_obj}->{player} = {
       pos => vector (-10, -40, -10),#-25, -50, -25),
       vel => vector (0, 0, 0),
@@ -223,7 +224,7 @@ sub render_scene {
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity;
-   gluPerspective (75, $WIDTH / $HEIGHT, 0.3, 60);
+   gluPerspective (75, $WIDTH / $HEIGHT, 0.1, 60);
 
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity;
@@ -306,18 +307,23 @@ sub physics_tick : event_cb {
    my $player = $self->{phys_obj}->{player};
    $player->{vel} += $gforce;
 
+   my $prev_pos = $player->{pos}->clone;
    $player->{pos} += $player->{vel};
+
+   my $movement = vector (0, 0, 0);
+   $movement += $self->{movement}->{straight} * 0.1 if defined $self->{movement}->{straight};
+   $movement += $self->{movement}->{strafe} * 0.1 if defined $self->{movement}->{strafe};
+   $player->{pos} += $movement;
+
    my $chunk = $self->get_chunk ($player->{pos});
    if ($chunk) {
-      my ($dvec) = $chunk->collide ($player->{pos}, 1);
-      if (defined $dvec) {
-         $player->{pos} += $dvec;
-         warn "delta collision $dvec\n";
+      my $collided = 0;
+      my ($pos) = $chunk->collide ($player->{pos}, 0.3, \$collided);
+      if ($collided) {
+         $player->{pos} = $pos;
          $player->{vel} = vector (0, 0, 0);
       }
    }
-
-   # collide!
 }
 
 sub change_look_lock : event_cb {
@@ -337,6 +343,14 @@ sub change_look_lock : event_cb {
 }
 
 sub input_key_up : event_cb {
+   my ($self, $key, $name) = @_;
+
+   if (grep { $name eq $_ } qw/s w/) {
+      delete $self->{movement}->{straight};
+   } elsif (grep { $name eq $_ } qw/a d/) {
+      delete $self->{movement}->{strafe};
+   }
+
 }
 sub input_key_down : event_cb {
    my ($self, $key, $name) = @_;
@@ -375,13 +389,13 @@ sub input_key_down : event_cb {
       if ($xdir) {
          $xd =  sin (deg2rad ($self->{yrotate}));# - 180));
          $yd = -cos (deg2rad ($self->{yrotate}));# - 180));
+         $self->{movement}->{straight} = vector(($xd * $xdir), 0, ($yd * $xdir));
       } else {
          $xdir = $ydir;
          $xd =  sin (deg2rad ($self->{yrotate} + 90));# - 180));
          $yd = -cos (deg2rad ($self->{yrotate} + 90));# - 180));
+         $self->{movement}->{strafe} = vector(($xd * $xdir), 0, ($yd * $xdir));
       }
-
-      $self->{phys_obj}->{player}->{pos} += vector(($xd * $xdir) * 2.5, 0, ($yd * $xdir) * 2.5);
    }
    $self->{change} = 1;
 }

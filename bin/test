@@ -1,4 +1,6 @@
 #!/opt/perl/bin/perl
+use Math::VectorReal;
+$Math::VectorReal::FORMAT = "[ %9.4f, %9.4f, %9.4f ]";
 use common::sense;
 use Games::Blockminer::Client;
 srand ($ARGV[0] || 10);
