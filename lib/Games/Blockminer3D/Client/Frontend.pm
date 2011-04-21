@@ -317,11 +317,15 @@ sub physics_tick : event_cb {
 
    my $chunk = $self->get_chunk ($player->{pos});
    if ($chunk) {
-      my $collided = 0;
-      my ($pos) = $chunk->collide ($player->{pos}, 0.3, \$collided);
+      my $collided;
+      my ($pos, $coll_norm) = $chunk->collide ($player->{pos}, 0.3, \$collided);
+      warn "collide $pos | $coll_norm | vel $player->{vel}\n";
       if ($collided) {
+         my $down_part = 1 - ($collided->norm . $player->{vel});
+         warn "down part $collided => $down_part\n";
+         $player->{vel} *= $down_part; #vector (0, $down_part, 0);
          $player->{pos} = $pos;
-         $player->{vel} = vector (0, 0, 0);
+ #        $player->{vel} = vector (0, 0, 0);
       }
    }
 }

@@ -261,7 +261,11 @@ sub collide {
             if ($dv->length < $rad) {
                my $back_dist = ($rad - $dv->length) + 0.00001;
                my $new_pos = $orig_pos - ($dv->norm * $back_dist);
-               $$rcoll = 1;
+               if ($$rcoll) {
+                  $$rcoll += $dv;
+               } else {
+                  $$rcoll = $dv;
+               }
                return $self->collide ($new_pos, $rad, $rcoll, $rec + 1);
             }
          }
