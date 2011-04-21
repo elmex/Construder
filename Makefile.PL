@@ -3,11 +3,11 @@ use warnings;
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
-    NAME                => 'Games::Blockminer',
+    NAME                => 'Games::Blockminer3D',
     AUTHOR              => 'Robin Redeker <elmex@ta-sa.org>',
     LICENSE             => 'perl',
-    VERSION_FROM        => 'lib/Games/Blockminer.pm',
-    ABSTRACT_FROM       => 'lib/Games/Blockminer.pm',
+    VERSION_FROM        => 'lib/Games/Blockminer3D.pm',
+    ABSTRACT_FROM       => 'lib/Games/Blockminer3D.pm',
     PL_FILES            => {},
     test                => { TESTS => "t/*.t t/methds/*.t" },
     PREREQ_PM => {
@@ -18,7 +18,7 @@ WriteMakefile(
     dist                => {
        COMPRESS => 'gzip -9f',
        SUFFIX   => 'gz',
-       PREOP => 'pod2text lib/Games/Blockminer.pm | tee README >$(DISTVNAME)/README; chmod -R u=rwX,go=rX . ;',
+       PREOP => 'pod2text lib/Games/Blockminer3D.pm | tee README >$(DISTVNAME)/README; chmod -R u=rwX,go=rX . ;',
     },
-    clean               => { FILES => 'Games-Blockminer' },
+    clean               => { FILES => 'Games-Blockminer3D' },
 );

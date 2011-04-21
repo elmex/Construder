@@ -1,9 +1,9 @@
-package Games::Blockminer;
+package Games::Blockminer3D;
 use common::sense;
 
 =head1 NAME
 
-Games::Blockminer - desc
+Games::Blockminer3D - desc
 
 =head1 SYNOPSIS
 
@@ -13,7 +13,7 @@ Games::Blockminer - desc
 
 =over 4
 
-=item my $obj = Games::Blockminer->new (%args)
+=item my $obj = Games::Blockminer3D->new (%args)
 
 =cut
 

@@ -1,4 +1,4 @@
-package Games::Blockminer::Client::Frontend;
+package Games::Blockminer3D::Client::Frontend;
 use common::sense;
 use SDL;
 use SDLx::App;
@@ -18,7 +18,7 @@ use base qw/Object::Event/;
 
 =head1 NAME
 
-Games::Blockminer::Client::Frontend - desc
+Games::Blockminer3D::Client::Frontend - desc
 
 =head1 SYNOPSIS
 
@@ -28,7 +28,7 @@ Games::Blockminer::Client::Frontend - desc
 
 =over 4
 
-=item my $obj = Games::Blockminer::Client::Frontend->new (%args)
+=item my $obj = Games::Blockminer3D::Client::Frontend->new (%args)
 
 =cut
 
@@ -52,9 +52,9 @@ sub set_chunk {
    my ($self, $pos, $chunk) = @_;
    warn "set chunk: $pos $chunk\n";
    my ($x, $y, $z) = (
-      int ($pos->x / $Games::Blockminer::Client::MapChunk::SIZE),
-      int ($pos->y / $Games::Blockminer::Client::MapChunk::SIZE),
-      int ($pos->z / $Games::Blockminer::Client::MapChunk::SIZE),
+      int ($pos->x / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      int ($pos->y / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      int ($pos->z / $Games::Blockminer3D::Client::MapChunk::SIZE),
    );
    $self->{chunks}->[$x]->[$y]->[$z] = $chunk;
    $self->compile_scene;
@@ -63,9 +63,9 @@ sub set_chunk {
 sub get_chunk {
    my ($self, $pos) = @_;
    my ($x, $y, $z) = (
-      int ($pos->x / $Games::Blockminer::Client::MapChunk::SIZE),
-      int ($pos->y / $Games::Blockminer::Client::MapChunk::SIZE),
-      int ($pos->z / $Games::Blockminer::Client::MapChunk::SIZE),
+      int ($pos->x / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      int ($pos->y / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      int ($pos->z / $Games::Blockminer3D::Client::MapChunk::SIZE),
    );
    return undef if $x < 0 || $y < 0 || $z < 0; # FIXME: make 8 quadrants chunk collections
    $self->{chunks}->[$x]->[$y]->[$z]
@@ -109,7 +109,7 @@ sub init_physics {
 sub init_app {
    my ($self) = @_;
    $self->{app} = SDLx::App->new (
-      title => "Blockminer 0.01alpha", width => $WIDTH, height => $HEIGHT, gl => 1);
+      title => "Blockminer3D 0.01alpha", width => $WIDTH, height => $HEIGHT, gl => 1);
    $self->{sdl_event} = SDL::Event->new;
 
    glDepthFunc(GL_LESS);
@@ -199,9 +199,9 @@ sub compile_scene {
          my $chnk = $self->get_chunk (vector (0, 0, 0));
          $chnk = $chnk->{map};
          warn "compile map: $chnk\n";
-         for (my $x = 0; $x < $Games::Blockminer::Client::MapChunk::SIZE; $x++) {
-            for (my $y = 0; $y < $Games::Blockminer::Client::MapChunk::SIZE; $y++) {
-               for (my $z = 0; $z < $Games::Blockminer::Client::MapChunk::SIZE; $z++) {
+         for (my $x = 0; $x < $Games::Blockminer3D::Client::MapChunk::SIZE; $x++) {
+            for (my $y = 0; $y < $Games::Blockminer3D::Client::MapChunk::SIZE; $y++) {
+               for (my $z = 0; $z < $Games::Blockminer3D::Client::MapChunk::SIZE; $z++) {
                   my $c = $chnk->[$x]->[$y]->[$z];
                   if ($c->[2] && $c->[0] eq 'X') {
                      _render_quad ($x, $y, $z, ((1 / 20) * $c->[1]) + 0.1);

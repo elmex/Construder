@@ -1,13 +1,13 @@
-package Games::Blockminer::Client;
+package Games::Blockminer3D::Client;
 use common::sense;
-use Games::Blockminer::Client::Frontend;
-use Games::Blockminer::Client::MapChunk;
+use Games::Blockminer3D::Client::Frontend;
+use Games::Blockminer3D::Client::MapChunk;
 use AnyEvent;
 use Math::VectorReal;
 
 =head1 NAME
 
-Games::Blockminer::Client - desc
+Games::Blockminer3D::Client - desc
 
 =head1 SYNOPSIS
 
@@ -17,7 +17,7 @@ Games::Blockminer::Client - desc
 
 =over 4
 
-=item my $obj = Games::Blockminer::Client->new (%args)
+=item my $obj = Games::Blockminer3D::Client->new (%args)
 
 =cut
 
@@ -27,9 +27,9 @@ sub new {
    my $self  = { @_ };
    bless $self, $class;
 
-   $self->{front} = Games::Blockminer::Client::Frontend->new;
+   $self->{front} = Games::Blockminer3D::Client::Frontend->new;
 
-   my $chnk = Games::Blockminer::Client::MapChunk->new;
+   my $chnk = Games::Blockminer3D::Client::MapChunk->new;
    $chnk->random_fill;
 
    $self->{front}->set_chunk (vector (0, 0, 0), $chnk);

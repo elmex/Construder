@@ -1,22 +1,22 @@
-package Games::Blockminer::Client::MapChunk;
+package Games::Blockminer3D::Client::MapChunk;
 use common::sense;
 use Math::VectorReal;
 
 =head1 NAME
 
-Games::Blockminer::Client::MapChunk - desc
+Games::Blockminer3D::Client::MapChunk - desc
 
 =head1 SYNOPSIS
 
 =head1 DESCRIPTION
 
-A chunk of the Blockminer world.
+A chunk of the Blockminer3D world.
 
 =head1 METHODS
 
 =over 4
 
-=item my $obj = Games::Blockminer::Client::MapChunk->new (%args)
+=item my $obj = Games::Blockminer3D::Client::MapChunk->new (%args)
 
 =cut
 
