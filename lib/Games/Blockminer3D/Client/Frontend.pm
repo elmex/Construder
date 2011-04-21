@@ -318,11 +318,12 @@ sub physics_tick : event_cb {
    my $chunk = $self->get_chunk ($player->{pos});
    if ($chunk) {
       my $collided;
-      my ($pos, $coll_norm) = $chunk->collide ($player->{pos}, 0.3, \$collided);
+      my ($pos, $coll_norm) = $chunk->collide ($player->{pos}, 0.2, \$collided);
       warn "collide $pos | $coll_norm | vel $player->{vel}\n";
       if ($collided) {
-         my $down_part = 1 - ($collided->norm . $player->{vel});
-         warn "down part $collided => $down_part\n";
+         # TODO: specialcase upward velocity, they should not speed up on horiz. corners
+         my $down_part = 1 - abs ($collided->norm . $player->{vel});
+         warn "down part $collided => $down_part * $player->{vel}\n";
          $player->{vel} *= $down_part; #vector (0, $down_part, 0);
          $player->{pos} = $pos;
  #        $player->{vel} = vector (0, 0, 0);
