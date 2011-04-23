@@ -181,13 +181,18 @@ sub _closest_pt_point_aabb {
    my @box_min = $box_min->array;
    my @box_max = $box_max->array;
    my @out;
+   my @normal = (0, 0, 0);
    for (0..2) {
       my $pv = $pt[$_];
-      $pv = $box_min[$_] if $pv < $box_min[$_];
-      $pv = $box_max[$_] if $pv > $box_max[$_];
+      if ($pv < $box_min[$_]) {
+         $pv = $box_min[$_];
+      }
+      if ($pv > $box_max[$_]) {
+         $pv = $box_max[$_];
+      }
       push @out, $pv;
    }
-   vector (@out)
+   (vector (@out), vector (@normal))
 }
 
 #sub _sqdist_pt_aabb {
@@ -208,9 +213,10 @@ sub _closest_pt_point_aabb {
 sub _collide_box {
    my ($box, $pos) = @_;
    my $max = $box + vector (1, 1, 1);
-   my $abpt = _closest_pt_point_aabb ($pos, $box, $max);
+   my ($abpt, $norm) = _closest_pt_point_aabb ($pos, $box, $max);
    my $dv = $pos - $abpt;
-   return ($dv, $abpt)
+   #d#warn "aabb: $pos, $abpt, $dv\n";
+   return ($dv, $abpt, $norm)
 }
 
 sub _is_solid_box {
@@ -223,9 +229,9 @@ sub _is_solid_box {
 sub collide {
    my ($self, $pos, $rad, $rcoll, $rec) = @_;
    my $orig_pos = $pos;
-   $pos = -vector ($pos->x - $SIZE * int ($pos->x / $SIZE),
-                   $pos->y - $SIZE * int ($pos->y / $SIZE),
-                   $pos->z - $SIZE * int ($pos->z / $SIZE));
+   $pos = vector ($pos->x - $SIZE * int ($pos->x / $SIZE),
+                  $pos->y - $SIZE * int ($pos->y / $SIZE),
+                  $pos->z - $SIZE * int ($pos->z / $SIZE));
    #d# warn "player global $orig_pos, local $pos\n";
 
    if ($rec > 5) {
@@ -251,21 +257,24 @@ sub collide {
          for my $z (-1..1) {
             my $cur_box = $my_box + vector ($x, $y, $z);
             next unless _is_solid_box ($map, $cur_box);
-            my ($dv, $ipt) = _collide_box ($cur_box, $pos);
-            #d#warn "solid box at $cur_box, dist vec $dv |"
-            #d#     . (sprintf "%9.4f", $dv->length)
-            #d#     . "|, coll point $ipt\n";
+            my ($dv, $ipt, $dn) = _collide_box ($cur_box, $pos);
+            warn "solid box at $cur_box, dist vec $dv |"
+                 . (sprintf "%9.4f", $dv->length)
+                 . "|, coll point $ipt, normal $dn\n";
             if ($dv->length == 0) { # ouch, directly in the side?
-               $dv = vector (0, 0.1, 0); # shoot him up :->
+               $$rcoll = vector (0, 0, 0);
+               warn "player landed directly on the surface\n";
+               return ($orig_pos);
             }
             if ($dv->length < $rad) {
                my $back_dist = ($rad - $dv->length) + 0.00001;
-               my $new_pos = $orig_pos - ($dv->norm * $back_dist);
+               my $new_pos = $orig_pos + ($dv->norm * $back_dist);
                if ($$rcoll) {
                   $$rcoll += $dv;
                } else {
                   $$rcoll = $dv;
                }
+               warn "recollide pos $new_pos, vector $$rcoll\n";
                return $self->collide ($new_pos, $rad, $rcoll, $rec + 1);
             }
          }

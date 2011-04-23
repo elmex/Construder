@@ -101,7 +101,7 @@ sub init_physics {
    my ($self) = @_;
 
    $self->{phys_obj}->{player} = {
-      pos => vector (-10, -40, -10),#-25, -50, -25),
+      pos => vector (8.5, 21.5, 18.5),#-25, -50, -25),
       vel => vector (0, 0, 0),
    };
 }
@@ -231,7 +231,7 @@ sub render_scene {
    # move and rotate the world:
    glRotatef ($self->{xrotate}, 1, 0, 0);
    glRotatef ($self->{yrotate}, 0, 1, 0);
-   glTranslatef ($self->{phys_obj}->{player}->{pos}->array);
+   glTranslatef ((-1 * $self->{phys_obj}->{player}->{pos})->array);
 
    glBindTexture (GL_TEXTURE_2D, 0);
    glBegin (GL_LINES);
@@ -302,7 +302,7 @@ sub setup_event_poller {
 sub physics_tick : event_cb {
    my ($self, $dt) = @_;
 
-   my $gforce = vector (0, 0.01, 0);
+   my $gforce = vector (0, -0.01, 0);
 
    my $player = $self->{phys_obj}->{player};
    $player->{vel} += $gforce;
@@ -318,12 +318,21 @@ sub physics_tick : event_cb {
    my $chunk = $self->get_chunk ($player->{pos});
    if ($chunk) {
       my $collided;
-      my ($pos, $coll_norm) = $chunk->collide ($player->{pos}, 0.2, \$collided);
-      warn "collide $pos | $coll_norm | vel $player->{vel}\n";
+      warn "check player at $player->{pos}\n";
+      my ($pos) = $chunk->collide ($player->{pos}, 0.2, \$collided);
+      warn "collide $pos | $collided | vel $player->{vel}\n";
       if ($collided) {
          # TODO: specialcase upward velocity, they should not speed up on horiz. corners
-         my $down_part = 1 - abs ($collided->norm . $player->{vel});
-         warn "down part $collided => $down_part * $player->{vel}\n";
+         my $vn = $player->{vel}->norm;
+         my $down_part;
+         if ($collided->length == 0) {
+            warn "collidedd vector == 0, set vel = 0\n";
+            $down_part = 0;
+         } else {
+            my $cn = $collided->norm;
+            $down_part = 1 - abs ($cn . $vn);
+            warn "down part $cn . $vn => $down_part * $player->{vel}\n";
+         }
          $player->{vel} *= $down_part; #vector (0, $down_part, 0);
          $player->{pos} = $pos;
  #        $player->{vel} = vector (0, 0, 0);
@@ -371,9 +380,9 @@ sub input_key_down : event_cb {
    #    /    |    \
    #-135 -180/180  135
    if ($name eq 'space') {
-      $self->{phys_obj}->{player}->{vel} += vector (0, -0.2, 0);
+      $self->{phys_obj}->{player}->{vel} += vector (0, 0.2, 0);
    } elsif ($name eq 'return') {
-      $self->{phys_obj}->{player}->{vel} += vector (0, 0.5, 0);
+      $self->{phys_obj}->{player}->{vel} += vector (0, -0.5, 0);
    } elsif ($name eq 'y') {
       $self->{phys_obj}->{player}->{pos} += vector (0, -0.2, 0);
    } elsif ($name eq 'x') {
@@ -382,11 +391,11 @@ sub input_key_down : event_cb {
       $self->change_look_lock (not $self->{look_lock});
    } elsif (grep { $name eq $_ } qw/a s d w/) {
       my ($xdir, $ydir) = (
-         $name eq 'w'        ? -1
-         : ($name eq 's'     ?  1
+         $name eq 'w'        ?  1
+         : ($name eq 's'     ? -1
                              :  0),
-         $name eq 'a'        ?  1
-         : ($name eq 'd'     ? -1
+         $name eq 'a'        ? -1
+         : ($name eq 'd'     ?  1
                              :  0),
       );
 
