@@ -315,9 +315,9 @@ sub physics_tick : event_cb {
    warn "DT: $dt => $player->{vel}\n";
 
    my $prev_pos = $player->{pos}->clone;
-   if (($player->{vel}->length * $dt) > 0.2) {
+   if (($player->{vel}->length * $dt) > 0.3) {
       $player->{vel} = $player->{vel}->norm;
-      $player->{vel} *= 0.18 / $dt;
+      $player->{vel} *= 0.28 / $dt;
    }
    $player->{pos} += $player->{vel} * $dt;
 
@@ -332,7 +332,7 @@ sub physics_tick : event_cb {
    if ($chunk) {
       my $collided;
       warn "check player at $player->{pos}\n";
-      my ($pos) = $chunk->collide ($player->{pos}, 0.2, \$collided);
+      my ($pos) = $chunk->collide ($player->{pos}, 0.3, \$collided);
       warn "collide $pos | $collided | vel $player->{vel}\n";
       if ($collided) {
          # TODO: specialcase upward velocity, they should not speed up on horiz. corners
