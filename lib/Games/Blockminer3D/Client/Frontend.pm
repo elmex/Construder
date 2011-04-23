@@ -11,7 +11,7 @@ use OpenGL qw(:all);
 use OpenGL::List;
 use AnyEvent;
 use Math::Trig qw/deg2rad rad2deg pi/;
-use Time::HiRes qw/gettimeofday tv_interval/;
+use Time::HiRes qw/time/;
 use Math::VectorReal;
 
 use base qw/Object::Event/;
@@ -262,13 +262,19 @@ sub setup_event_poller {
    my ($self) = @_;
 
    my $sdle = $self->{sdl_event};
-   my $ltime = [gettimeofday];
+   my $ltime;
+   my $accum_time = 0;
+   my $dt = 1 / 40;
    $self->{poll_w} = AE::timer 0, 0.005, sub {
-      my $ctime = [gettimeofday];
-      my $dt = tv_interval ($ltime, $ctime);
+      $ltime = time - 0.02 if not defined $ltime;
+      my $ctime = time;
+      $accum_time += time - $ltime;
       $ltime = $ctime;
 
-      $self->physics_tick ($dt);
+      while ($accum_time > $dt) {
+         $self->physics_tick ($dt);
+         $accum_time -= $dt;
+      }
 
       SDL::Events::pump_events();
 
@@ -302,18 +308,25 @@ sub setup_event_poller {
 sub physics_tick : event_cb {
    my ($self, $dt) = @_;
 
-   my $gforce = vector (0, -0.01, 0);
+   my $gforce = vector (0, -9.4, 0);
 
    my $player = $self->{phys_obj}->{player};
-   $player->{vel} += $gforce;
+   $player->{vel} += $gforce * $dt;
+   warn "DT: $dt => $player->{vel}\n";
 
    my $prev_pos = $player->{pos}->clone;
-   $player->{pos} += $player->{vel};
+   if (($player->{vel}->length * $dt) > 0.2) {
+      $player->{vel} = $player->{vel}->norm;
+      $player->{vel} *= 0.18 / $dt;
+   }
+   $player->{pos} += $player->{vel} * $dt;
 
    my $movement = vector (0, 0, 0);
-   $movement += $self->{movement}->{straight} * 0.1 if defined $self->{movement}->{straight};
-   $movement += $self->{movement}->{strafe} * 0.1 if defined $self->{movement}->{strafe};
-   $player->{pos} += $movement;
+   $movement += $self->{movement}->{straight}
+      if defined $self->{movement}->{straight};
+   $movement += $self->{movement}->{strafe}
+      if defined $self->{movement}->{strafe};
+   $player->{pos} += $movement * $dt;
 
    my $chunk = $self->get_chunk ($player->{pos});
    if ($chunk) {
@@ -380,7 +393,7 @@ sub input_key_down : event_cb {
    #    /    |    \
    #-135 -180/180  135
    if ($name eq 'space') {
-      $self->{phys_obj}->{player}->{vel} += vector (0, 0.2, 0);
+      $self->{phys_obj}->{player}->{vel} += vector (0, 9, 0);
    } elsif ($name eq 'return') {
       $self->{phys_obj}->{player}->{vel} += vector (0, -0.5, 0);
    } elsif ($name eq 'y') {
