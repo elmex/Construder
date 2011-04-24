@@ -84,8 +84,8 @@ sub init_app {
    glFogfv_p (GL_FOG_COLOR, 0.5, 0.5, 0.5, 1);
    glFogf (GL_FOG_DENSITY, 0.35);
    glHint (GL_FOG_HINT, GL_DONT_CARE);
-   glFogf (GL_FOG_START, 40);
-   glFogf (GL_FOG_END,   80);
+   glFogf (GL_FOG_START, 10);
+   glFogf (GL_FOG_END,   20);
 
    glGenTextures_p(1);
 
@@ -171,17 +171,28 @@ sub _render_quad {
    }
 }
 
-sub compile_scene {
-   my ($self) = @_;
+sub compile_chunk {
+   my ($self, $cx, $cy, $cz) = @_;
 
-   warn "compiling...\n";
-   $self->{scene} = OpenGL::List::glpList {
+   #d#warn "compiling... $cx, $cy, $cz\n";
+   $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} = OpenGL::List::glpList {
       glPushMatrix;
       glBegin (GL_QUADS);
 
-      my @quads = Games::Blockminer3D::Client::World::visible_quads (
-         $self->{phys_obj}->{player}->{pos}->array
-      );
+      my $chnk = Games::Blockminer3D::Client::World::get_chunk ($cx, $cy, $cz);
+      my @quads = map {
+         [
+            [
+               $_->[0]->[0] + ($cx * $Games::Blockminer3D::Client::MapChunk::SIZE),
+               $_->[0]->[1] + ($cy * $Games::Blockminer3D::Client::MapChunk::SIZE),
+               $_->[0]->[2] + ($cz * $Games::Blockminer3D::Client::MapChunk::SIZE),
+            ],
+            $_->[1],
+            $_->[2],
+            $_->[3],
+         ]
+      } $chnk->visible_quads;
+      warn "[" . (scalar @quads) . "] quads\n";
 
       my $current_texture;
 
@@ -190,9 +201,8 @@ sub compile_scene {
          my ($pos, $faces, $light, $tex) = @$_;
          my $tex_nr = $self->{textures}->{$tex};
          if ($current_texture != $tex_nr) {
-            warn "CHANGE TEX\n";
             glEnd;
-            glBindTexture (GL_TEXTURE_2D, 1);
+            glBindTexture (GL_TEXTURE_2D, $tex_nr);
             glBegin (GL_QUADS);
             $current_texture = $tex_nr;
          }
@@ -215,46 +225,63 @@ sub compile_scene {
       glPopMatrix;
 
    };
-   warn "done!\n";
 }
 
 sub render_scene {
    my ($self) = @_;
 
+   my $cc = $self->{compiled_chunks};
+   my $pp =  $self->{phys_obj}->{player}->{pos};
+   my ($chunk_x, $chunk_y, $chunk_z) = (
+      int ($pp->x / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      int ($pp->y / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      int ($pp->z / $Games::Blockminer3D::Client::MapChunk::SIZE),
+   );
+
    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity;
-   gluPerspective (75, $WIDTH / $HEIGHT, 0.1, 60);
+   gluPerspective (75, $WIDTH / $HEIGHT, 0.1, 20);
 
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity;
    # move and rotate the world:
    glRotatef ($self->{xrotate}, 1, 0, 0);
    glRotatef ($self->{yrotate}, 0, 1, 0);
-   glTranslatef ((-1 * $self->{phys_obj}->{player}->{pos})->array);
+   glTranslatef ((-1 * $pp)->array);
 
-   glBindTexture (GL_TEXTURE_2D, 0);
-   glBegin (GL_LINES);
-   glColor3d (1, 0, 0);
-   glVertex3d(0, 0, 0);
-   glVertex3d(5, 0, 0);
+   # coordinate system
+   #d#glBindTexture (GL_TEXTURE_2D, 0);
+   #d#glBegin (GL_LINES);
+   #d#glColor3d (1, 0, 0);
+   #d#glVertex3d(0, 0, 0);
+   #d#glVertex3d(5, 0, 0);
 
-   glColor4d (0.2, 1, 0.2, 1);
-   glVertex3d(0, 0, 0);
-   glVertex3d(0, 5, 0);
+   #d#glColor4d (0.2, 1, 0.2, 1);
+   #d#glVertex3d(0, 0, 0);
+   #d#glVertex3d(0, 5, 0);
 
-   glColor4d (0.2, 0.2, 1, 1);
-   glVertex3d(0, 0, 0);
-   glVertex3d(0, 0, 5);
-   glEnd;
+   #d#glColor4d (0.2, 0.2, 1, 1);
+   #d#glVertex3d(0, 0, 0);
+   #d#glVertex3d(0, 0, 5);
+   #d#glEnd;
 
-   glBindTexture (GL_TEXTURE_2D, 1);
-   glBegin (GL_QUADS);
-   _render_quad (0, 0, 0, 1);
-   glEnd;
+   #d## center quad
+   #d#glBindTexture (GL_TEXTURE_2D, 1);
+   #d#glBegin (GL_QUADS);
+   #d#_render_quad (0, 0, 0, 1);
+   #d#glEnd;
 
-   glCallList ($self->{scene});
+   for my $dx (-1..1) {
+      for my $dy (-1..1) {
+         for my $dz (-1..1) {
+            my ($x, $y, $z) = ($chunk_x + $dx, $chunk_y + $dy, $chunk_z + $dz);
+ #           warn "Call $x,$y,$z\n";
+            glCallList ($cc->{$x}->{$y}->{$z});
+         }
+      }
+   }
 
    $self->{app}->sync;
 }
@@ -264,9 +291,41 @@ sub setup_event_poller {
 
    my $sdle = $self->{sdl_event};
    my $ltime;
+
    my $accum_time = 0;
    my $dt = 1 / 40;
-   $self->{poll_w} = AE::timer 0, 0.005, sub {
+
+   my $fps;
+   $self->{fps_w} = AE::timer 0, 5, sub {
+      printf "%.5f FPS\n", $fps / 5;
+      $fps = 0;
+   };
+
+   $self->{compile_w} = AE::timer 0, 0.1, sub {
+      my $cc = $self->{compiled_chunks};
+      my $pp =  $self->{phys_obj}->{player}->{pos};
+      my ($chunk_x, $chunk_y, $chunk_z) = (
+         int ($pp->x / $Games::Blockminer3D::Client::MapChunk::SIZE),
+         int ($pp->y / $Games::Blockminer3D::Client::MapChunk::SIZE),
+         int ($pp->z / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      );
+
+      for my $dx (0, -1, 1) {
+         for my $dy (0, -1, 1) {
+            for my $dz (0, -1, 1) {
+               my ($x, $y, $z) = ($chunk_x + $dx, $chunk_y + $dy, $chunk_z + $dz);
+               #d# warn "check $x $y $z\n";
+               unless ($cc->{$x}->{$y}->{$z}) {
+                  $self->compile_chunk ($x, $y, $z);
+                  warn "compiled $x, $y, $z\n";
+                  return;
+               }
+            }
+         }
+      }
+   };
+
+   $self->{poll_w} = AE::timer 0, 0.024, sub {
       $ltime = time - 0.02 if not defined $ltime;
       my $ctime = time;
       $accum_time += time - $ltime;
@@ -286,10 +345,13 @@ sub setup_event_poller {
          if ($type == 4) {
             $self->input_mouse_motion ($sdle->motion_x, $sdle->motion_y,
                                        $sdle->motion_xrel, $sdle->motion_yrel);
+
          } elsif ($type == 2) {
             $self->input_key_down ($key, SDL::Events::get_key_name ($key));
+
          } elsif ($type == 3) {
             $self->input_key_up ($key, SDL::Events::get_key_name ($key));
+
          } elsif ($type == 12) {
             warn "Exit event!\n";
             exit;
@@ -299,9 +361,11 @@ sub setup_event_poller {
       }
 
       if (delete $self->{change}) {
-         warn "player status: pos: $self->{phys_obj}->{player}->{pos}, rotx: $self->{xrotate}, roty: $self->{yrotate}\n";
+         warn "player status: pos: $self->{phys_obj}->{player}->{pos}, "
+              . "rotx: $self->{xrotate}, roty: $self->{yrotate}\n";
       }
-         $self->render_scene;
+      $self->render_scene;
+      $fps++;
       #}
    };
 }
@@ -309,11 +373,15 @@ sub setup_event_poller {
 sub physics_tick : event_cb {
    my ($self, $dt) = @_;
 
+ #  my $player = $self->{phys_obj}->{player};
+ #  my $f = Games::Blockminer3D::Client::World::get_pos ($player->{pos}->array);
+ #  warn "POS PLAYER $player->{pos}: ( @$f )\n";
+
    my $gforce = vector (0, -9.4, 0);
 
    my $player = $self->{phys_obj}->{player};
-  #d# $player->{vel} += $gforce * $dt;
-   warn "DT: $dt => $player->{vel}\n";
+   $player->{vel} += $gforce * $dt;
+ #  warn "DT: $dt => $player->{vel}\n";
 
    my $prev_pos = $player->{pos}->clone;
    if (($player->{vel}->length * $dt) > 0.3) {
@@ -329,29 +397,27 @@ sub physics_tick : event_cb {
       if defined $self->{movement}->{strafe};
    $player->{pos} += $movement * $dt;
 
-  # my $chunk = $self->get_chunk ($player->{pos});
-  # if ($chunk) {
-  #    my $collided;
-  #    warn "check player at $player->{pos}\n";
+  my $collided;
+  warn "check player at $player->{pos}\n";
   #    my ($pos) = $chunk->collide ($player->{pos}, 0.3, \$collided);
-  #    warn "collide $pos | $collided | vel $player->{vel}\n";
-  #    if ($collided) {
-  #       # TODO: specialcase upward velocity, they should not speed up on horiz. corners
-  #       my $vn = $player->{vel}->norm;
-  #       my $down_part;
-  #       if ($collided->length == 0) {
-  #          warn "collidedd vector == 0, set vel = 0\n";
-  #          $down_part = 0;
-  #       } else {
-  #          my $cn = $collided->norm;
-  #          $down_part = 1 - abs ($cn . $vn);
-  #          warn "down part $cn . $vn => $down_part * $player->{vel}\n";
-  #       }
-  #       $player->{vel} *= $down_part; #vector (0, $down_part, 0);
-  #       $player->{pos} = $pos;
- ##        $player->{vel} = vector (0, 0, 0);
-  #    }
-  # }
+  my ($pos) = Games::Blockminer3D::Client::World::collide ($player->{pos}, 0.3, \$collided);
+  warn "collide $pos | $collided | vel $player->{vel}\n";
+  if ($collided) {
+     # TODO: specialcase upward velocity, they should not speed up on horiz. corners
+     my $vn = $player->{vel}->norm;
+     my $down_part;
+     if ($collided->length == 0) {
+        warn "collidedd vector == 0, set vel = 0\n";
+        $down_part = 0;
+     } else {
+        my $cn = $collided->norm;
+        $down_part = 1 - abs ($cn . $vn);
+        warn "down part $cn . $vn => $down_part * $player->{vel}\n";
+     }
+     $player->{vel} *= $down_part; #vector (0, $down_part, 0);
+     $player->{pos} = $pos;
+ #    $player->{vel} = vector (0, 0, 0);
+  }
 }
 
 sub change_look_lock : event_cb {
@@ -377,6 +443,22 @@ sub input_key_up : event_cb {
       delete $self->{movement}->{straight};
    } elsif (grep { $name eq $_ } qw/a d/) {
       delete $self->{movement}->{strafe};
+   } elsif ($name eq 'p') {
+      my ($p) = $self->{phys_obj}->{player}->{pos} + vector (0, -1, 0);
+      my $bx = Games::Blockminer3D::Client::World::get_pos ($p->array);
+      $bx->[0] = 'X';
+      my $chnk = Games::Blockminer3D::Client::World::get_chunk ($p->array);
+      $chnk->chunk_changed;
+      $self->{compiled_chunks} = {};
+
+   } elsif ($name eq 'l') {
+      my ($p) = $self->{phys_obj}->{player}->{pos} + vector (0, -1, 0);
+      my $bx = Games::Blockminer3D::Client::World::get_pos ($p->array);
+      $bx->[0] = ' ';
+      my $chnk = Games::Blockminer3D::Client::World::get_chunk ($p->array);
+      $chnk->chunk_changed;
+      $self->{compiled_chunks} = {};
+
    } elsif ($name eq 'k') {
       $self->compile_scene;
    }
@@ -407,11 +489,11 @@ sub input_key_down : event_cb {
       $self->change_look_lock (not $self->{look_lock});
    } elsif (grep { $name eq $_ } qw/a s d w/) {
       my ($xdir, $ydir) = (
-         $name eq 'w'        ?  1
-         : ($name eq 's'     ? -1
+         $name eq 'w'        ?  2
+         : ($name eq 's'     ? -2
                              :  0),
-         $name eq 'a'        ? -1
-         : ($name eq 'd'     ?  1
+         $name eq 'a'        ? -2
+         : ($name eq 'd'     ?  2
                              :  0),
       );
 

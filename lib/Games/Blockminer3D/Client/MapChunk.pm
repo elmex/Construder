@@ -2,6 +2,8 @@ package Games::Blockminer3D::Client::MapChunk;
 use common::sense;
 use Math::VectorReal;
 
+use base qw/Object::Event/;
+
 =head1 NAME
 
 Games::Blockminer3D::Client::MapChunk - desc
@@ -20,7 +22,7 @@ A chunk of the Blockminer3D world.
 
 =cut
 
-our ($SIZE) = 18;
+our ($SIZE) = 12;
 
 sub new {
    my $this  = shift;
@@ -28,13 +30,15 @@ sub new {
    my $self  = { @_ };
    bless $self, $class;
 
+   $self->init_object_events;
+
    return $self
 }
 
 sub _map_get_if_exists {
    my ($map, $x, $y, $z) = @_;
-   return ["X", 0] if $x < 0     || $y < 0     || $z < 0;
-   return ["X", 0] if $x >= $SIZE || $y >= $SIZE || $z >= $SIZE;
+   return ["X", 20, 1] if $x < 0     || $y < 0     || $z < 0;
+   return ["X", 20, 1] if $x >= $SIZE || $y >= $SIZE || $z >= $SIZE;
    $map->[$x]->[$y]->[$z]
 }
 
@@ -61,10 +65,10 @@ sub cube_fill {
       for (my $y = 0; $y < $SIZE; $y++) {
          for (my $z = 0; $z < $SIZE; $z++) {
             my $t = 'X';
-            if ($z == 0 || $y == 0 || $z == 0
+            if ($x == 0 || $y == 0 || $z == 0
                 || ($z == ($SIZE - 1))
-                || ($z == ($SIZE - 1))
-                || ($z == ($SIZE - 1))
+                || ($x == ($SIZE - 1))
+                || ($y == ($SIZE - 1))
             ) {
                $map->[$x]->[$y]->[$z] = ['X', 20, 1];
             } else {
@@ -278,6 +282,11 @@ sub update_visibility {
 #      }
 #   }
 
+}
+
+sub chunk_changed : event_cb {
+   my ($self) = @_;
+   delete $self->{quads_cache};
 }
 
 =back
