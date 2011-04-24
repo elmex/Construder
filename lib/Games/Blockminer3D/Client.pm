@@ -2,6 +2,7 @@ package Games::Blockminer3D::Client;
 use common::sense;
 use Games::Blockminer3D::Client::Frontend;
 use Games::Blockminer3D::Client::MapChunk;
+use Games::Blockminer3D::Client::World;
 use AnyEvent;
 use Math::VectorReal;
 
@@ -32,8 +33,9 @@ sub new {
    my $chnk = Games::Blockminer3D::Client::MapChunk->new;
    $chnk->random_fill;
 
-   $self->{front}->set_chunk (vector (0, 0, 0), $chnk);
-   $self->{front}->change_look_lock (1);
+   Games::Blockminer3D::Client::World::set_chunk (0, 0, 0, $chnk);
+ #  $self->{front}->change_look_lock (1);
+   $self->{front}->compile_scene;
 
    return $self
 }

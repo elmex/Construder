@@ -20,7 +20,7 @@ A chunk of the Blockminer3D world.
 
 =cut
 
-our ($SIZE) = 35;
+our ($SIZE) = 18;
 
 sub new {
    my $this  = shift;
@@ -29,6 +29,13 @@ sub new {
    bless $self, $class;
 
    return $self
+}
+
+sub _map_get_if_exists {
+   my ($map, $x, $y, $z) = @_;
+   return ["X", 0] if $x < 0     || $y < 0     || $z < 0;
+   return ["X", 0] if $x >= $SIZE || $y >= $SIZE || $z >= $SIZE;
+   $map->[$x]->[$y]->[$z]
 }
 
 sub _neighbours {
@@ -40,11 +47,10 @@ sub _neighbours {
       _map_get_if_exists ($map, $x, $y - 1, $z),
       _map_get_if_exists ($map, $x - 1, $y, $z),
       _map_get_if_exists ($map, $x + 1, $y, $z),
-      _map_get_if_exists ($map, $x, $y,     $z + 1),
       _map_get_if_exists ($map, $x, $y,     $z - 1),
+      _map_get_if_exists ($map, $x, $y,     $z + 1),
    );
    @n
- #  my ($cur, $top, $bot, $left, $right, $front, $back) 
 }
 
 sub random_fill {
@@ -58,13 +64,14 @@ sub random_fill {
       for (my $y = 0; $y < $SIZE; $y++) {
          for (my $z = 0; $z < $SIZE; $z++) {
             my $t = 'X';
-            if (int (rand ($SIZE * $SIZE * $SIZE)) <= 100) {
+            if (int (rand ($SIZE * $SIZE * $SIZE)) <= 60) {
                warn "PUTHOLE $x $y $z\n";
                $t = ' ';
-            } elsif (int (rand ($SIZE * $SIZE * $SIZE)) <= 3) {
+            } elsif (int (rand ($SIZE * $SIZE * $SIZE)) <= 1) {
                warn "PUTLIGHT $x $y $z\n";
                push @lights, [$x, $y, $z];
             }
+            #                        content, light, visibility
             $map->[$x]->[$y]->[$z] = [$t, 0, 1];
          }
       }
@@ -72,7 +79,7 @@ sub random_fill {
 
    # erode:
    my $last_blk_cnt = 0;
-   for (1..4) {
+   for (1..3) {
       my $new_map = [];
       my $blk_cnt = 0;
       for (my $x = 0; $x < $SIZE; $x++) {
@@ -107,6 +114,7 @@ sub random_fill {
    }
 
 
+   my $visible;
    for (my $x = 0; $x < $SIZE; $x++) {
       for (my $y = 0; $y < $SIZE; $y++) {
          for (my $z = 0; $z < $SIZE; $z++) {
@@ -129,15 +137,17 @@ sub random_fill {
                $cur->[2] = 0;
             } else {
                $cur->[2] = 1;
+               $visible++;
             }
          }
       }
    }
+   warn "visible blocks $visible\n";
 
    for (@lights) {
       my ($x, $y, $z) = @$_;
       warn "LIGHT $x, $y, $z\n";
-      my $DIST = 20;
+      my $DIST = 5;
       for (my $xi = -$DIST; $xi <= $DIST; $xi++) {
          for (my $yi = -$DIST; $yi <= $DIST; $yi++) {
             for (my $zi = -$DIST; $zi <= $DIST; $zi++) {
@@ -175,147 +185,51 @@ sub _map_get_if_exists {
    $map->[$x]->[$y]->[$z]
 }
 
-sub _closest_pt_point_aabb {
-   my ($pt, $box_min, $box_max) = @_;
-   my @pt  = $pt->array;
-   my @box_min = $box_min->array;
-   my @box_max = $box_max->array;
-   my @out;
-   my @normal = (0, 0, 0);
-   for (0..2) {
-      my $pv = $pt[$_];
-      if ($pv < $box_min[$_]) {
-         $pv = $box_min[$_];
-      }
-      if ($pv > $box_max[$_]) {
-         $pv = $box_max[$_];
-      }
-      push @out, $pv;
-   }
-   (vector (@out), vector (@normal))
-}
-
-#sub _sqdist_pt_aabb {
-#   my ($pt, $box_min, $box_max) = @_;
-#   my @pt  = $pt->array;
-#   my @box_min = $box_min->array;
-#   my @box_max = $box_max->array;
-#   my $dist;
-#   for (0..2) {
-#      my $pv = $pt[$_];
-#      $pv = if $pv < $box_min[$_];
-#      $pv = if $pv > $box_max[$_];
-#      push @out, $pv;
-#   }
-#   vector (@out)
-#}
-
-sub _collide_box {
-   my ($box, $pos) = @_;
-   my $max = $box + vector (1, 1, 1);
-   my ($abpt, $norm) = _closest_pt_point_aabb ($pos, $box, $max);
-   my $dv = $pos - $abpt;
-   #d#warn "aabb: $pos, $abpt, $dv\n";
-   return ($dv, $abpt, $norm)
-}
-
-sub _is_solid_box {
-   my ($map, $box) = @_;
-   my $b = _map_get_if_exists ($map, $box->array);
-   $b->[2] && $b->[0] ne ' '
-}
-
-# collide sphere at $pos with radius $rad
-sub collide {
-   my ($self, $pos, $rad, $rcoll, $rec) = @_;
-   my $orig_pos = $pos;
-   $pos = vector ($pos->x - $SIZE * int ($pos->x / $SIZE),
-                  $pos->y - $SIZE * int ($pos->y / $SIZE),
-                  $pos->z - $SIZE * int ($pos->z / $SIZE));
-   #d# warn "player global $orig_pos, local $pos\n";
-
-   if ($rec > 5) {
-      return ($orig_pos);
-   }
-
-   # find the 6 adjacent blocks
-   # and check:
-   #   bottom of top
-   #   top of bottom
-   #   and the interiors of the 4 adjacent blocks
-
+sub visible_quads {
+   my ($self, $offs) = @_;
 
    my $map = $self->{map};
-#   my ($cur, $top, $bot, $left, $right, $front, $back)
-#      = _neighbours ($map, $pos->array);
 
-   # the "current" block
-   my $my_box = vector (int $pos->x, int $pos->y, int $pos->z);
+   my @quads;
+   for (my $x = 0; $x < $SIZE; $x++) {
+      for (my $y = 0; $y < $SIZE; $y++) {
+         for (my $z = 0; $z < $SIZE; $z++) {
+            my ($cur, $top, $bot, $left, $right, $front, $back)
+               = _neighbours ($map, $x, $y, $z);
+            next unless $cur->[2];
+            if ($cur->[0] eq 'X') {
+               my @faces;
 
-   for my $x (-1..1) {
-      for my $y (-1..1) {
-         for my $z (-1..1) {
-            my $cur_box = $my_box + vector ($x, $y, $z);
-            next unless _is_solid_box ($map, $cur_box);
-            my ($dv, $ipt, $dn) = _collide_box ($cur_box, $pos);
-            warn "solid box at $cur_box, dist vec $dv |"
-                 . (sprintf "%9.4f", $dv->length)
-                 . "|, coll point $ipt, normal $dn\n";
-            if ($dv->length == 0) { # ouch, directly in the side?
-               $$rcoll = vector (0, 0, 0);
-               warn "player landed directly on the surface\n";
-               return ($orig_pos);
-            }
-            if ($dv->length < $rad) {
-               my $back_dist = ($rad - $dv->length) + 0.00001;
-               my $new_pos = $orig_pos + ($dv->norm * $back_dist);
-               if ($$rcoll) {
-                  $$rcoll += $dv;
-               } else {
-                  $$rcoll = $dv;
+               if ($front->[2] && $front->[0] ne 'X') {
+                  push @faces, 0
                }
-               warn "recollide pos $new_pos, vector $$rcoll\n";
-               return $self->collide ($new_pos, $rad, $rcoll, $rec + 1);
+               if ($top->[2] && $top->[0] ne 'X') {
+                  push @faces, 1
+               }
+               if ($back->[2] && $back->[0] ne 'X') {
+                  push @faces, 2
+               }
+               if ($left->[2] && $left->[0] ne 'X') {
+                  push @faces, 3
+               }
+               if ($right->[2] && $right->[0] ne 'X') {
+                  push @faces, 4
+               }
+               if ($bot->[2] && $bot->[0] ne 'X') {
+                  push @faces, 5
+               }
+
+               push @quads, [
+                  [$x, $y, $z],
+                  \@faces,
+                  $cur->[1],
+                  $cur->[0] eq 'X' ? "filth.x11.32x32" : ""
+               ];
             }
          }
       }
    }
-
-   return ($orig_pos);
-#   my $block_pos = vector (int $pos->x, int $pos->y, int $pos->z);
-#
-#   my $map = $self->{map};
-#   my ($cur, $top, $bot, $left, $right, $front, $back)
-#      = _neighbours ($map, $pos->array);
-#
-# #  warn "check collision $pos $rad\n";
-#   if ($bot->[2] && $bot->[0] eq 'X') {
-#      my ($n, $d) = plane (
-#         $block_pos, $block_pos + vector (1, 0, 1), $block_pos + vector (1, 0, 0)
-#      );
-#      my $dist = ($pos - $block_pos) . $n;
-#      warn "DIST FROM PLANE $dist $rad\n";
-#      if ($dist < $rad) {
-#         return vector (0, -1, 0) * ($rad - $dist);
-#      }
-#      warn "POS COLLIDE $dist | $pos | $n\n";
-#   }
-#   my $map = $self->{map};
-#   for (my $x = 0; $x < $SIZE; $x++) {
-#      for (my $y = 0; $y < $SIZE; $y++) {
-#         for (my $z = 0; $z < $SIZE; $z++) {
-#            my $blok = $map->[$x]->[$y]->[$z];
-#            if ($blok->[0] eq 'X') {
-#               warn "CHECK $x $y $z..\n";
-#               my $d = _collide_quad (vector ($x, $y, $z), $pos, $rad);
-#               warn "COLLIDE $d\n";
-# #              return $d if $d;
-#            }
-#         }
-#      }
-#   }
-
-   undef
+   @quads
 }
 
 sub update_visibility {

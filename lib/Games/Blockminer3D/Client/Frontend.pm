@@ -14,6 +14,8 @@ use Math::Trig qw/deg2rad rad2deg pi/;
 use Time::HiRes qw/time/;
 use Math::VectorReal;
 
+use Games::Blockminer3D::Client::World;
+
 use base qw/Object::Event/;
 
 =head1 NAME
@@ -47,55 +49,6 @@ sub new {
 }
 
 my ($WIDTH, $HEIGHT) = (600, 400);
-
-sub set_chunk {
-   my ($self, $pos, $chunk) = @_;
-   warn "set chunk: $pos $chunk\n";
-   my ($x, $y, $z) = (
-      int ($pos->x / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      int ($pos->y / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      int ($pos->z / $Games::Blockminer3D::Client::MapChunk::SIZE),
-   );
-   $self->{chunks}->[$x]->[$y]->[$z] = $chunk;
-   $self->compile_scene;
-}
-
-sub get_chunk {
-   my ($self, $pos) = @_;
-   my ($x, $y, $z) = (
-      int ($pos->x / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      int ($pos->y / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      int ($pos->z / $Games::Blockminer3D::Client::MapChunk::SIZE),
-   );
-   return undef if $x < 0 || $y < 0 || $z < 0; # FIXME: make 8 quadrants chunk collections
-   $self->{chunks}->[$x]->[$y]->[$z]
-}
-
-sub _get_texfmt {
-   my ($surface) = @_;
-   my $ncol = $surface->format->BytesPerPixel;
-   my $rmsk = $surface->format->Rmask;
-   warn "NCOL $ncol\n";
-   ($ncol == 4 ? ($rmsk == 0x000000ff ? GL_RGBA : GL_BGRA)
-               : ($rmsk == 0x000000ff ? GL_RGB  : GL_BGR))
-}
-sub load_texture {
-   my ($self, $file, $nr) = @_;
-
-   my $img = SDL::Image::load ($file);
-   die "Couldn't load texture: " . SDL::get_error () unless $img;
-   SDL::Video::lock_surface ($img);
-
-   my $texture_format = _get_texfmt ($img);
-
-   glBindTexture (GL_TEXTURE_2D, $nr);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-   gluBuild2DMipmaps_s (GL_TEXTURE_2D,
-      $img->format->BytesPerPixel, $img->w, $img->h, $texture_format, GL_UNSIGNED_BYTE,
-      ${$img->get_pixels_ptr});
-}
 
 sub init_physics {
    my ($self) = @_;
@@ -139,11 +92,42 @@ sub init_app {
    $self->load_texture ("res/filth.x11.32x32.png", 1);
 }
 
+sub _get_texfmt {
+   my ($surface) = @_;
+   my $ncol = $surface->format->BytesPerPixel;
+   my $rmsk = $surface->format->Rmask;
+   warn "NCOL $ncol\n";
+   ($ncol == 4 ? ($rmsk == 0x000000ff ? GL_RGBA : GL_BGRA)
+               : ($rmsk == 0x000000ff ? GL_RGB  : GL_BGR))
+}
+
+sub load_texture {
+   my ($self, $file, $nr) = @_;
+
+   my ($name) = $file =~ /([^\/]+?)\.png/;
+
+   my $img = SDL::Image::load ($file);
+   die "Couldn't load texture: " . SDL::get_error () unless $img;
+   SDL::Video::lock_surface ($img);
+
+   my $texture_format = _get_texfmt ($img);
+
+   glBindTexture (GL_TEXTURE_2D, $nr);
+   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+   gluBuild2DMipmaps_s (GL_TEXTURE_2D,
+      $img->format->BytesPerPixel, $img->w, $img->h, $texture_format, GL_UNSIGNED_BYTE,
+      ${$img->get_pixels_ptr});
+
+   $self->{textures}->{$name} = $nr;
+}
+
 sub _render_quad {
-   my ($x, $y, $z, $light) = @_;
+   my ($x, $y, $z, $faces, $light) = @_;
    #d#warn "QUAD $x $y $z $light\n";
 
-   #                 front    top      back     left     right    bottom
+   #               0 front  1 top    2 back   3 left   4 right  5 bottom
    my @indices  = qw/0 1 2 3  1 5 6 2  7 6 5 4  4 5 1 0  3 2 6 7  3 7 4 0/;
    my @normals = (
       [ 0, 0,-1],
@@ -173,11 +157,11 @@ sub _render_quad {
       [0, 1],
    );
 
-   foreach my $face ( 0 .. 5 ) {
+   foreach my $face (@$faces) {
       # glNormal3d (@{$normals[$face]}); # we dont use OpenGL lighting!
 
-      foreach my $vertex ( 0 .. 3 ) {
-         my $index  = $indices[ 4 * $face + $vertex ];
+      foreach my $vertex (0..3) {
+         my $index  = $indices[4 * $face + $vertex];
          my $coords = $vertices[$index];
 
          glColor3d ($light, $light, $light);
@@ -190,31 +174,48 @@ sub _render_quad {
 sub compile_scene {
    my ($self) = @_;
 
+   warn "compiling...\n";
    $self->{scene} = OpenGL::List::glpList {
       glPushMatrix;
-      glBindTexture (GL_TEXTURE_2D, 1);
       glBegin (GL_QUADS);
-       #  glBegin (GL_QUADS);
 
-         my $chnk = $self->get_chunk (vector (0, 0, 0));
-         $chnk = $chnk->{map};
-         warn "compile map: $chnk\n";
-         for (my $x = 0; $x < $Games::Blockminer3D::Client::MapChunk::SIZE; $x++) {
-            for (my $y = 0; $y < $Games::Blockminer3D::Client::MapChunk::SIZE; $y++) {
-               for (my $z = 0; $z < $Games::Blockminer3D::Client::MapChunk::SIZE; $z++) {
-                  my $c = $chnk->[$x]->[$y]->[$z];
-                  if ($c->[2] && $c->[0] eq 'X') {
-                     _render_quad ($x, $y, $z, ((1 / 20) * $c->[1]) + 0.1);
-                  }
-               }
-            }
+      my @quads = Games::Blockminer3D::Client::World::visible_quads (
+         $self->{phys_obj}->{player}->{pos}->array
+      );
+
+      my $current_texture;
+
+      # sort by texture name:
+      for (sort { $a->[3] cmp $b->[3] } @quads) {
+         my ($pos, $faces, $light, $tex) = @$_;
+         my $tex_nr = $self->{textures}->{$tex};
+         if ($current_texture != $tex_nr) {
+            warn "CHANGE TEX\n";
+            glEnd;
+            glBindTexture (GL_TEXTURE_2D, 1);
+            glBegin (GL_QUADS);
+            $current_texture = $tex_nr;
          }
 
+         _render_quad (@$pos, $faces, $light);
+      }
+
+      #for (my $x = 0; $x < $Games::Blockminer3D::Client::MapChunk::SIZE; $x++) {
+      #   for (my $y = 0; $y < $Games::Blockminer3D::Client::MapChunk::SIZE; $y++) {
+      #      for (my $z = 0; $z < $Games::Blockminer3D::Client::MapChunk::SIZE; $z++) {
+      #         my $c = $chnk->[$x]->[$y]->[$z];
+      #         if ($c->[2] && $c->[0] eq 'X') {
+      #            _render_quad ($x, $y, $z, ((1 / 20) * $c->[1]) + 0.1);
+      #         }
+      #      }
+      #   }
+      #}
+
       glEnd;
-       #  glEnd;
       glPopMatrix;
 
    };
+   warn "done!\n";
 }
 
 sub render_scene {
@@ -311,7 +312,7 @@ sub physics_tick : event_cb {
    my $gforce = vector (0, -9.4, 0);
 
    my $player = $self->{phys_obj}->{player};
-   $player->{vel} += $gforce * $dt;
+  #d# $player->{vel} += $gforce * $dt;
    warn "DT: $dt => $player->{vel}\n";
 
    my $prev_pos = $player->{pos}->clone;
@@ -328,29 +329,29 @@ sub physics_tick : event_cb {
       if defined $self->{movement}->{strafe};
    $player->{pos} += $movement * $dt;
 
-   my $chunk = $self->get_chunk ($player->{pos});
-   if ($chunk) {
-      my $collided;
-      warn "check player at $player->{pos}\n";
-      my ($pos) = $chunk->collide ($player->{pos}, 0.3, \$collided);
-      warn "collide $pos | $collided | vel $player->{vel}\n";
-      if ($collided) {
-         # TODO: specialcase upward velocity, they should not speed up on horiz. corners
-         my $vn = $player->{vel}->norm;
-         my $down_part;
-         if ($collided->length == 0) {
-            warn "collidedd vector == 0, set vel = 0\n";
-            $down_part = 0;
-         } else {
-            my $cn = $collided->norm;
-            $down_part = 1 - abs ($cn . $vn);
-            warn "down part $cn . $vn => $down_part * $player->{vel}\n";
-         }
-         $player->{vel} *= $down_part; #vector (0, $down_part, 0);
-         $player->{pos} = $pos;
- #        $player->{vel} = vector (0, 0, 0);
-      }
-   }
+  # my $chunk = $self->get_chunk ($player->{pos});
+  # if ($chunk) {
+  #    my $collided;
+  #    warn "check player at $player->{pos}\n";
+  #    my ($pos) = $chunk->collide ($player->{pos}, 0.3, \$collided);
+  #    warn "collide $pos | $collided | vel $player->{vel}\n";
+  #    if ($collided) {
+  #       # TODO: specialcase upward velocity, they should not speed up on horiz. corners
+  #       my $vn = $player->{vel}->norm;
+  #       my $down_part;
+  #       if ($collided->length == 0) {
+  #          warn "collidedd vector == 0, set vel = 0\n";
+  #          $down_part = 0;
+  #       } else {
+  #          my $cn = $collided->norm;
+  #          $down_part = 1 - abs ($cn . $vn);
+  #          warn "down part $cn . $vn => $down_part * $player->{vel}\n";
+  #       }
+  #       $player->{vel} *= $down_part; #vector (0, $down_part, 0);
+  #       $player->{pos} = $pos;
+ ##        $player->{vel} = vector (0, 0, 0);
+  #    }
+  # }
 }
 
 sub change_look_lock : event_cb {
