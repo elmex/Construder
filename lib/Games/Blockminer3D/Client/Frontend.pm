@@ -377,6 +377,8 @@ sub input_key_up : event_cb {
       delete $self->{movement}->{straight};
    } elsif (grep { $name eq $_ } qw/a d/) {
       delete $self->{movement}->{strafe};
+   } elsif ($name eq 'k') {
+      $self->compile_scene;
    }
 
 }

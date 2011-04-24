@@ -64,19 +64,25 @@ sub visible_quads {
    for my $dcx (-1..1) {
       for my $dcy (-1..1) {
          for my $dcz (-1..1) {
-            my $chnk =
-               get_chunk (
-                  $cur_chnk->[0] + $dcx,
-                  $cur_chnk->[1] + $dcy,
-                  $cur_chnk->[2] + $dcz
-               );
-            warn "CHUNK $dcx $dcy $dcz: $chnk\n";
+            my ($cx, $cy, $cz) = (
+               $cur_chnk->[0] + $dcx,
+               $cur_chnk->[1] + $dcy,
+               $cur_chnk->[2] + $dcz
+            );
+            my $chnk = get_chunk ($cx, $cy, $cz);
+            warn "CHUNK $cx, $cy, $cz: $chnk\n";
             next unless defined $chnk;
             push @quads, map {
-               $_->[0]->[0] += ($dcx * $Games::Blockminer3D::Client::MapChunk::SIZE),
-               $_->[0]->[1] += ($dcy * $Games::Blockminer3D::Client::MapChunk::SIZE),
-               $_->[0]->[2] += ($dcz * $Games::Blockminer3D::Client::MapChunk::SIZE),
-               $_
+               [
+                  [
+                     $_->[0]->[0] + ($cx * $Games::Blockminer3D::Client::MapChunk::SIZE),
+                     $_->[0]->[1] + ($cy * $Games::Blockminer3D::Client::MapChunk::SIZE),
+                     $_->[0]->[2] + ($cz * $Games::Blockminer3D::Client::MapChunk::SIZE),
+                  ],
+                  $_->[1],
+                  $_->[2],
+                  $_->[3],
+               ]
             } $chnk->visible_quads;
          }
       }

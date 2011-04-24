@@ -53,6 +53,29 @@ sub _neighbours {
    @n
 }
 
+sub cube_fill {
+   my ($self) = @_;
+
+   my $map = [];
+   for (my $x = 0; $x < $SIZE; $x++) {
+      for (my $y = 0; $y < $SIZE; $y++) {
+         for (my $z = 0; $z < $SIZE; $z++) {
+            my $t = 'X';
+            if ($z == 0 || $y == 0 || $z == 0
+                || ($z == ($SIZE - 1))
+                || ($z == ($SIZE - 1))
+                || ($z == ($SIZE - 1))
+            ) {
+               $map->[$x]->[$y]->[$z] = ['X', 20, 1];
+            } else {
+               $map->[$x]->[$y]->[$z] = [' ', 20, 1];
+            }
+         }
+      }
+   }
+   $self->{map} = $map;
+}
+
 sub random_fill {
    my ($self) = @_;
 
@@ -187,6 +210,9 @@ sub _map_get_if_exists {
 
 sub visible_quads {
    my ($self, $offs) = @_;
+   if ($self->{quads_cache}) {
+      return @{$self->{quads_cache}}
+   }
 
    my $map = $self->{map};
 
@@ -229,6 +255,7 @@ sub visible_quads {
          }
       }
    }
+   $self->{quads_cache} = \@quads;
    @quads
 }
 
