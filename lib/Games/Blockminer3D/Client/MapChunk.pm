@@ -1,6 +1,5 @@
 package Games::Blockminer3D::Client::MapChunk;
 use common::sense;
-use Math::VectorReal;
 
 use base qw/Object::Event/;
 

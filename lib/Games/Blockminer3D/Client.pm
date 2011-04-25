@@ -34,7 +34,7 @@ sub new {
 #   $chnk->random_fill;
    $chnk->cube_fill;
 
-   Games::Blockminer3D::Client::World::set_chunk (0, 0, 0, $chnk);
+   Games::Blockminer3D::Client::World::set_chunk ([0, 0, 0], $chnk);
  #  $self->{front}->change_look_lock (1);
  #  $self->{front}->compile_scene;
 
