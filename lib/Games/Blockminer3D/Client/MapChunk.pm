@@ -37,8 +37,8 @@ sub new {
 
 sub _map_get_if_exists {
    my ($map, $x, $y, $z) = @_;
-   return ["X", 20, 1] if $x < 0     || $y < 0     || $z < 0;
-   return ["X", 20, 1] if $x >= $SIZE || $y >= $SIZE || $z >= $SIZE;
+   return [" ", 20, 1] if $x < 0     || $y < 0     || $z < 0;
+   return [" ", 20, 1] if $x >= $SIZE || $y >= $SIZE || $z >= $SIZE;
    $map->[$x]->[$y]->[$z]
 }
 
@@ -203,13 +203,6 @@ sub random_fill {
       warn "plane $x:\n$plane_light\n";
    }
    $self->{map} = $map;
-}
-
-sub _map_get_if_exists {
-   my ($map, $x, $y, $z) = @_;
-   return ["X", 0] if $x < 0     || $y < 0     || $z < 0;
-   return ["X", 0] if $x >= $SIZE || $y >= $SIZE || $z >= $SIZE;
-   $map->[$x]->[$y]->[$z]
 }
 
 sub visible_quads {

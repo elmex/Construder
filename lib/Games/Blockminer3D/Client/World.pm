@@ -23,9 +23,9 @@ sub set_chunk {
    my ($x, $y, $z, $chunk) = @_;
    warn "set chunk: $x $y $z $chunk\n";
    ($x, $y, $z) = (
-      int ($x / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      int ($y / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      int ($z / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      floor ($x / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      floor ($y / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      floor ($z / $Games::Blockminer3D::Client::MapChunk::SIZE),
    );
    my $quadr =
         ($x < 0 ? 0x1 : 0)
@@ -38,9 +38,9 @@ sub get_chunk {
    my ($x, $y, $z) = @_;
    ($x, $y, $z) = (0, 0, 0);
    ($x, $y, $z) = (
-      int ($x / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      int ($y / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      int ($z / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      floor ($x / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      floor ($y / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      floor ($z / $Games::Blockminer3D::Client::MapChunk::SIZE),
    );
    my $quadr =
         ($x < 0 ? 0x1 : 0)
@@ -61,48 +61,6 @@ sub get_pos {
    $chnk->{map}->[$x]->[$y]->[$z]
 }
 sub collide {
-}
-
-sub visible_quads {
-   my ($x, $y, $z) = @_;
-
-   my ($cur_chnk) = [
-      int ($x / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      int ($y / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      int ($z / $Games::Blockminer3D::Client::MapChunk::SIZE),
-   ];
-
-   my @quads;
-
-   for my $dcx (-1..1) {
-      for my $dcy (-1..1) {
-         for my $dcz (-1..1) {
-            my ($cx, $cy, $cz) = (
-               $cur_chnk->[0] + $dcx,
-               $cur_chnk->[1] + $dcy,
-               $cur_chnk->[2] + $dcz
-            );
-            my $chnk = get_chunk ($cx, $cy, $cz);
-            warn "CHUNK $cx, $cy, $cz: $chnk\n";
-            next unless defined $chnk;
-            push @quads, map {
-               [
-                  [
-                     $_->[0]->[0] + ($cx * $Games::Blockminer3D::Client::MapChunk::SIZE),
-                     $_->[0]->[1] + ($cy * $Games::Blockminer3D::Client::MapChunk::SIZE),
-                     $_->[0]->[2] + ($cz * $Games::Blockminer3D::Client::MapChunk::SIZE),
-                  ],
-                  $_->[1],
-                  $_->[2],
-                  $_->[3],
-               ]
-            } $chnk->visible_quads;
-         }
-      }
-   }
-   warn "QUADS: " . scalar (@quads) . "\n";
-
-   @quads
 }
 
 sub _closest_pt_point_aabb {
@@ -156,17 +114,57 @@ sub collide {
    # the "current" block
    my $my_box = vector (floor ($pos->x), floor ($pos->y), floor ($pos->z));
 
-   for my $x (-1..1) {
-      for my $y (-1..1) {
-         for my $z (-1..1) {
+   # usually i should just check the 4 adjacent blocks instead of the 27.
+   # i need to check the quadrant the sphere is in
+   #
+   # there are 8 quadrants $pos can be in:
+   #
+   #      -------------
+   #     /.     /     /|
+   #    / .    /     / |
+   #   /------------/  |
+   #  /   .  /     /|  |
+   # /    . /     / | /|
+   # -------------  |/ |
+   # |    .|. . .| ./ .|
+   # |   . |     | /| /
+   # |-----|-----|/ |/
+   # | .   |     |  /
+   # |.    |     | /
+   # |-----------|/
+
+   my (@xr, @yr, @zr);
+   if (0) {
+      (@xr) = (-1..1);
+      (@yr) = (-1..1);
+      (@zr) = (-1..1);
+   } else {
+      my ($ax, $ay, $az) = (
+         abs ($pos->x - int $pos->x),
+         abs ($pos->y - int $pos->y),
+         abs ($pos->z - int $pos->z)
+      );
+      push @xr, $ax > 0.5 ? (0, 1) : (0, -1);
+      push @yr, $ay > 0.5 ? (0, 1) : (0, -1);
+      push @zr, $az > 0.5 ? (0, 1) : (0, -1);
+      $xr[1] *= -1 if $pos->x < 0;
+      $yr[1] *= -1 if $pos->y < 0;
+      $zr[1] *= -1 if $pos->z < 0;
+   }
+
+   #d# warn "pos $pos: checking [@xr|@yr|@zr]\n";
+
+   for my $x (@xr) {
+      for my $y (@yr) {
+         for my $z (@zr) {
             my $cur_box = $my_box + vector ($x, $y, $z);
             my $bx = get_pos ($cur_box->array);
             next unless $bx->[2] && $bx->[0] ne ' ';
             my ($dv, $ipt) = _collide_box ($cur_box, $pos);
             my $cb_max = $cur_box + vector (1, 1, 1);
-            warn "solid box at $cur_box (to $cb_max), dist vec $dv |"
-                 . (sprintf "%9.4f", $dv->length)
-                 . "|, coll point $ipt\n";
+            #d#warn "solid box at $cur_box (to $cb_max), dist vec $dv |"
+            #d#     . (sprintf "%9.4f", $dv->length)
+            #d#     . "|, coll point $ipt\n";
             if ($dv->length == 0) { # ouch, directly in the side?
                $$rcoll = vector (0, 0, 0);
                warn "player landed directly on the surface\n";
@@ -180,7 +178,7 @@ sub collide {
                } else {
                   $$rcoll = $dv;
                }
-               warn "recollide pos $new_pos, vector $$rcoll\n";
+               #d#warn "recollide pos $new_pos, vector $$rcoll\n";
                return collide ($new_pos, $rad, $rcoll, $rec + 1);
             }
          }

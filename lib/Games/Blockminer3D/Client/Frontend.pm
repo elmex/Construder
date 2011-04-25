@@ -13,6 +13,7 @@ use AnyEvent;
 use Math::Trig qw/deg2rad rad2deg pi/;
 use Time::HiRes qw/time/;
 use Math::VectorReal;
+use POSIX qw/floor/;
 
 use Games::Blockminer3D::Client::World;
 
@@ -233,9 +234,9 @@ sub render_scene {
    my $cc = $self->{compiled_chunks};
    my $pp =  $self->{phys_obj}->{player}->{pos};
    my ($chunk_x, $chunk_y, $chunk_z) = (
-      int ($pp->x / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      int ($pp->y / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      int ($pp->z / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      floor ($pp->x / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      floor ($pp->y / $Games::Blockminer3D::Client::MapChunk::SIZE),
+      floor ($pp->z / $Games::Blockminer3D::Client::MapChunk::SIZE),
    );
 
    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -277,7 +278,7 @@ sub render_scene {
       for my $dy (-1..1) {
          for my $dz (-1..1) {
             my ($x, $y, $z) = ($chunk_x + $dx, $chunk_y + $dy, $chunk_z + $dz);
- #           warn "Call $x,$y,$z\n";
+ #d#           warn "Call $x,$y,$z\n";
             glCallList ($cc->{$x}->{$y}->{$z});
          }
       }
@@ -286,6 +287,8 @@ sub render_scene {
    $self->{app}->sync;
 }
 
+my $collide_cnt;
+my $collide_time;
 sub setup_event_poller {
    my ($self) = @_;
 
@@ -298,6 +301,8 @@ sub setup_event_poller {
    my $fps;
    $self->{fps_w} = AE::timer 0, 5, sub {
       printf "%.5f FPS\n", $fps / 5;
+      printf "%.5f secsPcoll\n", $collide_time / $collide_cnt;
+      $collide_cnt = $collide_time = 0;
       $fps = 0;
    };
 
@@ -305,16 +310,16 @@ sub setup_event_poller {
       my $cc = $self->{compiled_chunks};
       my $pp =  $self->{phys_obj}->{player}->{pos};
       my ($chunk_x, $chunk_y, $chunk_z) = (
-         int ($pp->x / $Games::Blockminer3D::Client::MapChunk::SIZE),
-         int ($pp->y / $Games::Blockminer3D::Client::MapChunk::SIZE),
-         int ($pp->z / $Games::Blockminer3D::Client::MapChunk::SIZE),
+         floor ($pp->x / $Games::Blockminer3D::Client::MapChunk::SIZE),
+         floor ($pp->y / $Games::Blockminer3D::Client::MapChunk::SIZE),
+         floor ($pp->z / $Games::Blockminer3D::Client::MapChunk::SIZE),
       );
 
       for my $dx (0, -1, 1) {
          for my $dy (0, -1, 1) {
             for my $dz (0, -1, 1) {
                my ($x, $y, $z) = ($chunk_x + $dx, $chunk_y + $dy, $chunk_z + $dz);
-               #d# warn "check $x $y $z\n";
+ #              warn "check ($chunk_x $chunk_y $chunk_z) $x $y $z\n";
                unless ($cc->{$x}->{$y}->{$z}) {
                   $self->compile_chunk ($x, $y, $z);
                   warn "compiled $x, $y, $z\n";
@@ -384,9 +389,9 @@ sub physics_tick : event_cb {
  #  warn "DT: $dt => $player->{vel}\n";
 
    my $prev_pos = $player->{pos}->clone;
-   if (($player->{vel}->length * $dt) > 0.2) {
+   if (($player->{vel}->length * $dt) > 0.3) {
       $player->{vel} = $player->{vel}->norm;
-      $player->{vel} *= 0.18 / $dt;
+      $player->{vel} *= 0.28 / $dt;
    }
    $player->{pos} += $player->{vel} * $dt;
 
@@ -398,21 +403,24 @@ sub physics_tick : event_cb {
    $player->{pos} += $movement * $dt;
 
   my $collided;
-  warn "check player at $player->{pos}\n";
+  #d#warn "check player at $player->{pos}\n";
   #    my ($pos) = $chunk->collide ($player->{pos}, 0.3, \$collided);
+  my $t1 = time;
   my ($pos) = Games::Blockminer3D::Client::World::collide ($player->{pos}, 0.3, \$collided);
-  warn "collide $pos | $collided | vel $player->{vel}\n";
+  $collide_time += time - $t1;
+  $collide_cnt++;
+  #d#warn "collide $pos | $collided | vel $player->{vel}\n";
   if ($collided) {
      # TODO: specialcase upward velocity, they should not speed up on horiz. corners
      my $vn = $player->{vel}->norm;
      my $down_part;
      if ($collided->length == 0) {
-        warn "collidedd vector == 0, set vel = 0\n";
+        #d#warn "collidedd vector == 0, set vel = 0\n";
         $down_part = 0;
      } else {
         my $cn = $collided->norm;
         $down_part = 1 - abs ($cn . $vn);
-        warn "down part $cn . $vn => $down_part * $player->{vel}\n";
+        #d# warn "down part $cn . $vn => $down_part * $player->{vel}\n";
      }
      $player->{vel} *= $down_part; #vector (0, $down_part, 0);
      $player->{pos} = $pos;
