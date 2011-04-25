@@ -1,6 +1,7 @@
 package Games::Blockminer3D::Client::World;
 use common::sense;
 use Math::VectorReal;
+use POSIX qw/floor/;
 
 =head1 NAME
 
@@ -153,7 +154,7 @@ sub collide {
    #   and the interiors of the 4 adjacent blocks
 
    # the "current" block
-   my $my_box = vector (int $pos->x, int $pos->y, int $pos->z);
+   my $my_box = vector (floor ($pos->x), floor ($pos->y), floor ($pos->z));
 
    for my $x (-1..1) {
       for my $y (-1..1) {
@@ -162,7 +163,8 @@ sub collide {
             my $bx = get_pos ($cur_box->array);
             next unless $bx->[2] && $bx->[0] ne ' ';
             my ($dv, $ipt) = _collide_box ($cur_box, $pos);
-            warn "solid box at $cur_box, dist vec $dv |"
+            my $cb_max = $cur_box + vector (1, 1, 1);
+            warn "solid box at $cur_box (to $cb_max), dist vec $dv |"
                  . (sprintf "%9.4f", $dv->length)
                  . "|, coll point $ipt\n";
             if ($dv->length == 0) { # ouch, directly in the side?

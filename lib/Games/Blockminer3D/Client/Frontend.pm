@@ -384,9 +384,9 @@ sub physics_tick : event_cb {
  #  warn "DT: $dt => $player->{vel}\n";
 
    my $prev_pos = $player->{pos}->clone;
-   if (($player->{vel}->length * $dt) > 0.3) {
+   if (($player->{vel}->length * $dt) > 0.2) {
       $player->{vel} = $player->{vel}->norm;
-      $player->{vel} *= 0.28 / $dt;
+      $player->{vel} *= 0.18 / $dt;
    }
    $player->{pos} += $player->{vel} * $dt;
 
