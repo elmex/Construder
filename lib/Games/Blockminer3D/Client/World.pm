@@ -116,7 +116,6 @@ sub collide_cylinder_aabb {
    push @zr, $az > 0.5 ? (0, 1) : (0, -1);
    $xr[1] *= -1 if $pos->[0] < 0;
    $zr[1] *= -1 if $pos->[2] < 0;
-   vineg (\@yr) if $pos->[1] < 0;
 
    my $hbox = get_pos ($head_box);
    if (is_solid_box ($hbox)) {
