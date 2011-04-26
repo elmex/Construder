@@ -94,13 +94,17 @@ sub _collide_sphere_box {
    return ()
 }
 
+sub is_solid_box { $_[0]->[2] && $_[0]->[0] ne ' ' }
+
 sub collide_cylinder_aabb {
    my ($pos, $height, $radius, $rcollide_normal, $recursion, $original_pos) = @_;
 
    $original_pos = [@$pos];
 
    # the "current" block
-   my $my_box = vfloor ($pos);
+   my $foot_box = vfloor ($pos);
+   my $head_pos = vaddd ($pos, 0, $height, 0);
+   my $head_box = vfloor ($head_pos);
 
    my (@xr, @yr, @zr);
    (@yr) = (0, 1, 2);
@@ -114,14 +118,20 @@ sub collide_cylinder_aabb {
    $zr[1] *= -1 if $pos->[2] < 0;
    vineg (\@yr) if $pos->[1] < 0;
 
-   my $feet_box = get_pos ($my_box);
-   if ($feet_box->[2] && $feet_box->[0] ne ' ') {
-      my $box_y = $my_box->[1] + 1;
+   my $hbox = get_pos ($head_box);
+   if (is_solid_box ($hbox)) {
+      $$rcollide_normal = [0, -1, 0];
+      return (vaddd ($pos, 0, -(($head_pos->[1] - $head_box->[1]) + 0.001), 0));
+   }
+
+   my $fbox = get_pos ($foot_box);
+   if (is_solid_box ($fbox)) {
+      my $box_y = $foot_box->[1] + 1;
       $$rcollide_normal = [0, 1, 0];
       return (vaddd ($pos, 0, ($box_y - $pos->[1]) + 0.001, 0));
-   } else {
-      return ($pos);
    }
+
+   return ($pos);
 
    # rough algo:
    # check if feet $pos is inside blocking box
@@ -134,18 +144,18 @@ sub collide_cylinder_aabb {
    #   => if so, move away by direction given
    #      from XZ aabb-point to XZ $pos
 
-   warn "collide player at " . vstr ($original_pos)
-        . ", in box " . vstr ($my_box) . "\n";
-   for my $x (@xr) {
-      for my $y (@yr) {
-         for my $z (@zr) {
-            my $cur_box = vaddd ($my_box, $x, $y, $z);
-            my $bx = get_pos ($cur_box);
-            next unless $bx->[2] && $bx->[0] ne ' ';
-            warn "checking box at " . vstr ($cur_box) . "\n";
-         }
-      }
-   }
+   #warn "collide player at " . vstr ($original_pos)
+   #     . ", in box " . vstr ($my_box) . "\n";
+   #for my $x (@xr) {
+   #   for my $y (@yr) {
+   #      for my $z (@zr) {
+   #         my $cur_box = vaddd ($my_box, $x, $y, $z);
+   #         my $bx = get_pos ($cur_box);
+   #         next unless $bx->[2] && $bx->[0] ne ' ';
+   #         warn "checking box at " . vstr ($cur_box) . "\n";
+   #      }
+   #   }
+   #}
 }
 
 # collide sphere at $pos with radius $rad
