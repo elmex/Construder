@@ -49,13 +49,13 @@ sub new {
    return $self
 }
 
-my ($WIDTH, $HEIGHT) = (600, 400);
+my ($WIDTH, $HEIGHT) = (720, 400);#600, 400);
 
 sub init_physics {
    my ($self) = @_;
 
    $self->{phys_obj}->{player} = {
-      pos => [8.5, 21.5, 18.5],#-25, -50, -25),
+      pos => [3.5, 3.5, 3.5],#-25, -50, -25),
       vel => [0, 0, 0],
    };
 }
@@ -65,11 +65,13 @@ sub init_app {
    $self->{app} = SDLx::App->new (
       title => "Blockminer3D 0.01alpha", width => $WIDTH, height => $HEIGHT, gl => 1);
    $self->{sdl_event} = SDL::Event->new;
+   SDL::Video::GL_set_attribute (SDL::Constants::SDL_GL_SWAP_CONTROL, 1);
+   SDL::Video::GL_set_attribute (SDL::Constants::SDL_GL_DOUBLEBUFFER, 1);
 
    glDepthFunc(GL_LESS);
    glEnable (GL_DEPTH_TEST);
-   glMatrixMode(GL_PROJECTION);
-   glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+   glMatrixMode (GL_PROJECTION);
+   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    glEnable (GL_BLEND);
    glEnable (GL_CULL_FACE);
    glCullFace (GL_BACK);
@@ -90,7 +92,7 @@ sub init_app {
 
    glGenTextures_p(1);
 
-   $self->load_texture ("res/filth.x11.32x32.png", 1);
+   $self->load_texture ("res/blocks19.small.png", 1);
 }
 
 sub _get_texfmt {
@@ -114,8 +116,8 @@ sub load_texture {
    my $texture_format = _get_texfmt ($img);
 
    glBindTexture (GL_TEXTURE_2D, $nr);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
    gluBuild2DMipmaps_s (GL_TEXTURE_2D,
       $img->format->BytesPerPixel, $img->w, $img->h, $texture_format, GL_UNSIGNED_BYTE,
@@ -165,7 +167,7 @@ sub _render_quad {
          my $index  = $indices[4 * $face + $vertex];
          my $coords = $vertices[$index];
 
-         glColor3d ($light, $light, $light);
+         glColor3d ($light, $light, $light) if defined $light;
          glTexCoord2d(@{$uv[$vertex]});
          glVertex3d($coords->[0] + $x, $coords->[1] + $y, $coords->[2] + $z);
       }
@@ -175,7 +177,8 @@ sub _render_quad {
 sub compile_chunk {
    my ($self, $cx, $cy, $cz) = @_;
 
-   #d#warn "compiling... $cx, $cy, $cz\n";
+   warn "compiling... $cx, $cy, $cz\n";
+   my $face_cnt;
    $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} = OpenGL::List::glpList {
       glPushMatrix;
       glBegin (GL_QUADS);
@@ -200,13 +203,15 @@ sub compile_chunk {
       # sort by texture name:
       for (sort { $a->[3] cmp $b->[3] } @quads) {
          my ($pos, $faces, $light, $tex) = @$_;
-         my $tex_nr = $self->{textures}->{$tex};
+         my $tex_nr = 1; # FIXME: $self->{textures}->{$tex};
          if ($current_texture != $tex_nr) {
             glEnd;
             glBindTexture (GL_TEXTURE_2D, $tex_nr);
             glBegin (GL_QUADS);
             $current_texture = $tex_nr;
          }
+
+         $face_cnt += scalar @$faces;
 
          _render_quad (@$pos, $faces, $light);
       }
@@ -226,11 +231,15 @@ sub compile_chunk {
       glPopMatrix;
 
    };
+   warn "faces: $face_cnt\n";
 }
 
+my $render_cnt;
+my $render_time;
 sub render_scene {
    my ($self) = @_;
 
+   my $t1 = time;
    my $cc = $self->{compiled_chunks};
    my $pp =  $self->{phys_obj}->{player}->{pos};
    my ($chunk_pos) =
@@ -271,7 +280,8 @@ sub render_scene {
    #d#_render_quad (0, 0, 0, 1);
    #d#glEnd;
 
-   for my $dx (-1..1) {
+
+   for my $dx (-1..1) { #-1..1) {
       for my $dy (-1..1) {
          for my $dz (-1..1) {
             my ($x, $y, $z) = (
@@ -284,6 +294,19 @@ sub render_scene {
       }
    }
 
+   my $qp = [5, 5, 5];
+   glPushMatrix;
+   glBindTexture (GL_TEXTURE_2D, 0);
+   glColor4d (1, 0, 0, 0.2);
+   glTranslatef (9 - 0.1, 1 - 0.1, 9 - 0.1);
+   glScalef (1.2, 1.2, 1.2);
+   glBegin (GL_QUADS);
+   _render_quad (0, 0, 0, [0..5]);
+   glEnd;
+   glPopMatrix;
+
+   $render_time += time - $t1;
+   $render_cnt++;
    $self->{app}->sync;
 }
 
@@ -302,7 +325,9 @@ sub setup_event_poller {
    $self->{fps_w} = AE::timer 0, 5, sub {
       printf "%.5f FPS\n", $fps / 5;
       printf "%.5f secsPcoll\n", $collide_time / $collide_cnt if $collide_cnt;
+      printf "%.5f secsPrender\n", $render_time / $render_cnt if $render_cnt;
       $collide_cnt = $collide_time = 0;
+      $render_cnt = $render_time = 0;
       $fps = 0;
    };
 
@@ -328,17 +353,7 @@ sub setup_event_poller {
       }
    };
 
-   $self->{poll_w} = AE::timer 0, 0.024, sub {
-      $ltime = time - 0.02 if not defined $ltime;
-      my $ctime = time;
-      $accum_time += time - $ltime;
-      $ltime = $ctime;
-
-      while ($accum_time > $dt) {
-         $self->physics_tick ($dt);
-         $accum_time -= $dt;
-      }
-
+   $self->{poll_input_w} = AE::timer 0, 0.04, sub {
       SDL::Events::pump_events();
 
       while (SDL::Events::poll_event($sdle)) {
@@ -362,12 +377,25 @@ sub setup_event_poller {
             warn "unknown sdl type: $type\n";
          }
       }
+   };
+
+   $self->{poll_w} = AE::timer 0, 0.024, sub {
+      $ltime = time - 0.02 if not defined $ltime;
+      my $ctime = time;
+      $accum_time += time - $ltime;
+      $ltime = $ctime;
+
+      while ($accum_time > $dt) {
+         $self->physics_tick ($dt);
+         $accum_time -= $dt;
+      }
 
       if (delete $self->{change}) {
          warn "player status: pos: "
               . vstr ($self->{phys_obj}->{player}->{pos})
               . " rotx: $self->{xrotate}, roty: $self->{yrotate}\n";
       }
+
       $self->render_scene;
       $fps++;
       #}
@@ -467,6 +495,8 @@ sub input_key_up : event_cb {
       my $chnk = Games::Blockminer3D::Client::World::get_chunk ($p);
       $chnk->chunk_changed;
       $self->{compiled_chunks} = {};
+   } elsif ($name eq 't') {
+      $self->{app}->fullscreen;
 
    } elsif ($name eq 'k') {
       $self->compile_scene;

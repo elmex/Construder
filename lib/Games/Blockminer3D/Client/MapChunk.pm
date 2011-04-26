@@ -245,7 +245,8 @@ sub visible_quads {
                   [$x, $y, $z],
                   \@faces,
                   $cur->[1],
-                  $cur->[0] eq 'X' ? "filth.x11.32x32" : ""
+ #                 $cur->[0] eq 'X' ? "filth.x11.32x32" : ""
+                  $cur->[0] eq 'X' ? "metal05" : ""
                ];
             }
          }
