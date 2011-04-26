@@ -94,6 +94,60 @@ sub _collide_sphere_box {
    return ()
 }
 
+sub collide_cylinder_aabb {
+   my ($pos, $height, $radius, $rcollide_normal, $recursion, $original_pos) = @_;
+
+   $original_pos = [@$pos];
+
+   # the "current" block
+   my $my_box = vfloor ($pos);
+
+   my (@xr, @yr, @zr);
+   (@yr) = (0, 1, 2);
+   my ($ax, $az) = (
+      abs ($pos->[0] - int $pos->[0]),
+      abs ($pos->[2] - int $pos->[2])
+   );
+   push @xr, $ax > 0.5 ? (0, 1) : (0, -1);
+   push @zr, $az > 0.5 ? (0, 1) : (0, -1);
+   $xr[1] *= -1 if $pos->[0] < 0;
+   $zr[1] *= -1 if $pos->[2] < 0;
+   vineg (\@yr) if $pos->[1] < 0;
+
+   my $feet_box = get_pos ($my_box);
+   if ($feet_box->[2] && $feet_box->[0] ne ' ') {
+      my $box_y = $my_box->[1] + 1;
+      $$rcollide_normal = [0, 1, 0];
+      return (vaddd ($pos, 0, ($box_y - $pos->[1]) + 0.001, 0));
+   } else {
+      return ($pos);
+   }
+
+   # rough algo:
+   # check if feet $pos is inside blocking box
+   #   => move up
+   # check if head is inside blocking box
+   #   => move down
+   # check if any of the adjacent boxes not (9 boxes at max)
+   #      in the Y coord of the $pos collide
+   #      with the $radius of the cylinder
+   #   => if so, move away by direction given
+   #      from XZ aabb-point to XZ $pos
+
+   warn "collide player at " . vstr ($original_pos)
+        . ", in box " . vstr ($my_box) . "\n";
+   for my $x (@xr) {
+      for my $y (@yr) {
+         for my $z (@zr) {
+            my $cur_box = vaddd ($my_box, $x, $y, $z);
+            my $bx = get_pos ($cur_box);
+            next unless $bx->[2] && $bx->[0] ne ' ';
+            warn "checking box at " . vstr ($cur_box) . "\n";
+         }
+      }
+   }
+}
+
 # collide sphere at $pos with radius $rad
 #   0.00059 secsPcoll in flight without collisions
 #   0.00171secsPcoll to 0.00154secsPcoll when colliding with floor

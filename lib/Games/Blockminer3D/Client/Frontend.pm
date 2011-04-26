@@ -55,7 +55,7 @@ sub init_physics {
    my ($self) = @_;
 
    $self->{phys_obj}->{player} = {
-      pos => [3.5, 3.5, 3.5],#-25, -50, -25),
+      pos => [5.5, 3.5, 5.5],#-25, -50, -25),
       vel => [0, 0, 0],
    };
 }
@@ -256,7 +256,7 @@ sub render_scene {
    # move and rotate the world:
    glRotatef ($self->{xrotate}, 1, 0, 0);
    glRotatef ($self->{yrotate}, 0, 1, 0);
-   glTranslatef (@{vneg (vaddd ($pp, 0, 0.0, 0))});
+   glTranslatef (@{vneg (vaddd ($pp, 0, 1.5, 0))});
 
    # coordinate system
    #d#glBindTexture (GL_TEXTURE_2D, 0);
@@ -414,7 +414,7 @@ sub physics_tick : event_cb {
    my $player = $self->{phys_obj}->{player};
 
    viadd ($player->{vel}, vsmul ($gforce, $dt));
- #  warn "DT: $dt => $player->{vel}\n";
+   #d#warn "DT: $dt => " .vstr( $player->{vel})."\n";
 
    if ((vlength ($player->{vel}) * $dt) > 0.3) {
       $player->{vel} = vsmul (vnorm ($player->{vel}), 0.28 / $dt);
@@ -429,35 +429,44 @@ sub physics_tick : event_cb {
    vismul ($movement, $dt);
    viadd ($player->{pos}, $movement);
 
-  my $collided;
   #d#warn "check player at $player->{pos}\n";
   #    my ($pos) = $chunk->collide ($player->{pos}, 0.3, \$collided);
   my $t1 = time;
-  my ($pos) = Games::Blockminer3D::Client::World::collide (
-     $player->{pos},
-     0.3,
-     \$collided);
+
+  my $collided;
+  my $collide_normal;
+  #d#warn "check player pos " . vstr ($player->{pos}) . "\n";
+  my ($pos) = Games::Blockminer3D::Client::World::collide_cylinder_aabb ($player->{pos}, 1.8, 0.3, \$collide_normal);
+  #d#warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
+  $player->{pos} = $pos;
+  $player->{vel} = [0, 0, 0] if $collide_normal;
+
   $collide_time += time - $t1;
   $collide_cnt++;
-  #d#warn "collide $pos | $collided | vel $player->{vel}\n";
-  if ($collided) {
-     #d# warn "Collided, new pos " . vstr ($pos) . " vector: " . vstr ($collided) . "\n";
-     # TODO: specialcase upward velocity, they should not speed up on horiz. corners
-     my $down_part;
-     my $coll_depth = vlength ($collided);
-     if ($coll_depth == 0) {
-        #d#warn "collidedd vector == 0, set vel = 0\n";
-        $down_part = 0;
-     } else {
-        vinorm ($collided, $coll_depth);
-        my $vn = vnorm ($player->{vel});
-        $down_part = 1 - abs (vdot ($collided, $vn));
-        #d# warn "down part $cn . $vn => $down_part * $player->{vel}\n";
-     }
-     vismul ($player->{vel}, $down_part);
-     $player->{pos} = $pos;
- #    $player->{vel} = vector (0, 0, 0);
-  }
+
+  #my ($pos) = Games::Blockminer3D::Client::World::collide (
+  #   $player->{pos},
+  #   0.3,
+  #   \$collided);
+  ##d#warn "collide $pos | $collided | vel $player->{vel}\n";
+  #if ($collided) {
+  #   #d# warn "Collided, new pos " . vstr ($pos) . " vector: " . vstr ($collided) . "\n";
+  #   # TODO: specialcase upward velocity, they should not speed up on horiz. corners
+  #   my $down_part;
+  #   my $coll_depth = vlength ($collided);
+  #   if ($coll_depth == 0) {
+  #      #d#warn "collidedd vector == 0, set vel = 0\n";
+  #      $down_part = 0;
+  #   } else {
+  #      vinorm ($collided, $coll_depth);
+  #      my $vn = vnorm ($player->{vel});
+  #      $down_part = 1 - abs (vdot ($collided, $vn));
+  #      #d# warn "down part $cn . $vn => $down_part * $player->{vel}\n";
+  #   }
+  #   vismul ($player->{vel}, $down_part);
+  #   $player->{pos} = $pos;
+  ##    $player->{vel} = vector (0, 0, 0);
+  #}
 }
 
 sub change_look_lock : event_cb {
