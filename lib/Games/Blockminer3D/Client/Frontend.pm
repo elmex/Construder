@@ -256,7 +256,7 @@ sub render_scene {
    # move and rotate the world:
    glRotatef ($self->{xrotate}, 1, 0, 0);
    glRotatef ($self->{yrotate}, 0, 1, 0);
-   glTranslatef (@{vneg (vaddd ($pp, 0, 0.8, 0))});
+   glTranslatef (@{vneg (vaddd ($pp, 0, 0.0, 0))});
 
    # coordinate system
    #d#glBindTexture (GL_TEXTURE_2D, 0);
@@ -435,7 +435,7 @@ sub physics_tick : event_cb {
   my $t1 = time;
   my ($pos) = Games::Blockminer3D::Client::World::collide (
      $player->{pos},
-     [[[0,0,0], 0.3], [[0, 1.1, 0], 0.3]],
+     0.3,
      \$collided);
   $collide_time += time - $t1;
   $collide_cnt++;
