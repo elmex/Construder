@@ -116,8 +116,8 @@ sub load_texture {
    my $texture_format = _get_texfmt ($img);
 
    glBindTexture (GL_TEXTURE_2D, $nr);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
    gluBuild2DMipmaps_s (GL_TEXTURE_2D,
       $img->format->BytesPerPixel, $img->w, $img->h, $texture_format, GL_UNSIGNED_BYTE,
@@ -177,7 +177,7 @@ sub _render_quad {
 sub compile_chunk {
    my ($self, $cx, $cy, $cz) = @_;
 
-   warn "compiling... $cx, $cy, $cz\n";
+   #d# warn "compiling... $cx, $cy, $cz\n";
    my $face_cnt;
    $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} = OpenGL::List::glpList {
       glPushMatrix;
@@ -196,7 +196,7 @@ sub compile_chunk {
             $_->[3],
          ]
       } $chnk->visible_quads;
-      warn "[" . (scalar @quads) . "] quads\n";
+      #d# warn "[" . (scalar @quads) . "] quads\n";
 
       my $current_texture;
 
@@ -231,7 +231,7 @@ sub compile_chunk {
       glPopMatrix;
 
    };
-   warn "faces: $face_cnt\n";
+   #d# warn "faces: $face_cnt\n";
 }
 
 my $render_cnt;
@@ -256,7 +256,7 @@ sub render_scene {
    # move and rotate the world:
    glRotatef ($self->{xrotate}, 1, 0, 0);
    glRotatef ($self->{yrotate}, 0, 1, 0);
-   glTranslatef (@{vneg ($pp)});
+   glTranslatef (@{vneg (vaddd ($pp, 0, 0.8, 0))});
 
    # coordinate system
    #d#glBindTexture (GL_TEXTURE_2D, 0);
@@ -353,7 +353,7 @@ sub setup_event_poller {
       }
    };
 
-   $self->{poll_input_w} = AE::timer 0, 0.04, sub {
+   $self->{poll_input_w} = AE::timer 0, 0.03, sub {
       SDL::Events::pump_events();
 
       while (SDL::Events::poll_event($sdle)) {
@@ -433,7 +433,10 @@ sub physics_tick : event_cb {
   #d#warn "check player at $player->{pos}\n";
   #    my ($pos) = $chunk->collide ($player->{pos}, 0.3, \$collided);
   my $t1 = time;
-  my ($pos) = Games::Blockminer3D::Client::World::collide ($player->{pos}, 0.3, \$collided);
+  my ($pos) = Games::Blockminer3D::Client::World::collide (
+     $player->{pos},
+     [[[0,0,0], 0.3], [[0, 1.1, 0], 0.3]],
+     \$collided);
   $collide_time += time - $t1;
   $collide_cnt++;
   #d#warn "collide $pos | $collided | vel $player->{vel}\n";

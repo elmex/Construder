@@ -4,9 +4,9 @@ require Exporter;
 use POSIX qw/floor/;
 our @ISA = qw/Exporter/;
 our @EXPORT = qw/
-   vneg
+   vneg vineg
    vadd vaddd viadd viaddd
-   vsub vsubd
+   vsub vsubd visub visubd
    vsdiv visdiv
    vsmul vismul
    vdot vdotd vcross vlength

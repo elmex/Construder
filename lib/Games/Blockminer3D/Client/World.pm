@@ -56,9 +56,6 @@ sub get_pos {
    $chnk->{map}->[$pos->[0]]->[$pos->[1]]->[$pos->[2]]
 }
 
-sub collide {
-}
-
 sub _closest_pt_point_aabb {
    my ($pt, $box_min, $box_max) = @_;
    my @out;
@@ -73,12 +70,28 @@ sub _closest_pt_point_aabb {
    \@out
 }
 
-sub _collide_box {
-   my ($box, $pos) = @_;
-   my ($abpt) = _closest_pt_point_aabb ($pos, $box, vaddd ($box, 1, 1, 1));
-   my $dv = vsub ($pos, $abpt);
-   #d#warn "aabb: $pos, $abpt, $dv\n";
-   return ($dv, $abpt)
+sub _collide_sphere_box {
+   my ($sphere_pos, $sphere_rad, $box) = @_;
+
+   my $abpt = _closest_pt_point_aabb ($sphere_pos, $box, vaddd ($box, 1, 1, 1));
+   my $dv   = vsub ($sphere_pos, $abpt);
+
+   #d#warn "solid box at $cur_box, dist vec $dv |"
+   #d#     . (sprintf "%9.4f", $dv->length) . "\n";
+
+   my $dvlen = vlength ($dv);
+
+   if ($dvlen == 0) { # ouch, directly in the side?
+      warn "player landed directly on the surface\n";
+      return ([0, 0, 0]);
+   }
+
+   if ($dvlen < $sphere_rad) {
+      my $back_dist = ($sphere_rad - $dvlen) + 0.00001;
+      return ($dv, vsmul (vnorm ($dv, $dvlen), $back_dist));
+   }
+
+   return ()
 }
 
 # collide sphere at $pos with radius $rad
@@ -102,9 +115,6 @@ sub collide {
    #   top of bottom
    #   and the interiors of the 4 adjacent blocks
 
-   # the "current" block
-   my $my_box = vfloor ($pos);
-
    # usually i should just check the 4 adjacent blocks instead of the 27.
    # i need to check the quadrant the sphere is in
    #
@@ -124,54 +134,53 @@ sub collide {
    # |.    |     | /
    # |-----------|/
 
-   my (@xr, @yr, @zr);
-   if (0) {
-      (@xr) = (-1..1);
-      (@yr) = (-1..1);
-      (@zr) = (-1..1);
-   } else {
+   for my $sphere (ref $rad ? @$rad : [[0,0,0],$rad]) {
+      my ($spos, $srad) = @$sphere;
+      $spos = vadd ($spos, $pos),
+
+      # the "current" block
+      my $my_box = vfloor ($spos);
+
+      my (@xr, @yr, @zr);
       my ($ax, $ay, $az) = (
-         abs ($pos->[0] - int $pos->[0]),
-         abs ($pos->[1] - int $pos->[1]),
-         abs ($pos->[2] - int $pos->[2])
+         abs ($spos->[0] - int $spos->[0]),
+         abs ($spos->[1] - int $spos->[1]),
+         abs ($spos->[2] - int $spos->[2])
       );
       push @xr, $ax > 0.5 ? (0, 1) : (0, -1);
       push @yr, $ay > 0.5 ? (0, 1) : (0, -1);
       push @zr, $az > 0.5 ? (0, 1) : (0, -1);
-      $xr[1] *= -1 if $pos->[0] < 0;
-      $yr[1] *= -1 if $pos->[1] < 0;
-      $zr[1] *= -1 if $pos->[2] < 0;
-   }
+      $xr[1] *= -1 if $spos->[0] < 0;
+      $yr[1] *= -1 if $spos->[1] < 0;
+      $zr[1] *= -1 if $spos->[2] < 0;
 
-   #d# warn "pos $pos: checking [@xr|@yr|@zr]\n";
+      #d# warn "sphere pos @$spos: checking [@xr|@yr|@zr]\n";
 
-   for my $x (@xr) {
-      for my $y (@yr) {
-         for my $z (@zr) {
-            my $cur_box = vaddd ($my_box, $x, $y, $z);
-            my $bx = get_pos ($cur_box);
-            next unless $bx->[2] && $bx->[0] ne ' ';
-            my ($dv, $ipt) = _collide_box ($cur_box, $pos);
-            my $cb_max = vaddd ($cur_box, 1, 1, 1);
-            #d#warn "solid box at $cur_box (to $cb_max), dist vec $dv |"
-            #d#     . (sprintf "%9.4f", $dv->length)
-            #d#     . "|, coll point $ipt\n";
-            my $dvlen = vlength ($dv);
-            if ($dvlen == 0) { # ouch, directly in the side?
-               $$rcoll = [0, 0, 0];
-               warn "player landed directly on the surface\n";
-               return ($orig_pos);
-            }
-            if ($dvlen < $rad) {
-               my $back_dist = ($rad - $dvlen) + 0.00001;
-               my $new_pos = vadd ($pos, vsmul (vnorm ($dv), $back_dist));
-               if ($$rcoll) {
-                  viadd ($$rcoll, $dv);
-               } else {
-                  $$rcoll = $dv;
+      for my $x (@xr) {
+         for my $y (@yr) {
+            for my $z (@zr) {
+               my $cur_box = vaddd ($my_box, $x, $y, $z);
+               my $bx = get_pos ($cur_box);
+               next unless $bx->[2] && $bx->[0] ne ' ';
+
+               my ($col_dir, $pos_adj) = _collide_sphere_box ($spos, $srad, $cur_box);
+               if ($col_dir) { # collided!
+                  if (defined $$rcoll && defined $pos_adj) {
+                     $$rcoll += $col_dir;
+                  } else {
+                     $$rcoll = $col_dir;
+                  }
+
+                  if (defined $pos_adj) { # was able to move to safer location?
+                     return collide (
+                              vadd ($pos, $pos_adj),
+                              $rad,  $rcoll, $rec + 1, $orig_pos);
+
+                  } else { # collided with something, but unable to move to safe location
+                     warn "player collided with something, but we couldn't repell him!";
+                     return ($orig_pos);
+                  }
                }
-               #d#warn "recollide pos $new_pos, vector $$rcoll\n";
-               return collide ($new_pos, $rad, $rcoll, $rec + 1);
             }
          }
       }
