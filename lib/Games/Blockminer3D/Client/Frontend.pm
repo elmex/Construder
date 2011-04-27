@@ -429,20 +429,37 @@ sub physics_tick : event_cb {
    vismul ($movement, $dt);
    viadd ($player->{pos}, $movement);
 
-  #d#warn "check player at $player->{pos}\n";
-  #    my ($pos) = $chunk->collide ($player->{pos}, 0.3, \$collided);
-  my $t1 = time;
+   #d#warn "check player at $player->{pos}\n";
+   #    my ($pos) = $chunk->collide ($player->{pos}, 0.3, \$collided);
+   my $t1 = time;
 
-  my $collided;
-  my $collide_normal;
-  #d#warn "check player pos " . vstr ($player->{pos}) . "\n";
-  my ($pos) = Games::Blockminer3D::Client::World::collide_cylinder_aabb ($player->{pos}, 1.8, 0.3, \$collide_normal);
-  #d#warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
-  $player->{pos} = $pos;
-  $player->{vel} = [0, 0, 0] if $collide_normal;
+   my $collide_normal;
+   #d#warn "check player pos " . vstr ($player->{pos}) . "\n";
+   my ($pos) = Games::Blockminer3D::Client::World::collide_cylinder_aabb ($player->{pos}, 1.8, 0.3, \$collide_normal);
+   #d#warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
+   $player->{pos} = $pos;
 
-  $collide_time += time - $t1;
-  $collide_cnt++;
+   if ($collide_normal) {
+       # figure out how much downward velocity is removed:
+       my $down_part;
+       my $coll_depth = vlength ($collide_normal);
+       if ($coll_depth == 0) {
+          #d#warn "collidedd vector == 0, set vel = 0\n";
+          $down_part = 0;
+
+       } else {
+          vinorm ($collide_normal, $coll_depth);
+
+          my $vn = vnorm ($player->{vel});
+          $down_part = 1 - abs (vdot ($collide_normal, $vn));
+          #d# warn "down part $cn . $vn => $down_part * $player->{vel}\n";
+       }
+       #d# warn "downpart $down_part\n";
+       vismul ($player->{vel}, $down_part);
+   }
+
+   $collide_time += time - $t1;
+   $collide_cnt++;
 
   #my ($pos) = Games::Blockminer3D::Client::World::collide (
   #   $player->{pos},

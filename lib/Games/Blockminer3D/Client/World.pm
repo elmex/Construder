@@ -56,6 +56,20 @@ sub get_pos {
    $chnk->{map}->[$pos->[0]]->[$pos->[1]]->[$pos->[2]]
 }
 
+sub _closest_pt_point_aabb_2d {
+   my ($pt, $box_min, $box_max) = @_;
+   my @out;
+   for (0..1) {
+      my $pv = $pt->[$_];
+      my ($bmin, $bmax) = ($box_min->[$_], $box_max->[$_]);
+      if ($bmin > $bmax) { $bmax = $box_min->[$_]; $bmin = $box_max->[$_] }
+      $pv = $bmin if $pv < $bmin;
+      $pv = $bmax if $pv > $bmax;
+      push @out, $pv;
+   }
+   \@out
+}
+
 sub _closest_pt_point_aabb {
    my ($pt, $box_min, $box_max) = @_;
    my @out;
@@ -99,13 +113,39 @@ sub is_solid_box { $_[0]->[2] && $_[0]->[0] ne ' ' }
 sub collide_cylinder_aabb {
    my ($pos, $height, $radius, $rcollide_normal, $recursion, $original_pos) = @_;
 
-   $original_pos = [@$pos];
+   # we collide too much:
+   if ($recursion > 5) {
+      warn "collision occured on too many things. we couldn't backoff!";
+      return ($original_pos); # found position is as good as any...
+   }
+   #d# warn "collide at " . vstr ($pos) . "\n";
+
+   $original_pos = [@$pos] unless $original_pos;
 
    # the "current" block
-   my $foot_box = vfloor ($pos);
    my $head_pos = vaddd ($pos, 0, $height, 0);
    my $head_box = vfloor ($head_pos);
 
+   my $hbox = get_pos ($head_box);
+   if (is_solid_box ($hbox)) {
+      $$rcollide_normal = vaccum ($$rcollide_normal, [0, -1, 0]);
+      my $new_pos =
+         vaddd ($pos, 0, -(($head_pos->[1] - $head_box->[1]) + 0.001), 0);
+      return collide_cylinder_aabb (
+         $new_pos, $height, $radius, $rcollide_normal, $recursion + 1, $original_pos);
+   }
+
+   my $foot_box = vfloor ($pos);
+   my $fbox = get_pos ($foot_box);
+   if (is_solid_box ($fbox)) {
+      my $box_y = $foot_box->[1] + 1;
+      $$rcollide_normal = vaccum ($$rcollide_normal, [0, 1, 0]);
+      my $new_pos = vaddd ($pos, 0, ($box_y - $pos->[1]) + 0.001, 0);
+      return collide_cylinder_aabb (
+         $new_pos, $height, $radius, $rcollide_normal, $recursion + 1, $original_pos);
+   }
+
+   # find quadrant:
    my (@xr, @yr, @zr);
    (@yr) = (0, 1, 2);
    my ($ax, $az) = (
@@ -117,20 +157,53 @@ sub collide_cylinder_aabb {
    $xr[1] *= -1 if $pos->[0] < 0;
    $zr[1] *= -1 if $pos->[2] < 0;
 
-   my $hbox = get_pos ($head_box);
-   if (is_solid_box ($hbox)) {
-      $$rcollide_normal = [0, -1, 0];
-      return (vaddd ($pos, 0, -(($head_pos->[1] - $head_box->[1]) + 0.001), 0));
+   # now check if we collide in the X and Z plane with any of the boxes
+   my $pos_2d = [$pos->[0], $pos->[2]];
+   #warn "no head or food collision, checking " . vstr ($pos_2d) . "\n";
+
+   for my $y ($foot_box->[1]..$head_box->[1]) {
+      for my $dx (@xr) {
+         for my $dz (@zr) {
+            my ($x, $z) = ($foot_box->[0] + $dx, $foot_box->[2] + $dz);
+            my $sbox = get_pos ([$x, $y, $z]);
+
+            if (is_solid_box ($sbox)) {
+               my $aabb_pt = _closest_pt_point_aabb_2d (
+                  $pos_2d, [$x, $z], [$x + 1, $z + 1]);
+
+               my $dvec = vsub_2d ($pos_2d, $aabb_pt);
+               my $dvecl = vlength_2d ($dvec);
+               #d# warn "coll point $x $y $z: "
+               #d#      . vstr ($aabb_pt) . " pl "
+               #d#      . vstr ($pos_2d) . " dv "
+               #d#      . vstr ($dvec) . " ($dvecl)\n";
+
+               if ($dvecl == 0) {
+                  $$rcollide_normal = [0, 1, 0];
+                  #d# warn "collision happened INSIDE something!\n";
+                  my $new_pos = vaddd ($pos, 0, 1, 0);
+                  return collide_cylinder_aabb (
+                     $new_pos, $height, $radius, $rcollide_normal,
+                     $recursion + 1, $original_pos);
+               }
+
+               if ($dvecl < $radius) {
+                  my $backoff_dist = ($radius - $dvecl) + 0.0001;
+
+                  my $vn = vnorm ([$dvec->[0], 0, $dvec->[1]]);
+                  #d# warn "backoff: $backoff_dist into " . vstr ($vn) . "\n";
+                  $$rcollide_normal = vaccum ($$rcollide_normal, $vn);
+                  my $new_pos = vadd ($pos, vsmul ($vn, $backoff_dist));
+                  return collide_cylinder_aabb (
+                     $new_pos, $height, $radius, $rcollide_normal,
+                     $recursion + 1, $original_pos);
+               }
+            }
+         }
+      }
    }
 
-   my $fbox = get_pos ($foot_box);
-   if (is_solid_box ($fbox)) {
-      my $box_y = $foot_box->[1] + 1;
-      $$rcollide_normal = [0, 1, 0];
-      return (vaddd ($pos, 0, ($box_y - $pos->[1]) + 0.001, 0));
-   }
-
-   return ($pos);
+   return $pos;
 
    # rough algo:
    # check if feet $pos is inside blocking box
