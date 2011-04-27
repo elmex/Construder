@@ -56,6 +56,42 @@ sub get_pos {
    $chnk->{map}->[$pos->[0]]->[$pos->[1]]->[$pos->[2]]
 }
 
+sub intersect_ray_box {
+   my ($pos, $dir, $bmi) = @_;
+
+   my $bma = vaddd ($bmi, 1, 1, 1);
+
+   my $tmin = -9999.99;
+   my $tmax = 9999.99; # arbitrary max distance :->
+
+   #d#warn "IRFAY pos ".vstr($pos)." dir " . vstr ($dir)
+   #d#     . " bmi " .vstr ($bmi) . "-".vstr($bma)."\n";
+
+   for my $i (0..2) {
+      if (abs ($dir->[$i]) < 0.01) { # parallel to an axis?
+         return if
+               $pos->[$i] < $bmi->[$i]
+            || $pos->[$i] > $bma->[$i];
+
+      } else {
+         my $ood = 1.0 / $dir->[$i];
+         my $t1 = ($bmi->[$i] - $pos->[$i]) * $ood;
+         my $t2 = ($bma->[$i] - $pos->[$i]) * $ood;
+         #d# warn "T1[$i] $t1 T2 $t2 TMIN $tmin TMAX $tmax\n";
+
+         ($t1, $t2) = ($t2, $t1) if $t1 > $t2;
+         #d# warn "BT1[$i] $t1 T2 $t2 TMIN $tmin TMAX $tmax\n";
+         $tmin = $t1 if $t1 > $tmin;
+         $tmax = $t2 if $t2 < $tmax;
+
+         return if $tmin > $tmax; # no intersection anymore!
+      }
+   }
+
+   #d# warn "OUTPUT $tmin: " . vstr (vadd ($pos, vsmul ($dir, $tmin))) . "\n";
+   return ($tmin, vadd ($pos, vsmul ($dir, $tmin))); # return intersection position!
+}
+
 sub _closest_pt_point_aabb_2d {
    my ($pt, $box_min, $box_max) = @_;
    my @out;

@@ -249,7 +249,7 @@ sub render_scene {
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity;
-   gluPerspective (75, $WIDTH / $HEIGHT, 0.1, 20);
+   gluPerspective (60, $WIDTH / $HEIGHT, 0.1, 20);
 
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity;
@@ -294,16 +294,49 @@ sub render_scene {
       }
    }
 
-   my $qp = [5, 5, 5];
-   glPushMatrix;
-   glBindTexture (GL_TEXTURE_2D, 0);
-   glColor4d (1, 0, 0, 0.2);
-   glTranslatef (9 - 0.1, 1 - 0.1, 9 - 0.1);
-   glScalef (1.2, 1.2, 1.2);
-   glBegin (GL_QUADS);
-   _render_quad (0, 0, 0, [0..5]);
-   glEnd;
-   glPopMatrix;
+   if ($self->{marker_enabled}) {
+      my $op = vaddd ($pp, 0, 1.5, 0);
+      my $boxpos = vfloor ($op);
+
+      my $xd =  sin (deg2rad ($self->{yrotate}));
+      my $yd = -cos (deg2rad ($self->{yrotate}));
+      my $yy =  cos (deg2rad ($self->{xrotate} + 90));
+      my $rayd = [$xd, $yy, $yd];
+
+      my $qp = [0, 0, 0];
+      my $tma = 9999;
+      for my $dx (-2..2) {
+         for my $dy (-2..2) {
+            for my $dz (-2..2) {
+               my $mb = vaddd ($boxpos, $dx, $dy, $dz);
+               my $b = Games::Blockminer3D::Client::World::get_pos ($mb);
+               if (Games::Blockminer3D::Client::World::is_solid_box ($b)) {
+                  my ($tm, $q) =
+                     Games::Blockminer3D::Client::World::intersect_ray_box (
+                        $op, $rayd, $mb);
+#                  warn "BOX AT " . vstr ($mb) . " ($dx, $dz) from "
+#                                 . vstr ($op) . "DIST $tm at " . vstr ($q) . "\n";
+                  if ($tm > 0 && $tma > $tm) {
+                     $tma = $tm;
+                     $qp = $mb;
+                  }
+               }
+            }
+         }
+      }
+
+      #my $qp = vfloor (vaddd ($pp, 0, 1.5, 0));
+      #viadd ($qp, $forw);
+      glPushMatrix;
+      glBindTexture (GL_TEXTURE_2D, 0);
+      glColor4d (1, 0, 0, 0.2);
+      glTranslatef ($qp->[0] - 0.1, $qp->[1] - 0.1, $qp->[2] - 0.1);
+      glScalef (1.2, 1.2, 1.2);
+      glBegin (GL_QUADS);
+      _render_quad (0, 0, 0, [0..5]);
+      glEnd;
+      glPopMatrix;
+   }
 
    $render_time += time - $t1;
    $render_cnt++;
@@ -522,8 +555,13 @@ sub input_key_up : event_cb {
 
    if (grep { $name eq $_ } qw/s w/) {
       delete $self->{movement}->{straight};
+
    } elsif (grep { $name eq $_ } qw/a d/) {
       delete $self->{movement}->{strafe};
+
+   } elsif ($name eq 'g') {
+      delete $self->{marker_enabled};
+
    } elsif ($name eq 'p') {
       my ($p) = vaddd ($self->{phys_obj}->{player}->{pos}, 0, -1, 0);
       my $bx = Games::Blockminer3D::Client::World::get_pos ($p);
@@ -539,6 +577,7 @@ sub input_key_up : event_cb {
       my $chnk = Games::Blockminer3D::Client::World::get_chunk ($p);
       $chnk->chunk_changed;
       $self->{compiled_chunks} = {};
+
    } elsif ($name eq 't') {
       $self->{app}->fullscreen;
 
@@ -568,6 +607,8 @@ sub input_key_down : event_cb {
       viaddd ($self->{phys_obj}->{player}->{pos}, 0, -0.5, 0);
    } elsif ($name eq 'x') {
       viaddd ($self->{phys_obj}->{player}->{pos}, 0, 0.5, 0);
+   } elsif ($name eq 'g') {
+      $self->{marker_enabled} = 1;
    } elsif ($name eq 'f') {
       $self->change_look_lock (not $self->{look_lock});
    } elsif (grep { $name eq $_ } qw/a s d w/) {
