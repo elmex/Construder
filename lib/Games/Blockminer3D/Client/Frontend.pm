@@ -402,6 +402,19 @@ sub setup_event_poller {
    };
 }
 
+sub _calc_movement {
+   my ($forw_speed, $side_speed, $rot) = @_;
+   my $xd =  sin (deg2rad ($rot));# - 180));
+   my $yd = -cos (deg2rad ($rot));# - 180));
+   my $forw = vsmul ([$xd, 0, $yd], $forw_speed);
+
+   $xd =  sin (deg2rad ($rot + 90));# - 180));
+   $yd = -cos (deg2rad ($rot + 90));# - 180));
+   viadd ($forw, vsmul ([$xd, 0, $yd], $side_speed));
+   $forw
+}
+
+
 sub physics_tick : event_cb {
    my ($self, $dt) = @_;
 
@@ -422,12 +435,14 @@ sub physics_tick : event_cb {
    viadd ($player->{pos}, vsmul ($player->{vel}, $dt));
 
    my $movement = [0, 0, 0];
-   viadd ($movement, $self->{movement}->{straight})
-      if defined $self->{movement}->{straight};
-   viadd ($movement, $self->{movement}->{strafe})
-      if defined $self->{movement}->{strafe};
-   vismul ($movement, $dt);
-   viadd ($player->{pos}, $movement);
+   #d#viadd ($movement, $self->{movement}->{straight})
+   #d#   if defined $self->{movement}->{straight};
+   #d#viadd ($movement, $self->{movement}->{strafe})
+   #d#   if defined $self->{movement}->{strafe};
+   #d#vismul ($movement, $dt);
+   my $movement = _calc_movement (
+      $self->{movement}->{straight}, $self->{movement}->{strafe}, $self->{yrotate});
+   viadd ($player->{pos}, vsmul ($movement, $dt));
 
    #d#warn "check player at $player->{pos}\n";
    #    my ($pos) = $chunk->collide ($player->{pos}, 0.3, \$collided);
@@ -567,14 +582,9 @@ sub input_key_down : event_cb {
 
       my ($xd, $yd);
       if ($xdir) {
-         $xd =  sin (deg2rad ($self->{yrotate}));# - 180));
-         $yd = -cos (deg2rad ($self->{yrotate}));# - 180));
-         $self->{movement}->{straight} = [($xd * $xdir), 0, ($yd * $xdir)];
+         $self->{movement}->{straight} = $xdir;
       } else {
-         $xdir = $ydir;
-         $xd =  sin (deg2rad ($self->{yrotate} + 90));# - 180));
-         $yd = -cos (deg2rad ($self->{yrotate} + 90));# - 180));
-         $self->{movement}->{strafe} = [($xd * $xdir), 0, ($yd * $xdir)];
+         $self->{movement}->{strafe} = $ydir;
       }
    }
    $self->{change} = 1;
@@ -591,6 +601,8 @@ sub input_mouse_motion : event_cb {
       $self->{yrotate} += ($xr / $WIDTH) * 15;
       $self->{xrotate} += ($yr / $HEIGHT) * 15;
       $self->{xrotate} = Math::Trig::deg2deg ($self->{xrotate});
+      $self->{xrotate} = -90 if $self->{xrotate} < -90;
+      $self->{xrotate} = 90 if $self->{xrotate} > 90;
       $self->{yrotate} = Math::Trig::deg2deg ($self->{yrotate});
       $self->{change} = 1;
       #d# warn "rot ($xr,$yr) ($self->{xrotate},$self->{yrotate})\n";
