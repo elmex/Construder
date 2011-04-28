@@ -256,7 +256,7 @@ sub render_scene {
    # move and rotate the world:
    glRotatef ($self->{xrotate}, 1, 0, 0);
    glRotatef ($self->{yrotate}, 0, 1, 0);
-   glTranslatef (@{vneg (vaddd ($pp, 0, 1.5, 0))});
+   glTranslatef (@{vneg (vaddd ($pp, 0, 1.3, 0))});
 
    # coordinate system
    #d#glBindTexture (GL_TEXTURE_2D, 0);
@@ -429,7 +429,7 @@ sub get_selected_box_pos {
    my $t1 = time;
    my $pp = $self->{phys_obj}->{player}->{pos};
 
-   my $player_head = vaddd ($pp, 0, 1.5, 0);
+   my $player_head = vaddd ($pp, 0, 1.3, 0);
    my $foot_box    = vfloor ($pp);
    my $head_box    = vfloor ($player_head);
    my $rayd        = $self->get_look_vector;
@@ -516,7 +516,7 @@ sub physics_tick : event_cb {
 
    my $collide_normal;
    #d#warn "check player pos " . vstr ($player->{pos}) . "\n";
-   my ($pos) = Games::Blockminer3D::Client::World::collide_cylinder_aabb ($player->{pos}, 1.8, 0.3, \$collide_normal);
+   my ($pos) = Games::Blockminer3D::Client::World::collide_cylinder_aabb ($player->{pos}, 1.5, 0.3, \$collide_normal);
    #d#warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
    $player->{pos} = $pos;
 
@@ -646,11 +646,11 @@ sub input_key_down : event_cb {
       $self->change_look_lock (not $self->{look_lock});
    } elsif (grep { $name eq $_ } qw/a s d w/) {
       my ($xdir, $ydir) = (
-         $name eq 'w'        ?  2
-         : ($name eq 's'     ? -2
+         $name eq 'w'        ?  3
+         : ($name eq 's'     ? -3
                              :  0),
-         $name eq 'a'        ? -2
-         : ($name eq 'd'     ?  2
+         $name eq 'a'        ? -4
+         : ($name eq 'd'     ?  4
                              :  0),
       );
 
