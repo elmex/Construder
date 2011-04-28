@@ -508,7 +508,8 @@ sub setup_event_poller {
    my $anim_dt = 1 / 25;
    my $anim_accum_time = 0;
    $self->{selector_w} = AE::timer 0, 0.04, sub {
-      $self->{selected_box} = $self->get_selected_box_pos;
+      ($self->{selected_box}, $self->{selected_build_box})
+         = $self->get_selected_box_pos;
 
       $anim_ltime = time - 0.02 if not defined $anim_ltime;
       my $ctime = time;
@@ -568,7 +569,7 @@ sub get_selected_box_pos {
    my $head_box    = vfloor ($player_head);
    my $rayd        = $self->get_look_vector;
 
-   my $select_pos;
+   my ($select_pos, $build_box);
 
    my $min_dist = 9999;
    for my $dx (-1..1) {
@@ -591,6 +592,7 @@ sub get_selected_box_pos {
                if ($dist > 0 && $min_dist > $dist) {
                   $min_dist   = $dist;
                   $select_pos = $cur_box;
+                  $build_box  = vadd ($player_head, vsmul ($rayd, $dist - 0.00001));
                }
             }
          }
@@ -599,7 +601,7 @@ sub get_selected_box_pos {
 
    #d# warn sprintf "%.5f selection\n", time - $t1;
 
-   $select_pos
+   ($select_pos, $build_box)
 }
 
 sub _calc_movement {
@@ -794,7 +796,7 @@ sub input_mouse_button : event_cb {
    my ($self, $mask) = @_;
    warn "MASK @$mask\n";
    if ($mask & SDL_BUTTON_LMASK) {
-      my $sp = $self->{selected_box};
+      my $sp = $self->{selected_build_box};
       return unless $sp;
 
       my $bx = world_get_pos ($sp);
