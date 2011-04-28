@@ -295,47 +295,19 @@ sub render_scene {
    }
 
    if ($self->{marker_enabled}) {
-      my $op = vaddd ($pp, 0, 1.5, 0);
-      my $boxpos = vfloor ($op);
+      my $qp = $self->get_selected_box_pos;
 
-      my $xd =  sin (deg2rad ($self->{yrotate}));
-      my $yd = -cos (deg2rad ($self->{yrotate}));
-      my $yy =  cos (deg2rad ($self->{xrotate} + 90));
-      my $rayd = [$xd, $yy, $yd];
-
-      my $qp = [0, 0, 0];
-      my $tma = 9999;
-      for my $dx (-2..2) {
-         for my $dy (-2..2) {
-            for my $dz (-2..2) {
-               my $mb = vaddd ($boxpos, $dx, $dy, $dz);
-               my $b = Games::Blockminer3D::Client::World::get_pos ($mb);
-               if (Games::Blockminer3D::Client::World::is_solid_box ($b)) {
-                  my ($tm, $q) =
-                     Games::Blockminer3D::Client::World::intersect_ray_box (
-                        $op, $rayd, $mb);
-#                  warn "BOX AT " . vstr ($mb) . " ($dx, $dz) from "
-#                                 . vstr ($op) . "DIST $tm at " . vstr ($q) . "\n";
-                  if ($tm > 0 && $tma > $tm) {
-                     $tma = $tm;
-                     $qp = $mb;
-                  }
-               }
-            }
-         }
+      if ($qp) {
+         glPushMatrix;
+         glBindTexture (GL_TEXTURE_2D, 0);
+         glColor4d (1, 0, 0, 0.2);
+         glTranslatef ($qp->[0] - 0.1, $qp->[1] - 0.1, $qp->[2] - 0.1);
+         glScalef (1.2, 1.2, 1.2);
+         glBegin (GL_QUADS);
+         _render_quad (0, 0, 0, [0..5]);
+         glEnd;
+         glPopMatrix;
       }
-
-      #my $qp = vfloor (vaddd ($pp, 0, 1.5, 0));
-      #viadd ($qp, $forw);
-      glPushMatrix;
-      glBindTexture (GL_TEXTURE_2D, 0);
-      glColor4d (1, 0, 0, 0.2);
-      glTranslatef ($qp->[0] - 0.1, $qp->[1] - 0.1, $qp->[2] - 0.1);
-      glScalef (1.2, 1.2, 1.2);
-      glBegin (GL_QUADS);
-      _render_quad (0, 0, 0, [0..5]);
-      glEnd;
-      glPopMatrix;
    }
 
    $render_time += time - $t1;
@@ -433,6 +405,57 @@ sub setup_event_poller {
       $fps++;
       #}
    };
+}
+
+sub get_look_vector {
+   my ($self) = @_;
+
+   my $xd =  sin (deg2rad ($self->{yrotate}));
+   my $zd = -cos (deg2rad ($self->{yrotate}));
+   my $yd =  cos (deg2rad ($self->{xrotate} + 90));
+   my $yl =  sin (deg2rad ($self->{xrotate} + 90));
+   return [$yl * $xd, $yd, $yl * $zd];
+}
+
+sub get_selected_box_pos {
+   my ($self) = @_;
+   my $pp = $self->{phys_obj}->{player}->{pos};
+
+   my $player_head = vaddd ($pp, 0, 1.5, 0);
+   my $foot_box    = vfloor ($pp);
+   my $head_box    = vfloor ($player_head);
+   my $rayd        = $self->get_look_vector;
+
+   my $select_pos;
+
+   my $min_dist = 9999;
+   for my $dx (-1..1) {
+      for my $dy (-2..1) { # floor and above head?!
+         for my $dz (-1..1) {
+            # now skip the player boxes
+            my $cur_box = vaddd ($head_box, $dx, $dy, $dz);
+            #d# next unless $dx == 0 && $dz == 0 && $cur_box->[1] == $foot_box->[1] - 1;
+            next if $dx == 0 && $dz == 0
+                    && grep { $cur_box->[1] == $_ }
+                          $foot_box->[1]..$head_box->[1];
+
+            my $b = Games::Blockminer3D::Client::World::get_pos ($cur_box);
+            if (Games::Blockminer3D::Client::World::is_solid_box ($b)) {
+               my ($dist, $q) =
+                  Games::Blockminer3D::Client::World::intersect_ray_box (
+                     $player_head, $rayd, $cur_box);
+               warn "BOX AT " . vstr ($cur_box) . " ".vstr ($rayd)." from "
+                              . vstr ($player_head) . "DIST $dist at " . vstr ($q) . "\n";
+               if ($dist > 0 && $min_dist > $dist) {
+                  $min_dist   = $dist;
+                  $select_pos = $cur_box;
+               }
+            }
+         }
+      }
+   }
+
+   $select_pos
 }
 
 sub _calc_movement {
