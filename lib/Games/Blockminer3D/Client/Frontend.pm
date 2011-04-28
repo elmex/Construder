@@ -294,20 +294,18 @@ sub render_scene {
       }
    }
 
-   if ($self->{marker_enabled}) {
-      my $qp = $self->get_selected_box_pos;
+   my $qp = $self->{selected_box};
 
-      if ($qp) {
-         glPushMatrix;
-         glBindTexture (GL_TEXTURE_2D, 0);
-         glColor4d (1, 0, 0, 0.2);
-         glTranslatef ($qp->[0] - 0.1, $qp->[1] - 0.1, $qp->[2] - 0.1);
-         glScalef (1.2, 1.2, 1.2);
-         glBegin (GL_QUADS);
-         _render_quad (0, 0, 0, [0..5]);
-         glEnd;
-         glPopMatrix;
-      }
+   if ($qp) {
+      glPushMatrix;
+      glBindTexture (GL_TEXTURE_2D, 0);
+      glColor4d (1, 0, 0, 0.2);
+      glTranslatef ($qp->[0] - 0.1, $qp->[1] - 0.1, $qp->[2] - 0.1);
+      glScalef (1.2, 1.2, 1.2);
+      glBegin (GL_QUADS);
+      _render_quad (0, 0, 0, [0..5]);
+      glEnd;
+      glPopMatrix;
    }
 
    $render_time += time - $t1;
@@ -389,6 +387,8 @@ sub setup_event_poller {
             warn "unknown sdl type: $type\n";
          }
       }
+
+      $self->{selected_box} = $self->get_selected_box_pos;
    };
 
    $self->{poll_w} = AE::timer 0, 0.024, sub {
@@ -592,9 +592,6 @@ sub input_key_up : event_cb {
    } elsif (grep { $name eq $_ } qw/a d/) {
       delete $self->{movement}->{strafe};
 
-   } elsif ($name eq 'g') {
-      delete $self->{marker_enabled};
-
    } elsif ($name eq 'p') {
       my ($p) = vaddd ($self->{phys_obj}->{player}->{pos}, 0, -1, 0);
       my $bx = Games::Blockminer3D::Client::World::get_pos ($p);
@@ -640,8 +637,6 @@ sub input_key_down : event_cb {
       viaddd ($self->{phys_obj}->{player}->{pos}, 0, -0.5, 0);
    } elsif ($name eq 'x') {
       viaddd ($self->{phys_obj}->{player}->{pos}, 0, 0.5, 0);
-   } elsif ($name eq 'g') {
-      $self->{marker_enabled} = 1;
    } elsif ($name eq 'f') {
       $self->change_look_lock (not $self->{look_lock});
    } elsif (grep { $name eq $_ } qw/a s d w/) {
@@ -688,7 +683,7 @@ sub input_mouse_button : event_cb {
    my ($self, $mask) = @_;
    warn "MASK @$mask\n";
    if ($mask & SDL_BUTTON_LMASK) {
-      my $sp = $self->get_selected_box_pos;
+      my $sp = $self->{selected_box};
       return unless $sp;
 
       my $bx = Games::Blockminer3D::Client::World::get_pos ($sp);
@@ -698,7 +693,7 @@ sub input_mouse_button : event_cb {
       $self->{compiled_chunks} = {};
 
    } elsif ($mask & SDL_BUTTON_RMASK) {
-      my $sp = $self->get_selected_box_pos;
+      my $sp = $self->{selected_box};
       return unless $sp;
 
       my $bx = Games::Blockminer3D::Client::World::get_pos ($sp);
