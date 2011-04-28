@@ -2,6 +2,17 @@ package Games::Blockminer3D::Client::World;
 use common::sense;
 use Games::Blockminer3D::Vector;
 use POSIX qw/floor/;
+require Exporter;
+use POSIX qw/floor/;
+our @ISA = qw/Exporter/;
+our @EXPORT = qw/
+   world_collide_cylinder_aabb
+   world_is_solid_box
+   world_intersect_ray_box
+   world_get_pos
+   world_get_chunk
+   world_set_chunk
+/;
 
 =head1 NAME
 
@@ -19,7 +30,7 @@ Games::Blockminer3D::Client::World - desc
 
 my @CHUNKS;
 
-sub set_chunk {
+sub world_set_chunk {
    my ($pos, $chunk) = @_;
    warn "set chunk: @$pos $chunk\n";
    my ($x, $y, $z) =
@@ -28,7 +39,7 @@ sub set_chunk {
    $CHUNKS[$quadr]->[$x]->[$y]->[$z] = $chunk;
 }
 
-sub get_chunk {
+sub world_get_chunk {
    my ($pos) = @_;
    $pos = [0, 0, 0];
    my ($x, $y, $z) =
@@ -37,7 +48,7 @@ sub get_chunk {
    $CHUNKS[$quadr]->[$x]->[$y]->[$z]
 }
 
-sub get_pos {
+sub world_get_pos {
    my ($pos) = @_;
    my $opos = [@$pos];
    $pos = vsubd ($pos,
@@ -49,14 +60,14 @@ sub get_pos {
          * int ($pos->[2] / $Games::Blockminer3D::Client::MapChunk::SIZE)
    );
    @$pos = map +(int ($_)), @$pos;
-   my $chnk = get_chunk ($opos);
+   my $chnk = world_get_chunk ($opos);
    unless ($chnk) {
       return ['X', 20, 0]; # invisible block
    }
    $chnk->{map}->[$pos->[0]]->[$pos->[1]]->[$pos->[2]]
 }
 
-sub intersect_ray_box {
+sub world_intersect_ray_box {
    my ($pos, $dir, $bmi) = @_;
 
    my $bma = vaddd ($bmi, 1, 1, 1);
@@ -144,9 +155,9 @@ sub _collide_sphere_box {
    return ()
 }
 
-sub is_solid_box { $_[0]->[2] && $_[0]->[0] ne ' ' }
+sub world_is_solid_box { $_[0]->[2] && $_[0]->[0] ne ' ' }
 
-sub collide_cylinder_aabb {
+sub world_collide_cylinder_aabb {
    my ($pos, $height, $radius, $rcollide_normal, $recursion, $original_pos) = @_;
 
    # we collide too much:
@@ -162,22 +173,22 @@ sub collide_cylinder_aabb {
    my $head_pos = vaddd ($pos, 0, $height, 0);
    my $head_box = vfloor ($head_pos);
 
-   my $hbox = get_pos ($head_box);
-   if (is_solid_box ($hbox)) {
+   my $hbox = world_get_pos ($head_box);
+   if (world_is_solid_box ($hbox)) {
       $$rcollide_normal = vaccum ($$rcollide_normal, [0, -1, 0]);
       my $new_pos =
          vaddd ($pos, 0, -(($head_pos->[1] - $head_box->[1]) + 0.001), 0);
-      return collide_cylinder_aabb (
+      return world_collide_cylinder_aabb (
          $new_pos, $height, $radius, $rcollide_normal, $recursion + 1, $original_pos);
    }
 
    my $foot_box = vfloor ($pos);
-   my $fbox = get_pos ($foot_box);
-   if (is_solid_box ($fbox)) {
+   my $fbox = world_get_pos ($foot_box);
+   if (world_is_solid_box ($fbox)) {
       my $box_y = $foot_box->[1] + 1;
       $$rcollide_normal = vaccum ($$rcollide_normal, [0, 1, 0]);
       my $new_pos = vaddd ($pos, 0, ($box_y - $pos->[1]) + 0.001, 0);
-      return collide_cylinder_aabb (
+      return world_collide_cylinder_aabb (
          $new_pos, $height, $radius, $rcollide_normal, $recursion + 1, $original_pos);
    }
 
@@ -201,9 +212,9 @@ sub collide_cylinder_aabb {
       for my $dx (@xr) {
          for my $dz (@zr) {
             my ($x, $z) = ($foot_box->[0] + $dx, $foot_box->[2] + $dz);
-            my $sbox = get_pos ([$x, $y, $z]);
+            my $sbox = world_get_pos ([$x, $y, $z]);
 
-            if (is_solid_box ($sbox)) {
+            if (world_is_solid_box ($sbox)) {
                my $aabb_pt = _closest_pt_point_aabb_2d (
                   $pos_2d, [$x, $z], [$x + 1, $z + 1]);
 
@@ -218,7 +229,7 @@ sub collide_cylinder_aabb {
                   $$rcollide_normal = [0, 1, 0];
                   #d# warn "collision happened INSIDE something!\n";
                   my $new_pos = vaddd ($pos, 0, 1, 0);
-                  return collide_cylinder_aabb (
+                  return world_collide_cylinder_aabb (
                      $new_pos, $height, $radius, $rcollide_normal,
                      $recursion + 1, $original_pos);
                }
@@ -230,7 +241,7 @@ sub collide_cylinder_aabb {
                   #d# warn "backoff: $backoff_dist into " . vstr ($vn) . "\n";
                   $$rcollide_normal = vaccum ($$rcollide_normal, $vn);
                   my $new_pos = vadd ($pos, vsmul ($vn, $backoff_dist));
-                  return collide_cylinder_aabb (
+                  return world_collide_cylinder_aabb (
                      $new_pos, $height, $radius, $rcollide_normal,
                      $recursion + 1, $original_pos);
                }
@@ -272,7 +283,7 @@ sub collide_cylinder_aabb {
 # after own vector math module:
 #   0.00032 secsPcoll in flight
 #   0.00068 secsPcoll on floor  # i find this amazing!
-sub collide {
+sub world_collide {
    my ($pos, $rad, $rcoll, $rec, $orig_pos) = @_;
 
    if ($rec > 8) {
@@ -332,7 +343,7 @@ sub collide {
          for my $y (@yr) {
             for my $z (@zr) {
                my $cur_box = vaddd ($my_box, $x, $y, $z);
-               my $bx = get_pos ($cur_box);
+               my $bx = world_get_pos ($cur_box);
                next unless $bx->[2] && $bx->[0] ne ' ';
 
                my ($col_dir, $pos_adj) = _collide_sphere_box ($spos, $srad, $cur_box);

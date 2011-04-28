@@ -2,6 +2,7 @@ package Games::Blockminer3D::Client::Frontend;
 use common::sense;
 use SDL;
 use SDLx::App;
+use SDLx::Text;
 use SDL::Mouse;
 use SDL::Video;
 use SDL::Events;
@@ -45,11 +46,24 @@ sub new {
    $self->init_app;
    $self->init_physics;
    $self->setup_event_poller;
+   $self->init_text;
 
    return $self
 }
 
 my ($WIDTH, $HEIGHT) = (720, 400);#600, 400);
+
+sub init_text {
+   my ($self) = @_;
+   #SDL::TTF::init () < 0
+   #   or die "SDL::TTF could not be initialized: " . SDL::get_error . "\n";
+
+   #= SDL::TTF::open_font ('res/FreeMonoBold.ttf', 12);
+   #if (!$self->{font}) {
+   #   die "Couldn't load font from res/FreeMonoBold.ttf: " . SDL::get_error . "\n";
+   #}
+      $self->text2opengl_texture ("HALLOOo doeof owf  fweo\nTest\n1\n2 3 4", [0.5, 0.1, 0.0]);
+}
 
 sub init_physics {
    my ($self) = @_;
@@ -58,6 +72,8 @@ sub init_physics {
       pos => [5.5, 3.5, 5.5],#-25, -50, -25),
       vel => [0, 0, 0],
    };
+
+   $self->{box_highlights} = [];
 }
 
 sub init_app {
@@ -70,7 +86,7 @@ sub init_app {
 
    glDepthFunc(GL_LESS);
    glEnable (GL_DEPTH_TEST);
-   glMatrixMode (GL_PROJECTION);
+
    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    glEnable (GL_BLEND);
    glEnable (GL_CULL_FACE);
@@ -104,6 +120,46 @@ sub _get_texfmt {
                : ($rmsk == 0x000000ff ? GL_RGB  : GL_BGR))
 }
 
+sub text2opengl_texture {
+   my ($self, $text, $color) = @_;
+ #  my ($w, $h) = @{ SDL::TTF::size_utf8 ($self->{font}, $text) };
+ #  my $ssurf = SDL::Surface->new (
+ #     SDL_SWSURFACE, $w, $h, 16, 0, 0, 0
+ #  );
+
+
+   $color = vsmul ($color, 255);
+   $color->[$_] = int $color->[$_] for 0..2;
+   my $txt = SDLx::Text->new (
+      font => "res/FreeMonoBold.ttf",
+      color => $color,
+      size => 12,
+      x => 0,
+      y => 0,
+      h_align => 'center',
+      text => $text
+   );
+   my $surf = $txt->surface;
+
+   #d#my $surf = SDL::TTF::render_unicode_solid (
+   #d#   $self->{font}, $text, SDL::Color->new (@$color));
+   warn "NEW TEXT: $surf\n";
+
+   my $texture_format = _get_texfmt ($surf);
+
+   my ($nr) = glGenTextures_p (1);
+
+   warn "TEXT $nr ".($surf->w).":".($surf->h)."\n";
+
+   glBindTexture (GL_TEXTURE_2D, 2);
+   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+   gluBuild2DMipmaps_s (GL_TEXTURE_2D,
+      $surf->format->BytesPerPixel, $surf->w, $surf->h, $texture_format, GL_UNSIGNED_BYTE,
+      ${$surf->get_pixels_ptr});
+}
+
 sub load_texture {
    my ($self, $file, $nr) = @_;
 
@@ -127,7 +183,7 @@ sub load_texture {
 }
 
 sub _render_quad {
-   my ($x, $y, $z, $faces, $light) = @_;
+   my ($pos, $faces, $light) = @_;
    #d#warn "QUAD $x $y $z $light\n";
 
    #               0 front  1 top    2 back   3 left   4 right  5 bottom
@@ -169,9 +225,25 @@ sub _render_quad {
 
          glColor3d ($light, $light, $light) if defined $light;
          glTexCoord2d(@{$uv[$vertex]});
-         glVertex3d($coords->[0] + $x, $coords->[1] + $y, $coords->[2] + $z);
+         glVertex3d(@{vadd ($coords, $pos)});
       }
    }
+}
+
+sub _render_highlight {
+   my ($pos, $color, $rad) = @_;
+
+   $rad ||= 0.05;
+   $pos = vsubd ($pos, $rad, $rad, $rad);
+   glPushMatrix;
+   glBindTexture (GL_TEXTURE_2D, 0);
+   glColor4d (@$color);
+   glTranslatef (@$pos);
+   glScalef (1 + 2*$rad, 1 + 2*$rad, 1+2*$rad);
+   glBegin (GL_QUADS);
+   _render_quad ([0, 0, 0], [0..5]);
+   glEnd;
+   glPopMatrix;
 }
 
 sub compile_chunk {
@@ -183,7 +255,7 @@ sub compile_chunk {
       glPushMatrix;
       glBegin (GL_QUADS);
 
-      my $chnk = Games::Blockminer3D::Client::World::get_chunk ([$cx, $cy, $cz]);
+      my $chnk = world_get_chunk ([$cx, $cy, $cz]);
       my @quads = map {
          [
             [
@@ -213,25 +285,31 @@ sub compile_chunk {
 
          $face_cnt += scalar @$faces;
 
-         _render_quad (@$pos, $faces, $light);
+         _render_quad ($pos, $faces, $light);
       }
-
-      #for (my $x = 0; $x < $Games::Blockminer3D::Client::MapChunk::SIZE; $x++) {
-      #   for (my $y = 0; $y < $Games::Blockminer3D::Client::MapChunk::SIZE; $y++) {
-      #      for (my $z = 0; $z < $Games::Blockminer3D::Client::MapChunk::SIZE; $z++) {
-      #         my $c = $chnk->[$x]->[$y]->[$z];
-      #         if ($c->[2] && $c->[0] eq 'X') {
-      #            _render_quad ($x, $y, $z, ((1 / 20) * $c->[1]) + 0.1);
-      #         }
-      #      }
-      #   }
-      #}
 
       glEnd;
       glPopMatrix;
 
    };
    #d# warn "faces: $face_cnt\n";
+}
+
+sub step_animations {
+   my ($self, $dt) = @_;
+
+   my @next_hl;
+   for my $bl (@{$self->{box_highlights}}) {
+      my ($pos, $color, $attr) = @$bl;
+
+      if ($attr->{fading}) {
+         next if $color->[3] >= 1; # remove fade
+         $color->[3] += $attr->{fading} * $dt;
+      }
+
+      push @next_hl, $bl;
+   }
+   $self->{box_highlights} = \@next_hl;
 }
 
 my $render_cnt;
@@ -253,6 +331,8 @@ sub render_scene {
 
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity;
+   glPushMatrix;
+
    # move and rotate the world:
    glRotatef ($self->{xrotate}, 1, 0, 0);
    glRotatef ($self->{yrotate}, 0, 1, 0);
@@ -295,22 +375,61 @@ sub render_scene {
    }
 
    my $qp = $self->{selected_box};
+   _render_highlight ($qp, [1, 0, 0, 0.2], 0.06) if $qp;
 
-   if ($qp) {
-      glPushMatrix;
-      glBindTexture (GL_TEXTURE_2D, 0);
-      glColor4d (1, 0, 0, 0.2);
-      glTranslatef ($qp->[0] - 0.1, $qp->[1] - 0.1, $qp->[2] - 0.1);
-      glScalef (1.2, 1.2, 1.2);
-      glBegin (GL_QUADS);
-      _render_quad (0, 0, 0, [0..5]);
-      glEnd;
-      glPopMatrix;
+   for (@{$self->{box_highlights}}) {
+      _render_highlight ($_->[0], $_->[1]);
    }
+
+   glPopMatrix;
+
+   #$self->render_hud;
+
+   $self->{app}->sync;
 
    $render_time += time - $t1;
    $render_cnt++;
-   $self->{app}->sync;
+}
+
+sub render_hud {
+   my ($self) = @_;
+
+warn "HUD\n";
+   glDisable (GL_DEPTH_TEST);
+   glDepthMask (GL_FALSE);
+   glDisable(GL_TEXTURE_2D);
+
+   glMatrixMode (GL_PROJECTION);
+   glPushMatrix ();
+   glLoadIdentity;
+   glOrtho (0, $WIDTH, $HEIGHT, 0, -1, 1);
+
+   glMatrixMode (GL_MODELVIEW);
+   glPushMatrix ();
+   glLoadIdentity;
+
+   glColor4d (1, 1, 1, 1);
+   glBindTexture (GL_TEXTURE_2D, 0);
+   glBegin (GL_QUADS);
+
+   #glTexCoord2d(1, 1);
+   glVertex3d (0, 100, 0);
+   #glTexCoord2d(1, 0);
+   glVertex3d (100, 100, 0);
+   #glTexCoord2d(0, 1);
+   glVertex3d (100, 0, 0);
+   #glTexCoord2d(0, 0);
+   glVertex3d (0, 0, 0);
+
+   glEnd ();
+
+   glPopMatrix;
+   glMatrixMode (GL_PROJECTION);
+   glPopMatrix;
+
+  glDepthMask (GL_TRUE);
+  glEnable (GL_DEPTH_TEST);
+  glEnable (GL_TEXTURE_2D);
 }
 
 my $collide_cnt;
@@ -319,10 +438,6 @@ sub setup_event_poller {
    my ($self) = @_;
 
    my $sdle = $self->{sdl_event};
-   my $ltime;
-
-   my $accum_time = 0;
-   my $dt = 1 / 40;
 
    my $fps;
    $self->{fps_w} = AE::timer 0, 5, sub {
@@ -387,10 +502,29 @@ sub setup_event_poller {
             warn "unknown sdl type: $type\n";
          }
       }
-
-      $self->{selected_box} = $self->get_selected_box_pos;
    };
 
+   my $anim_ltime;
+   my $anim_dt = 1 / 25;
+   my $anim_accum_time = 0;
+   $self->{selector_w} = AE::timer 0, 0.04, sub {
+      $self->{selected_box} = $self->get_selected_box_pos;
+
+      $anim_ltime = time - 0.02 if not defined $anim_ltime;
+      my $ctime = time;
+      $anim_accum_time += time - $anim_ltime;
+      $anim_ltime = $ctime;
+
+      while ($anim_accum_time > $anim_dt) {
+         $self->step_animations ($anim_dt);
+         $anim_accum_time -= $anim_dt;
+      }
+
+   };
+
+   my $ltime;
+   my $accum_time = 0;
+   my $dt = 1 / 40;
    $self->{poll_w} = AE::timer 0, 0.024, sub {
       $ltime = time - 0.02 if not defined $ltime;
       my $ctime = time;
@@ -447,10 +581,10 @@ sub get_selected_box_pos {
                     && grep { $cur_box->[1] == $_ }
                           $foot_box->[1]..$head_box->[1];
 
-            my $b = Games::Blockminer3D::Client::World::get_pos ($cur_box);
-            if (Games::Blockminer3D::Client::World::is_solid_box ($b)) {
+            my $b = world_get_pos ($cur_box);
+            if (world_is_solid_box ($b)) {
                my ($dist, $q) =
-                  Games::Blockminer3D::Client::World::intersect_ray_box (
+                  world_intersect_ray_box (
                      $player_head, $rayd, $cur_box);
                #d#warn "BOX AT " . vstr ($cur_box) . " ".vstr ($rayd)." from "
                #d#               . vstr ($player_head) . "DIST $dist at " . vstr ($q) . "\n";
@@ -463,7 +597,7 @@ sub get_selected_box_pos {
       }
    }
 
-   warn sprintf "%.5f selection\n", time - $t1;
+   #d# warn sprintf "%.5f selection\n", time - $t1;
 
    $select_pos
 }
@@ -485,7 +619,7 @@ sub physics_tick : event_cb {
    my ($self, $dt) = @_;
 
  #  my $player = $self->{phys_obj}->{player};
- #  my $f = Games::Blockminer3D::Client::World::get_pos ($player->{pos}->array);
+ #  my $f = world_get_pos ($player->{pos}->array);
  #  warn "POS PLAYER $player->{pos}: ( @$f )\n";
 
    my $gforce = [0, -9.4, 0];
@@ -500,23 +634,23 @@ sub physics_tick : event_cb {
    }
    viadd ($player->{pos}, vsmul ($player->{vel}, $dt));
 
-   my $movement = [0, 0, 0];
-   #d#viadd ($movement, $self->{movement}->{straight})
-   #d#   if defined $self->{movement}->{straight};
-   #d#viadd ($movement, $self->{movement}->{strafe})
-   #d#   if defined $self->{movement}->{strafe};
-   #d#vismul ($movement, $dt);
    my $movement = _calc_movement (
-      $self->{movement}->{straight}, $self->{movement}->{strafe}, $self->{yrotate});
+      $self->{movement}->{straight}, $self->{movement}->{strafe},
+      $self->{yrotate});
    viadd ($player->{pos}, vsmul ($movement, $dt));
 
    #d#warn "check player at $player->{pos}\n";
    #    my ($pos) = $chunk->collide ($player->{pos}, 0.3, \$collided);
+
    my $t1 = time;
 
    my $collide_normal;
    #d#warn "check player pos " . vstr ($player->{pos}) . "\n";
-   my ($pos) = Games::Blockminer3D::Client::World::collide_cylinder_aabb ($player->{pos}, 1.5, 0.3, \$collide_normal);
+
+   my ($pos) =
+      world_collide_cylinder_aabb (
+         $player->{pos}, 1.5, 0.3, \$collide_normal);
+
    #d#warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
    $player->{pos} = $pos;
 
@@ -541,30 +675,6 @@ sub physics_tick : event_cb {
 
    $collide_time += time - $t1;
    $collide_cnt++;
-
-  #my ($pos) = Games::Blockminer3D::Client::World::collide (
-  #   $player->{pos},
-  #   0.3,
-  #   \$collided);
-  ##d#warn "collide $pos | $collided | vel $player->{vel}\n";
-  #if ($collided) {
-  #   #d# warn "Collided, new pos " . vstr ($pos) . " vector: " . vstr ($collided) . "\n";
-  #   # TODO: specialcase upward velocity, they should not speed up on horiz. corners
-  #   my $down_part;
-  #   my $coll_depth = vlength ($collided);
-  #   if ($coll_depth == 0) {
-  #      #d#warn "collidedd vector == 0, set vel = 0\n";
-  #      $down_part = 0;
-  #   } else {
-  #      vinorm ($collided, $coll_depth);
-  #      my $vn = vnorm ($player->{vel});
-  #      $down_part = 1 - abs (vdot ($collided, $vn));
-  #      #d# warn "down part $cn . $vn => $down_part * $player->{vel}\n";
-  #   }
-  #   vismul ($player->{vel}, $down_part);
-  #   $player->{pos} = $pos;
-  ##    $player->{vel} = vector (0, 0, 0);
-  #}
 }
 
 sub change_look_lock : event_cb {
@@ -594,17 +704,17 @@ sub input_key_up : event_cb {
 
    } elsif ($name eq 'p') {
       my ($p) = vaddd ($self->{phys_obj}->{player}->{pos}, 0, -1, 0);
-      my $bx = Games::Blockminer3D::Client::World::get_pos ($p);
+      my $bx = world_get_pos ($p);
       $bx->[0] = 'X';
-      my $chnk = Games::Blockminer3D::Client::World::get_chunk ($p);
+      my $chnk = world_get_chunk ($p);
       $chnk->chunk_changed;
       $self->{compiled_chunks} = {};
 
    } elsif ($name eq 'l') {
       my ($p) = vaddd ($self->{phys_obj}->{player}->{pos}, 0, -1, 0);
-      my $bx = Games::Blockminer3D::Client::World::get_pos ($p);
+      my $bx = world_get_pos ($p);
       $bx->[0] = ' ';
-      my $chnk = Games::Blockminer3D::Client::World::get_chunk ($p);
+      my $chnk = world_get_chunk ($p);
       $chnk->chunk_changed;
       $self->{compiled_chunks} = {};
 
@@ -613,6 +723,7 @@ sub input_key_up : event_cb {
 
    } elsif ($name eq 'k') {
       $self->compile_scene;
+   } elsif ($name eq 'i') {
    }
 
 }
@@ -686,9 +797,9 @@ sub input_mouse_button : event_cb {
       my $sp = $self->{selected_box};
       return unless $sp;
 
-      my $bx = Games::Blockminer3D::Client::World::get_pos ($sp);
+      my $bx = world_get_pos ($sp);
       $bx->[0] = 'X';
-      my $chnk = Games::Blockminer3D::Client::World::get_chunk ($sp);
+      my $chnk = world_get_chunk ($sp);
       $chnk->chunk_changed;
       $self->{compiled_chunks} = {};
 
@@ -696,12 +807,17 @@ sub input_mouse_button : event_cb {
       my $sp = $self->{selected_box};
       return unless $sp;
 
-      my $bx = Games::Blockminer3D::Client::World::get_pos ($sp);
+      my $bx = world_get_pos ($sp);
       $bx->[0] = ' ';
-      my $chnk = Games::Blockminer3D::Client::World::get_chunk ($sp);
+      my $chnk = world_get_chunk ($sp);
       $chnk->chunk_changed;
       $self->{compiled_chunks} = {};
 
+   } elsif ($mask & SDL_BUTTON_MMASK) {
+      my $sp = $self->{selected_box};
+      return unless $sp;
+      push @{$self->{box_highlights}},
+         [[@$sp], [0, 1, 0, 0], { fading => 0.3 }];
    }
 }
 
