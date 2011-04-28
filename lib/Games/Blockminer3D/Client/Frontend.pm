@@ -408,18 +408,20 @@ sub render_hud {
    glPushMatrix ();
    glLoadIdentity;
 
+   my ($mw, $mh) = ($WIDTH / 2, $HEIGHT / 2);
+   glTranslatef ($mw, $mh, 0);
    glColor4d (1, 1, 1, 1);
    glBindTexture (GL_TEXTURE_2D, 0);
    glBegin (GL_QUADS);
 
    #glTexCoord2d(1, 1);
-   glVertex3d (0, 100, 0);
+   glVertex3d (-5, 5, 0);
    #glTexCoord2d(1, 0);
-   glVertex3d (100, 100, 0);
+   glVertex3d (5, 5, 0);
    #glTexCoord2d(0, 1);
-   glVertex3d (100, 0, 0);
+   glVertex3d (5, -5, 0);
    #glTexCoord2d(0, 0);
-   glVertex3d (0, 0, 0);
+   glVertex3d (-5, -5, 0);
 
    glEnd ();
 
@@ -488,11 +490,10 @@ sub setup_event_poller {
             $self->input_key_up ($key, SDL::Events::get_key_name ($key));
 
          } elsif ($type == SDL_MOUSEBUTTONUP) {
-            warn "mb up\n";
+            $self->input_mouse_button ($sdle->button_button, 0);
 
          } elsif ($type == SDL_MOUSEBUTTONDOWN) {
-            my ($mask) = @{ SDL::Events::get_mouse_state () };
-            $self->input_mouse_button ($mask);
+            $self->input_mouse_button ($sdle->button_button, 1);
 
          } elsif ($type == 12) {
             warn "Exit event!\n";
@@ -821,9 +822,10 @@ sub input_mouse_motion : event_cb {
 }
 
 sub input_mouse_button : event_cb {
-   my ($self, $mask) = @_;
-   warn "MASK @$mask\n";
-   if ($mask & SDL_BUTTON_LMASK) {
+   my ($self, $btn, $down) = @_;
+   warn "MASK $btn $down\n";
+   return unless $down;
+   if ($btn == 1) {
       my $sp = $self->{selected_build_box};
       return unless $sp;
 
@@ -833,7 +835,7 @@ sub input_mouse_button : event_cb {
       $chnk->chunk_changed;
       $self->{compiled_chunks} = {};
 
-   } elsif ($mask & SDL_BUTTON_RMASK) {
+   } elsif ($btn == 3) {
       my $sp = $self->{selected_box};
       return unless $sp;
 
@@ -843,7 +845,7 @@ sub input_mouse_button : event_cb {
       $chnk->chunk_changed;
       $self->{compiled_chunks} = {};
 
-   } elsif ($mask & SDL_BUTTON_MMASK) {
+   } elsif ($btn == 2) {
       my $sp = $self->{selected_box};
       return unless $sp;
       push @{$self->{box_highlights}},
