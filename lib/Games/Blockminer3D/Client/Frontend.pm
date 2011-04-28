@@ -376,6 +376,8 @@ sub render_scene {
 
    my $qp = $self->{selected_box};
    _render_highlight ($qp, [1, 0, 0, 0.2], 0.06) if $qp;
+   my $qpb = $self->{selected_build_box};
+   _render_highlight ($qpb, [0, 0, 1, 0.05], 0) if $qp;
 
    for (@{$self->{box_highlights}}) {
       _render_highlight ($_->[0], $_->[1]);
@@ -383,7 +385,7 @@ sub render_scene {
 
    glPopMatrix;
 
-   #$self->render_hud;
+   $self->render_hud;
 
    $self->{app}->sync;
 
@@ -394,10 +396,8 @@ sub render_scene {
 sub render_hud {
    my ($self) = @_;
 
-warn "HUD\n";
    glDisable (GL_DEPTH_TEST);
    glDepthMask (GL_FALSE);
-   glDisable(GL_TEXTURE_2D);
 
    glMatrixMode (GL_PROJECTION);
    glPushMatrix ();
@@ -427,9 +427,8 @@ warn "HUD\n";
    glMatrixMode (GL_PROJECTION);
    glPopMatrix;
 
-  glDepthMask (GL_TRUE);
-  glEnable (GL_DEPTH_TEST);
-  glEnable (GL_TEXTURE_2D);
+   glDepthMask (GL_TRUE);
+   glEnable (GL_DEPTH_TEST);
 }
 
 my $collide_cnt;
@@ -569,12 +568,12 @@ sub get_selected_box_pos {
    my $head_box    = vfloor ($player_head);
    my $rayd        = $self->get_look_vector;
 
-   my ($select_pos, $build_box);
+   my ($select_pos);
 
    my $min_dist = 9999;
-   for my $dx (-1..1) {
-      for my $dy (-2..1) { # floor and above head?!
-         for my $dz (-1..1) {
+   for my $dx (-2..2) {
+      for my $dy (-3..2) { # floor and above head?!
+         for my $dz (-2..2) {
             # now skip the player boxes
             my $cur_box = vaddd ($head_box, $dx, $dy, $dz);
             #d# next unless $dx == 0 && $dz == 0 && $cur_box->[1] == $foot_box->[1] - 1;
@@ -592,12 +591,41 @@ sub get_selected_box_pos {
                if ($dist > 0 && $min_dist > $dist) {
                   $min_dist   = $dist;
                   $select_pos = $cur_box;
-                  $build_box  = vadd ($player_head, vsmul ($rayd, $dist - 0.00001));
                }
             }
          }
       }
    }
+
+   my $build_box;
+   if ($select_pos) {
+      my $box_center    = vaddd ($select_pos, 0.5, 0.5, 0.5);
+      my $intersect_pos = vadd ($player_head, vsmul ($rayd, $min_dist));
+      my $norm_dir = vsub ($intersect_pos, $box_center);
+
+      my $max_coord;
+      my $cv = 0;
+      for (0..2) {
+         if (abs ($cv) < abs ($norm_dir->[$_])) {
+            $cv = $norm_dir->[$_];
+            $max_coord = $_;
+         }
+      }
+      my $norm = [0, 0, 0];
+      $norm->[$max_coord] = $cv < 0 ? -1 : 1;
+      #d# warn "Normal direction: " . vstr ($nn) . ", ". vstr ($norm) . "\n";
+
+      $build_box = vfloor (vadd ($box_center, $norm));
+      if (grep {
+               $foot_box->[0] == $build_box->[0]
+            && $_ == $build_box->[1]
+            && $foot_box->[2] == $build_box->[2]
+          } $foot_box->[1]..$head_box->[1]
+      ) {
+         $build_box = undef;
+      }
+   }
+
 
    #d# warn sprintf "%.5f selection\n", time - $t1;
 
