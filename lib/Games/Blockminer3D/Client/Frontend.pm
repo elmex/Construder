@@ -375,6 +375,13 @@ sub setup_event_poller {
          } elsif ($type == 3) {
             $self->input_key_up ($key, SDL::Events::get_key_name ($key));
 
+         } elsif ($type == SDL_MOUSEBUTTONUP) {
+            warn "mb up\n";
+
+         } elsif ($type == SDL_MOUSEBUTTONDOWN) {
+            my ($mask) = @{ SDL::Events::get_mouse_state () };
+            $self->input_mouse_button ($mask);
+
          } elsif ($type == 12) {
             warn "Exit event!\n";
             exit;
@@ -419,6 +426,7 @@ sub get_look_vector {
 
 sub get_selected_box_pos {
    my ($self) = @_;
+   my $t1 = time;
    my $pp = $self->{phys_obj}->{player}->{pos};
 
    my $player_head = vaddd ($pp, 0, 1.5, 0);
@@ -444,8 +452,8 @@ sub get_selected_box_pos {
                my ($dist, $q) =
                   Games::Blockminer3D::Client::World::intersect_ray_box (
                      $player_head, $rayd, $cur_box);
-               warn "BOX AT " . vstr ($cur_box) . " ".vstr ($rayd)." from "
-                              . vstr ($player_head) . "DIST $dist at " . vstr ($q) . "\n";
+               #d#warn "BOX AT " . vstr ($cur_box) . " ".vstr ($rayd)." from "
+               #d#               . vstr ($player_head) . "DIST $dist at " . vstr ($q) . "\n";
                if ($dist > 0 && $min_dist > $dist) {
                   $min_dist   = $dist;
                   $select_pos = $cur_box;
@@ -454,6 +462,8 @@ sub get_selected_box_pos {
          }
       }
    }
+
+   warn sprintf "%.5f selection\n", time - $t1;
 
    $select_pos
 }
@@ -671,6 +681,32 @@ sub input_mouse_motion : event_cb {
       $self->{change} = 1;
       #d# warn "rot ($xr,$yr) ($self->{xrotate},$self->{yrotate})\n";
       SDL::Mouse::warp_mouse ($xc, $yc);
+   }
+}
+
+sub input_mouse_button : event_cb {
+   my ($self, $mask) = @_;
+   warn "MASK @$mask\n";
+   if ($mask & SDL_BUTTON_LMASK) {
+      my $sp = $self->get_selected_box_pos;
+      return unless $sp;
+
+      my $bx = Games::Blockminer3D::Client::World::get_pos ($sp);
+      $bx->[0] = 'X';
+      my $chnk = Games::Blockminer3D::Client::World::get_chunk ($sp);
+      $chnk->chunk_changed;
+      $self->{compiled_chunks} = {};
+
+   } elsif ($mask & SDL_BUTTON_RMASK) {
+      my $sp = $self->get_selected_box_pos;
+      return unless $sp;
+
+      my $bx = Games::Blockminer3D::Client::World::get_pos ($sp);
+      $bx->[0] = ' ';
+      my $chnk = Games::Blockminer3D::Client::World::get_chunk ($sp);
+      $chnk->chunk_changed;
+      $self->{compiled_chunks} = {};
+
    }
 }
 
