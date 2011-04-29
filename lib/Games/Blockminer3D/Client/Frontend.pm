@@ -58,6 +58,24 @@ sub new {
 sub init_test {
    my ($self) = @_;
    $self->{debug_hud} = Games::Blockminer3D::Client::UI->new (W => $WIDTH, H => $HEIGHT);
+   $self->{query_ui} = Games::Blockminer3D::Client::UI->new (W => $WIDTH, H => $HEIGHT);
+   $self->{query_ui}->update ({
+         window => {
+            pos => 'center',
+            size => [$WIDTH - ($WIDTH / 5), 50],
+            color => "#333333",
+            alpha => 1,
+         },
+         elements => [
+            {
+               type => 'text', pos => [10, 10],
+               size => [150, 38],
+               text => "tes teste te eiwe iejfiwfjwei",
+               color => "#0000ff",
+               font => 'normal'
+            },
+         ]
+   });
 }
 
 sub init_physics {
@@ -75,6 +93,7 @@ sub init_app {
    my ($self) = @_;
    $self->{app} = SDLx::App->new (
       title => "Blockminer3D 0.01alpha", width => $WIDTH, height => $HEIGHT, gl => 1);
+   SDL::Events::enable_unicode (1);
    $self->{sdl_event} = SDL::Event->new;
    SDL::Video::GL_set_attribute (SDL::Constants::SDL_GL_SWAP_CONTROL, 1);
    SDL::Video::GL_set_attribute (SDL::Constants::SDL_GL_DOUBLEBUFFER, 1);
@@ -383,6 +402,7 @@ sub render_hud {
    glPopMatrix;
 
    $self->{debug_hud}->display;
+   $self->{query_ui}->display if $self->{query_ui};
  #  $self->{test_win}->display;
 
    glPopMatrix;
@@ -471,7 +491,7 @@ sub setup_event_poller {
                                        $sdle->motion_xrel, $sdle->motion_yrel);
 
          } elsif ($type == 2) {
-            $self->input_key_down ($key, SDL::Events::get_key_name ($key));
+            $self->input_key_down ($key, SDL::Events::get_key_name ($key), $sdle->key_unicode);
 
          } elsif ($type == 3) {
             $self->input_key_up ($key, SDL::Events::get_key_name ($key));
@@ -738,15 +758,17 @@ sub input_key_up : event_cb {
 
    } elsif ($name eq 't') {
       $self->{app}->fullscreen;
-
-   } elsif ($name eq 'k') {
-      $self->compile_scene;
-   } elsif ($name eq 'i') {
    }
 
 }
 sub input_key_down : event_cb {
-   my ($self, $key, $name) = @_;
+   my ($self, $key, $name, $unicode) = @_;
+
+   if ($self->{query_ui}) {
+      $self->{query_ui}->input_key_press ($key, $name, chr ($unicode));
+      return;
+   }
+
    ($name eq "q" || $name eq 'escape') and exit;
 
    warn "Key down $key ($name)\n";

@@ -99,7 +99,7 @@ sub window_pos_to_coords {
 }
 
 sub place_text {
-   my ($self, $pos, $size, $text, $font, $color) = @_;
+   my ($self, $pos, $size, $text, $font, $color, $align_right) = @_;
 
    my $fnt = $font eq 'big' ? $BIG_FONT : $font eq 'small' ? $SMALL_FONT : $NORM_FONT;
 
@@ -141,30 +141,8 @@ sub update {
          $self->place_text ($el->{pos}, $el->{size}, $el->{text}, $el->{font}, $el->{color});
          # render text
 
-      } elsif ($el->{type} eq 'text_entry') {
-         $self->place_text_entry (
-            $el->{pos}, $el->{size}, $el->{text}, $el->{edit_key}, $el->{color});
-         $self->register_query (
-            $el->{edit_key}, $el->{name}, $el->{label} => "line");
-
-      } elsif ($el->{type} eq 'text_field') {
-         $self->place_text_entry (
-            $el->{pos}, $el->{size},
-            $el->{text}, $el->{edit_key},
-            $el->{color}, $el->{skipped_lines});
-
-         $self->register_local_shortcut ("down" => sub {
-            $el->{skipped_lines}++;
-            $self->update;
-         });
-         $self->register_local_shortcut ("down" => sub {
-            $el->{skipped_lines}--;
-            $el->{skipped_lines} = 0 if $el->{skipped_lines} < 0;
-            $self->update;
-         });
-
-         $self->register_query (
-            $el->{edit_key}, $el->{name}, $el->{label} => "text");
+      } elsif ($el->{type} eq 'entry') {
+         $self->place_text ($el->{pos}, $el->{size}, $el->{text}, $el->{font}, $el->{color});
 
       } elsif ($el->{type} eq 'gauge') {
          $self->place_gauge (
@@ -191,9 +169,13 @@ sub prepare_opengl_texture {
 
 sub prepare_sdl_surface {
    my ($self) = @_;
+
    my $size = $self->{opengl_texture_size};
-   $self->{sdl_surf} = SDL::Surface->new (
-      SDL_SWSURFACE, $size, $size, 24, 0, 0, 0);
+   unless ($self->{sdl_surf}) {
+      $self->{sdl_surf} = SDL::Surface->new (
+         SDL_SWSURFACE, $size, $size, 24, 0, 0, 0);
+   }
+
    my $clr = SDL::Video::map_RGB (
       $self->{sdl_surf}->format,
       _clr2color ($self->{desc}->{window}->{color}),
@@ -270,6 +252,11 @@ sub display {
 
    glEnd ();
    glPopMatrix;
+}
+
+sub input_key_press : event_cb {
+   my ($self, $key, $name, $unicode) = @_;
+   warn "UNICODE ($key, $name) $unicode\n";
 }
 
 sub DESTROY {
