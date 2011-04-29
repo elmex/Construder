@@ -1,5 +1,6 @@
 package Games::Blockminer3D::Client::Frontend;
 use common::sense;
+use Carp;
 use SDL;
 use SDLx::App;
 use SDLx::Text;
@@ -55,14 +56,25 @@ my ($WIDTH, $HEIGHT) = (720, 400);#600, 400);
 
 sub init_text {
    my ($self) = @_;
-   #SDL::TTF::init () < 0
-   #   or die "SDL::TTF could not be initialized: " . SDL::get_error . "\n";
 
-   #= SDL::TTF::open_font ('res/FreeMonoBold.ttf', 12);
-   #if (!$self->{font}) {
-   #   die "Couldn't load font from res/FreeMonoBold.ttf: " . SDL::get_error . "\n";
-   #}
-      $self->text2opengl_texture ("HALLOOo doeof owf  fweo\nTest\n1\n2 3 4", [0.5, 0.1, 0.0]);
+   unless (SDL::Config->has('SDL_ttf')) {
+      Carp::cluck("SDL_ttf support has not been compiled");
+   }
+
+   my $font = 'res/FreeMonoBold.ttf';
+
+   unless (SDL::TTF::was_init()) {
+      SDL::TTF::init () == 0
+         or Carp::cluck "SDL::TTF could not be initialized: "
+            . SDL::get_error . "\n";
+   }
+
+   $self->{font} = SDL::TTF::open_font ('res/FreeMonoBold.ttf', 50);
+   if (!$self->{font}) {
+      die "Couldn't load font from res/FreeMonoBold.ttf: " . SDL::get_error . "\n";
+   }
+
+   $self->text2opengl_texture ("HALL ÄßO", [0.5, 0.1, 0.0]);
 }
 
 sub init_physics {
@@ -122,27 +134,37 @@ sub _get_texfmt {
 
 sub text2opengl_texture {
    my ($self, $text, $color) = @_;
- #  my ($w, $h) = @{ SDL::TTF::size_utf8 ($self->{font}, $text) };
- #  my $ssurf = SDL::Surface->new (
- #     SDL_SWSURFACE, $w, $h, 16, 0, 0, 0
- #  );
-
+   my ($w, $h) = @{ SDL::TTF::size_utf8 ($self->{font}, $text) };
+   my $pot = 3;
+   $pot++ while not ($w < 2 ** $pot && $h < 2 ** $pot);
+   my $size = 2 ** $pot;
+   my $surf = SDL::Surface->new (
+      SDL_SWSURFACE | SDL_SRCALPHA, $size, $size, 32,
+      0xff000000,
+      0x00ff0000,
+      0x0000ff00,
+      0x000000ff,
+   );
+   warn "TEST NEEDS $size x $size | $w,$h\n";
 
    $color = vsmul ($color, 255);
    $color->[$_] = int $color->[$_] for 0..2;
-   my $txt = SDLx::Text->new (
-      font => "res/FreeMonoBold.ttf",
-      color => $color,
-      size => 12,
-      x => 0,
-      y => 0,
-      h_align => 'center',
-      text => $text
-   );
-   my $surf = $txt->surface;
+  # my $txt = SDLx::Text->new (
+  #    font => "res/FreeMonoBold.ttf",
+  #    color => $color,
+  #    size => 12,
+  #    x => 0,
+  #    y => 0,
+  #    h_align => 'center',
+  #    text => $text
+  # );
+  # my $surf = $txt->surface;
 
-   #d#my $surf = SDL::TTF::render_unicode_solid (
-   #d#   $self->{font}, $text, SDL::Color->new (@$color));
+   my $tsurf = SDL::TTF::render_utf8_blended (
+      $self->{font}, $text, SDL::Color->new (@$color));
+   SDL::Video::blit_surface (
+      $tsurf, SDL::Rect->new (0, 0, $tsurf->w, $tsurf->h),
+      $surf,  SDL::Rect->new (0, 0, $tsurf->w, $tsurf->h));
    warn "NEW TEXT: $surf\n";
 
    my $texture_format = _get_texfmt ($surf);
@@ -409,8 +431,9 @@ sub render_hud {
    glLoadIdentity;
 
    my ($mw, $mh) = ($WIDTH / 2, $HEIGHT / 2);
+   glPushMatrix;
    glTranslatef ($mw, $mh, 0);
-   glColor4d (1, 1, 1, 1);
+   glColor4d (1, 1, 1, 0.3);
    glBindTexture (GL_TEXTURE_2D, 0);
    glBegin (GL_QUADS);
 
@@ -422,6 +445,22 @@ sub render_hud {
    glVertex3d (5, -5, 0);
    #glTexCoord2d(0, 0);
    glVertex3d (-5, -5, 0);
+
+   glEnd ();
+   glPopMatrix;
+
+   glColor4d (1, 1, 1, 1);
+   glBindTexture (GL_TEXTURE_2D, 2);
+   glBegin (GL_QUADS);
+
+   glTexCoord2d(0, 1);
+   glVertex3d (0, 200, 0);
+   glTexCoord2d(1, 1);
+   glVertex3d (200, 200, 0);
+   glTexCoord2d(1, 0);
+   glVertex3d (200, 0, 0);
+   glTexCoord2d(0, 0);
+   glVertex3d (0, 0, 0);
 
    glEnd ();
 
