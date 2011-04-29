@@ -57,28 +57,7 @@ sub new {
 }
 sub init_test {
    my ($self) = @_;
- #  $self->{test_win} = Games::Blockminer3D::Client::UI->new (W => $WIDTH, H => $HEIGHT);
    $self->{debug_hud} = Games::Blockminer3D::Client::UI->new (W => $WIDTH, H => $HEIGHT);
- #  $self->{test_win}->update ({
- #     window => {
- #        pos => 'down_left',
- #        size => [200, 300],
- #        color => "#00ff0066",
- #        alpha => 0.6,
- #     },
- #     elements => [
- #        {
- #           type => 'text', pos => [10, 50], size => [100, 100],
- #           text => "TEST\nE", color => "#000000"
- #        },
- #        {
- #           type => 'text', pos => [10, 10], size => [100, 88],
- #           text => "TEST\nTEST 1 2 3\nA\nB\nC\nD\nE", color => "#ff0000",
- #           font => "big",
- #        },
-
- #     ]
- #  });
 }
 
 sub init_physics {

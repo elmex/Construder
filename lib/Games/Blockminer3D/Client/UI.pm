@@ -24,9 +24,9 @@ Games::Blockminer3D::Client::UI - A simple and small GUI library for the game
 
 =cut
 
-my $BIG_FONT;
-my $NORM_FONT;
-my $SMALL_FONT;
+my $BIG_FONT; # should be around 35 pixel
+my $NORM_FONT; # should be around 20 pixel
+my $SMALL_FONT; # should be around 10 pixel
 
 sub init_ui {
    unless (SDL::Config->has('SDL_ttf')) {
