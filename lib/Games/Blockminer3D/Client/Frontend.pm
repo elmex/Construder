@@ -3,7 +3,6 @@ use common::sense;
 use Carp;
 use SDL;
 use SDLx::App;
-use SDLx::Text;
 use SDL::Mouse;
 use SDL::Video;
 use SDL::Events;
@@ -18,6 +17,7 @@ use POSIX qw/floor/;
 use Games::Blockminer3D::Vector;
 
 use Games::Blockminer3D::Client::World;
+use Games::Blockminer3D::Client::UI;
 
 use base qw/Object::Event/;
 
@@ -47,7 +47,7 @@ sub new {
    $self->init_app;
    $self->init_physics;
    $self->setup_event_poller;
-   $self->init_text;
+   Games::Blockminer3D::Client::UI::init_ui;
 
    return $self
 }
@@ -56,23 +56,6 @@ my ($WIDTH, $HEIGHT) = (720, 400);#600, 400);
 
 sub init_text {
    my ($self) = @_;
-
-   unless (SDL::Config->has('SDL_ttf')) {
-      Carp::cluck("SDL_ttf support has not been compiled");
-   }
-
-   my $font = 'res/FreeMonoBold.ttf';
-
-   unless (SDL::TTF::was_init()) {
-      SDL::TTF::init () == 0
-         or Carp::cluck "SDL::TTF could not be initialized: "
-            . SDL::get_error . "\n";
-   }
-
-   $self->{font} = SDL::TTF::open_font ('res/FreeMonoBold.ttf', 50);
-   if (!$self->{font}) {
-      die "Couldn't load font from res/FreeMonoBold.ttf: " . SDL::get_error . "\n";
-   }
 
    $self->text2opengl_texture ("HALL ÄßO", [0.5, 0.1, 0.0]);
 }
