@@ -193,11 +193,7 @@ sub prepare_sdl_surface {
    my ($self) = @_;
    my $size = $self->{opengl_texture_size};
    $self->{sdl_surf} = SDL::Surface->new (
-      SDL_SWSURFACE, $size, $size, 24,
-      0x0000ff,
-      0x00ff00,
-      0xff0000,
-   );
+      SDL_SWSURFACE, $size, $size, 24, 0, 0, 0);
    my $clr = SDL::Video::map_RGB (
       $self->{sdl_surf}->format,
       _clr2color ($self->{desc}->{window}->{color}),

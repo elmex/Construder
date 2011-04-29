@@ -408,25 +408,25 @@ sub setup_event_poller {
       #printf "%.5f secsPrender\n", $render_time / $render_cnt if $render_cnt;
       $self->{debug_hud}->update ({
          window => {
-            pos => 'up_right',
-            size => [200, 50],
-            color => "#00ff00",
-            alpha => 0.6,
+            pos => 'up_left',
+            size => [160, 30],
+            color => "#0000ff",
+            alpha => 0.80,
          },
          elements => [
             {
                type => 'text', pos => [2, 2],
-               size => [200, 100],
+               size => [150, 12],
                text => sprintf ("%.5f FPS\n", $fps / $fps_intv),
                color => "#ff0000",
                font => 'small'
             },
             {
-               type => 'text', pos => [2, 20],
-               size => [200, 100],
-               text => sprintf ("POS %7.3f %7.3f %7.3f\n",
+               type => 'text', pos => [2, 14],
+               size => [150, 12],
+               text => sprintf ("POS %6.3f %6.3f %6.3f\n",
                                 @{$self->{phys_obj}->{player}->{pos}}),
-               color => "#003300",
+               color => "#00ff00",
                font => 'small'
             },
 
