@@ -37,6 +37,8 @@ Games::Blockminer3D::Client::Frontend - desc
 
 =cut
 
+my ($WIDTH, $HEIGHT) = (720, 400);#600, 400);
+
 sub new {
    my $this  = shift;
    my $class = ref ($this) || $this;
@@ -45,19 +47,38 @@ sub new {
 
    $self->init_object_events;
    $self->init_app;
+   Games::Blockminer3D::Client::UI::init_ui;
+
    $self->init_physics;
    $self->setup_event_poller;
-   Games::Blockminer3D::Client::UI::init_ui;
+   $self->init_test;
 
    return $self
 }
-
-my ($WIDTH, $HEIGHT) = (720, 400);#600, 400);
-
-sub init_text {
+sub init_test {
    my ($self) = @_;
+ #  $self->{test_win} = Games::Blockminer3D::Client::UI->new (W => $WIDTH, H => $HEIGHT);
+   $self->{debug_hud} = Games::Blockminer3D::Client::UI->new (W => $WIDTH, H => $HEIGHT);
+ #  $self->{test_win}->update ({
+ #     window => {
+ #        pos => 'down_left',
+ #        size => [200, 300],
+ #        color => "#00ff0066",
+ #        alpha => 0.6,
+ #     },
+ #     elements => [
+ #        {
+ #           type => 'text', pos => [10, 50], size => [100, 100],
+ #           text => "TEST\nE", color => "#000000"
+ #        },
+ #        {
+ #           type => 'text', pos => [10, 10], size => [100, 88],
+ #           text => "TEST\nTEST 1 2 3\nA\nB\nC\nD\nE", color => "#ff0000",
+ #           font => "big",
+ #        },
 
-   $self->text2opengl_texture ("HALL ÄßO", [0.5, 0.1, 0.0]);
+ #     ]
+ #  });
 }
 
 sub init_physics {
@@ -113,56 +134,6 @@ sub _get_texfmt {
    warn "NCOL $ncol\n";
    ($ncol == 4 ? ($rmsk == 0x000000ff ? GL_RGBA : GL_BGRA)
                : ($rmsk == 0x000000ff ? GL_RGB  : GL_BGR))
-}
-
-sub text2opengl_texture {
-   my ($self, $text, $color) = @_;
-   my ($w, $h) = @{ SDL::TTF::size_utf8 ($self->{font}, $text) };
-   my $pot = 3;
-   $pot++ while not ($w < 2 ** $pot && $h < 2 ** $pot);
-   my $size = 2 ** $pot;
-   my $surf = SDL::Surface->new (
-      SDL_SWSURFACE | SDL_SRCALPHA, $size, $size, 32,
-      0xff000000,
-      0x00ff0000,
-      0x0000ff00,
-      0x000000ff,
-   );
-   warn "TEST NEEDS $size x $size | $w,$h\n";
-
-   $color = vsmul ($color, 255);
-   $color->[$_] = int $color->[$_] for 0..2;
-  # my $txt = SDLx::Text->new (
-  #    font => "res/FreeMonoBold.ttf",
-  #    color => $color,
-  #    size => 12,
-  #    x => 0,
-  #    y => 0,
-  #    h_align => 'center',
-  #    text => $text
-  # );
-  # my $surf = $txt->surface;
-
-   my $tsurf = SDL::TTF::render_utf8_blended (
-      $self->{font}, $text, SDL::Color->new (@$color));
-   SDL::Video::blit_surface (
-      $tsurf, SDL::Rect->new (0, 0, $tsurf->w, $tsurf->h),
-      $surf,  SDL::Rect->new (0, 0, $tsurf->w, $tsurf->h));
-   warn "NEW TEXT: $surf\n";
-
-   my $texture_format = _get_texfmt ($surf);
-
-   my ($nr) = glGenTextures_p (1);
-
-   warn "TEXT $nr ".($surf->w).":".($surf->h)."\n";
-
-   glBindTexture (GL_TEXTURE_2D, 2);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-   gluBuild2DMipmaps_s (GL_TEXTURE_2D,
-      $surf->format->BytesPerPixel, $surf->w, $surf->h, $texture_format, GL_UNSIGNED_BYTE,
-      ${$surf->get_pixels_ptr});
 }
 
 sub load_texture {
@@ -432,20 +403,8 @@ sub render_hud {
    glEnd ();
    glPopMatrix;
 
-   glColor4d (1, 1, 1, 1);
-   glBindTexture (GL_TEXTURE_2D, 2);
-   glBegin (GL_QUADS);
-
-   glTexCoord2d(0, 1);
-   glVertex3d (0, 200, 0);
-   glTexCoord2d(1, 1);
-   glVertex3d (200, 200, 0);
-   glTexCoord2d(1, 0);
-   glVertex3d (200, 0, 0);
-   glTexCoord2d(0, 0);
-   glVertex3d (0, 0, 0);
-
-   glEnd ();
+   $self->{debug_hud}->display;
+ #  $self->{test_win}->display;
 
    glPopMatrix;
    glMatrixMode (GL_PROJECTION);
@@ -463,10 +422,37 @@ sub setup_event_poller {
    my $sdle = $self->{sdl_event};
 
    my $fps;
-   $self->{fps_w} = AE::timer 0, 5, sub {
-      printf "%.5f FPS\n", $fps / 5;
-      printf "%.5f secsPcoll\n", $collide_time / $collide_cnt if $collide_cnt;
-      printf "%.5f secsPrender\n", $render_time / $render_cnt if $render_cnt;
+   my $fps_intv = 1;
+   $self->{fps_w} = AE::timer 0, $fps_intv, sub {
+      #printf "%.5f FPS\n", $fps / $fps_intv;
+      #printf "%.5f secsPcoll\n", $collide_time / $collide_cnt if $collide_cnt;
+      #printf "%.5f secsPrender\n", $render_time / $render_cnt if $render_cnt;
+      $self->{debug_hud}->update ({
+         window => {
+            pos => 'up_right',
+            size => [200, 50],
+            color => "#00ff00",
+            alpha => 0.6,
+         },
+         elements => [
+            {
+               type => 'text', pos => [2, 2],
+               size => [200, 100],
+               text => sprintf ("%.5f FPS\n", $fps / $fps_intv),
+               color => "#ff0000",
+               font => 'small'
+            },
+            {
+               type => 'text', pos => [2, 20],
+               size => [200, 100],
+               text => sprintf ("POS %7.3f %7.3f %7.3f\n",
+                                @{$self->{phys_obj}->{player}->{pos}}),
+               color => "#003300",
+               font => 'small'
+            },
+
+         ]
+      });
       $collide_cnt = $collide_time = 0;
       $render_cnt = $render_time = 0;
       $fps = 0;
