@@ -2,6 +2,8 @@ package Games::Blockminer3D::Client::World;
 use common::sense;
 use Games::Blockminer3D::Vector;
 use POSIX qw/floor/;
+use Object::Event;
+
 require Exporter;
 use POSIX qw/floor/;
 our @ISA = qw/Exporter/;
@@ -12,6 +14,9 @@ our @EXPORT = qw/
    world_get_pos
    world_get_chunk
    world_set_chunk
+   world_change_chunk_at
+   world_init
+   world
 /;
 
 =head1 NAME
@@ -30,22 +35,48 @@ Games::Blockminer3D::Client::World - desc
 
 my @CHUNKS;
 
+my $EVENT_SINGLETON = Object::Event->new;
+
+sub world_init {
+   $EVENT_SINGLETON->reg_cb (chunk_changed => sub {
+      my ($e, $q, $x, $y, $z) = @_;
+      my $chunk = world_get_chunk ([$x, $y, $z])
+         or return;
+      $chunk->chunk_changed;
+   });
+}
+
+sub world { $EVENT_SINGLETON }
+
+sub pos2chunk {
+   my ($pos) = @_;
+
+   my ($x, $y, $z) =
+      @{vfloor (vsdiv ($pos, $Games::Blockminer3D::Client::MapChunk::SIZE))};
+   (
+      ($x < 0 ? 0x1 : 0) | ($y < 0 ? 0x2 : 0) | ($z < 0 ? 0x4 : 0),
+      $x, $y, $z
+   )
+}
+
+sub world_change_chunk_at {
+   my ($pos) = @_;
+   my ($q, $x, $y, $z) = pos2chunk ($pos);
+   world ()->event (chunk_changed => $q, $x, $y, $z);
+}
+
 sub world_set_chunk {
    my ($pos, $chunk) = @_;
    warn "set chunk: @$pos $chunk\n";
-   my ($x, $y, $z) =
-      @{vfloor (vsdiv ($pos, $Games::Blockminer3D::Client::MapChunk::SIZE))};
-   my $quadr = ($x < 0 ? 0x1 : 0) | ($y < 0 ? 0x2 : 0) | ($z < 0 ? 0x4 : 0);
-   $CHUNKS[$quadr]->[$x]->[$y]->[$z] = $chunk;
+   my ($q, $x, $y, $z) = pos2chunk ($pos);
+   $CHUNKS[$q]->[abs $x]->[abs $y]->[abs $z] = $chunk;
 }
 
 sub world_get_chunk {
    my ($pos) = @_;
-   $pos = [0, 0, 0];
-   my ($x, $y, $z) =
-      @{vfloor (vsdiv ($pos, $Games::Blockminer3D::Client::MapChunk::SIZE))};
-   my $quadr = ($x < 0 ? 0x1 : 0) | ($y < 0 ? 0x2 : 0) | ($z < 0 ? 0x4 : 0);
-   $CHUNKS[$quadr]->[$x]->[$y]->[$z]
+   my ($q, $x, $y, $z) = pos2chunk ($pos);
+   warn "POS $q $x $y $z from @$pos\n";
+   $CHUNKS[$q]->[abs $x]->[abs $y]->[abs $z];
 }
 
 sub world_get_pos {

@@ -48,6 +48,13 @@ sub new {
    $self->init_object_events;
    $self->init_app;
    Games::Blockminer3D::Client::UI::init_ui;
+   world_init;
+
+   world ()->reg_cb (chunk_changed => sub {
+      my ($w, $q, $x, $y, $z) = @_;
+      warn "killed chunk at $x $y $z\n";
+      $self->compile_chunk ($x, $y, $z);
+   });
 
    $self->init_physics;
    $self->setup_event_poller;
@@ -76,6 +83,7 @@ sub init_test {
             },
          ]
    });
+   delete $self->{query_ui};
 }
 
 sub init_physics {
@@ -122,7 +130,8 @@ sub init_app {
 
    glGenTextures_p(1);
 
-   $self->load_texture ("res/blocks19.small.png", 1);
+ #  $self->load_texture ("res/blocks19.small.png", 1);
+   $self->load_texture ("res/wires.png", 1);
 }
 
 sub _get_texfmt {
@@ -223,13 +232,14 @@ sub _render_highlight {
 sub compile_chunk {
    my ($self, $cx, $cy, $cz) = @_;
 
-   #d# warn "compiling... $cx, $cy, $cz\n";
+   my $chnk = world_get_chunk ([$cx, $cy, $cz])
+      or return;
+   warn "compiling... $cx, $cy, $cz: $chnk\n";
    my $face_cnt;
    $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} = OpenGL::List::glpList {
       glPushMatrix;
       glBegin (GL_QUADS);
 
-      my $chnk = world_get_chunk ([$cx, $cy, $cz]);
       my @quads = map {
          [
             [
@@ -343,7 +353,8 @@ sub render_scene {
                $chunk_pos->[1] + $dy,
                $chunk_pos->[2] + $dz
             );
-            glCallList ($cc->{$x}->{$y}->{$z});
+            my $compl = $cc->{$x}->{$y}->{$z};
+            glCallList ($compl) if $compl;
          }
       }
    }
@@ -471,7 +482,7 @@ sub setup_event_poller {
 #              warn "check ($chunk_x $chunk_y $chunk_z) $x $y $z\n";
                unless ($cc->{$x}->{$y}->{$z}) {
                   $self->compile_chunk ($x, $y, $z);
-                  warn "compiled $x, $y, $z\n";
+                  warn "compiled $x, $y, $z\n" if $cc->{$x}->{$y}->{$z};
                   return;
                }
             }
@@ -740,22 +751,6 @@ sub input_key_up : event_cb {
    } elsif (grep { $name eq $_ } qw/a d/) {
       delete $self->{movement}->{strafe};
 
-   } elsif ($name eq 'p') {
-      my ($p) = vaddd ($self->{phys_obj}->{player}->{pos}, 0, -1, 0);
-      my $bx = world_get_pos ($p);
-      $bx->[0] = 'X';
-      my $chnk = world_get_chunk ($p);
-      $chnk->chunk_changed;
-      $self->{compiled_chunks} = {};
-
-   } elsif ($name eq 'l') {
-      my ($p) = vaddd ($self->{phys_obj}->{player}->{pos}, 0, -1, 0);
-      my $bx = world_get_pos ($p);
-      $bx->[0] = ' ';
-      my $chnk = world_get_chunk ($p);
-      $chnk->chunk_changed;
-      $self->{compiled_chunks} = {};
-
    } elsif ($name eq 't') {
       $self->{app}->fullscreen;
    }
@@ -766,7 +761,7 @@ sub input_key_down : event_cb {
 
    if ($self->{query_ui}) {
       $self->{query_ui}->input_key_press ($key, $name, chr ($unicode));
-      return;
+ #     return;
    }
 
    ($name eq "q" || $name eq 'escape') and exit;
@@ -840,9 +835,7 @@ sub input_mouse_button : event_cb {
 
       my $bx = world_get_pos ($sp);
       $bx->[0] = 'X';
-      my $chnk = world_get_chunk ($sp);
-      $chnk->chunk_changed;
-      $self->{compiled_chunks} = {};
+      world_change_chunk_at ($sp);
 
    } elsif ($btn == 3) {
       my $sp = $self->{selected_box};
@@ -850,9 +843,7 @@ sub input_mouse_button : event_cb {
 
       my $bx = world_get_pos ($sp);
       $bx->[0] = ' ';
-      my $chnk = world_get_chunk ($sp);
-      $chnk->chunk_changed;
-      $self->{compiled_chunks} = {};
+      world_change_chunk_at ($sp);
 
    } elsif ($btn == 2) {
       my $sp = $self->{selected_box};
