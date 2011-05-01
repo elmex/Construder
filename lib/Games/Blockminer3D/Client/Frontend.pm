@@ -169,16 +169,28 @@ sub _render_quad {
    my ($pos, $faces) = @_;
    #d#warn "QUAD $x $y $z $light\n";
 
-   #               0 front  1 top    2 back   3 left   4 right  5 bottom
-   my @indices  = qw/0 1 2 3  1 5 6 2  7 6 5 4  4 5 1 0  3 2 6 7  3 7 4 0/;
-   my @normals = (
-      [ 0, 0,-1],
-      [ 0, 1, 0],
-      [ 0, 0, 1],
-      [-1, 0, 0],
-      [ 1, 0, 0],
-      [ 0,-1, 0],
-   ),
+   #  0 front  1 top    2 back   3 left   4 right  5 bottom
+   my @indices  = (
+      qw/ 0 1 2 3 /, # 0 front
+      qw/ 1 5 6 2 /, # 1 top
+      qw/ 7 6 5 4 /, # 2 back
+      qw/ 4 5 1 0 /, # 3 left
+      qw/ 3 2 6 7 /, # 4 right
+      qw/ 3 7 4 0 /, # 5 bottom
+
+      qw/ 0 7 4 0 /, # 6 slope north
+      qw/ 3 7 4 0 /, # 7 slope south
+      qw/ 3 7 4 0 /, # 8 slope east
+      qw/ 3 7 4 0 /, # 9 slope west
+   );
+   #my @normals = (
+   #   [ 0, 0,-1],
+   #   [ 0, 1, 0],
+   #   [ 0, 0, 1],
+   #   [-1, 0, 0],
+   #   [ 1, 0, 0],
+   #   [ 0,-1, 0],
+   #),
    my @vertices = (
       [ 0,  0,  0 ],
       [ 0,  1,  0 ],

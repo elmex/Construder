@@ -76,6 +76,10 @@ sub cube_fill {
          }
       }
    }
+   $map->[7]->[1]->[7] = ['/', 10, 1, 1];
+   $map->[8]->[1]->[7] = ['/', 10, 1, 1];
+   $map->[7]->[1]->[8] = ['/', 10, 1, 1];
+   $map->[8]->[1]->[8] = ['/', 10, 1, 1];
    $map->[1]->[1]->[1] = ['X', 10, 1];
    $map->[2]->[2]->[2] = ['X', 10, 1];
    $map->[1]->[3]->[1] = ['X', 10, 1];
@@ -223,7 +227,7 @@ sub visible_quads {
             my ($cur, $top, $bot, $left, $right, $front, $back)
                = _neighbours ($map, $x, $y, $z);
             next unless $cur->[2];
-            if ($cur->[0] eq 'X') {
+            if ($cur->[0] ne ' ') {
                my @faces;
 
                if ($front->[2] && $front->[0] ne 'X') {

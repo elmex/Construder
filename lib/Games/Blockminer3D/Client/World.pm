@@ -228,10 +228,31 @@ sub world_collide_cylinder_aabb {
 
    my $foot_box = vfloor ($pos);
    my $fbox = world_get_box_at ($foot_box);
-   if (world_is_solid_box ($fbox)) {
+
+   if ($fbox->[2] && $fbox->[0] eq '/') {
+ #     my $box_y = $foot_box->[1] + 1;
+      my ($xrel) = $pos->[0] - $foot_box->[0];
+      my $a = 1 / (1 - ($radius - 0.001));
+      my $yd = $xrel >= (1 - $radius) ? 1 : $a * $xrel;
+      if ($yd > 0) {
+         my $box_y = $foot_box->[1] + $yd;
+         warn "X SLOPE $yd $a $xrel [$box_y] ($box_y <=> $pos->[1])\n";
+         my $up_move = $box_y - $pos->[1];
+         if ($up_move > 0) {
+            $$rcollide_normal = vaccum ($$rcollide_normal, [0, 1, 0]);
+            my $new_pos = vaddd ($pos, 0, $up_move + 0.005, 0);
+            warn "POS " . vstr ($pos) . " =slope> " . vstr ($new_pos) . "\n";
+
+            return world_collide_cylinder_aabb (
+               $new_pos, $height, $radius, $rcollide_normal, $recursion + 1, $original_pos);
+         }
+      }
+
+   } elsif (world_is_solid_box ($fbox)) {
       my $box_y = $foot_box->[1] + 1;
       $$rcollide_normal = vaccum ($$rcollide_normal, [0, 1, 0]);
       my $new_pos = vaddd ($pos, 0, ($box_y - $pos->[1]) + 0.001, 0);
+
       return world_collide_cylinder_aabb (
          $new_pos, $height, $radius, $rcollide_normal, $recursion + 1, $original_pos);
    }
@@ -258,7 +279,10 @@ sub world_collide_cylinder_aabb {
             my ($x, $z) = ($foot_box->[0] + $dx, $foot_box->[2] + $dz);
             my $sbox = world_get_box_at ([$x, $y, $z]);
 
-            if (world_is_solid_box ($sbox)) {
+            if ($y == $foot_box->[1] && $sbox->[0] eq '/') {
+               next; # skip slope boxes on the feet, they just move upward!
+
+            } elsif (world_is_solid_box ($sbox)) {
                my $aabb_pt = _closest_pt_point_aabb_2d (
                   $pos_2d, [$x, $z], [$x + 1, $z + 1]);
 
