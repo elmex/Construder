@@ -30,11 +30,17 @@ sub new {
 
    $self->{front} = Games::Blockminer3D::Client::Frontend->new;
 
-   my $chnk = Games::Blockminer3D::Client::MapChunk->new;
+   for my $x (-1..1) {
+      for my $y (-1..1) {
+         for my $z (-1..1) {
+            my $chnk = Games::Blockminer3D::Client::MapChunk->new;
+            $chnk->cube_fill;
+            world_set_chunk ($x, $y, $z, $chnk);
+         }
+      }
+   }
 #   $chnk->random_fill;
-   $chnk->cube_fill;
 
-   world_set_chunk ([0, 0, 0], $chnk);
  #  $self->{front}->change_look_lock (1);
  #  $self->{front}->compile_scene;
 

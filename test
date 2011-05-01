@@ -1,1 +1,2 @@
+rm -rf /opt/perl/lib/perl5/Games/Blockminer*
 make install && perl bin/test $@

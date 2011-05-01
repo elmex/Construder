@@ -12,7 +12,7 @@ our @EXPORT = qw/
    vdot vdotd vcross vlength
    vnorm vinorm
    vplane
-   vfloor
+   vfloor vifloor
    vstr
 
    vadd_2d vaddd_2d viadd_2d viaddd_2d
@@ -45,7 +45,8 @@ sub vaccum {
       : [@{$_[1]}]
 }
 
-sub vfloor { [ map { floor ($_[0][$_]) } 0..2 ] }
+sub vfloor  { [ map { floor ($_[0][$_])       } 0..2 ] }
+sub vifloor { $_[0][$_] = floor ($_[0][$_]) for 0..2 }
 
 sub vneg   { [ map { -$_[0][$_] }        0..2 ] }
 sub vineg  { $_[0][$_] -= -$_[0][$_] for 0..2 }

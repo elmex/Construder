@@ -51,7 +51,7 @@ sub new {
    world_init;
 
    world ()->reg_cb (chunk_changed => sub {
-      my ($w, $q, $x, $y, $z) = @_;
+      my ($w, $x, $y, $z) = @_;
       warn "killed chunk at $x $y $z\n";
       $self->compile_chunk ($x, $y, $z);
    });
@@ -131,7 +131,7 @@ sub init_app {
    glGenTextures_p(1);
 
  #  $self->load_texture ("res/blocks19.small.png", 1);
-   $self->load_texture ("res/wires.png", 1);
+   $self->load_texture ("res/construction.jpg", 1);
 }
 
 sub _get_texfmt {
@@ -232,7 +232,7 @@ sub _render_highlight {
 sub compile_chunk {
    my ($self, $cx, $cy, $cz) = @_;
 
-   my $chnk = world_get_chunk ([$cx, $cy, $cz])
+   my $chnk = world_get_chunk ($cx, $cy, $cz)
       or return;
    warn "compiling... $cx, $cy, $cz: $chnk\n";
    my $face_cnt;
@@ -304,8 +304,7 @@ sub render_scene {
    my $t1 = time;
    my $cc = $self->{compiled_chunks};
    my $pp =  $self->{phys_obj}->{player}->{pos};
-   my ($chunk_pos) =
-      vfloor (vsdiv ($pp, $Games::Blockminer3D::Client::MapChunk::SIZE));
+    #d#  warn "CHUNK " . vstr ($chunk_pos) . " from " . vstr ($pp) . "\n";
 
    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -322,41 +321,10 @@ sub render_scene {
    glRotatef ($self->{yrotate}, 0, 1, 0);
    glTranslatef (@{vneg (vaddd ($pp, 0, 1.3, 0))});
 
-   # coordinate system
-   #d#glBindTexture (GL_TEXTURE_2D, 0);
-   #d#glBegin (GL_LINES);
-   #d#glColor3d (1, 0, 0);
-   #d#glVertex3d(0, 0, 0);
-   #d#glVertex3d(5, 0, 0);
-
-   #d#glColor4d (0.2, 1, 0.2, 1);
-   #d#glVertex3d(0, 0, 0);
-   #d#glVertex3d(0, 5, 0);
-
-   #d#glColor4d (0.2, 0.2, 1, 1);
-   #d#glVertex3d(0, 0, 0);
-   #d#glVertex3d(0, 0, 5);
-   #d#glEnd;
-
-   #d## center quad
-   #d#glBindTexture (GL_TEXTURE_2D, 1);
-   #d#glBegin (GL_QUADS);
-   #d#_render_quad (0, 0, 0, 1);
-   #d#glEnd;
-
-
-   for my $dx (-1..1) { #-1..1) {
-      for my $dy (-1..1) {
-         for my $dz (-1..1) {
-            my ($x, $y, $z) = (
-               $chunk_pos->[0] + $dx,
-               $chunk_pos->[1] + $dy,
-               $chunk_pos->[2] + $dz
-            );
-            my $compl = $cc->{$x}->{$y}->{$z};
-            glCallList ($compl) if $compl;
-         }
-      }
+   for (world_visible_chunks_at ($pp)) {
+      my ($cx, $cy, $cz) = @$_;
+      my $compl = $cc->{$cx}->{$cy}->{$cz};
+      glCallList ($compl) if $compl;
    }
 
    my $qp = $self->{selected_box};
@@ -472,21 +440,18 @@ sub setup_event_poller {
       my $cc = $self->{compiled_chunks};
       my $pp = $self->{phys_obj}->{player}->{pos};
       #d# warn "compile at pos " . vstr ($pp) . "\n";
-      my ($chunk_pos) =
-         vfloor (vsdiv ($pp, $Games::Blockminer3D::Client::MapChunk::SIZE));
-
-      for my $dx (0, -1, 1) {
-         for my $dy (0, -1, 1) {
-            for my $dz (0, -1, 1) {
-               my ($x, $y, $z) = (@{vaddd ($chunk_pos, $dx, $dy, $dz)});
-#              warn "check ($chunk_x $chunk_y $chunk_z) $x $y $z\n";
-               unless ($cc->{$x}->{$y}->{$z}) {
-                  $self->compile_chunk ($x, $y, $z);
-                  warn "compiled $x, $y, $z\n" if $cc->{$x}->{$y}->{$z};
-                  return;
-               }
+      # FIXME: vfloor is definitively NOT correct - probably :->
+      my (@chunks) = world_visible_chunks_at ($pp);
+      for (@chunks) {
+         my ($cx, $cy, $cz) = @$_;
+         unless ($cc->{$cx}->{$cy}->{$cz}) {
+            $self->compile_chunk ($cx, $cy, $cz);
+            if ($cc->{$cx}->{$cy}->{$cz}) {
+               warn "compiled $cx, $cy, $cz\n";
+               return;
             }
          }
+
       }
    };
 
@@ -600,7 +565,7 @@ sub get_selected_box_pos {
                     && grep { $cur_box->[1] == $_ }
                           $foot_box->[1]..$head_box->[1];
 
-            my $b = world_get_pos ($cur_box);
+            my $b = world_get_box_at ($cur_box);
             if (world_is_solid_box ($b)) {
                my ($dist, $q) =
                   world_intersect_ray_box (
@@ -833,7 +798,7 @@ sub input_mouse_button : event_cb {
       my $sp = $self->{selected_build_box};
       return unless $sp;
 
-      my $bx = world_get_pos ($sp);
+      my $bx = world_get_box_at ($sp);
       $bx->[0] = 'X';
       world_change_chunk_at ($sp);
 
@@ -841,7 +806,7 @@ sub input_mouse_button : event_cb {
       my $sp = $self->{selected_box};
       return unless $sp;
 
-      my $bx = world_get_pos ($sp);
+      my $bx = world_get_box_at ($sp);
       $bx->[0] = ' ';
       world_change_chunk_at ($sp);
 

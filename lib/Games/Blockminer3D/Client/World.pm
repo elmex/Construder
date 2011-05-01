@@ -8,11 +8,12 @@ require Exporter;
 use POSIX qw/floor/;
 our @ISA = qw/Exporter/;
 our @EXPORT = qw/
+   world_visible_chunks_at
    world_collide_cylinder_aabb
    world_is_solid_box
    world_intersect_ray_box
-   world_get_pos
-   world_get_chunk
+   world_get_box_at
+   world_get_chunk world_get_chunk_at
    world_set_chunk
    world_change_chunk_at
    world_init
@@ -39,8 +40,8 @@ my $EVENT_SINGLETON = Object::Event->new;
 
 sub world_init {
    $EVENT_SINGLETON->reg_cb (chunk_changed => sub {
-      my ($e, $q, $x, $y, $z) = @_;
-      my $chunk = world_get_chunk ([$x, $y, $z])
+      my ($e, $x, $y, $z) = @_;
+      my $chunk = world_get_chunk ($x, $y, $z)
          or return;
       $chunk->chunk_changed;
    });
@@ -49,53 +50,49 @@ sub world_init {
 sub world { $EVENT_SINGLETON }
 
 sub pos2chunk {
-   my ($pos) = @_;
-
-   my ($x, $y, $z) =
-      @{vfloor (vsdiv ($pos, $Games::Blockminer3D::Client::MapChunk::SIZE))};
-   (
-      ($x < 0 ? 0x1 : 0) | ($y < 0 ? 0x2 : 0) | ($z < 0 ? 0x4 : 0),
-      $x, $y, $z
-   )
+   @{vfloor (vsdiv ($_[0], $Games::Blockminer3D::Client::MapChunk::SIZE))};
 }
 
 sub world_change_chunk_at {
    my ($pos) = @_;
-   my ($q, $x, $y, $z) = pos2chunk ($pos);
-   world ()->event (chunk_changed => $q, $x, $y, $z);
+   world ()->event (chunk_changed => pos2chunk ($pos));
 }
 
 sub world_set_chunk {
-   my ($pos, $chunk) = @_;
-   warn "set chunk: @$pos $chunk\n";
-   my ($q, $x, $y, $z) = pos2chunk ($pos);
-   $CHUNKS[$q]->[abs $x]->[abs $y]->[abs $z] = $chunk;
+   my ($cx, $cy, $cz, $chunk) = @_;
+   warn "set chunk: $cx $cy $cz $chunk\n";
+   my $q = ($cx < 0 ? 0x1 : 0) | ($cy < 0 ? 0x2 : 0) | ($cz < 0 ? 0x4 : 0);
+   $CHUNKS[$q]->[abs $cx]->[abs $cy]->[abs $cz] = $chunk;
 }
 
 sub world_get_chunk {
-   my ($pos) = @_;
-   my ($q, $x, $y, $z) = pos2chunk ($pos);
-   warn "POS $q $x $y $z from @$pos\n";
-   $CHUNKS[$q]->[abs $x]->[abs $y]->[abs $z];
+   my ($cx, $cy, $cz) = @_;
+   my $q = ($cx < 0 ? 0x1 : 0) | ($cy < 0 ? 0x2 : 0) | ($cz < 0 ? 0x4 : 0);
+   $CHUNKS[$q]->[abs $cx]->[abs $cy]->[abs $cz]
 }
 
-sub world_get_pos {
+sub world_get_chunk_at {
    my ($pos) = @_;
-   my $opos = [@$pos];
-   $pos = vsubd ($pos,
-      $Games::Blockminer3D::Client::MapChunk::SIZE
-         * int ($pos->[0] / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      $Games::Blockminer3D::Client::MapChunk::SIZE
-         * int ($pos->[1] / $Games::Blockminer3D::Client::MapChunk::SIZE),
-      $Games::Blockminer3D::Client::MapChunk::SIZE
-         * int ($pos->[2] / $Games::Blockminer3D::Client::MapChunk::SIZE)
-   );
-   @$pos = map +(int ($_)), @$pos;
-   my $chnk = world_get_chunk ($opos);
+   my (@chnkp) = pos2chunk ($pos);
+   world_get_chunk (@chnkp)
+}
+
+sub world_get_box_at {
+   my ($pos) = @_;
+
+   my ($cx, $cy, $cz) = pos2chunk ($pos);
+   my $chnk = world_get_chunk ($cx, $cy, $cz);
    unless ($chnk) {
       return ['X', 20, 0]; # invisible block
    }
-   $chnk->{map}->[$pos->[0]]->[$pos->[1]]->[$pos->[2]]
+
+   my $npos = vsubd ($pos,
+      $cx * $Games::Blockminer3D::Client::MapChunk::SIZE,
+      $cy * $Games::Blockminer3D::Client::MapChunk::SIZE,
+      $cz * $Games::Blockminer3D::Client::MapChunk::SIZE
+   );
+   vifloor ($npos);
+   $chnk->{map}->[$npos->[0]]->[$npos->[1]]->[$npos->[2]]
 }
 
 sub world_intersect_ray_box {
@@ -132,6 +129,22 @@ sub world_intersect_ray_box {
 
    #d# warn "OUTPUT $tmin: " . vstr (vadd ($pos, vsmul ($dir, $tmin))) . "\n";
    return ($tmin, vadd ($pos, vsmul ($dir, $tmin))); # return intersection position!
+}
+
+sub world_visible_chunks_at {
+   my ($pos) = @_;
+   my (@chunk_pos) = pos2chunk ($pos);
+
+   my @chnkposes;
+   for my $dx (0, -1, 1) {
+      for my $dy (0, -1, 1) {
+         for my $dz (0, -1, 1) {
+            push @chnkposes, vaddd (\@chunk_pos, $dx, $dy, $dz);
+         }
+      }
+   }
+
+   @chnkposes
 }
 
 sub _closest_pt_point_aabb_2d {
@@ -204,7 +217,7 @@ sub world_collide_cylinder_aabb {
    my $head_pos = vaddd ($pos, 0, $height, 0);
    my $head_box = vfloor ($head_pos);
 
-   my $hbox = world_get_pos ($head_box);
+   my $hbox = world_get_box_at ($head_box);
    if (world_is_solid_box ($hbox)) {
       $$rcollide_normal = vaccum ($$rcollide_normal, [0, -1, 0]);
       my $new_pos =
@@ -214,7 +227,7 @@ sub world_collide_cylinder_aabb {
    }
 
    my $foot_box = vfloor ($pos);
-   my $fbox = world_get_pos ($foot_box);
+   my $fbox = world_get_box_at ($foot_box);
    if (world_is_solid_box ($fbox)) {
       my $box_y = $foot_box->[1] + 1;
       $$rcollide_normal = vaccum ($$rcollide_normal, [0, 1, 0]);
@@ -243,7 +256,7 @@ sub world_collide_cylinder_aabb {
       for my $dx (@xr) {
          for my $dz (@zr) {
             my ($x, $z) = ($foot_box->[0] + $dx, $foot_box->[2] + $dz);
-            my $sbox = world_get_pos ([$x, $y, $z]);
+            my $sbox = world_get_box_at ([$x, $y, $z]);
 
             if (world_is_solid_box ($sbox)) {
                my $aabb_pt = _closest_pt_point_aabb_2d (
@@ -374,7 +387,7 @@ sub world_collide {
          for my $y (@yr) {
             for my $z (@zr) {
                my $cur_box = vaddd ($my_box, $x, $y, $z);
-               my $bx = world_get_pos ($cur_box);
+               my $bx = world_get_box_at ($cur_box);
                next unless $bx->[2] && $bx->[0] ne ' ';
 
                my ($col_dir, $pos_adj) = _collide_sphere_box ($spos, $srad, $cur_box);
@@ -386,7 +399,7 @@ sub world_collide {
                   }
 
                   if (defined $pos_adj) { # was able to move to safer location?
-                     return collide (
+                     return world_collide (
                               vadd ($pos, $pos_adj),
                               $rad,  $rcoll, $rec + 1, $orig_pos);
 
