@@ -201,61 +201,29 @@ sub _collide_sphere_box {
 
 sub world_is_solid_box { $_[0]->[2] && $_[0]->[0] ne ' ' }
 
-sub world_collide_cylinder_aabb {
-   my ($pos, $height, $radius, $rcollide_normal, $recursion, $original_pos) = @_;
+sub _box_height_at {
+   my ($pos, $radius) = @_;
+   my $fpos = vfloor ($pos);
+   my $box = world_get_box_at ($pos);
+   #warn "BOX AT " . vstr ($fpos) . " [$box->[0]]\n";
 
-   # we collide too much:
-   if ($recursion > 5) {
-      warn "collision occured on too many things. we couldn't backoff!";
-      return ($original_pos); # found position is as good as any...
-   }
-   #d# warn "collide at " . vstr ($pos) . "\n";
+   if ($box->[0] eq '/') { # slopes! # FIXME: direction of slope!
+      my ($xrel) = $pos->[0] - $fpos->[0];
 
-   $original_pos = [@$pos] unless $original_pos;
-
-   # the "current" block
-   my $head_pos = vaddd ($pos, 0, $height, 0);
-   my $head_box = vfloor ($head_pos);
-
-   my $hbox = world_get_box_at ($head_box);
-   if (world_is_solid_box ($hbox)) {
-      $$rcollide_normal = vaccum ($$rcollide_normal, [0, -1, 0]);
-      my $new_pos =
-         vaddd ($pos, 0, -(($head_pos->[1] - $head_box->[1]) + 0.001), 0);
-      return world_collide_cylinder_aabb (
-         $new_pos, $height, $radius, $rcollide_normal, $recursion + 1, $original_pos);
-   }
-
-   my $foot_box = vfloor ($pos);
-   my $fbox = world_get_box_at ($foot_box);
-
-   if ($fbox->[2] && $fbox->[0] eq '/') {
- #     my $box_y = $foot_box->[1] + 1;
-      my ($xrel) = $pos->[0] - $foot_box->[0];
       my $a = 1 / (1 - ($radius - 0.001));
       my $yd = $xrel >= (1 - $radius) ? 1 : $a * $xrel;
-      if ($yd > 0) {
-         my $box_y = $foot_box->[1] + $yd;
-         warn "X SLOPE $yd $a $xrel [$box_y] ($box_y <=> $pos->[1])\n";
-         my $up_move = $box_y - $pos->[1];
-         if ($up_move > 0) {
-            $$rcollide_normal = vaccum ($$rcollide_normal, [0, 1, 0]);
-            my $new_pos = vaddd ($pos, 0, $up_move + 0.005, 0);
-            warn "POS " . vstr ($pos) . " =slope> " . vstr ($new_pos) . "\n";
+      return $fpos->[1] + $yd
 
-            return world_collide_cylinder_aabb (
-               $new_pos, $height, $radius, $rcollide_normal, $recursion + 1, $original_pos);
-         }
-      }
+   } elsif ($box->[0] eq 'X') { # normal blocks
+      return $fpos->[1] + 1;
 
-   } elsif (world_is_solid_box ($fbox)) {
-      my $box_y = $foot_box->[1] + 1;
-      $$rcollide_normal = vaccum ($$rcollide_normal, [0, 1, 0]);
-      my $new_pos = vaddd ($pos, 0, ($box_y - $pos->[1]) + 0.001, 0);
-
-      return world_collide_cylinder_aabb (
-         $new_pos, $height, $radius, $rcollide_normal, $recursion + 1, $original_pos);
+   } else {
+      return undef;
    }
+}
+
+sub _quadrant_offsets_at {
+   my ($pos) = @_;
 
    # find quadrant:
    my (@xr, @yr, @zr);
@@ -269,80 +237,162 @@ sub world_collide_cylinder_aabb {
    $xr[1] *= -1 if $pos->[0] < 0;
    $zr[1] *= -1 if $pos->[2] < 0;
 
-   # now check if we collide in the X and Z plane with any of the boxes
-   my $pos_2d = [$pos->[0], $pos->[2]];
-   #warn "no head or food collision, checking " . vstr ($pos_2d) . "\n";
+   map { my $z = $_; map { [$_, $z] } @xr } @zr
+}
 
-   for my $y ($foot_box->[1]..$head_box->[1]) {
-      for my $dx (@xr) {
-         for my $dz (@zr) {
-            my ($x, $z) = ($foot_box->[0] + $dx, $foot_box->[2] + $dz);
-            my $sbox = world_get_box_at ([$x, $y, $z]);
+sub world_collide_cylinder_aabb {
+   my ($pos, $height, $radius, $rcollide_normal) = @_;
 
-            if ($y == $foot_box->[1] && $sbox->[0] eq '/') {
-               next; # skip slope boxes on the feet, they just move upward!
+   my ($recursion, $original_pos);
+   $original_pos = [@$pos];
 
-            } elsif (world_is_solid_box ($sbox)) {
-               my $aabb_pt = _closest_pt_point_aabb_2d (
-                  $pos_2d, [$x, $z], [$x + 1, $z + 1]);
+   RECOLLIDE:
+   $recursion++;
 
-               my $dvec = vsub_2d ($pos_2d, $aabb_pt);
-               my $dvecl = vlength_2d ($dvec);
-               #d# warn "coll point $x $y $z: "
-               #d#      . vstr ($aabb_pt) . " pl "
-               #d#      . vstr ($pos_2d) . " dv "
-               #d#      . vstr ($dvec) . " ($dvecl)\n";
+   # we collide too much:
+   if ($recursion > 6) {
+      warn "collision occured on too many things. we couldn't backoff!";
+      return ($original_pos); # found position is as good as any...
+   }
+   warn "collide at " . vstr ($pos) . " ($height, $radius)\n";
 
-               if ($dvecl == 0) {
-                  $$rcollide_normal = [0, 1, 0];
-                  #d# warn "collision happened INSIDE something!\n";
-                  my $new_pos = vaddd ($pos, 0, 1, 0);
-                  return world_collide_cylinder_aabb (
-                     $new_pos, $height, $radius, $rcollide_normal,
-                     $recursion + 1, $original_pos);
-               }
+   # the "current" block
+   my $head_pos = vaddd ($pos, 0, $height, 0);
+   my $head_box = vfloor ($head_pos);
 
-               if ($dvecl < $radius) {
-                  my $backoff_dist = ($radius - $dvecl) + 0.0001;
+   # first check if we jumped against something above us:
+   my $hbox = world_get_box_at ($head_box);
+   if (world_is_solid_box ($hbox)) {
+      $$rcollide_normal = vaccum ($$rcollide_normal, [0, -1, 0]);
+      $pos = vaddd ($pos, 0, -(($head_pos->[1] - $head_box->[1]) + 0.001), 0);
+      warn "HEAD COLLISION!\n";
+      goto RECOLLIDE;
+   }
 
-                  my $vn = vnorm ([$dvec->[0], 0, $dvec->[1]]);
-                  #d# warn "backoff: $backoff_dist into " . vstr ($vn) . "\n";
-                  $$rcollide_normal = vaccum ($$rcollide_normal, $vn);
-                  my $new_pos = vadd ($pos, vsmul ($vn, $backoff_dist));
-                  return world_collide_cylinder_aabb (
-                     $new_pos, $height, $radius, $rcollide_normal,
-                     $recursion + 1, $original_pos);
-               }
-            }
-         }
+   my @quadrants = _quadrant_offsets_at ($pos);
+
+   my $foot_box = vfloor ($pos);
+
+   my @heights;
+   my ($x, $z) = ($pos->[0], $pos->[2]);
+   warn "POS $x $foot_box->[1] $z\n";
+   for my $y ($foot_box->[1] - 1, $foot_box->[1]) {
+      push @heights, map {
+         my $h =
+            _box_height_at ([$x + $_->[0] * $radius, $y, $z + $_->[1] * $radius], $radius);
+         warn "HEIGHT @$_: $h => " .($pos->[1] - $h)."\n" if defined $h;
+         $h
+      } @quadrants;
+   }
+   # next: find max diffs, if max diff is above some limit collide
+   # with the boxes sideways, otherwise continue by pushing the player
+   # away from the side-walls and recurse to adjust his height
+   for (@heights) {
+      next unless defined $_;
+      my $diff = $pos->[1] - $_;
+      #TODO FIXME: continue diffing here, with negative coordinates!
+      if ($diff < $radius) {
+         warn "OCLLIDED DIFF: $diff\n";
+         $$rcollide_normal = vaccum ($$rcollide_normal, [0, 1, 0]);
+         $pos = vaddd ($pos, 0, ($radius - $diff) + 0.001, 0);
+         goto RECOLLIDE;
       }
    }
+   warn "No collision with " . vstr ($pos) . "\n";
 
    return $pos;
 
-   # rough algo:
-   # check if feet $pos is inside blocking box
-   #   => move up
-   # check if head is inside blocking box
-   #   => move down
-   # check if any of the adjacent boxes not (9 boxes at max)
-   #      in the Y coord of the $pos collide
-   #      with the $radius of the cylinder
-   #   => if so, move away by direction given
-   #      from XZ aabb-point to XZ $pos
+   #redef# my $fbox       = world_get_box_at ($foot_box);
+   #redef# my $below_fbox = world_get_box_at (vsubd ($foot_box, 0, -1, 0));
 
-   #warn "collide player at " . vstr ($original_pos)
-   #     . ", in box " . vstr ($my_box) . "\n";
-   #for my $x (@xr) {
-   #   for my $y (@yr) {
-   #      for my $z (@zr) {
-   #         my $cur_box = vaddd ($my_box, $x, $y, $z);
-   #         my $bx = get_pos ($cur_box);
-   #         next unless $bx->[2] && $bx->[0] ne ' ';
-   #         warn "checking box at " . vstr ($cur_box) . "\n";
-   #      }
-   #   }
-   #}
+   #redef# if ($fbox->[2] && $fbox->[0] eq '/') {
+ # #redef#     my $box_y = $foot_box->[1] + 1;
+   #redef#    my ($xrel) = $pos->[0] - $foot_box->[0];
+   #redef#    my $a = 1 / (1 - ($radius - 0.001));
+   #redef#    my $yd = $xrel >= (1 - $radius) ? 1 : $a * $xrel;
+   #redef#    if ($yd > 0) {
+   #redef#       my $box_y = ($foot_box->[1] + $yd) + 0.01;
+   #redef#       warn "X SLOPE $yd $a $xrel [$box_y] ($box_y <=> $pos->[1])\n";
+   #redef#       my $up_move = $box_y - $pos->[1];
+   #redef#       if ($up_move > 0) {
+   #redef#          $$rcollide_normal = vaccum ($$rcollide_normal, [0, 1, 0]);
+   #redef#          my $new_pos = vaddd ($pos, 0, $up_move, 0);
+   #redef#          warn "POS " . vstr ($pos) . " =slope> " . vstr ($new_pos) . "\n";
+
+   #redef#          return world_collide_cylinder_aabb (
+   #redef#             $new_pos, $height, $radius, $rcollide_normal, $recursion + 1, $original_pos);
+   #redef#       }
+   #redef#    }
+
+   #redef# } elsif (world_is_solid_box ($fbox)) {
+   #redef#    my $box_y = $foot_box->[1] + 1 + $radius;
+
+   #redef#    $$rcollide_normal = vaccum ($$rcollide_normal, [0, 1, 0]);
+   #redef#    my $new_pos = vaddd ($pos, 0, ($box_y - $pos->[1]) + 0.001, 0);
+   #redef#    return world_collide_cylinder_aabb (
+   #redef#       $new_pos, $height, $radius, $rcollide_normal, $recursion + 1, $original_pos);
+
+   #redef# } elsif (world_is_solid_box ($below_fbox)) { # box is non-solid
+   #redef#    my $box_y = $foot_box->[1] + $radius;
+   #redef#    warn "BLWO\n";
+   #redef#    if ($pos->[1] < $box_y) {
+   #redef#       $$rcollide_normal = vaccum ($$rcollide_normal, [0, 1, 0]);
+   #redef#       my $new_pos = vaddd ($pos, 0, ($box_y - $pos->[1]) + 0.001, 0);
+   #redef#       return world_collide_cylinder_aabb (
+   #redef#          $new_pos, $height, $radius, $rcollide_normal, $recursion + 1, $original_pos);
+   #redef#    }
+   #redef# }
+
+   #redef# # now check if we collide in the X and Z plane with any of the boxes
+   #redef# my $pos_2d = [$pos->[0], $pos->[2]];
+   #redef# #warn "no head or food collision, checking " . vstr ($pos_2d) . "\n";
+
+   #redef# for my $y ($foot_box->[1]..$head_box->[1]) {
+   #redef#    for my $dx (@$xr) {
+   #redef#       for my $dz (@$zr) {
+   #redef#          my ($x, $z) = ($foot_box->[0] + $dx, $foot_box->[2] + $dz);
+   #redef#          my $sbox = world_get_box_at ([$x, $y, $z]);
+
+   #redef#          if ($y == $foot_box->[1] && $sbox->[0] eq '/') {
+   #redef#             next; # skip slope boxes on the feet, they just move upward!
+
+   #redef#          } elsif (world_is_solid_box ($sbox)) {
+   #redef#             my $aabb_pt = _closest_pt_point_aabb_2d (
+   #redef#                $pos_2d, [$x, $z], [$x + 1, $z + 1]);
+
+   #redef#             my $dvec = vsub_2d ($pos_2d, $aabb_pt);
+   #redef#             my $dvecl = vlength_2d ($dvec);
+   #redef#             #d# warn "coll point $x $y $z: "
+   #redef#             #d#      . vstr ($aabb_pt) . " pl "
+   #redef#             #d#      . vstr ($pos_2d) . " dv "
+   #redef#             #d#      . vstr ($dvec) . " ($dvecl)\n";
+
+   #redef#             if ($dvecl == 0) {
+   #redef#                $$rcollide_normal = [0, 1, 0];
+   #redef#                #d# warn "collision happened INSIDE something!\n";
+   #redef#                my $new_pos = vaddd ($pos, 0, 1, 0);
+   #redef#                return world_collide_cylinder_aabb (
+   #redef#                   $new_pos, $height, $radius, $rcollide_normal,
+   #redef#                   $recursion + 1, $original_pos);
+   #redef#             }
+
+   #redef#             if ($dvecl < $radius) {
+   #redef#                my $backoff_dist = ($radius - $dvecl) + 0.0001;
+
+   #redef#                my $vn = vnorm ([$dvec->[0], 0, $dvec->[1]]);
+   #redef#                #d# warn "backoff: $backoff_dist into " . vstr ($vn) . "\n";
+   #redef#                $$rcollide_normal = vaccum ($$rcollide_normal, $vn);
+   #redef#                my $new_pos = vadd ($pos, vsmul ($vn, $backoff_dist));
+   #redef#                return world_collide_cylinder_aabb (
+   #redef#                   $new_pos, $height, $radius, $rcollide_normal,
+   #redef#                   $recursion + 1, $original_pos);
+   #redef#             }
+   #redef#          }
+   #redef#       }
+   #redef#    }
+   #redef# }
+
+   #redef# return $pos;
 }
 
 # collide sphere at $pos with radius $rad

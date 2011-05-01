@@ -677,7 +677,7 @@ sub physics_tick : event_cb {
       world_collide_cylinder_aabb (
          $player->{pos}, 1.5, 0.3, \$collide_normal);
 
-   #d#warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
+   warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
    $player->{pos} = $pos;
 
    if ($collide_normal) {
@@ -764,11 +764,11 @@ sub input_key_down : event_cb {
       $self->change_look_lock (not $self->{look_lock});
    } elsif (grep { $name eq $_ } qw/a s d w/) {
       my ($xdir, $ydir) = (
-         $name eq 'w'        ?  3
-         : ($name eq 's'     ? -3
+         $name eq 'w'        ?  1
+         : ($name eq 's'     ? -1
                              :  0),
-         $name eq 'a'        ? -4
-         : ($name eq 'd'     ?  4
+         $name eq 'a'        ? -1
+         : ($name eq 'd'     ?  1
                              :  0),
       );
 
