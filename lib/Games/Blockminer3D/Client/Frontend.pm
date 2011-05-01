@@ -155,8 +155,8 @@ sub load_texture {
    my $texture_format = _get_texfmt ($img);
 
    glBindTexture (GL_TEXTURE_2D, $nr);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
    gluBuild2DMipmaps_s (GL_TEXTURE_2D,
       $img->format->BytesPerPixel, $img->w, $img->h, $texture_format, GL_UNSIGNED_BYTE,
@@ -166,7 +166,7 @@ sub load_texture {
 }
 
 sub _render_quad {
-   my ($pos, $faces, $light) = @_;
+   my ($pos, $faces) = @_;
    #d#warn "QUAD $x $y $z $light\n";
 
    #               0 front  1 top    2 back   3 left   4 right  5 bottom
@@ -206,7 +206,6 @@ sub _render_quad {
          my $index  = $indices[4 * $face + $vertex];
          my $coords = $vertices[$index];
 
-         glColor3d ($light, $light, $light) if defined $light;
          glTexCoord2d(@{$uv[$vertex]});
          glVertex3d(@{vadd ($coords, $pos)});
       }
@@ -269,7 +268,8 @@ sub compile_chunk {
 
          $face_cnt += scalar @$faces;
 
-         _render_quad ($pos, $faces, $light);
+         glColor3d ($light, $light, $light) if defined $light;
+         _render_quad ($pos, $faces);
       }
 
       glEnd;
