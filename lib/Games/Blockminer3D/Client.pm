@@ -44,6 +44,9 @@ sub new {
  #  $self->{front}->change_look_lock (1);
  #  $self->{front}->compile_scene;
 
+   $self->{front}->activate_ui ("test", {
+   });
+
    return $self
 }
 

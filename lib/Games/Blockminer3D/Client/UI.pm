@@ -135,6 +135,10 @@ sub update {
    $self->prepare_opengl_texture;
    $self->prepare_sdl_surface; # creates a new sdl surface for this window
 
+   $self->{commands}       = $gui_desc->{commands};
+   $self->{commands_cb} = $gui_desc->{commands_cb};
+   $self->{sticky} = $win->{sticky};
+
    for my $el (@{$gui_desc->{elements}}) {
 
       if ($el->{type} eq 'text') {
@@ -144,7 +148,7 @@ sub update {
       } elsif ($el->{type} eq 'entry') {
          $self->place_text ($el->{pos}, $el->{size}, $el->{text}, $el->{font}, $el->{color});
 
-      } elsif ($el->{type} eq 'gauge') {
+      } elsif ($el->{type} eq 'image') {
          $self->place_gauge (
             $el->{pos}, $el->{size}, $el->{label}, $el->{fill}, $el->{color}
          );
@@ -255,8 +259,18 @@ sub display {
 }
 
 sub input_key_press : event_cb {
-   my ($self, $key, $name, $unicode) = @_;
+   my ($self, $key, $name, $unicode, $rhandled) = @_;
    warn "UNICODE ($key, $name) $unicode\n";
+   my $cmd;
+   if ($name eq 'escape') {
+      $cmd = "cancel" unless $self->{sticky};
+   } elsif ($self->{commands}) {
+      $cmd = $self->{commands}->{default_keys}->{$name}
+   }
+   if ($cmd ne '') {
+      $self->{command_cb}->($cmd) if $self->{command_cb};
+      $$rhandled = $cmd eq 'cancel' ? 2 : 1;
+   }
 }
 
 sub DESTROY {

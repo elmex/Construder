@@ -17,6 +17,7 @@ use POSIX qw/floor/;
 use Games::Blockminer3D::Vector;
 
 use Games::Blockminer3D::Client::World;
+use Games::Blockminer3D::Client::Textures;
 use Games::Blockminer3D::Client::UI;
 
 use base qw/Object::Event/;
@@ -67,26 +68,9 @@ sub new {
 }
 sub init_test {
    my ($self) = @_;
-   $self->{debug_hud} = Games::Blockminer3D::Client::UI->new (W => $WIDTH, H => $HEIGHT);
-   $self->{query_ui} = Games::Blockminer3D::Client::UI->new (W => $WIDTH, H => $HEIGHT);
-   $self->{query_ui}->update ({
-         window => {
-            pos => 'center',
-            size => [$WIDTH - ($WIDTH / 5), 50],
-            color => "#333333",
-            alpha => 1,
-         },
-         elements => [
-            {
-               type => 'text', pos => [10, 10],
-               size => [150, 38],
-               text => "tes teste te eiwe iejfiwfjwei",
-               color => "#0000ff",
-               font => 'normal'
-            },
-         ]
-   });
-   delete $self->{query_ui};
+   $self->{active_uis}->{debug_hud} =
+      Games::Blockminer3D::Client::UI->new (
+         W => $WIDTH, H => $HEIGHT, textures => $self->{textures});
 }
 
 sub init_physics {
@@ -131,45 +115,13 @@ sub init_app {
    glFogf (GL_FOG_START, 10);
    glFogf (GL_FOG_END,   20);
 
-   glGenTextures_p(1);
-
- #  $self->load_texture ("res/blocks19.small.png", 1);
-   $self->load_texture ("res/construction.jpg", 1);
-}
-
-sub _get_texfmt {
-   my ($surface) = @_;
-   my $ncol = $surface->format->BytesPerPixel;
-   my $rmsk = $surface->format->Rmask;
-   warn "NCOL $ncol\n";
-   ($ncol == 4 ? ($rmsk == 0x000000ff ? GL_RGBA : GL_BGRA)
-               : ($rmsk == 0x000000ff ? GL_RGB  : GL_BGR))
-}
-
-sub load_texture {
-   my ($self, $file, $nr) = @_;
-
-   my ($name) = $file =~ /([^\/]+?)\.png/;
-
-   my $img = SDL::Image::load ($file);
-   die "Couldn't load texture: " . SDL::get_error () unless $img;
-   SDL::Video::lock_surface ($img);
-
-   my $texture_format = _get_texfmt ($img);
-
-   glBindTexture (GL_TEXTURE_2D, $nr);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-   gluBuild2DMipmaps_s (GL_TEXTURE_2D,
-      $img->format->BytesPerPixel, $img->w, $img->h, $texture_format, GL_UNSIGNED_BYTE,
-      ${$img->get_pixels_ptr});
-
-   $self->{textures}->{$name} = $nr;
+   $self->{textures} = Games::Blockminer3D::Client::Textures->new;
+   $self->{textures}->add_file ("res/blocks19.small.png", [[1]]);
+   $self->{textures}->add_file ("res/metal05.small.png", [[2]]);
 }
 
 sub _render_quad {
-   my ($pos, $faces) = @_;
+   my ($pos, $faces, $uv) = @_;
    #d#warn "QUAD $x $y $z $light\n";
 
    #  0 front  1 top    2 back   3 left   4 right  5 bottom
@@ -180,11 +132,6 @@ sub _render_quad {
       qw/ 4 5 1 0 /, # 3 left
       qw/ 3 2 6 7 /, # 4 right
       qw/ 3 7 4 0 /, # 5 bottom
-
-      qw/ 0 7 4 0 /, # 6 slope north
-      qw/ 3 7 4 0 /, # 7 slope south
-      qw/ 3 7 4 0 /, # 8 slope east
-      qw/ 3 7 4 0 /, # 9 slope west
    );
    #my @normals = (
    #   [ 0, 0,-1],
@@ -208,10 +155,10 @@ sub _render_quad {
 
    my @uv = (
     #  w  h
-      [1, 1],
-      [1, 0],
-      [0, 0],
-      [0, 1],
+      [$uv->[2], $uv->[3]],
+      [$uv->[2], $uv->[1]],
+      [$uv->[0], $uv->[1]],
+      [$uv->[0], $uv->[3]],
    );
 
    foreach my $face (@$faces) {
@@ -273,7 +220,7 @@ sub compile_chunk {
       # sort by texture name:
       for (sort { $a->[3] cmp $b->[3] } @quads) {
          my ($pos, $faces, $light, $tex) = @$_;
-         my $tex_nr = 1; # FIXME: $self->{textures}->{$tex};
+         my ($tex_nr, $uv) = $self->{textures}->get_opengl ($tex || 1);
          if ($current_texture != $tex_nr) {
             glEnd;
             glBindTexture (GL_TEXTURE_2D, $tex_nr);
@@ -284,7 +231,7 @@ sub compile_chunk {
          $face_cnt += scalar @$faces;
 
          glColor3d ($light, $light, $light) if defined $light;
-         _render_quad ($pos, $faces);
+         _render_quad ($pos, $faces, $uv);
       }
 
       glEnd;
@@ -395,8 +342,7 @@ sub render_hud {
    glEnd ();
    glPopMatrix;
 
-   $self->{debug_hud}->display;
-   $self->{query_ui}->display if $self->{query_ui};
+   $_->display for values %{$self->{active_uis} || {}};
  #  $self->{test_win}->display;
 
    glPopMatrix;
@@ -420,8 +366,9 @@ sub setup_event_poller {
       #printf "%.5f FPS\n", $fps / $fps_intv;
       printf "%.5f secsPcoll\n", $collide_time / $collide_cnt if $collide_cnt;
       printf "%.5f secsPrender\n", $render_time / $render_cnt if $render_cnt;
-      $self->{debug_hud}->update ({
+      $self->{active_uis}->{debug_hud}->update ({
          window => {
+            sticky => 1,
             pos => 'up_left',
             size => [160, 30],
             color => "#0000ff",
@@ -750,13 +697,35 @@ sub input_key_up : event_cb {
    }
 
 }
+
+sub activate_ui {
+   my ($self, $ui, $desc) = @_;
+
+   my $obj = delete $self->{inactive_uis}->{$ui};
+
+   $obj ||=
+      Games::Blockminer3D::Client::UI->new (
+         W => $WIDTH, H => $HEIGHT, textures => $self->{textures});
+   $obj->update ($desc);
+}
+
+sub deactivate_ui {
+   my ($self, $ui) = @_;
+   $self->{inactive_uis}->{$ui} =
+      delete $self->{active_uis}->{$ui};
+}
+
 sub input_key_down : event_cb {
    my ($self, $key, $name, $unicode) = @_;
 
-   if ($self->{query_ui}) {
-      $self->{query_ui}->input_key_press ($key, $name, chr ($unicode));
- #     return;
+   my $handled = 0;
+   for (keys %{$self->{active_uis}}) {
+      $self->{active_uis}->{$_}->input_key_press (
+         $key, $name, chr ($unicode), \$handled);
+      $self->deactivate_ui ($_) if $handled == 2;
+      last if $handled;
    }
+   return if $handled;
 
    ($name eq "q" || $name eq 'escape') and exit;
 
