@@ -415,8 +415,8 @@ sub setup_event_poller {
    my $fps_intv = 1;
    $self->{fps_w} = AE::timer 0, $fps_intv, sub {
       #printf "%.5f FPS\n", $fps / $fps_intv;
-      #printf "%.5f secsPcoll\n", $collide_time / $collide_cnt if $collide_cnt;
-      #printf "%.5f secsPrender\n", $render_time / $render_cnt if $render_cnt;
+      printf "%.5f secsPcoll\n", $collide_time / $collide_cnt if $collide_cnt;
+      printf "%.5f secsPrender\n", $render_time / $render_cnt if $render_cnt;
       $self->{debug_hud}->update ({
          window => {
             pos => 'up_left',
@@ -648,11 +648,15 @@ sub physics_tick : event_cb {
  #  my $f = world_get_pos ($player->{pos}->array);
  #  warn "POS PLAYER $player->{pos}: ( @$f )\n";
 
-   my $gforce = [0, -9.4, 0];
+   my $gforce = $self->{ghost_mode} ? [0, 0, 0] : [0, -9.4, 0];
 
    my $player = $self->{phys_obj}->{player};
 
-   viadd ($player->{vel}, vsmul ($gforce, $dt));
+   if ($self->{ghost_mode}) {
+      $player->{vel} = [0, 0, 0];
+   } else {
+      viadd ($player->{vel}, vsmul ($gforce, $dt));
+   }
    #d#warn "DT: $dt => " .vstr( $player->{vel})."\n";
 
    if ((vlength ($player->{vel}) * $dt) > 0.3) {
@@ -677,26 +681,28 @@ sub physics_tick : event_cb {
       world_collide_cylinder_aabb (
          $player->{pos}, 1.5, 0.3, \$collide_normal);
 
-   warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
-   $player->{pos} = $pos;
+   #d# warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
+   unless ($self->{ghost_mode}) {
+      $player->{pos} = $pos;
 
-   if ($collide_normal) {
-       # figure out how much downward velocity is removed:
-       my $down_part;
-       my $coll_depth = vlength ($collide_normal);
-       if ($coll_depth == 0) {
-          #d#warn "collidedd vector == 0, set vel = 0\n";
-          $down_part = 0;
+      if ($collide_normal) {
+          # figure out how much downward velocity is removed:
+          my $down_part;
+          my $coll_depth = vlength ($collide_normal);
+          if ($coll_depth == 0) {
+             #d#warn "collidedd vector == 0, set vel = 0\n";
+             $down_part = 0;
 
-       } else {
-          vinorm ($collide_normal, $coll_depth);
+          } else {
+             vinorm ($collide_normal, $coll_depth);
 
-          my $vn = vnorm ($player->{vel});
-          $down_part = 1 - abs (vdot ($collide_normal, $vn));
-          #d# warn "down part $cn . $vn => $down_part * $player->{vel}\n";
-       }
-       #d# warn "downpart $down_part\n";
-       vismul ($player->{vel}, $down_part);
+             my $vn = vnorm ($player->{vel});
+             $down_part = 1 - abs (vdot ($collide_normal, $vn));
+             #d# warn "down part $cn . $vn => $down_part * $player->{vel}\n";
+          }
+          #d# warn "downpart $down_part\n";
+          vismul ($player->{vel}, $down_part);
+      }
    }
 
    $collide_time += time - $t1;
@@ -757,9 +763,11 @@ sub input_key_down : event_cb {
    } elsif ($name eq 'return') {
       viaddd ($self->{phys_obj}->{player}->{vel}, 0, -5, 0);
    } elsif ($name eq 'y') {
-      viaddd ($self->{phys_obj}->{player}->{pos}, 0, -0.5, 0);
+      viaddd ($self->{phys_obj}->{player}->{pos}, 0, -0.1, 0);
    } elsif ($name eq 'x') {
-      viaddd ($self->{phys_obj}->{player}->{pos}, 0, 0.5, 0);
+      viaddd ($self->{phys_obj}->{player}->{pos}, 0, 0.1, 0);
+   } elsif ($name eq 'g') {
+      $self->{ghost_mode} = not $self->{ghost_mode};
    } elsif ($name eq 'f') {
       $self->change_look_lock (not $self->{look_lock});
    } elsif (grep { $name eq $_ } qw/a s d w/) {

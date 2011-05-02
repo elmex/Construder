@@ -19,8 +19,8 @@ our @EXPORT = qw/
    vsub_2d vsubd_2d visub_2d visubd_2d
    vsdiv_2d visdiv_2d
    vsmul_2d vismul_2d
-   vdot_2d vdotd_2d
-   vlength_2d
+   vdot_2d vdotd_2d vlength_2d
+   vnorm_2d vinorm_2d
 
    vaccum
 /;
