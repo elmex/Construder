@@ -3,8 +3,10 @@ use common::sense;
 use Games::Blockminer3D::Client::Frontend;
 use Games::Blockminer3D::Client::MapChunk;
 use Games::Blockminer3D::Client::World;
+use Games::Blockminer3D::Server::Sector;
 use AnyEvent;
 use Math::VectorReal;
+use Benchmark qw/:all/;
 
 =head1 NAME
 
@@ -27,6 +29,12 @@ sub new {
    my $class = ref ($this) || $this;
    my $self  = { @_ };
    bless $self, $class;
+   my $sect = Games::Blockminer3D::Server::Sector->new;
+   timethese (20, { test => sub {
+      $sect->mk_random;
+   }});
+      my $chunk = $sect->get_chunk (1, 1, 1);
+   exit;
 
    $self->{front} = Games::Blockminer3D::Client::Frontend->new;
 
