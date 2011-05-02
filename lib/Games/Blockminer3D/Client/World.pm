@@ -280,7 +280,7 @@ sub world_collide {
             for my $z (@zr) {
                my $cur_box = vaddd ($my_box, $x, $y, $z);
                my $bx = world_get_box_at ($cur_box);
-               next unless $bx->[2] && $bx->[0] ne ' ';
+               next unless world_is_solid_box ($bx);
 
                my ($col_dir, $pos_adj) = _collide_sphere_box ($spos, $srad, $cur_box);
                if ($col_dir && vdot ([0, $coll_y, 0], $col_dir) <= 0) { # collided!

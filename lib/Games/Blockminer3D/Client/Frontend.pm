@@ -651,9 +651,15 @@ sub physics_tick : event_cb {
  #  my $f = world_get_pos ($player->{pos}->array);
  #  warn "POS PLAYER $player->{pos}: ( @$f )\n";
 
-   my $gforce = $self->{ghost_mode} ? [0, 0, 0] : [0, -9.4, 0];
-
    my $player = $self->{phys_obj}->{player};
+
+   my $bx = world_get_box_at (vaddd ($player->{pos}, 0, -1, 0));
+
+   my $gforce = [0, -9.5, 0];
+   if ($bx->[0] eq '^') {
+      $gforce = [0, 9.5, 0];
+   }
+   $gforce = [0,0,0] if $self->{ghost_mode};
 
    if ($self->{ghost_mode}) {
       $player->{vel} = [0, 0, 0];
