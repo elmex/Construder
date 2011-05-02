@@ -685,7 +685,7 @@ sub physics_tick : event_cb {
    #      $player->{pos}, 1.5, 0.3, \$collide_normal);
 
    my ($pos) =
-      world_collide ($player->{pos}, [[[0,0,0],$PL_RAD], [[0, $PL_HEIGHT, 0], $PL_RAD]], \$collide_normal);
+      world_collide ($player->{pos}, [[[0,0,0],$PL_RAD,-1], [[0, $PL_HEIGHT, 0], $PL_RAD,1]], \$collide_normal);
    #d# warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
    unless ($self->{ghost_mode}) {
       $player->{pos} = $pos;

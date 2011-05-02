@@ -188,6 +188,12 @@ sub _collide_sphere_box {
    my $dvlen = vlength ($dv);
 
    if ($dvlen == 0) { # ouch, directly in the side?
+      # find the direction away from the center
+      my $inside_dir = vsub ($sphere_pos, vadd ($box, 0.5, 0.5, 0.5));
+      vinorm ($inside_dir);
+      # and move out one radius!
+      return ($inside_dir, vsmul ($inside_dir, $sphere_rad));
+
       warn "player landed directly on the surface\n";
       return ([0, 0, 0]);
    }
@@ -202,192 +208,6 @@ sub _collide_sphere_box {
 
 sub world_is_solid_box { $_[0]->[2] && $_[0]->[0] ne ' ' }
 
-sub _box_height_at {
-   my ($pos, $radius) = @_;
-   my $fpos = vfloor ($pos);
-   my $box = world_get_box_at ($pos);
-   #warn "BOX AT " . vstr ($fpos) . " [$box->[0]]\n";
-
-   if ($box->[0] eq '/') { # slopes! # FIXME: direction of slope!
-      my ($xrel) = $pos->[0] - $fpos->[0];
-
-      my $a = 1 / (1 - ($radius - 0.001));
-      my $yd = $xrel >= (1 - $radius) ? 1 : $a * $xrel;
-      return $fpos->[1] + $yd;
-
-   } elsif ($box->[0] eq 'X') { # normal blocks
-      return $fpos->[1] + 1;
-
-   } else {
-      return undef;
-   }
-}
-
-sub _quadrant_offsets_at {
-   my ($pos) = @_;
-
-   # find quadrant:
-   my (@xr, @yr, @zr);
-   (@yr) = (0, 1, 2);
-   my ($ax, $az) = (
-      abs ($pos->[0] - int $pos->[0]),
-      abs ($pos->[2] - int $pos->[2])
-   );
-   push @xr, $ax > 0.5 ? (0, 1) : (0, -1);
-   push @zr, $az > 0.5 ? (0, 1) : (0, -1);
-   $xr[1] *= -1 if $pos->[0] < 0;
-   $zr[1] *= -1 if $pos->[2] < 0;
-
-   map { my $z = $_; map { [$_, $z] } @xr } @zr
-}
-
-sub world_collide_sphere_planes {
-   my ($pos, $radius, $rcollide_normal) = @_;
-
-   my ($recursion, $original_pos);
-   $original_pos = [@$pos];
-
-   RECOLLIDE:
-   $recursion++;
-
-   # we collide too much:
-   if ($recursion > 6) {
-      warn "collision occured on too many things. we couldn't backoff!";
-      return ($original_pos); # found position is as good as any...
-   }
-
-   my $box = vfloor ($pos); # box the sphere is inside of
-   for my $dx (-1..1) {
-      for my $dx (-1..1) {
-         for my $dx (-1..1) {
-         }
-      }
-   }
-}
-
-sub world_collide_cylinder_aabb {
-   my ($pos, $height, $radius, $rcollide_normal) = @_;
-
-   my ($recursion, $original_pos);
-   $original_pos = [@$pos];
-
-   RECOLLIDE:
-   $recursion++;
-
-   # we collide too much:
-   if ($recursion > 6) {
-      warn "collision occured on too many things. we couldn't backoff!";
-      return ($original_pos); # found position is as good as any...
-   }
-   #d# warn "collide at " . vstr ($pos) . " ($height, $radius)\n";
-
-   # calculate extremities of the player cylinder:
-   my $head_pos = vaddd ($pos, 0, $height, 0); # position of head
-   my $head_box = vfloor ($head_pos);          # box where head is in
-   my $foot_box = vfloor ($pos);               # box where feet are in
-
-   # first check if we jumped against something above us:
-   my $hbox = world_get_box_at ($head_box);
-   if (world_is_solid_box ($hbox)) { # ouch, our head is INSIDE some box!
-      $$rcollide_normal = vaccum ($$rcollide_normal, [0, -1, 0]);
-      $pos = vaddd ($pos, 0, -(($head_pos->[1] - $head_box->[1]) + 0.001), 0);
-      goto RECOLLIDE;
-   }
-
-   # now check if we collide with the sides of any boxes:
-   my $pos_2d = [$pos->[0], $pos->[2]];
-   #warn "no head or food collision, checking " . vstr ($pos_2d) . "\n";
-
-
-   # algorithm:
-   #  - first check if we collide with the top of our head with a ceiling
-   #      if so => move down and recurse
-   #  - check if the head box and the middle box collide with some box around us?
-   #  - skrew this ... lol
-
-   my @offs = _quadrant_offsets_at ($pos);
-   for my $y ($foot_box->[1]..$head_box->[1]) {
-      for (@offs) {
-         my ($x, $z) = ($foot_box->[0] + $_->[0], $foot_box->[2] + $_->[1]);
-         my $sbox = world_get_box_at ([$x, $y, $z]);
-
-         if ($y == $foot_box->[1] && $sbox->[0] eq '/') {
-            next; # slopes are not blocking sideways?!
-
-         } elsif (world_is_solid_box ($sbox)) {
-            my $aabb_pt = _closest_pt_point_aabb_2d (
-               $pos_2d, [$x, $z], [$x + 1, $z + 1]);
-
-            my $dvec = vsub_2d ($pos_2d, $aabb_pt);
-            my $dvecl = vlength_2d ($dvec);
-            #d# warn "coll point $x $y $z: "
-            #d#      . vstr ($aabb_pt) . " pl "
-            #d#      . vstr ($pos_2d) . " dv "
-            #d#      . vstr ($dvec) . " ($dvecl)\n";
-
-            if ($dvecl == 0) {
-               $$rcollide_normal = [0, 1, 0];
-               warn "collision happened INSIDE something!\n";
-               $pos = vaddd ($pos, 0, 1, 0);
-               goto RECOLLIDE;
-            }
-
-            if ($dvecl < $radius) {
-               my $backoff_dist = ($radius - $dvecl) + 0.001;
-
-               my $vn = vnorm ([$dvec->[0], 0, $dvec->[1]]);
-               warn "backoff: $backoff_dist into " . vstr ($vn) . "\n";
-               $$rcollide_normal = vaccum ($$rcollide_normal, $vn);
-               $pos = vadd ($pos, vsmul ($vn, $backoff_dist));
-               goto RECOLLIDE;
-            }
-         }
-      }
-   }
-
-   # next check if our feet collide with some step or floor:
-   my @heights = ();
-   my ($x, $z) = ($pos->[0], $pos->[2]);
-   for my $y ($foot_box->[1] - 1, $foot_box->[1]) {
-      # fetch heights in all directions:
-      push @heights, map {
-         my $bpos = [$x + $_->[0], $y, $z + $_->[1]];
-         my $h =
-            _box_height_at ($bpos, $radius);
-         #d# warn "HEIGHT " . vstr ($bpos) . " => " .vstr ([$h, $pos->[1] - $h])."\n" if defined $h;
-         defined $h ? [$bpos, $h] : ()
-      } map { vinorm_2d ($_) if vlength_2d ($_) > 0; vismul_2d ($_, $radius); $_ } (
-         [0, 0],
-         [0, 1],
-         [1, 0],
-         [1, 1],
-         [0, -1],
-         [-1, 0],
-         [-1, -1],
-         [1, -1],
-         [-1, 1],
-      )
-   }
-
-   # find max height we stepped on:
-   my ($mh) = sort { $b->[1] <=> $a->[1] } @heights;
-   #d# warn "max height $mh->[1]\n";
-   if ($mh) { # found some height
-
-      my $diff = $pos->[1] - $mh->[1];
-      # is the height not too high and not too narrow?
-      if ($diff > 0 && $diff < $radius) {
-         #d# warn "OCLLIDED DIFF: $diff\n";
-         $$rcollide_normal = vaccum ($$rcollide_normal, [0, 1, 0]);
-         $pos = vaddd ($pos, 0, ($radius - $diff) + 0.001, 0);
-         goto RECOLLIDE;
-      }
-   }
-   #d# warn "No collision with " . vstr ($pos) . "\n";
-
-   return $pos;
-}
-
 # collide sphere at $pos with radius $rad
 #   0.00059 secsPcoll in flight without collisions
 #   0.00171secsPcoll to 0.00154secsPcoll when colliding with floor
@@ -397,11 +217,16 @@ sub world_collide_cylinder_aabb {
 sub world_collide {
    my ($pos, $rad, $rcoll, $rec, $orig_pos) = @_;
 
-   if ($rec > 8) {
-      return ($orig_pos);
+   my ($rec, $orig_pos) = (0, [@$pos]);
+
+   RECOLLIDE:
+   $rec++;
+   # we collide too much:
+   if ($rec > 6) {
+      warn "collision occured on too many things. we couldn't backoff!";
+      return ($orig_pos); # found position is as good as any...
    }
 
-   $orig_pos = [@$pos] unless defined $orig_pos;
 
    # find the 6 adjacent blocks
    # and check:
@@ -429,7 +254,7 @@ sub world_collide {
    # |-----------|/
 
    for my $sphere (ref $rad ? @$rad : [[0,0,0],$rad]) {
-      my ($spos, $srad) = @$sphere;
+      my ($spos, $srad, $coll_y) = @$sphere;
       $spos = vadd ($spos, $pos),
 
       # the "current" block
@@ -458,17 +283,12 @@ sub world_collide {
                next unless $bx->[2] && $bx->[0] ne ' ';
 
                my ($col_dir, $pos_adj) = _collide_sphere_box ($spos, $srad, $cur_box);
-               if ($col_dir) { # collided!
-                  if (defined $$rcoll && defined $pos_adj) {
-                     $$rcoll += $col_dir;
-                  } else {
-                     $$rcoll = $col_dir;
-                  }
+               if ($col_dir && vdot ([0, $coll_y, 0], $col_dir) <= 0) { # collided!
+                  $$rcoll = vaccum ($$rcoll, $col_dir);
 
                   if (defined $pos_adj) { # was able to move to safer location?
-                     return world_collide (
-                              vadd ($pos, $pos_adj),
-                              $rad,  $rcoll, $rec + 1, $orig_pos);
+                     $pos = vadd ($pos, $pos_adj);
+                     goto RECOLLIDE;
 
                   } else { # collided with something, but unable to move to safe location
                      warn "player collided with something, but we couldn't repell him!";
