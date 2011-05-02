@@ -39,6 +39,9 @@ Games::Blockminer3D::Client::Frontend - desc
 
 my ($WIDTH, $HEIGHT) = (720, 400);#600, 400);
 
+my $PL_HEIGHT = 1;
+my $PL_RAD    = 0.3;
+
 sub new {
    my $this  = shift;
    my $class = ref ($this) || $this;
@@ -331,7 +334,7 @@ sub render_scene {
    # move and rotate the world:
    glRotatef ($self->{xrotate}, 1, 0, 0);
    glRotatef ($self->{yrotate}, 0, 1, 0);
-   glTranslatef (@{vneg (vaddd ($pp, 0, 1.3, 0))});
+   glTranslatef (@{vneg (vaddd ($pp, 0, $PL_HEIGHT, 0))});
 
    for (world_visible_chunks_at ($pp)) {
       my ($cx, $cy, $cz) = @$_;
@@ -559,7 +562,7 @@ sub get_selected_box_pos {
    my $t1 = time;
    my $pp = $self->{phys_obj}->{player}->{pos};
 
-   my $player_head = vaddd ($pp, 0, 1.3, 0);
+   my $player_head = vaddd ($pp, 0, $PL_HEIGHT, 0);
    my $foot_box    = vfloor ($pp);
    my $head_box    = vfloor ($player_head);
    my $rayd        = $self->get_look_vector;
@@ -659,7 +662,7 @@ sub physics_tick : event_cb {
    }
    #d#warn "DT: $dt => " .vstr( $player->{vel})."\n";
 
-   if ((vlength ($player->{vel}) * $dt) > 0.3) {
+   if ((vlength ($player->{vel}) * $dt) > $PL_RAD) {
       $player->{vel} = vsmul (vnorm ($player->{vel}), 0.28 / $dt);
    }
    viadd ($player->{pos}, vsmul ($player->{vel}, $dt));
@@ -677,10 +680,12 @@ sub physics_tick : event_cb {
    my $collide_normal;
    #d#warn "check player pos " . vstr ($player->{pos}) . "\n";
 
-   my ($pos) =
-      world_collide_cylinder_aabb (
-         $player->{pos}, 1.5, 0.3, \$collide_normal);
+   #my ($pos) =
+   #   world_collide_cylinder_aabb (
+   #      $player->{pos}, 1.5, 0.3, \$collide_normal);
 
+   my ($pos) =
+      world_collide ($player->{pos}, [[[0,0,0],$PL_RAD], [[0, $PL_HEIGHT, 0], $PL_RAD]], \$collide_normal);
    #d# warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
    unless ($self->{ghost_mode}) {
       $player->{pos} = $pos;

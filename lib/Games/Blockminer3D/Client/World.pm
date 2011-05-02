@@ -9,6 +9,7 @@ use POSIX qw/floor/;
 our @ISA = qw/Exporter/;
 our @EXPORT = qw/
    world_visible_chunks_at
+   world_collide
    world_collide_cylinder_aabb
    world_is_solid_box
    world_intersect_ray_box
@@ -238,6 +239,30 @@ sub _quadrant_offsets_at {
    $zr[1] *= -1 if $pos->[2] < 0;
 
    map { my $z = $_; map { [$_, $z] } @xr } @zr
+}
+
+sub world_collide_sphere_planes {
+   my ($pos, $radius, $rcollide_normal) = @_;
+
+   my ($recursion, $original_pos);
+   $original_pos = [@$pos];
+
+   RECOLLIDE:
+   $recursion++;
+
+   # we collide too much:
+   if ($recursion > 6) {
+      warn "collision occured on too many things. we couldn't backoff!";
+      return ($original_pos); # found position is as good as any...
+   }
+
+   my $box = vfloor ($pos); # box the sphere is inside of
+   for my $dx (-1..1) {
+      for my $dx (-1..1) {
+         for my $dx (-1..1) {
+         }
+      }
+   }
 }
 
 sub world_collide_cylinder_aabb {
