@@ -8,6 +8,7 @@ our @EXPORT = qw/
    vadd vaddd viadd viaddd
    vsub vsubd visub visubd
    vsdiv visdiv
+   vsmod vismod
    vsmul vismul
    vdot vdotd vcross vlength
    vnorm vinorm
@@ -63,6 +64,8 @@ sub visubd { $_[0][$_] -= $_[$_ + 1]      for 0..2 }
 
 sub vsdiv  { [ map { $_[0][$_] / $_[1] } 0..2 ] }
 sub visdiv { $_[0][$_] /= $_[1]      for 0..2 }
+sub vsmod  { [ map { $_[0][$_] % $_[1] } 0..2 ] }
+sub vismod { $_[0][$_] %= $_[1]      for 0..2 }
 
 sub vsmul  { [ map { $_[0][$_] * $_[1] } 0..2 ] }
 sub vismul { $_[0][$_] *= $_[1]      for 0..2 }

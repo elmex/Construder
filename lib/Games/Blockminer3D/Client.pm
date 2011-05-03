@@ -199,10 +199,10 @@ sub handle_packet : event_cb {
       );
 
    } elsif ($hdr->{cmd} eq 'chunk') {
-      my $chnk = Games::Blockminer3D::Client::MapChunk->new;
-      $chnk->data_fill ($body);
-      world_set_chunk (@{$hdr->{pos}}, $chnk);
-      world_change_chunk (@{$hdr->{pos}});
+      #my $chnk = Games::Blockminer3D::Client::MapChunk->new;
+      #$chnk->data_fill ($body);
+      #world_set_chunk (@{$hdr->{pos}}, $chnk);
+      #world_change_chunk (@{$hdr->{pos}});
    }
 }
 

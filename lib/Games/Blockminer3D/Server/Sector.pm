@@ -18,8 +18,8 @@ Games::Blockminer3D::Server::Sector - desc
 
 =cut
 
-my $SIZE     = 64;
-my $CHNKSIZE = 16;
+our $SIZE     = 60;
+our $CHNKSIZE = 12;
 
 sub new {
    my $this  = shift;
@@ -29,27 +29,11 @@ sub new {
 
    return $self
 }
-sub mk_random_ar {
-   my ($self) = @_;
 
-   my $sect = [];
-
-   for my $dx (0..($SIZE - 1)) {
-      for my $dy (0..($SIZE - 1)) {
-         for my $dz (0..($SIZE - 1)) {
-            my $offs = $dx + $dy * $SIZE + $dz * ($SIZE ** 2);
-            my ($type, $light) = (int rand (128), int rand (16));
-            $sect->[$offs] = [$type, $light, 0, 0];
-         }
-      }
-   }
-
-   $self->{data} = $sect;
-}
 sub mk_random {
    my ($self) = @_;
 
-   my $sect = "\x00" x (64 ** 3);
+   my $sect = "\x00" x ($SIZE ** 3);
 
    for my $dx (0..($SIZE - 1)) {
       for my $dy (0..($SIZE - 1)) {
@@ -67,25 +51,38 @@ sub mk_random {
 }
 
 sub get_chunk {
-   my ($self, $chnkpos) = @_;
+   my ($self, $relchnkpos) = @_;
    my $sec_data = $self->{data};
 
-   my $from = vsmul ($chnkpos, $CHNKSIZE);
-   my $to   = vsmul (vaddd ($chnkpos, 1, 1, 1), $CHNKSIZE);
+   my $from = vsmul ($relchnkpos, $CHNKSIZE);
+   my $to   = vsmul (vaddd ($relchnkpos, 1, 1, 1), $CHNKSIZE);
    my $chnk = "\x00" x (16 ** 3);
 
-   for my $dx ($from->[0]..$to->[1]) {
-      for my $dy ($from->[0]..$to->[1]) {
-         for my $dz ($from->[0]..$to->[1]) {
-            my $chnk_offs = $dx + $dy * 4 + $dz * (4 ** 2);
-            my $offs = $dx + $dy * $SIZE + $dz * ($SIZE ** 2);
- #           warn "CHNK $chnk_offs | $offs | $dx, $dy $dz\n";
+   for my $dx ($from->[0]..$to->[0]) {
+      for my $dy ($from->[1]..$to->[1]) {
+         for my $dz ($from->[2]..$to->[2]) {
+            my $chnk_offs =
+                ($dx - $from->[0])
+                + ($dy - $from->[1]) * $CHNKSIZE
+                + ($dz - $from->[2]) * ($CHNKSIZE ** 2);
+            my $offs      = $dx + $dy * $SIZE + $dz * ($SIZE ** 2);
+            #d#warn "CHNK $chnk_offs | $offs | $dx, $dy $dz\n";
             substr $chnk, $chnk_offs, 4, (substr $sec_data, $offs, 4);
          }
       }
    }
 
    $chnk
+}
+
+sub get_chunk_data_at_chnkpos {
+   my ($self, $chnkpos) = @_;
+
+   # FIXME: calculation of positions needs to be cleaned up!
+   my $relchnkpos = vsmod ($chnkpos, $SIZE);
+   warn "Chunk pos " . vstr ($chnkpos) . " => " . vstr ($relchnkpos) . "\n";
+
+   $self->get_chunk ($relchnkpos)
 }
 
 =back

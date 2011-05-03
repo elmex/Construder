@@ -1,6 +1,8 @@
 package Games::Blockminer3D::Server::Player;
 use common::sense;
 use AnyEvent;
+use Games::Blockminer3D::Server::World;
+use Games::Blockminer3D::Vector;
 use base qw/Object::Event/;
 
 =head1 NAME
@@ -41,6 +43,25 @@ sub init {
 sub update_pos {
    my ($self, $pos) = @_;
    $self->{pos} = $pos;
+
+   my $chnk = world_pos2chnkpos ($pos);
+   my $old_state = $self->{chunk_state};
+   my $chunk_state = {};
+   for my $dx (-1..1) {
+      for my $dy (-1..1) {
+         for my $dz (-1..1) {
+            my $cur_chunk = vaddd ($chnk, $dx, $dy, $dz);
+            my $id = world_pos2id ($cur_chunk);
+            if ($old_state->{$id}) {
+               $chunk_state->{$id} = delete $old_state->{$id};
+            } else {
+               $self->send_chunk ($cur_chunk);
+               $chunk_state->{$id} = 1;
+            }
+         }
+      }
+   }
+   $self->{chunk_state} = $chunk_state;
 }
 
 sub update_hud_1 {
@@ -69,6 +90,13 @@ sub update_hud_1 {
          },
       },
    } });
+}
+
+sub send_chunk {
+   my ($self, $chnk) = @_;
+   world_get_chunk_data ($chnk, sub {
+      $self->send_client ({ cmd => "chunk", pos => $chnk }, $_[0]);
+   });
 }
 
 sub send_client : event_cb {
