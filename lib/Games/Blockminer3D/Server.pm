@@ -4,6 +4,7 @@ use AnyEvent;
 use AnyEvent::Socket;
 use JSON;
 
+use Games::Blockminer3D::Protocol;
 use Games::Blockminer3D::Server::Resources;
 
 use base qw/Object::Event/;
@@ -51,7 +52,6 @@ sub listen {
       my ($fh, $h, $p) = @_;
       $self->{clids}++;
       my $cid = "$h:$p:$self->{clids}";
-      $self->{clients}->{$cid} = [$fh];
       my $hdl = AnyEvent::Handle->new (
          fh => $fh,
          on_error => sub {
@@ -60,7 +60,9 @@ sub listen {
             $self->client_disconnected ($cid, "error: $msg");
          },
       );
+      $self->{clients}->{$cid} = $hdl;
       $self->client_connected ($cid);
+      $self->handle_protocol ($cid);
    };
 }
 
@@ -70,27 +72,35 @@ sub handle_protocol {
    $self->{clients}->{$cid}->push_read (packstring => "N", sub {
       my ($handle, $string) = @_;
       $self->handle_packet ($cid, data2packet ($string));
-      $self->handle_protocol;
-   });
+      $self->handle_protocol ($cid);
+   }) if $self->{clients}->{$cid};
 }
 
 sub send_client {
    my ($self, $cid, $hdr, $body) = @_;
    $self->{clients}->{$cid}->push_write (packstring => "N", packet2data ($hdr, $body));
+   warn "srv($cid)> $hdr->{cmd}\n";
 }
 
-sub inject_packet { # inject packet and simulate networking :)
-   my ($self, $client_id, $header, $body) = @_;
-   my $hdr_data = JSON->new->encode ($header);
-   my $data = (pack "N", length $hdr_data) . $hdr_data . $body;
-   my $t; $t = AE::timer 0, 0, sub {
-      $self->handle_data ($client_id, $data);
-      undef $t;
-   };
+sub client_disconnected : event_cb {
+   my ($self, $cid) = @_;
+   delete $self->{clients}->{$cid};
+}
+sub client_connected : event_cb {
 }
 
 sub handle_packet : event_cb {
    my ($self, $cid, $hdr, $body) = @_;
+
+   warn "srv($cid)< $hdr->{cmd}\n";
+
+   if ($hdr->{cmd} eq 'hello') {
+      $self->send_client ($cid,
+         { cmd => "hello", version => "Games::Blockminer3D::Server 0.1" });
+   } elsif ($hdr->{cmd} eq 'enter') {
+      $self->send_client ($cid,
+         { cmd => "place_player", pos => [5, 20, 5] });
+   }
 }
 
 =back

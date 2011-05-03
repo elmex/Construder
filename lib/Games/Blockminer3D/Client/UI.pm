@@ -58,7 +58,7 @@ sub new {
 
    $self->init_object_events;
 
-   $self->{opengl_texture_size} = 512;
+   $self->{opengl_texture_size} = 1024;
 
    return $self
 }
@@ -75,31 +75,47 @@ sub _clr2color {
    return (0, 0, 0);
 }
 
-sub window_pos_to_coords {
-   my ($self) = @_;
-   my $pos  = $self->{desc}->{window}->{pos};
-   my $size = $self->{desc}->{window}->{size};
+sub _calc_extents {
+   my ($ext, $base_w, $base_h) = @_;
+   my ($pos, $size) = ([$ext->[0], $ext->[1]], [$ext->[2], $ext->[3]]);
 
-   if ($pos eq 'up_left') {
-      return [0, 0];
-   } elsif ($pos eq 'down_left') {
-      return [0, $self->{H} - $size->[1]];
-   } elsif ($pos eq 'up_right') {
-      return [$self->{W} - $size->[0], 0];
-   } elsif ($pos eq 'down_right') {
-      return [$self->{W} - $size->[0], $self->{H} - $size->[1]];
-   } elsif ($pos eq 'center') {
-      my ($rw, $rh) = ($self->{W} - $size->[0], $self->{H} - $size->[1]);
-      $rw = int ($rw / 2);
-      $rh = int ($rh / 2);
-      return [$rw, $rh];
-   } else {
-      return $pos;
+   $size = [$size->[0] * $base_w, $size->[1]] if $size->[0] <= 1;
+   $size = [$size->[0], $size->[1] * $base_h] if $size->[1] <= 1;
+   $size = [int $size->[0], int $size->[1]];
+
+   if ($pos->[0] eq 'left') {
+      $pos->[0] = 0;
+   } elsif ($pos->[0] eq 'right') {
+      $pos->[0] = ($base_w - $size->[0]);
+   } elsif ($pos->[0] eq 'center') {
+      $pos->[0] = int (($base_w - $size->[0]) / 2);
+   } elsif ($pos->[0] <= 1) {
+      $pos->[0] = $base_w * $pos->[0];
    }
+
+   if ($pos->[1] eq 'up') {
+      $pos->[1] = 0;
+   } elsif ($pos->[1] eq 'down') {
+      $pos->[1] = ($base_h - $size->[1]);
+   } elsif ($pos->[1] eq 'center') {
+      $pos->[1] = int (($base_h - $size->[1]) / 2);
+   } elsif ($pos->[1] <= 1) {
+      $pos->[1] = $base_h * $pos->[1];
+   }
+
+   $pos = [int $pos->[0], int $pos->[1]];
+
+   ($pos, $size)
+}
+
+sub window_e {
+   my ($self) = @_;
 }
 
 sub place_text {
-   my ($self, $pos, $size, $text, $font, $color, $align_right) = @_;
+   my ($self, $ext, $align, $text, $font, $color) = @_;
+
+   my ($pos, $size) = _calc_extents ($ext, @{$self->{window_size}});
 
    my $fnt = $font eq 'big' ? $BIG_FONT : $font eq 'small' ? $SMALL_FONT : $NORM_FONT;
 
@@ -107,22 +123,52 @@ sub place_text {
    my $avail_h = $size->[1];
    my $line_skip = SDL::TTF::font_line_skip ($fnt);
 
+   my @lines = split /\n/, $text;
+   my $wrap = 1;
+   if ($wrap) {
+      my ($min_w) = @{ SDL::TTF::size_utf8 ($fnt, "mmmmm") };
+      my @ilines = @lines;
+      (@lines) = ();
+      while (@ilines) {
+         my $l = shift @ilines;
+         my ($w, $h) = @{ SDL::TTF::size_utf8 ($fnt, $l) };
+         while ($w > $size->[0] && $w > $min_w) {
+            # FIXME: this substr works on utf encoded strings, not unicode strings
+            #        it WILL destroy multibyte encoded characters!
+            $ilines[0] = (substr $l, -1, 1, '') . $ilines[0];
+            ($w) = @{ SDL::TTF::size_utf8 ($fnt, $l) };
+         }
+         push @lines, $l;
+      }
+   }
+
    my $curp = $pos;
-   for my $line (split /\n/, $text) {
+   for my $line (@lines) {
       my $tsurf = SDL::TTF::render_utf8_blended (
          $fnt, $line, SDL::Color->new (_clr2color ($color)));
 
-      my $h = $tsurf->h < $avail_h ? $tsurf->h : $avail_h;
+      my $h = $tsurf->h < $avail_h
+                 ? $tsurf->h
+                 : $avail_h;
+
+      my $woffs = 0;
+      if ($align eq 'center') {
+         $woffs = int (($size->[0] - $tsurf->w) / 2)
+            if $tsurf->w < $size->[0];
+
+      } elsif ($align eq 'right') {
+         $woffs = $size->[0] - $tsurf->w
+            if $tsurf->w < $size->[0];
+      }
+
       #d# warn "PLACE $line: $avail_h : $line_skip : $h\n";
       SDL::Video::blit_surface (
          $tsurf, SDL::Rect->new (0, 0, $tsurf->w, $h),
-         $surf,  SDL::Rect->new (@$curp, $size->[0], $h));
+         $surf,  SDL::Rect->new ($curp->[0] + $woffs, $curp->[1], $size->[0], $h));
 
-      $avail_h   -= $line_skip;
-      if ($avail_h < 0) {
-         last;
-      }
+      $avail_h -= $line_skip;
       $curp->[1] += $line_skip;
+      last if $avail_h < 0;
    }
 }
 
@@ -132,17 +178,21 @@ sub update {
    $self->{desc} = $gui_desc if defined $gui_desc;
    $gui_desc = $self->{desc};
    my $win = $gui_desc->{window};
+
+   ($self->{window_pos}, $self->{window_size}) =
+      _calc_extents ($win->{extents}, $self->{W}, $self->{H});
+
    $self->prepare_opengl_texture;
    $self->prepare_sdl_surface; # creates a new sdl surface for this window
 
-   $self->{commands}       = $gui_desc->{commands};
+   $self->{commands}    = $gui_desc->{commands};
    $self->{commands_cb} = $gui_desc->{commands_cb};
-   $self->{sticky} = $win->{sticky};
+   $self->{sticky}      = $win->{sticky};
 
    for my $el (@{$gui_desc->{elements}}) {
 
       if ($el->{type} eq 'text') {
-         $self->place_text ($el->{pos}, $el->{size}, $el->{text}, $el->{font}, $el->{color});
+         $self->place_text ($el->{extents}, $el->{align}, $el->{text}, $el->{font}, $el->{color});
          # render text
 
       } elsif ($el->{type} eq 'entry') {
@@ -227,14 +277,12 @@ sub display {
 
    return unless $self->{rendered};
 
-   my $wins = $self->{desc}->{window}->{size};
+   my ($pos, $size) = ($self->{window_pos}, $self->{window_size});
+   my $wins = [@$size];
    my ($u, $v) = (
       $wins->[0] / $self->{opengl_texture_size},
       $wins->[1] / $self->{opengl_texture_size}
    );
-
-   my ($pos) = $self->window_pos_to_coords;
-   my ($size)  = $self->{desc}->{window}->{size};
 
    glPushMatrix;
    glTranslatef (@$pos, 0);

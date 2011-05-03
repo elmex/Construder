@@ -1,7 +1,10 @@
 package Games::Blockminer3D::Protocol;
 use common::sense;
+use JSON;
+
 require Exporter;
 use POSIX qw/floor/;
+our @ISA = qw/Exporter/;
 our @EXPORT = qw/
    packet2data
    data2packet
@@ -28,11 +31,12 @@ sub packet2data {
    $data
 }
 
-sub data2packet : event_cb {
+sub data2packet {
    my ($data) = @_;
    my $hdr_len  = unpack "N", substr ($data, 0, 4, '');
    my $hdr      = substr $data, 0, $hdr_len, '';
    my $body     = $data;
+   $hdr = JSON->new->relaxed->decode ($hdr);
    ($hdr, $body)
 }
 

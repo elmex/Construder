@@ -11,6 +11,8 @@ use AnyEvent::Handle;
 use Math::VectorReal;
 use Benchmark qw/:all/;
 
+use base qw/Object::Event/;
+
 =head1 NAME
 
 Games::Blockminer3D::Client - desc
@@ -39,26 +41,20 @@ sub new {
    #d#    my $chunk = $sect->get_chunk (1, 1, 1);
    #d# exit;
 
+   $self->init_object_events;
+
    $self->{server} = Games::Blockminer3D::Server->new;
    $self->{server}->init;
+   $self->{server}->listen;
 
    $self->{front} = Games::Blockminer3D::Client::Frontend->new;
 
-   for my $x (-1..1) {
-      for my $y (-1..1) {
-         for my $z (-1..1) {
-            my $chnk = Games::Blockminer3D::Client::MapChunk->new;
-            $chnk->cube_fill;
-            world_set_chunk ($x, $y, $z, $chnk);
-         }
-      }
-   }
-#   $chnk->random_fill;
+   my $chnk = Games::Blockminer3D::Client::MapChunk->new;
+   $chnk->cube_fill;
+   world_set_chunk (0, 0, 0, $chnk);
+   $self->{front}->set_player_pos ([1, 1, 8]);
 
- #  $self->{front}->change_look_lock (1);
- #  $self->{front}->compile_scene;
-
-   $self->{front}->activate_ui ("test", { });
+   $self->connect (localhost => 9364);
 
    return $self
 }
@@ -69,6 +65,36 @@ sub start {
    my $c = AnyEvent->condvar;
 
    $c->recv;
+}
+
+sub msgbox {
+   my ($self, $msg, $cb) = @_;
+
+   $self->{front}->activate_ui (cl_msgbox => {
+      window => {
+         extents => [ 'center', 'center', 0.9, 0.1 ],
+         color => "#000000",
+         alpha => 1,
+      },
+      elements => [
+         {
+            type => "text",
+            extents => [0, 0, 1, 0.6],
+            align => "center",
+            font => 'normal',
+            color => "#ffffff",
+            text => $msg
+         },
+         {
+            type => "text",
+            extents => [0, 0.6, 1, 0.4],
+            align => "center",
+            font => 'small',
+            color => "#888888",
+            text => "press ESC to hide",
+         }
+      ]
+   });
 }
 
 sub connect {
@@ -88,6 +114,7 @@ sub connect {
       );
 
       $self->{srv} = $hdl;
+      $self->handle_protocol;
       $self->connected;
    };
 }
@@ -97,20 +124,33 @@ sub handle_protocol {
 
    $self->{srv}->push_read (packstring => "N", sub {
       my ($handle, $string) = @_;
-      $self->handle_packet ($cid, data2packet ($string));
+      $self->handle_packet (data2packet ($string));
       $self->handle_protocol;
    });
 }
 
+sub send_server {
+   my ($self, $hdr, $body) = @_;
+   $self->{srv}->push_write (packstring => "N", packet2data ($hdr, $body));
+   warn "cl> $hdr->{cmd}\n";
+}
+
 sub connected : event_cb {
    my ($self) = @_;
+   $self->send_server ({ cmd => 'hello', version => "Games::Blockminer3D::Client 0.1" });
 }
 
 sub handle_packet : event_cb {
    my ($self, $hdr, $body) = @_;
 
-   if ($hdr->{cmd} eq 'place_player') {
-      $self->{front}->set_player_pos ($hdr->{arg});
+   warn "cl< $hdr->{cmd}\n";
+
+   if ($hdr->{cmd} eq 'hello') {
+      $self->msgbox ("Connected to Server!");
+      $self->send_server ({ cmd => 'enter' });
+
+   } elsif ($hdr->{cmd} eq 'place_player') {
+      $self->{front}->set_player_pos ($hdr->{pos});
 
    } elsif ($hdr->{cmd} eq 'texture_upload') {
       $self->{front}->{textures}->add (

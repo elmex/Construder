@@ -374,22 +374,19 @@ sub setup_event_poller {
       $self->{active_uis}->{debug_hud}->update ({
          window => {
             sticky => 1,
-            pos => 'up_left',
-            size => [160, 30],
+            extents => [left => up => 0.3, 0.06],
             color => "#0000ff",
             alpha => 0.80,
          },
          elements => [
             {
-               type => 'text', pos => [2, 2],
-               size => [150, 12],
+               type => 'text', extents => [0, 0, 1, 0.5],
                text => sprintf ("%.5f FPS\n", $fps / $fps_intv),
                color => "#ff0000",
                font => 'small'
             },
             {
-               type => 'text', pos => [2, 14],
-               size => [150, 12],
+               type => 'text', extents => [0, 0.5, 1, 0.5],
                text => sprintf ("POS %6.3f %6.3f %6.3f\n",
                                 @{$self->{phys_obj}->{player}->{pos}}),
                color => "#00ff00",
@@ -487,11 +484,11 @@ sub setup_event_poller {
          $accum_time -= $dt;
       }
 
-      if (delete $self->{change}) {
-         warn "player status: pos: "
-              . vstr ($self->{phys_obj}->{player}->{pos})
-              . " rotx: $self->{xrotate}, roty: $self->{yrotate}\n";
-      }
+      #d#if (delete $self->{change}) {
+      #d#   warn "player status: pos: "
+      #d#        . vstr ($self->{phys_obj}->{player}->{pos})
+      #d#        . " rotx: $self->{xrotate}, roty: $self->{yrotate}\n";
+      #d#}
 
       $self->render_scene;
       $fps++;
@@ -712,6 +709,7 @@ sub activate_ui {
       Games::Blockminer3D::Client::UI->new (
          W => $WIDTH, H => $HEIGHT, textures => $self->{textures});
    $obj->update ($desc);
+   $self->{active_uis}->{$ui} = $obj;
 }
 
 sub deactivate_ui {
