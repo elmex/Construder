@@ -52,7 +52,10 @@ sub new {
    my $chnk = Games::Blockminer3D::Client::MapChunk->new;
    $chnk->cube_fill;
    world_set_chunk (0, 0, 0, $chnk);
-   $self->{front}->set_player_pos ([1, 1, 8]);
+
+   $self->{front}->reg_cb (update_player_pos => sub {
+      $self->send_server ({ cmd => "player_pos", pos => $_[1] });
+   });
 
    $self->connect (localhost => 9364);
 
@@ -131,8 +134,10 @@ sub handle_protocol {
 
 sub send_server {
    my ($self, $hdr, $body) = @_;
-   $self->{srv}->push_write (packstring => "N", packet2data ($hdr, $body));
-   warn "cl> $hdr->{cmd}\n";
+   if ($self->{srv}) {
+      $self->{srv}->push_write (packstring => "N", packet2data ($hdr, $body));
+      warn "cl> $hdr->{cmd}\n";
+   }
 }
 
 sub connected : event_cb {
@@ -151,6 +156,20 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'place_player') {
       $self->{front}->set_player_pos ($hdr->{pos});
+
+   } elsif ($hdr->{cmd} eq 'activate_ui') {
+      my $desc = $hdr->{desc};
+      $desc->{command_cb} = sub {
+         my ($cmd, $arg) = @_;
+         $self->send_server ({
+            cmd => 'ui_response' =>
+               ui => $hdr->{ui}, ui_command => $cmd, arg => $arg
+         });
+      };
+      $self->{front}->activate_ui ($hdr->{ui}, $desc);
+
+   } elsif ($hdr->{cmd} eq 'deactivate_ui') {
+      $self->{front}->deactivate_ui ($hdr->{ui});
 
    } elsif ($hdr->{cmd} eq 'texture_upload') {
       $self->{front}->{textures}->add (

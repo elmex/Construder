@@ -116,7 +116,7 @@ sub init_app {
    glFogf (GL_FOG_END,   20);
 
    $self->{textures} = Games::Blockminer3D::Client::Textures->new;
-   #$self->{textures}->add_file ("res/blocks19.small.png", [[1]]);
+   $self->{textures}->add_file ("res/blocks19.small.png", [[1]]);
    #$self->{textures}->add_file ("res/metal05.small.png", [[2]]);
 }
 
@@ -328,6 +328,7 @@ sub render_hud {
    glPushMatrix ();
    glLoadIdentity;
 
+   # this is the crosshair:
    my ($mw, $mh) = ($WIDTH / 2, $HEIGHT / 2);
    glPushMatrix;
    glTranslatef ($mw, $mh, 0);
@@ -348,7 +349,6 @@ sub render_hud {
    glPopMatrix;
 
    $_->display for values %{$self->{active_uis} || {}};
- #  $self->{test_win}->display;
 
    glPopMatrix;
    glMatrixMode (GL_PROJECTION);
@@ -473,6 +473,7 @@ sub setup_event_poller {
    my $ltime;
    my $accum_time = 0;
    my $dt = 1 / 40;
+   my $upd_pos = 0;
    $self->{poll_w} = AE::timer 0, 0.024, sub {
       $ltime = time - 0.02 if not defined $ltime;
       my $ctime = time;
@@ -482,6 +483,11 @@ sub setup_event_poller {
       while ($accum_time > $dt) {
          $self->physics_tick ($dt);
          $accum_time -= $dt;
+      }
+
+      if ($upd_pos++ > 2) {
+         $self->update_player_pos ($self->{phys_obj}->{player}->{pos});
+         $upd_pos = 0;
       }
 
       #d#if (delete $self->{change}) {
@@ -635,12 +641,15 @@ sub physics_tick : event_cb {
    my $collide_normal;
    #d#warn "check player pos " . vstr ($player->{pos}) . "\n";
 
-   #my ($pos) =
-   #   world_collide_cylinder_aabb (
-   #      $player->{pos}, 1.5, 0.3, \$collide_normal);
-
    my ($pos) =
-      world_collide ($player->{pos}, [[[0,0,0],$PL_RAD,-1], [[0, $PL_HEIGHT, 0], $PL_RAD,1]], \$collide_normal);
+      world_collide (
+         $player->{pos},
+         [
+            [[0,0,0],$PL_RAD,-1],
+            [[0, $PL_HEIGHT, 0], $PL_RAD,1]
+         ],
+         \$collide_normal);
+
    #d# warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
    unless ($self->{ghost_mode}) {
       $player->{pos} = $pos;
@@ -819,6 +828,10 @@ sub input_mouse_button : event_cb {
       push @{$self->{box_highlights}},
          [[@$sp], [0, 1, 0, 0], { fading => 0.3 }];
    }
+}
+
+sub update_player_pos : event_cb {
+   my ($self, $pos) = @_;
 }
 
 =back

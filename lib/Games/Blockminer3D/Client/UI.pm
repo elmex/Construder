@@ -185,9 +185,9 @@ sub update {
    $self->prepare_opengl_texture;
    $self->prepare_sdl_surface; # creates a new sdl surface for this window
 
-   $self->{commands}    = $gui_desc->{commands};
-   $self->{commands_cb} = $gui_desc->{commands_cb};
-   $self->{sticky}      = $win->{sticky};
+   $self->{commands}   = $gui_desc->{commands};
+   $self->{command_cb} = $gui_desc->{command_cb};
+   $self->{sticky}     = $win->{sticky};
 
    for my $el (@{$gui_desc->{elements}}) {
 

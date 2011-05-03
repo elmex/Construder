@@ -6,6 +6,7 @@ use JSON;
 
 use Games::Blockminer3D::Protocol;
 use Games::Blockminer3D::Server::Resources;
+use Games::Blockminer3D::Server::Player;
 
 use base qw/Object::Event/;
 
@@ -84,9 +85,13 @@ sub send_client {
 
 sub client_disconnected : event_cb {
    my ($self, $cid) = @_;
+   delete $self->{players}->{$cid};
+   delete $self->{player_guards}->{$cid};
    delete $self->{clients}->{$cid};
 }
+
 sub client_connected : event_cb {
+   my ($self, $cid) = @_;
 }
 
 sub handle_packet : event_cb {
@@ -97,9 +102,22 @@ sub handle_packet : event_cb {
    if ($hdr->{cmd} eq 'hello') {
       $self->send_client ($cid,
          { cmd => "hello", version => "Games::Blockminer3D::Server 0.1" });
+
    } elsif ($hdr->{cmd} eq 'enter') {
-      $self->send_client ($cid,
-         { cmd => "place_player", pos => [5, 20, 5] });
+      my $pl = $self->{players}->{$cid}
+         = Games::Blockminer3D::Server::Player->new (cid => $cid);
+
+      $self->{player_guards}->{$cid} = $pl->reg_cb (send_client => sub {
+         my ($pl, $hdr, $body) = @_;
+         $self->send_client ($cid, $hdr, $body);
+      });
+
+      $pl->init;
+
+   } elsif ($hdr->{cmd} eq 'ui_response') {
+      $self->{players}->{$cid}->ui_res ($hdr->{ui}, $hdr->{ui_command}, $hdr->{arg});
+   } elsif ($hdr->{cmd} eq 'player_pos') {
+      $self->{players}->{$cid}->update_pos ($hdr->{pos});
    }
 }
 
