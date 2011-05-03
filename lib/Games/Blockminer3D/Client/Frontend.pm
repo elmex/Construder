@@ -376,7 +376,7 @@ sub setup_event_poller {
             sticky => 1,
             extents => [left => up => 0.3, 0.06],
             color => "#0000ff",
-            alpha => 0.80,
+            alpha => 1,
          },
          elements => [
             {
@@ -385,14 +385,6 @@ sub setup_event_poller {
                color => "#ff0000",
                font => 'small'
             },
-            {
-               type => 'text', extents => [0, 0.5, 1, 0.5],
-               text => sprintf ("POS %6.3f %6.3f %6.3f\n",
-                                @{$self->{phys_obj}->{player}->{pos}}),
-               color => "#00ff00",
-               font => 'small'
-            },
-
          ]
       });
       $collide_cnt = $collide_time = 0;
@@ -485,7 +477,7 @@ sub setup_event_poller {
          $accum_time -= $dt;
       }
 
-      if ($upd_pos++ > 2) {
+      if ($upd_pos++ > 5) {
          $self->update_player_pos ($self->{phys_obj}->{player}->{pos});
          $upd_pos = 0;
       }

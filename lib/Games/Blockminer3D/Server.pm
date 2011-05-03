@@ -83,6 +83,41 @@ sub send_client {
    warn "srv($cid)> $hdr->{cmd}\n";
 }
 
+sub transfer_res2client {
+   my ($self, $cid, $res) = @_;
+   $self->{transfer}->{$cid} = [
+      map {
+         my $body = "";
+         if (defined ${$_->[1]} && not (ref ${$_->[-1]})) {
+            $body = ${$_->[-1]};
+            $_->[-1] = undef;
+         } else {
+            $_->[-1] = ${$_->[-1]};
+         }
+         packet2data ({
+            cmd => "resource",
+            res => $_
+         }, $body)
+      } @$res
+   ];
+   $self->send_client ($cid, { cmd => "transfer_start" });
+   $self->push_transfer ($cid);
+}
+
+sub push_transfer {
+   my ($self, $cid) = @_;
+   my $t = $self->{transfer}->{$cid};
+   return unless $t;
+
+   my $data = shift @$t;
+   $self->{clients}->{$cid}->push_write (packstring => "N", $data);
+   warn "srv($cid)trans(".length ($data).")\n";
+   unless (@$t) {
+      $self->send_client ($cid, { cmd => "transfer_end" });
+      delete $self->{transfer}->{$cid};
+   }
+}
+
 sub client_disconnected : event_cb {
    my ($self, $cid) = @_;
    delete $self->{players}->{$cid};
@@ -116,8 +151,20 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'ui_response') {
       $self->{players}->{$cid}->ui_res ($hdr->{ui}, $hdr->{ui_command}, $hdr->{arg});
+
    } elsif ($hdr->{cmd} eq 'player_pos') {
       $self->{players}->{$cid}->update_pos ($hdr->{pos});
+
+   } elsif ($hdr->{cmd} eq 'list_resources') {
+      my $res = $self->{res}->list_resources;
+      $self->send_client ($cid, { cmd => "resources_list", list => $res });
+
+   } elsif ($hdr->{cmd} eq 'get_resources') {
+      my $res = $self->{res}->get_resources_by_id (@{$hdr->{ids}});
+      $self->transfer_res2client ($cid, $res);
+
+   } elsif ($hdr->{cmd} eq 'transfer_poll') { # a bit crude :->
+      $self->push_transfer ($cid);
    }
 }
 

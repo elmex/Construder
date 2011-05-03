@@ -112,8 +112,12 @@ sub window_e {
    my ($self) = @_;
 }
 
+sub render_text {
+   my ($self, $text, $wrap, $font, $color) = @_;
+}
+
 sub place_text {
-   my ($self, $ext, $align, $text, $font, $color) = @_;
+   my ($self, $ext, $align, $wrap, $text, $font, $color) = @_;
 
    my ($pos, $size) = _calc_extents ($ext, @{$self->{window_size}});
 
@@ -124,7 +128,6 @@ sub place_text {
    my $line_skip = SDL::TTF::font_line_skip ($fnt);
 
    my @lines = split /\n/, $text;
-   my $wrap = 1;
    if ($wrap) {
       my ($min_w) = @{ SDL::TTF::size_utf8 ($fnt, "mmmmm") };
       my @ilines = @lines;
@@ -192,7 +195,7 @@ sub update {
    for my $el (@{$gui_desc->{elements}}) {
 
       if ($el->{type} eq 'text') {
-         $self->place_text ($el->{extents}, $el->{align}, $el->{text}, $el->{font}, $el->{color});
+         $self->place_text ($el->{extents}, $el->{align}, $el->{wrap}, $el->{text}, $el->{font}, $el->{color});
          # render text
 
       } elsif ($el->{type} eq 'entry') {
@@ -308,7 +311,7 @@ sub display {
 
 sub input_key_press : event_cb {
    my ($self, $key, $name, $unicode, $rhandled) = @_;
-   warn "UNICODE ($key, $name) $unicode\n";
+ #  warn "UNICODE ($key, $name) $unicode\n";
    my $cmd;
    if ($name eq 'escape') {
       $cmd = "cancel" unless $self->{sticky};

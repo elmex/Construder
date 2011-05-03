@@ -142,6 +142,7 @@ sub send_server {
 
 sub connected : event_cb {
    my ($self) = @_;
+   $self->msgbox ("Connected to Server!");
    $self->send_server ({ cmd => 'hello', version => "Games::Blockminer3D::Client 0.1" });
 }
 
@@ -151,8 +152,29 @@ sub handle_packet : event_cb {
    warn "cl< $hdr->{cmd}\n";
 
    if ($hdr->{cmd} eq 'hello') {
-      $self->msgbox ("Connected to Server!");
       $self->send_server ({ cmd => 'enter' });
+      $self->msgbox ("Queried Resources");
+      $self->send_server ({ cmd => 'list_resources' });
+
+   } elsif ($hdr->{cmd} eq 'resources_list') {
+      my @ids = map { $_->[0] } grep { defined $_->[2] } @{$hdr->{list}};
+      if (@ids) {
+         $self->send_server ({ cmd => get_resources => ids => \@ids });
+         $self->msgbox ("Initiated Resource Transfer (".scalar (@ids).")");
+      } else {
+         $self->msgbox ("No Resources Found!");
+      }
+
+   } elsif ($hdr->{cmd} eq 'resource') {
+      my $res = $hdr->{res};
+      #  [ $_, $res->{type}, $res->{md5}, \$res->{data} ]
+      if ($res->[1] eq 'texture') {
+         warn "got texture $res->[0]\n";
+      }
+      $self->send_server ({ cmd => 'transfer_poll' });
+
+   } elsif ($hdr->{cmd} eq 'transfer_end') {
+      $self->msgbox ("Transfer done!\n");
 
    } elsif ($hdr->{cmd} eq 'place_player') {
       $self->{front}->set_player_pos ($hdr->{pos});

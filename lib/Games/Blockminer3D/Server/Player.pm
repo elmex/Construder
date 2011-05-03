@@ -32,7 +32,7 @@ sub new {
 
 sub init {
    my ($self) = @_;
-   $self->{hud1_tmr} = AE::timer 0, 0.5, sub {
+   $self->{hud1_tmr} = AE::timer 0, 0.7, sub {
       $self->update_hud_1;
    };
    $self->teleport ([5, 15, 5]);
@@ -50,7 +50,7 @@ sub update_hud_1 {
       window => {
          sticky => 1,
          extents => [right => down => 0.3, 0.3],
-         alpha => 0.8,
+         alpha => 1,
          color => "#440011",
       },
       elements => [
