@@ -25,26 +25,15 @@ sub packet2data {
    my ($header, $body) = @_;
    my $hdr_data = JSON->new->encode ($header);
    my $data = (pack "N", length $hdr_data) . $hdr_data . $body;
-   (pack "N", length $data) . $data
+   $data
 }
 
 sub data2packet : event_cb {
-   my ($buffer) = @_;
-
-   my @packets;
-   while (length ($buffer) > 4) {
-      my $len = unpack "N", substr $buffer, 0, 4;
-      if (length ($buffer) >= ($len + 4)) {
-         substr $buffer, 0, 4, '';
-         my $packet = substr $buffer, 0, $len, '';
-         my $hdr_len  = unpack "N", substr ($packet, 0, 4, '');
-         my $hdr      = substr $packet, 0, $hdr_len, '';
-         my $body     = $packet;
-         push @packets, [$hdr, $body];
-      }
-   }
-
-   @packets
+   my ($data) = @_;
+   my $hdr_len  = unpack "N", substr ($data, 0, 4, '');
+   my $hdr      = substr $data, 0, $hdr_len, '';
+   my $body     = $data;
+   ($hdr, $body)
 }
 
 =back

@@ -32,6 +32,8 @@ sub new {
 
    $self->init_object_events;
 
+   $self->{port} ||= 9364;
+
    return $self
 }
 
@@ -43,6 +45,38 @@ sub init {
 }
 
 sub listen {
+   my ($self) = @_;
+
+   tcp_server undef, $self->{port}, sub {
+      my ($fh, $h, $p) = @_;
+      $self->{clids}++;
+      my $cid = "$h:$p:$self->{clids}";
+      $self->{clients}->{$cid} = [$fh];
+      my $hdl = AnyEvent::Handle->new (
+         fh => $fh,
+         on_error => sub {
+            my ($hdl, $fatal, $msg) = @_;
+            $hdl->destroy;
+            $self->client_disconnected ($cid, "error: $msg");
+         },
+      );
+      $self->client_connected ($cid);
+   };
+}
+
+sub handle_protocol {
+   my ($self, $cid) = @_;
+
+   $self->{clients}->{$cid}->push_read (packstring => "N", sub {
+      my ($handle, $string) = @_;
+      $self->handle_packet ($cid, data2packet ($string));
+      $self->handle_protocol;
+   });
+}
+
+sub send_client {
+   my ($self, $cid, $hdr, $body) = @_;
+   $self->{clients}->{$cid}->push_write (packstring => "N", packet2data ($hdr, $body));
 }
 
 sub inject_packet { # inject packet and simulate networking :)
@@ -55,11 +89,8 @@ sub inject_packet { # inject packet and simulate networking :)
    };
 }
 
-sub handle_data : event_cb {
-   my ($self, $client_id, $data) = @_;
-   my $hdr_len  = unpack "N", substr ($data, 0, 4, '');
-   my $hdr      = substr $data, 0, $hdr_len, '';
-   my $body     = $data;
+sub handle_packet : event_cb {
+   my ($self, $cid, $hdr, $body) = @_;
 }
 
 =back

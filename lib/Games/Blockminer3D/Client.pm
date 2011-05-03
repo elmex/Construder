@@ -4,6 +4,7 @@ use Games::Blockminer3D::Client::Frontend;
 use Games::Blockminer3D::Client::MapChunk;
 use Games::Blockminer3D::Client::World;
 use Games::Blockminer3D::Server;
+use Games::Blockminer3D::Protocol;
 use AnyEvent;
 use AnyEvent::Socket;
 use AnyEvent::Handle;
@@ -57,8 +58,7 @@ sub new {
  #  $self->{front}->change_look_lock (1);
  #  $self->{front}->compile_scene;
 
-   $self->{front}->activate_ui ("test", {
-   });
+   $self->{front}->activate_ui ("test", { });
 
    return $self
 }
@@ -69,6 +69,64 @@ sub start {
    my $c = AnyEvent->condvar;
 
    $c->recv;
+}
+
+sub connect {
+   my ($self, $host, $port) = @_;
+
+   tcp_connect $host, $port, sub {
+      my ($fh) = @_
+         or die "connect failed: $!\n";
+
+      my $hdl = AnyEvent::Handle->new (
+         fh => $fh,
+         on_error => sub {
+            my ($hdl, $fatal, $msg) = @_;
+            $hdl->destroy;
+            $self->disconnected;
+         }
+      );
+
+      $self->{srv} = $hdl;
+      $self->connected;
+   };
+}
+
+sub handle_protocol {
+   my ($self) = @_;
+
+   $self->{srv}->push_read (packstring => "N", sub {
+      my ($handle, $string) = @_;
+      $self->handle_packet ($cid, data2packet ($string));
+      $self->handle_protocol;
+   });
+}
+
+sub connected : event_cb {
+   my ($self) = @_;
+}
+
+sub handle_packet : event_cb {
+   my ($self, $hdr, $body) = @_;
+
+   if ($hdr->{cmd} eq 'place_player') {
+      $self->{front}->set_player_pos ($hdr->{arg});
+
+   } elsif ($hdr->{cmd} eq 'texture_upload') {
+      $self->{front}->{textures}->add (
+         $body, [[$hdr->{txt_nr}, $hdr->{txt_uv}, $hdr->{txt_md5}]]
+      );
+
+   } elsif ($hdr->{cmd} eq 'chunk') {
+      my $chnk = Games::Blockminer3D::Client::MapChunk->new;
+      $chnk->data_fill ($body);
+      world_set_chunk (@{$hdr->{pos}}, $chnk);
+      world_change_chunk (@{$hdr->{pos}});
+   }
+}
+
+sub disconnected : event_cb {
+   my ($self) = @_;
 }
 
 =back

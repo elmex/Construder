@@ -116,8 +116,8 @@ sub init_app {
    glFogf (GL_FOG_END,   20);
 
    $self->{textures} = Games::Blockminer3D::Client::Textures->new;
-   $self->{textures}->add_file ("res/blocks19.small.png", [[1]]);
-   $self->{textures}->add_file ("res/metal05.small.png", [[2]]);
+   #$self->{textures}->add_file ("res/blocks19.small.png", [[1]]);
+   #$self->{textures}->add_file ("res/metal05.small.png", [[2]]);
 }
 
 sub _render_quad {
@@ -256,6 +256,11 @@ sub step_animations {
       push @next_hl, $bl;
    }
    $self->{box_highlights} = \@next_hl;
+}
+
+sub set_player_pos {
+   my ($self, $pos) = @_;
+   $self->{phys_obj}->{player}->{pos} = $pos;
 }
 
 my $render_cnt;

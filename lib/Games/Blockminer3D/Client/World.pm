@@ -16,7 +16,7 @@ our @EXPORT = qw/
    world_get_box_at
    world_get_chunk world_get_chunk_at
    world_set_chunk
-   world_change_chunk_at
+   world_change_chunk_at world_change_chunk
    world_init
    world
 /;
@@ -52,6 +52,11 @@ sub world { $EVENT_SINGLETON }
 
 sub pos2chunk {
    @{vfloor (vsdiv ($_[0], $Games::Blockminer3D::Client::MapChunk::SIZE))};
+}
+
+sub world_change_chunk {
+   my ($pos) = @_;
+   world ()->event (chunk_changed => $pos);
 }
 
 sub world_change_chunk_at {
