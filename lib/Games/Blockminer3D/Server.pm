@@ -4,6 +4,8 @@ use AnyEvent;
 use AnyEvent::Socket;
 use JSON;
 
+use Games::Blockminer3D::Server::Resources;
+
 use base qw/Object::Event/;
 
 =head1 NAME
@@ -34,6 +36,10 @@ sub new {
 }
 
 sub init {
+   my ($self) = @_;
+
+   $self->{res} = Games::Blockminer3D::Server::Resources->new;
+   $self->{res}->load_objects;
 }
 
 sub listen {
