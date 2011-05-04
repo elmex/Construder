@@ -51,7 +51,7 @@ sub world_sector_at {
 
    my $secpos =
       vfloor (
-         vsdiv ($chnkpos, $Games::Blockminer3D::Server::Sector::SIZE));
+         vsdiv ($chnkpos, $Games::Blockminer3D::Server::Sector::CHNKS_P_SECTOR));
    my $sec = world_pos2secref ($secpos);
 
    if (defined $$sec) {
@@ -66,6 +66,7 @@ sub world_sector_at {
 
 sub world_get_chunk_data {
    my ($chnkpos, $cb) = @_;
+
    world_sector_at ($chnkpos, sub {
       my ($sector) = @_;
       my $data = $sector->get_chunk_data_at_chnkpos ($chnkpos);

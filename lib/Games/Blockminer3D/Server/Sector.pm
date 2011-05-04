@@ -20,6 +20,7 @@ Games::Blockminer3D::Server::Sector - desc
 
 our $SIZE     = 60;
 our $CHNKSIZE = 12;
+our $CHNKS_P_SECTOR = $SIZE / $CHNKSIZE;
 
 sub new {
    my $this  = shift;
@@ -58,19 +59,21 @@ sub get_chunk {
    my $to   = vsmul (vaddd ($relchnkpos, 1, 1, 1), $CHNKSIZE);
    my $chnk = "\x00" x (16 ** 3);
 
-   for my $dx ($from->[0]..$to->[0]) {
-      for my $dy ($from->[1]..$to->[1]) {
-         for my $dz ($from->[2]..$to->[2]) {
+   my $blks = 0;
+   for my $dx ($from->[0]..($to->[0] - 1)) {
+      for my $dy ($from->[1]..($to->[1] - 1)) {
+         for my $dz ($from->[2]..($to->[2] - 1)) {
             my $chnk_offs =
                 ($dx - $from->[0])
                 + ($dy - $from->[1]) * $CHNKSIZE
                 + ($dz - $from->[2]) * ($CHNKSIZE ** 2);
             my $offs      = $dx + $dy * $SIZE + $dz * ($SIZE ** 2);
-            #d#warn "CHNK $chnk_offs | $offs | $dx, $dy $dz\n";
+            warn "CHNK $chnk_offs | $offs | $dx, $dy, $dz ($blks)\n";
             substr $chnk, $chnk_offs, 4, (substr $sec_data, $offs, 4);
          }
       }
    }
+   exit;
 
    $chnk
 }
@@ -79,8 +82,9 @@ sub get_chunk_data_at_chnkpos {
    my ($self, $chnkpos) = @_;
 
    # FIXME: calculation of positions needs to be cleaned up!
-   my $relchnkpos = vsmod ($chnkpos, $SIZE);
-   warn "Chunk pos " . vstr ($chnkpos) . " => " . vstr ($relchnkpos) . "\n";
+   my $sector = vfloor (vsdiv ($chnkpos, $CHNKS_P_SECTOR));
+   my $relchnkpos = vsub ($chnkpos, vsmul ($sector, $CHNKS_P_SECTOR));
+   warn "Chunk pos (sector " . vstr ($sector) .  " ) " . vstr ($chnkpos) . " =>rel: " . vstr ($relchnkpos) . "\n";
 
    $self->get_chunk ($relchnkpos)
 }
