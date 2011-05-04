@@ -84,7 +84,8 @@ sub get_chunk_data_at_chnkpos {
    # FIXME: calculation of positions needs to be cleaned up!
    my $sector = vfloor (vsdiv ($chnkpos, $CHNKS_P_SECTOR));
    my $relchnkpos = vsub ($chnkpos, vsmul ($sector, $CHNKS_P_SECTOR));
-   warn "Chunk pos (sector " . vstr ($sector) .  " ) " . vstr ($chnkpos) . " =>rel: " . vstr ($relchnkpos) . "\n";
+   warn "Chunk pos (sector " . vstr ($sector) .  " ) "
+        . vstr ($chnkpos) . " =>rel: " . vstr ($relchnkpos) . "\n";
 
    $self->get_chunk ($relchnkpos)
 }
