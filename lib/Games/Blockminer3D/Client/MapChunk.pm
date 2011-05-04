@@ -36,8 +36,8 @@ sub new {
 
 sub _map_get_if_exists {
    my ($map, $x, $y, $z) = @_;
-   return [" ", 20, 1] if $x < 0     || $y < 0     || $z < 0;
-   return [" ", 20, 1] if $x >= $SIZE || $y >= $SIZE || $z >= $SIZE;
+   return [0, 16, 1] if $x < 0     || $y < 0     || $z < 0;
+   return [0, 16, 1] if $x >= $SIZE || $y >= $SIZE || $z >= $SIZE;
    $map->[$x]->[$y]->[$z]
 }
 
@@ -56,98 +56,26 @@ sub _neighbours {
    @n
 }
 
-sub cube_fill {
-   my ($self) = @_;
-
-   my $map = [];
-   for (my $x = 0; $x < $SIZE; $x++) {
-      for (my $y = 0; $y < $SIZE; $y++) {
-         for (my $z = 0; $z < $SIZE; $z++) {
-            my $t = 'X';
-            if ($x == 0 || $y == 0 || $z == 0
-                || ($z == ($SIZE - 1))
-                || ($x == ($SIZE - 1))
-                || ($y == ($SIZE - 1))
-            ) {
-               $map->[$x]->[$y]->[$z] = ['X', 20, 1];
-            } else {
-               $map->[$x]->[$y]->[$z] = [' ', 20, 1];
-            }
-         }
-      }
-   }
-   $map->[5]->[1]->[7] = ['^', 10, 1, 2];
-   $map->[6]->[2]->[7] = ['^', 10, 1, 2];
-   $map->[7]->[3]->[7] = ['^', 10, 1, 2];
-   $map->[8]->[4]->[7] = ['^', 10, 1, 2];
-   $map->[9]->[5]->[7] = ['^', 10, 1, 2];
-   $map->[1]->[1]->[1] = ['X', 10, 1];
-   $map->[2]->[2]->[2] = ['X', 10, 1];
-   $map->[1]->[3]->[1] = ['X', 10, 1];
-   $map->[3]->[3]->[3] = ['X', 10, 1];
-   $self->{map} = $map;
+sub _data2array {
+   my ($dat) = @_;
+   my ($blk, $meta, $add) = unpack "nCC", $dat;
+   my ($type, $light) = (($blk & 0xFFF0) >> 4, ($blk & 0x000F));
+   [$type, $light, $meta, $add]
 }
 
-sub random_fill {
-   my ($self) = @_;
+sub data_fill {
+   my ($self, $data) = @_;
 
-   my @types = ('X', ' ');
    my $map = [];
-   my @lights;
-
    for (my $x = 0; $x < $SIZE; $x++) {
       for (my $y = 0; $y < $SIZE; $y++) {
          for (my $z = 0; $z < $SIZE; $z++) {
-            my $t = 'X';
-            if (int (rand ($SIZE * $SIZE * $SIZE)) <= 60) {
-               warn "PUTHOLE $x $y $z\n";
-               $t = ' ';
-            } elsif (int (rand ($SIZE * $SIZE * $SIZE)) <= 1) {
-               warn "PUTLIGHT $x $y $z\n";
-               push @lights, [$x, $y, $z];
-            }
-            #                        content, light, visibility
-            $map->[$x]->[$y]->[$z] = [$t, 0, 1];
+            my $chnk_offs = $x + $y * $SIZE + $z * ($SIZE ** 2);
+            $map->[$x]->[$y]->[$z] = _data2array (substr $data, $chnk_offs * 4, 4);
+            #d#warn "DATAFILL: $x,$y,$z: " . JSON->new->encode ($map->[$x]->[$y]->[$z]) . "\n";
          }
       }
    }
-
-   # erode:
-   my $last_blk_cnt = 0;
-   for (1..3) {
-      my $new_map = [];
-      my $blk_cnt = 0;
-      for (my $x = 0; $x < $SIZE; $x++) {
-         for (my $y = 0; $y < $SIZE; $y++) {
-            for (my $z = 0; $z < $SIZE; $z++) {
-               my ($cur, $top, $bot, $left, $right, $front, $back)
-                  = _neighbours ($map, $x, $y, $z);
-
-               my $n = [@$cur];
-
-               my $cnt = 0;
-               $cnt++ if $top->[0]   eq ' ';
-               $cnt++ if $bot->[0]   eq ' ';
-               $cnt++ if $left->[0]  eq ' ';
-               $cnt++ if $right->[0] eq ' ';
-               $cnt++ if $front->[0] eq ' ';
-               $cnt++ if $back->[0]  eq ' ';
-
-               $n->[0] = ' ' if $cnt >= 1;
-
-               $blk_cnt++ if $n->[0] ne ' ';
-
-               $new_map->[$x]->[$y]->[$z] = $n;
-            }
-         }
-      }
-      $map = $new_map;
-      warn "erode $_: $blk_cnt blocks (last $last_blk_cnt)\n";
-      last if $last_blk_cnt == $blk_cnt;
-      $last_blk_cnt = $blk_cnt;
-      $blk_cnt = 0;
-   }
-
 
    my $visible;
    for (my $x = 0; $x < $SIZE; $x++) {
@@ -156,12 +84,12 @@ sub random_fill {
             my ($cur, $top, $bot, $left, $right, $front, $back)
                = _neighbours ($map, $x, $y, $z);
             my $cnt = 0;
-            $cnt++ if $top->[0]   eq ' ';
-            $cnt++ if $bot->[0]   eq ' ';
-            $cnt++ if $left->[0]  eq ' ';
-            $cnt++ if $right->[0] eq ' ';
-            $cnt++ if $front->[0] eq ' ';
-            $cnt++ if $back->[0]  eq ' ';
+            $cnt++ if $top->[0]   == 0;
+            $cnt++ if $bot->[0]   == 0;
+            $cnt++ if $left->[0]  == 0;
+            $cnt++ if $right->[0] == 0;
+            $cnt++ if $front->[0] == 0;
+            $cnt++ if $back->[0]  == 0;
 
             if ($cnt == 0
                 && not (
@@ -170,6 +98,7 @@ sub random_fill {
                    || $z == 0 || $z == $SIZE - 1)
             ) {
                $cur->[2] = 0;
+ #              $map->[$x]->[$y]->[$z] = [1, 16, 1];
             } else {
                $cur->[2] = 1;
                $visible++;
@@ -177,39 +106,39 @@ sub random_fill {
          }
       }
    }
-   warn "visible blocks $visible\n";
+   warn "VISIBLE: $visible\n";
 
-   for (@lights) {
-      my ($x, $y, $z) = @$_;
-      warn "LIGHT $x, $y, $z\n";
-      my $DIST = 5;
-      for (my $xi = -$DIST; $xi <= $DIST; $xi++) {
-         for (my $yi = -$DIST; $yi <= $DIST; $yi++) {
-            for (my $zi = -$DIST; $zi <= $DIST; $zi++) {
-               my $dist = (abs ($xi) + abs ($yi) + abs ($zi)) / 3;
-               next if $dist > 6.6;
-               my ($tile) = _map_get_if_exists ($map, $x + $xi, $y + $yi, $z + $zi);
-               # TODO: fix light :)
-               my $level = (($dist ** 2) * (-20 / 6.6 ** 2)) + 20;
-               $tile->[1] = $level if $tile->[1] < $level;
+   $self->{map} = $map;
+}
+
+sub cube_fill {
+   my ($self) = @_;
+
+   my $map = [];
+   for (my $x = 0; $x < $SIZE; $x++) {
+      for (my $y = 0; $y < $SIZE; $y++) {
+         for (my $z = 0; $z < $SIZE; $z++) {
+            if ($x == 0 || $y == 0 || $z == 0
+                || ($z == ($SIZE - 1))
+                || ($x == ($SIZE - 1))
+                || ($y == ($SIZE - 1))
+            ) {
+               $map->[$x]->[$y]->[$z] = [1, 16, 1];
+            } else {
+               $map->[$x]->[$y]->[$z] = [0, 16, 1];
             }
          }
       }
    }
-
-   for (my $x = 0; $x < $SIZE; $x++) {
-      my $plane_light;
-      for (my $y = 0; $y < $SIZE; $y++) {
-         for (my $z = 0; $z < $SIZE; $z++) {
-            my ($tile) = _map_get_if_exists ($map, $x, $y, $z);
-            #$plane_light .= sprintf "%-4.1f ", $tile->[1];
-            $plane_light .= "$tile->[0]|$tile->[2] ";
- #           $tile->[1] = int $tile->[1];
-         }
-         $plane_light .= "\n";
-      }
-      warn "plane $x:\n$plane_light\n";
-   }
+   $map->[5]->[1]->[7] = [2, 10, 1, 2];
+   $map->[6]->[2]->[7] = [2, 10, 1, 2];
+   $map->[7]->[3]->[7] = [2, 10, 1, 2];
+   $map->[8]->[4]->[7] = [2, 10, 1, 2];
+   $map->[9]->[5]->[7] = [2, 10, 1, 2];
+   $map->[1]->[1]->[1] = [1, 10, 1];
+   $map->[2]->[2]->[2] = [1, 10, 1];
+   $map->[1]->[3]->[1] = [1, 10, 1];
+   $map->[3]->[3]->[3] = [1, 10, 1];
    $self->{map} = $map;
 }
 
@@ -228,35 +157,37 @@ sub visible_quads {
             my ($cur, $top, $bot, $left, $right, $front, $back)
                = _neighbours ($map, $x, $y, $z);
             next unless $cur->[2];
-            if ($cur->[0] ne ' ') {
+            if ($cur->[0] != 0) {
                my @faces;
 
-               if ($front->[2] && $front->[0] ne 'X') {
+               if ($front->[2] && $front->[0] == 0) {
                   push @faces, 0
                }
-               if ($top->[2] && $top->[0] ne 'X') {
+               if ($top->[2] && $top->[0] == 0) {
                   push @faces, 1
                }
-               if ($back->[2] && $back->[0] ne 'X') {
+               if ($back->[2] && $back->[0] == 0) {
                   push @faces, 2
                }
-               if ($left->[2] && $left->[0] ne 'X') {
+               if ($left->[2] && $left->[0] == 0) {
                   push @faces, 3
                }
-               if ($right->[2] && $right->[0] ne 'X') {
+               if ($right->[2] && $right->[0] == 0) {
                   push @faces, 4
                }
-               if ($bot->[2] && $bot->[0] ne 'X') {
+               if ($bot->[2] && $bot->[0] == 0) {
                   push @faces, 5
                }
 
+              # my ($pos, $faces, $light, $tex) = @$_;
+               #d# warn "QUAD: @faces at $x, $y, $z ($cur->[1])\n";
                push @quads, [
-                  [$x, $y, $z],
-                  \@faces,
-                  $cur->[1],
-                  $cur->[3]
+                  [$x, $y, $z], # pos
+                  \@faces,      # faces
+                  $cur->[1],    # light
+                  $cur->[3]     # texture!?
                      ? $cur->[3]
-                     : ($cur->[0] eq 'X' ? 1 : 0)
+                     : ($cur->[0] != 0 ? 1 : 0)
                ];
             }
          }
@@ -264,27 +195,6 @@ sub visible_quads {
    }
    $self->{quads_cache} = \@quads;
    @quads
-}
-
-sub update_visibility {
-   my ($self) = @_;
-   # find out which blocks are possibly visible by defining
-   # the outer "hull" of the chunk.
-   #
-   # TODO: find out how to do this iteratively if new chunks
-   #       are "joining"
-   #       Just reevaluate this, taking into account the adjacent chunks.
-
-#   my $map = $self->{map};
-
-#   for (my $x = 0; $x < $SIZE; $x++) {
-#      for (my $y = 0; $y < $SIZE; $y++) {
-#         for (my $z = 0; $z < $SIZE; $z++) {
-#            my ($tile) = _map_get_if_exists ($map, $x, $y, $z);
-#         }
-#      }
-#   }
-
 }
 
 sub chunk_changed : event_cb {

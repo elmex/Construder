@@ -42,8 +42,9 @@ sub world_pos2chnkpos {
 sub world_pos2secref {
    my ($pos) = @_;
    my $id = world_pos2id ($pos);
-   warn "SECTOR ID $id\n";
-   \$SECTORS{$id}
+   my $s = \$SECTORS{$id};
+   warn "SECTOR ID $id: $$s\n";
+   $s
 }
 
 sub world_sector_at {

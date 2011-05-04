@@ -34,16 +34,18 @@ sub new {
 sub mk_random {
    my ($self) = @_;
 
-   my $sect = "\x00" x ($SIZE ** 3);
+   warn "SECTOR RANDOM!\n";
+
+   my $sect = "\x00" x (($SIZE ** 3) * 4);
 
    for my $dx (0..($SIZE - 1)) {
       for my $dy (0..($SIZE - 1)) {
          for my $dz (0..($SIZE - 1)) {
             my $offs = $dx + $dy * $SIZE + $dz * ($SIZE ** 2);
-            my ($type, $light) = (int rand (128), int rand (16));
-            my $blk = ($type & 0xFFF0 | $light & 0x000F);
+            my ($type, $light) = (int rand (10) > 5 ? 0 : 1, int rand (16));
+            my $blk = (($type << 4) & 0xFFF0)| ($light & 0x000F);
             my $content = pack "nCC", $blk, 0, 0;
-            substr $sect, $offs, 4, $content;
+            substr $sect, $offs * 4, 4, $content;
          }
       }
    }
@@ -57,7 +59,7 @@ sub get_chunk {
 
    my $from = vsmul ($relchnkpos, $CHNKSIZE);
    my $to   = vsmul (vaddd ($relchnkpos, 1, 1, 1), $CHNKSIZE);
-   my $chnk = "\x00" x (16 ** 3);
+   my $chnk = "\x00" x ((16 ** 3) * 4);
 
    my $blks = 0;
    for my $dx ($from->[0]..($to->[0] - 1)) {
@@ -68,12 +70,12 @@ sub get_chunk {
                 + ($dy - $from->[1]) * $CHNKSIZE
                 + ($dz - $from->[2]) * ($CHNKSIZE ** 2);
             my $offs      = $dx + $dy * $SIZE + $dz * ($SIZE ** 2);
-            warn "CHNK $chnk_offs | $offs | $dx, $dy, $dz ($blks)\n";
-            substr $chnk, $chnk_offs, 4, (substr $sec_data, $offs, 4);
+            #d# warn "CHNK $chnk_offs | $offs | $dx, $dy, $dz ($blks)\n";
+            #d# warn "LEN" . length ($sec_data) . "\n";
+            substr $chnk, $chnk_offs * 4, 4, (substr $sec_data, $offs * 4, 4);
          }
       }
    }
-   exit;
 
    $chnk
 }

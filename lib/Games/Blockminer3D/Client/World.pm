@@ -56,7 +56,7 @@ sub pos2chunk {
 
 sub world_change_chunk {
    my ($pos) = @_;
-   world ()->event (chunk_changed => $pos);
+   world ()->event (chunk_changed => @$pos);
 }
 
 sub world_change_chunk_at {
@@ -89,7 +89,7 @@ sub world_get_box_at {
    my ($cx, $cy, $cz) = pos2chunk ($pos);
    my $chnk = world_get_chunk ($cx, $cy, $cz);
    unless ($chnk) {
-      return ['X', 20, 0]; # invisible block
+      return [1, 20, 0]; # invisible block
    }
 
    my $npos = vsubd ($pos,
@@ -211,7 +211,7 @@ sub _collide_sphere_box {
    return ()
 }
 
-sub world_is_solid_box { $_[0]->[2] && $_[0]->[0] ne ' ' }
+sub world_is_solid_box { $_[0]->[2] && $_[0]->[0] != 0 }
 
 # collide sphere at $pos with radius $rad
 #   0.00059 secsPcoll in flight without collisions

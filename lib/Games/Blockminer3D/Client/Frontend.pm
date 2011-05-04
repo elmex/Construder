@@ -76,6 +76,8 @@ sub init_test {
 sub init_physics {
    my ($self) = @_;
 
+   $self->{ghost_mode} = 1;
+
    $self->{phys_obj}->{player} = {
       pos => [5.5, 3.5, 5.5],#-25, -50, -25),
       vel => [0, 0, 0],
@@ -220,7 +222,7 @@ sub compile_chunk {
       # sort by texture name:
       for (sort { $a->[3] cmp $b->[3] } @quads) {
          my ($pos, $faces, $light, $tex) = @$_;
-         my ($tex_nr, $uv) = $self->{textures}->get_opengl ($tex || 1);
+         my ($tex_nr, $uv) = $self->{textures}->get_opengl (1);#$tex || 1);
          if ($current_texture != $tex_nr) {
             glEnd;
             glBindTexture (GL_TEXTURE_2D, $tex_nr);
@@ -603,7 +605,7 @@ sub physics_tick : event_cb {
    my $bx = world_get_box_at (vaddd ($player->{pos}, 0, -1, 0));
 
    my $gforce = [0, -9.5, 0];
-   if ($bx->[0] eq '^') {
+   if ($bx->[0] == 2) {
       $gforce = [0, 9.5, 0];
    }
    $gforce = [0,0,0] if $self->{ghost_mode};
@@ -803,7 +805,7 @@ sub input_mouse_button : event_cb {
       return unless $sp;
 
       my $bx = world_get_box_at ($sp);
-      $bx->[0] = 'X';
+      $bx->[0] = 1;
       world_change_chunk_at ($sp);
 
    } elsif ($btn == 3) {
@@ -811,7 +813,7 @@ sub input_mouse_button : event_cb {
       return unless $sp;
 
       my $bx = world_get_box_at ($sp);
-      $bx->[0] = ' ';
+      $bx->[0] = 0;
       world_change_chunk_at ($sp);
 
    } elsif ($btn == 2) {

@@ -49,9 +49,9 @@ sub new {
 
    $self->{front} = Games::Blockminer3D::Client::Frontend->new;
 
-   my $chnk = Games::Blockminer3D::Client::MapChunk->new;
-   $chnk->cube_fill;
-   world_set_chunk (0, 0, 0, $chnk);
+   #d#my $chnk = Games::Blockminer3D::Client::MapChunk->new;
+   #d#$chnk->cube_fill;
+   #d#world_set_chunk (0, 0, 0, $chnk);
 
    $self->{front}->reg_cb (update_player_pos => sub {
       $self->send_server ({ cmd => "player_pos", pos => $_[1] });
@@ -199,10 +199,10 @@ sub handle_packet : event_cb {
       );
 
    } elsif ($hdr->{cmd} eq 'chunk') {
-      #my $chnk = Games::Blockminer3D::Client::MapChunk->new;
-      #$chnk->data_fill ($body);
-      #world_set_chunk (@{$hdr->{pos}}, $chnk);
-      #world_change_chunk (@{$hdr->{pos}});
+      my $chnk = Games::Blockminer3D::Client::MapChunk->new;
+      $chnk->data_fill ($body);
+      world_set_chunk (@{$hdr->{pos}}, $chnk);
+      world_change_chunk ($hdr->{pos});
    }
 }
 

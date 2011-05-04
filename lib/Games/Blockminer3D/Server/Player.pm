@@ -47,16 +47,19 @@ sub update_pos {
    my $chnk = world_pos2chnkpos ($pos);
    my $old_state = $self->{chunk_state};
    my $chunk_state = {};
-   for my $dx (-1..1) {
-      for my $dy (-1..1) {
-         for my $dz (-1..1) {
+   LASTUP:
+   for my $dx (0, -1, 1) {
+      for my $dy (0, -1, 1) {
+         for my $dz (0, -1, 1) {
             my $cur_chunk = vaddd ($chnk, $dx, $dy, $dz);
             my $id = world_pos2id ($cur_chunk);
             if ($old_state->{$id}) {
                $chunk_state->{$id} = delete $old_state->{$id};
+
             } else {
                $self->send_chunk ($cur_chunk);
                $chunk_state->{$id} = 1;
+               last LASTUP;
             }
          }
       }
