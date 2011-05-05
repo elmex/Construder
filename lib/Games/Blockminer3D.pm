@@ -1,6 +1,15 @@
 package Games::Blockminer3D;
 use common::sense;
 
+our $VERSION = '0.01';
+
+require DynaLoader;
+our @ISA = qw(DynaLoader);
+
+sub dl_load_flags { $^O eq 'darwin' ? 0x00 : 0x01 }
+
+Games::Blockminer3D->bootstrap ($VERSION);
+
 =head1 NAME
 
 Games::Blockminer3D - desc
@@ -16,8 +25,6 @@ Games::Blockminer3D - desc
 =item my $obj = Games::Blockminer3D->new (%args)
 
 =cut
-
-our $VERSION = "0.01";
 
 sub new {
    my $this  = shift;

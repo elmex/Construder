@@ -123,38 +123,39 @@ sub init_app {
    #$self->{textures}->add_file ("res/metal05.small.png", [[2]]);
 }
 
+#  0 front  1 top    2 back   3 left   4 right  5 bottom
+my @indices  = (
+   qw/ 0 1 2 3 /, # 0 front
+   qw/ 1 5 6 2 /, # 1 top
+   qw/ 7 6 5 4 /, # 2 back
+   qw/ 4 5 1 0 /, # 3 left
+   qw/ 3 2 6 7 /, # 4 right
+   qw/ 3 7 4 0 /, # 5 bottom
+);
+
+#my @normals = (
+#   [ 0, 0,-1],
+#   [ 0, 1, 0],
+#   [ 0, 0, 1],
+#   [-1, 0, 0],
+#   [ 1, 0, 0],
+#   [ 0,-1, 0],
+#),
+my @vertices = (
+   [ 0,  0,  0 ],
+   [ 0,  1,  0 ],
+   [ 1,  1,  0 ],
+   [ 1,  0,  0 ],
+
+   [ 0,  0,  1 ],
+   [ 0,  1,  1 ],
+   [ 1,  1,  1 ],
+   [ 1,  0,  1 ],
+);
+
 sub _render_quad {
    my ($pos, $faces, $uv) = @_;
    #d#warn "QUAD $x $y $z $light\n";
-
-   #  0 front  1 top    2 back   3 left   4 right  5 bottom
-   my @indices  = (
-      qw/ 0 1 2 3 /, # 0 front
-      qw/ 1 5 6 2 /, # 1 top
-      qw/ 7 6 5 4 /, # 2 back
-      qw/ 4 5 1 0 /, # 3 left
-      qw/ 3 2 6 7 /, # 4 right
-      qw/ 3 7 4 0 /, # 5 bottom
-   );
-   #my @normals = (
-   #   [ 0, 0,-1],
-   #   [ 0, 1, 0],
-   #   [ 0, 0, 1],
-   #   [-1, 0, 0],
-   #   [ 1, 0, 0],
-   #   [ 0,-1, 0],
-   #),
-   my @vertices = (
-      [ 0,  0,  0 ],
-      [ 0,  1,  0 ],
-      [ 1,  1,  0 ],
-      [ 1,  0,  0 ],
-
-      [ 0,  0,  1 ],
-      [ 0,  1,  1 ],
-      [ 1,  1,  1 ],
-      [ 1,  0,  1 ],
-   );
 
    my @uv = (
     #  w  h
@@ -165,14 +166,16 @@ sub _render_quad {
    );
 
    foreach my $face (@$faces) {
-      # glNormal3d (@{$normals[$face]}); # we dont use OpenGL lighting!
-
       foreach my $vertex (0..3) {
          my $index  = $indices[4 * $face + $vertex];
          my $coords = $vertices[$index];
 
-         glTexCoord2d(@{$uv[$vertex]});
-         glVertex3d(@{vadd ($coords, $pos)});
+         glTexCoord2d (@{$uv[$vertex]});
+         glVertex3d (
+            $coords->[0] + $pos->[0],
+            $coords->[1] + $pos->[1],
+            $coords->[2] + $pos->[2]
+         );
       }
    }
 }
@@ -502,7 +505,7 @@ sub setup_event_poller {
    my $anim_ltime;
    my $anim_dt = 1 / 25;
    my $anim_accum_time = 0;
-   $self->{selector_w} = AE::timer 0, 0.04, sub {
+   $self->{selector_w} = AE::timer 0, 1, sub {
       ($self->{selected_box}, $self->{selected_build_box})
          = $self->get_selected_box_pos;
 

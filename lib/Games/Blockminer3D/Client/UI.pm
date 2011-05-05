@@ -267,11 +267,11 @@ sub render_view {
    #glTexImage2D_s (GL_TEXTURE_2D,
    #   0, $surf->format->BytesPerPixel, $surf->w, $surf->h,
    #   0, $texture_format, GL_UNSIGNED_BYTE, ${$surf->get_pixels_ptr});
-   #gluBuild2DMipmaps_s (GL_TEXTURE_2D,
-   #   $surf->format->BytesPerPixel,
-   #   $surf->w, $surf->h,
-   #   $texture_format, GL_UNSIGNED_BYTE,
-   #   ${$surf->get_pixels_ptr});
+   gluBuild2DMipmaps_s (GL_TEXTURE_2D,
+      $surf->format->BytesPerPixel,
+      $surf->w, $surf->h,
+      $texture_format, GL_UNSIGNED_BYTE,
+      ${$surf->get_pixels_ptr});
 
    SDL::Video::unlock_surface($surf);
 
