@@ -34,7 +34,7 @@ sub new {
 
 sub init {
    my ($self) = @_;
-   $self->{hud1_tmr} = AE::timer 0, 0.7, sub {
+   $self->{hud1_tmr} = AE::timer 0, 1, sub {
       $self->update_hud_1;
    };
    $self->teleport ([30, 32, 30]);

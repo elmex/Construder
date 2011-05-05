@@ -101,7 +101,10 @@ sub world_get_box_at {
       $cz * $Games::Blockminer3D::Client::MapChunk::SIZE
    );
    vifloor ($npos);
-   $chnk->{map}->[$npos->[0]]->[$npos->[1]]->[$npos->[2]]
+   my $offs = $npos->[0]
+      + ($npos->[1] + $npos->[2] * $Games::Blockminer3D::Client::MapChunk::SIZE)
+          * $Games::Blockminer3D::Client::MapChunk::SIZE;
+   $chnk->{map}->[$offs]
 }
 
 sub world_intersect_ray_box {

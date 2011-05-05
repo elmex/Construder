@@ -40,7 +40,7 @@ sub _map_get_if_exists {
    my ($map, $x, $y, $z) = @_;
    return [0, 16, 1] if $x < 0     || $y < 0     || $z < 0;
    return [0, 16, 1] if $x >= $SIZE || $y >= $SIZE || $z >= $SIZE;
-   $map->[$x]->[$y]->[$z]
+   $map->[$x + ($y + $z * $SIZE) * $SIZE]
 }
 
 sub _neighbours {
@@ -74,7 +74,7 @@ sub data_fill {
       for (my $y = 0; $y < $SIZE; $y++) {
          for (my $z = 0; $z < $SIZE; $z++) {
             my $chnk_offs = $x + $y * $SIZE + $z * ($SIZE ** 2);
-            my $c = $map->[$x]->[$y]->[$z] = _data2array (substr $data, $chnk_offs * 4, 4);
+            my $c = $map->[$chnk_offs] = _data2array (substr $data, $chnk_offs * 4, 4);
             $c->[2] = 1;
 
             #d#warn "DATAFILL: $x,$y,$z: " . JSON->new->encode ($map->[$x]->[$y]->[$z]) . "\n";
@@ -117,37 +117,6 @@ sub data_fill {
    $self->visible_quads;
 
    warn "VISIBLE: $visible : ".(time - $t1)."\n";
-   $self->{map} = $map;
-}
-
-sub cube_fill {
-   my ($self) = @_;
-
-   my $map = [];
-   for (my $x = 0; $x < $SIZE; $x++) {
-      for (my $y = 0; $y < $SIZE; $y++) {
-         for (my $z = 0; $z < $SIZE; $z++) {
-            if ($x == 0 || $y == 0 || $z == 0
-                || ($z == ($SIZE - 1))
-                || ($x == ($SIZE - 1))
-                || ($y == ($SIZE - 1))
-            ) {
-               $map->[$x]->[$y]->[$z] = [1, 16, 1];
-            } else {
-               $map->[$x]->[$y]->[$z] = [0, 16, 1];
-            }
-         }
-      }
-   }
-   $map->[5]->[1]->[7] = [2, 10, 1, 2];
-   $map->[6]->[2]->[7] = [2, 10, 1, 2];
-   $map->[7]->[3]->[7] = [2, 10, 1, 2];
-   $map->[8]->[4]->[7] = [2, 10, 1, 2];
-   $map->[9]->[5]->[7] = [2, 10, 1, 2];
-   $map->[1]->[1]->[1] = [1, 10, 1];
-   $map->[2]->[2]->[2] = [1, 10, 1];
-   $map->[1]->[3]->[1] = [1, 10, 1];
-   $map->[3]->[3]->[3] = [1, 10, 1];
    $self->{map} = $map;
 }
 

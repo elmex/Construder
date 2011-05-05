@@ -271,10 +271,12 @@ sub cone_spehere_intersect {
    my ($cpos, $cv, $cfov, $spos, $srad) = @_;
    my $u = vsub ($cpos, vsmul ($cv, $srad / sin ($cfov)));
    my $d = vsub ($spos, $u);
-   if (vdot ($cv, $d) >= vlength ($d) * cos ($cfov)) {
+   my $ld = vlength ($d);
+   if (vdot ($cv, $d) >= $ld * cos ($cfov)) {
       my $d = vsub ($spos, $cpos);
-      if (-vdot ($cv, $d) >= vlength ($d) * sin ($cfov)) {
-         return vlength ($d) <= $srad; # inside k
+      $ld = vlength ($d);
+      if (-vdot ($cv, $d) >= $ld * sin ($cfov)) {
+         return $ld <= $srad; # inside k
       } else {
          return 1;
       }
