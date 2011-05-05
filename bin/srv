@@ -1,0 +1,10 @@
+#!/opt/perl/bin/perl
+use EV;
+use common::sense;
+use Games::Blockminer3D::Server;
+my $server;
+$server = Games::Blockminer3D::Server->new;
+$server->init;
+$server->listen;
+
+EV::loop;
