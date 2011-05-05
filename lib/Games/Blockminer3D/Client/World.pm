@@ -68,7 +68,10 @@ sub world_set_chunk {
    my ($cx, $cy, $cz, $chunk) = @_;
    warn "set chunk: $cx $cy $cz $chunk\n";
    my $q = ($cx < 0 ? 0x1 : 0) | ($cy < 0 ? 0x2 : 0) | ($cz < 0 ? 0x4 : 0);
-   $CHUNKS[$q]->[abs $cx]->[abs $cy]->[abs $cz] = $chunk;
+   my $rc = \$CHUNKS[$q]->[abs $cx]->[abs $cy]->[abs $cz];
+   my $p = $$rc;
+   $$rc = $chunk;
+   world_change_chunk ([$cx, $cy, $cz]) if $p;
 }
 
 sub world_get_chunk {

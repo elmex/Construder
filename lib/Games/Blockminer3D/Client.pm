@@ -3,7 +3,6 @@ use common::sense;
 use Games::Blockminer3D::Client::Frontend;
 use Games::Blockminer3D::Client::MapChunk;
 use Games::Blockminer3D::Client::World;
-use Games::Blockminer3D::Server;
 use Games::Blockminer3D::Protocol;
 use AnyEvent;
 use AnyEvent::Socket;
@@ -42,10 +41,6 @@ sub new {
    #d# exit;
 
    $self->init_object_events;
-
-   $self->{server} = Games::Blockminer3D::Server->new;
-   $self->{server}->init;
-   $self->{server}->listen;
 
    $self->{front} = Games::Blockminer3D::Client::Frontend->new;
 

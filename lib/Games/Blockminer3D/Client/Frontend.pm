@@ -267,14 +267,6 @@ sub set_player_pos {
    $self->{phys_obj}->{player}->{pos} = $pos;
 }
 
-sub calc_cam_cone {
-   my ($nplane, $fplane, $fov, $w, $h, $pos, $lv) = @_;
-   my $fdepth = ($h / 2) / tan (deg2rad ($fov) * 0.5);
-   my $fcorn  = sqrt (($w / 2) ** 2 + ($h / 2) ** 2);
-   my $ffov   = atan ($fcorn / $fdepth);
-   ($pos, vnorm ($lv), $ffov);
-}
-
 sub cone_spehere_intersect {
    my ($cpos, $cv, $cfov, $spos, $srad) = @_;
    my $u = vsub ($cpos, vsmul ($cv, $srad / sin ($cfov)));
@@ -290,27 +282,6 @@ sub cone_spehere_intersect {
    } else {
       return 0; # outside cone
    }
-}
-
-sub calc_cam_sphere {
-   my ($nplane, $fplane, $fov, $w, $h, $pos, $lv) = @_;
-   my $vlen = $fplane - $nplane;
-   my $height = $vlen * tan (deg2rad ($fov) * 0.5);
-   my $width  = ($w / $h) * $height;
-   my $half_p = [0, 0, $nplane + $vlen * 0.5];
-   my $frust_corner = [$width, $height, $vlen];
-   my $diff = vsub ($half_p, $frust_corner);
-
-   my $rad = vlength ($diff);
-   $lv = vnorm ($lv);
-   my $sphpos = vadd ($pos, vsmul ($lv, $vlen * 0.5 + $nplane));
-   return ($rad, $sphpos);
-}
-
-sub cam_cone {
-   my ($self) = @_;
-   my $cpos = vaddd ($self->{phys_obj}->{player}->{pos}, 0, $PL_HEIGHT, 0);
-   calc_cam_cone (0.1, 20, 60, $WIDTH, $HEIGHT, $cpos, $self->get_look_vector);
 }
 
 my $render_cnt;
@@ -577,6 +548,22 @@ sub setup_event_poller {
    };
 }
 
+sub calc_cam_cone {
+   my ($nplane, $fplane, $fov, $w, $h, $pos, $lv) = @_;
+   my $fdepth = ($h / 2) / tan (deg2rad ($fov) * 0.5);
+   my $fcorn  = sqrt (($w / 2) ** 2 + ($h / 2) ** 2);
+   my $ffov   = atan ($fcorn / $fdepth);
+   ($pos, vnorm ($lv), $ffov);
+}
+
+
+sub cam_cone {
+   my ($self) = @_;
+   return @{$self->{cached_cam_cone}} if $self->{cached_cam_cone};
+   my $cpos = vaddd ($self->{phys_obj}->{player}->{pos}, 0, $PL_HEIGHT, 0);
+   calc_cam_cone (0.1, 20, 60, $WIDTH, $HEIGHT, $cpos, $self->get_look_vector);
+}
+
 sub get_look_vector {
    my ($self) = @_;
    return $self->{cached_look_vec} if $self->{cached_look_vec};
@@ -585,7 +572,12 @@ sub get_look_vector {
    my $zd = -cos (deg2rad ($self->{yrotate}));
    my $yd =  cos (deg2rad ($self->{xrotate} + 90));
    my $yl =  sin (deg2rad ($self->{xrotate} + 90));
-   return $self->{cached_look_vec} = [$yl * $xd, $yd, $yl * $zd];
+   $self->{cached_look_vec} = [$yl * $xd, $yd, $yl * $zd];
+
+   delete $self->{cached_cam_cone};
+   $self->{cached_cam_cone} = [ $self->cam_cone ];
+
+   return $self->{cached_look_vec};
 }
 
 sub get_selected_box_pos {

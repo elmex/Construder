@@ -45,7 +45,6 @@ sub update_pos {
 
    $self->{pos} = $pos;
 
-   return if $self->{chunk_sending};
    my $chnk = world_pos2chnkpos ($pos);
    my $old_state = $self->{chunk_state};
    my $chunk_state = {};
@@ -59,10 +58,8 @@ sub update_pos {
                $chunk_state->{$id} = delete $old_state->{$id};
 
             } else {
-               $self->{chunk_sending} = 1;
                $self->send_chunk ($cur_chunk);
                $chunk_state->{$id} = 1;
-               last LASTUP;
             }
          }
       }

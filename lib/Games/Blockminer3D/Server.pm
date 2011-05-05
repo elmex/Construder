@@ -1,6 +1,7 @@
 package Games::Blockminer3D::Server;
 use common::sense;
 use AnyEvent;
+use AnyEvent::Handle;
 use AnyEvent::Socket;
 use JSON;
 
