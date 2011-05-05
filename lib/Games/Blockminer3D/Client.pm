@@ -149,7 +149,7 @@ sub connected : event_cb {
 sub handle_packet : event_cb {
    my ($self, $hdr, $body) = @_;
 
-   warn "cl< $hdr->{cmd}\n";
+   warn "cl< $hdr->{cmd} (".length ($body).")\n";
 
    if ($hdr->{cmd} eq 'hello') {
       $self->send_server ({ cmd => 'enter' });
@@ -169,7 +169,12 @@ sub handle_packet : event_cb {
       my $res = $hdr->{res};
       #  [ $_, $res->{type}, $res->{md5}, \$res->{data} ]
       if ($res->[1] eq 'texture') {
-         warn "got texture $res->[0]\n";
+         #warn "got texture $res->[0] : ".length ($body)."\n";
+         warn "TEX " . join (', ', map { length $_ } @$res) . "\n";
+         $self->{front}->{textures}->add (
+            $body, # $res->[3],
+            [[$res->[0], undef, $res->[2]]]
+         );
       }
       $self->send_server ({ cmd => 'transfer_poll' });
 
@@ -202,7 +207,7 @@ sub handle_packet : event_cb {
       my $chnk = Games::Blockminer3D::Client::MapChunk->new;
       $chnk->data_fill ($body);
       world_set_chunk (@{$hdr->{pos}}, $chnk);
-      world_change_chunk ($hdr->{pos});
+      #world_change_chunk ($hdr->{pos});
    }
 }
 

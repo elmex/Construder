@@ -91,6 +91,7 @@ sub add {
       $uv = [0, 0, $surf->w, $surf->h] unless defined $uv;
       $uv = [@$uv];
       _pixel2uv ($uv, $surf->w, $surf->h);
+      warn "TEXTURE ADDED $nr : @$uv : $id\n";
       $self->{textures}->[$nr] = [$id, $uv, $surf];
    }
 }

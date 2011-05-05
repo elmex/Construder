@@ -232,7 +232,7 @@ sub world_collide {
    $rec++;
    # we collide too much:
    if ($rec > 6) {
-      warn "collision occured on too many things. we couldn't backoff!";
+      #d# warn "collision occured on too many things. we couldn't backoff!";
       return ($orig_pos); # found position is as good as any...
    }
 

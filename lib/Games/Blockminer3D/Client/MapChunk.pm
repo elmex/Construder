@@ -114,6 +114,7 @@ sub data_fill {
          }
       }
    }
+   $self->visible_quads;
 
    warn "VISIBLE: $visible : ".(time - $t1)."\n";
    $self->{map} = $map;
@@ -196,7 +197,7 @@ sub visible_quads {
                   $cur->[1],    # light
                   $cur->[3]     # texture!?
                      ? $cur->[3]
-                     : ($cur->[0] != 0 ? 1 : 0)
+                     : ($cur->[0] != 0 ? 7 : 0)
                ];
             }
          }

@@ -88,12 +88,13 @@ sub transfer_res2client {
    $self->{transfer}->{$cid} = [
       map {
          my $body = "";
-         if (defined ${$_->[1]} && not (ref ${$_->[-1]})) {
+         if (defined ${$_->[-1]} && not (ref ${$_->[-1]})) {
             $body = ${$_->[-1]};
             $_->[-1] = undef;
          } else {
             $_->[-1] = ${$_->[-1]};
          }
+         warn "PREPARE RESOURCE $_->[0]: " . length ($body) . "\n";
          packet2data ({
             cmd => "resource",
             res => $_

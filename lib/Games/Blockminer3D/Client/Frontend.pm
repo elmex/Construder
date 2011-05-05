@@ -57,6 +57,7 @@ sub new {
    world ()->reg_cb (chunk_changed => sub {
       my ($w, $x, $y, $z) = @_;
       warn "killed chunk at $x $y $z\n";
+      delete $self->{compiled_chunks}->{$x}->{$y}->{$z};
       $self->compile_chunk ($x, $y, $z);
    });
 
@@ -118,7 +119,7 @@ sub init_app {
    glFogf (GL_FOG_END,   20);
 
    $self->{textures} = Games::Blockminer3D::Client::Textures->new;
-   $self->{textures}->add_file ("res/blocks19.small.png", [[1]]);
+   #$self->{textures}->add_file ("res/blocks19.small.png", [[1]]);
    #$self->{textures}->add_file ("res/metal05.small.png", [[2]]);
 }
 
@@ -199,6 +200,7 @@ sub compile_chunk {
       or return;
    warn "compiling... $cx, $cy, $cz: $chnk\n";
    my $face_cnt;
+   my $t1 = time;
    $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} = OpenGL::List::glpList {
       glPushMatrix;
       glBegin (GL_QUADS);
@@ -222,7 +224,7 @@ sub compile_chunk {
       # sort by texture name:
       for (sort { $a->[3] cmp $b->[3] } @quads) {
          my ($pos, $faces, $light, $tex) = @$_;
-         my ($tex_nr, $uv) = $self->{textures}->get_opengl (1);#$tex || 1);
+         my ($tex_nr, $uv) = $self->{textures}->get_opengl ($tex);#$tex || 1);
          if ($current_texture != $tex_nr) {
             glEnd;
             glBindTexture (GL_TEXTURE_2D, $tex_nr);
@@ -240,7 +242,7 @@ sub compile_chunk {
       glPopMatrix;
 
    };
-   warn "faces: $face_cnt\n";
+   warn "faces: $face_cnt compiled in ".(time - $t1)." sec\n";
 }
 
 sub step_animations {
@@ -305,6 +307,12 @@ sub calc_cam_sphere {
    return ($rad, $sphpos);
 }
 
+sub cam_cone {
+   my ($self) = @_;
+   my $cpos = vaddd ($self->{phys_obj}->{player}->{pos}, 0, $PL_HEIGHT, 0);
+   calc_cam_cone (0.1, 20, 60, $WIDTH, $HEIGHT, $cpos, $self->get_look_vector);
+}
+
 my $render_cnt;
 my $render_time;
 sub render_scene {
@@ -331,16 +339,17 @@ sub render_scene {
    my $cpos;
    glTranslatef (@{vneg ($cpos = vaddd ($pp, 0, $PL_HEIGHT, 0))});
 
-   my (@fcone) = calc_cam_cone (0.1, 20, 60, $WIDTH, $HEIGHT, $cpos, $self->get_look_vector);
-   #my ($frad, $fpos) = calc_cam_sphere (0.1, 20, 50, $WIDTH, $HEIGHT, $pp, $cpos, $self->get_look_vector);
-   #warn "CAM $frad | " . vstr ($fpos) . "\n";
+   my $t2 = time;
+   my (@fcone) = $self->cam_cone;
    my $culled = 0;
    #d#warn "FCONE ".vstr ($fcone[0]). ",".vstr ($fcone[1])." : $fcone[2]\n";
+   my $t3 = time;
 
    for (world_visible_chunks_at ($pp)) {
       my ($cx, $cy, $cz) = @$_;
-      my $pos = vsadd (vsmul ([$cx, $cy, $cz], $Games::Blockminer3D::Client::MapChunk::SIZE), $Games::Blockminer3D::Client::MapChunk::SIZE / 2);
-     # my $dv = vsub ($pos, $fpos);
+      my $pos = vsadd (vsmul ([$cx, $cy, $cz],
+                       $Games::Blockminer3D::Client::MapChunk::SIZE),
+                       $Games::Blockminer3D::Client::MapChunk::SIZE / 2);
 
       if (cone_spehere_intersect (@fcone, $pos, $Games::Blockminer3D::Client::MapChunk::BSPHERE)) {
          my $compl = $cc->{$cx}->{$cy}->{$cz};
@@ -355,7 +364,9 @@ sub render_scene {
  #    #    warn "CHUNK CULL " . vstr ($pos) . " ".vstr ($dv)."( $frad , $Games::Blockminer3D::Client::MapChunk::BSPHERE )\n";
       #}
    }
-   warn "culled $culled chunks\n";
+   if ($culled < 3) {
+      warn "culled only $culled chunks in " . (time - $t2) . " secs!!!!";
+   }
 
    my $qp = $self->{selected_box};
    _render_highlight ($qp, [1, 0, 0, 0.2], 0.06) if $qp;
@@ -461,8 +472,17 @@ sub setup_event_poller {
       #d# warn "compile at pos " . vstr ($pp) . "\n";
       # FIXME: vfloor is definitively NOT correct - probably :->
       my (@chunks) = world_visible_chunks_at ($pp);
+      my @fcone = $self->cam_cone;
       for (@chunks) {
          my ($cx, $cy, $cz) = @$_;
+         my $pos = vsadd (vsmul ($_,
+                          $Games::Blockminer3D::Client::MapChunk::SIZE),
+                          $Games::Blockminer3D::Client::MapChunk::SIZE / 2);
+
+         next unless
+            cone_spehere_intersect (
+               @fcone, $pos, $Games::Blockminer3D::Client::MapChunk::BSPHERE);
+
          unless ($cc->{$cx}->{$cy}->{$cz}) {
             $self->compile_chunk ($cx, $cy, $cz);
             if ($cc->{$cx}->{$cy}->{$cz}) {
@@ -559,12 +579,13 @@ sub setup_event_poller {
 
 sub get_look_vector {
    my ($self) = @_;
+   return $self->{cached_look_vec} if $self->{cached_look_vec};
 
    my $xd =  sin (deg2rad ($self->{yrotate}));
    my $zd = -cos (deg2rad ($self->{yrotate}));
    my $yd =  cos (deg2rad ($self->{xrotate} + 90));
    my $yl =  sin (deg2rad ($self->{xrotate} + 90));
-   return [$yl * $xd, $yd, $yl * $zd];
+   return $self->{cached_look_vec} = [$yl * $xd, $yd, $yl * $zd];
 }
 
 sub get_selected_box_pos {
@@ -739,6 +760,7 @@ sub change_look_lock : event_cb {
    $self->{xrotate} = 0;
    $self->{yrotate} = 0;
    $self->{look_lock} = $enabled;
+   delete $self->{cached_look_vec};
 
    if ($enabled) {
       $self->{app}->grab_input (SDL_GRAB_ON);
@@ -851,6 +873,7 @@ sub input_mouse_motion : event_cb {
       $self->{xrotate} = -90 if $self->{xrotate} < -90;
       $self->{xrotate} = 90 if $self->{xrotate} > 90;
       $self->{yrotate} = Math::Trig::deg2deg ($self->{yrotate});
+      delete $self->{cached_look_vec};
       $self->{change} = 1;
       #d# warn "rot ($xr,$yr) ($self->{xrotate},$self->{yrotate})\n";
       SDL::Mouse::warp_mouse ($xc, $yc);

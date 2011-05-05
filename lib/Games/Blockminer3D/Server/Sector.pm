@@ -65,12 +65,15 @@ sub mk_random {
    #d#      }
    #d#   }
    #d#}
+   srand (1);
 
    for my $dx (0..($SIZE - 1)) {
       for my $dy (0..($SIZE - 1)) {
          for my $dz (0..($SIZE - 1)) {
-            my $offs = $dx + $dy * $SIZE + $dz * ($SIZE ** 2);
-            secset (\$sect, [$dx, $dy, $dz], [1, 16]);
+            if (rand (100) > 60) {
+               my $offs = $dx + $dy * $SIZE + $dz * ($SIZE ** 2);
+               secset (\$sect, [$dx, $dy, $dz], [7, int rand (16)]);
+            }
          }
       }
    }
