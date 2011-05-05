@@ -37,13 +37,15 @@ sub init {
    $self->{hud1_tmr} = AE::timer 0, 0.7, sub {
       $self->update_hud_1;
    };
-   $self->teleport ([5, 15, 5]);
+   $self->teleport ([30, 32, 30]);
 }
 
 sub update_pos {
    my ($self, $pos) = @_;
+
    $self->{pos} = $pos;
 
+   return if $self->{chunk_sending};
    my $chnk = world_pos2chnkpos ($pos);
    my $old_state = $self->{chunk_state};
    my $chunk_state = {};
@@ -57,6 +59,7 @@ sub update_pos {
                $chunk_state->{$id} = delete $old_state->{$id};
 
             } else {
+               $self->{chunk_sending} = 1;
                $self->send_chunk ($cur_chunk);
                $chunk_state->{$id} = 1;
                last LASTUP;
@@ -99,6 +102,7 @@ sub send_chunk {
    my ($self, $chnk) = @_;
    world_get_chunk_data ($chnk, sub {
       $self->send_client ({ cmd => "chunk", pos => $chnk }, $_[0]);
+      $self->{chunk_sending} = 0;
    });
 }
 

@@ -11,7 +11,7 @@ use SDL::Event;
 use OpenGL qw(:all);
 use OpenGL::List;
 use AnyEvent;
-use Math::Trig qw/deg2rad rad2deg pi/;
+use Math::Trig qw/deg2rad rad2deg pi tan atan/;
 use Time::HiRes qw/time/;
 use POSIX qw/floor/;
 use Games::Blockminer3D::Vector;
@@ -240,7 +240,7 @@ sub compile_chunk {
       glPopMatrix;
 
    };
-   #d# warn "faces: $face_cnt\n";
+   warn "faces: $face_cnt\n";
 }
 
 sub step_animations {
@@ -263,6 +263,46 @@ sub step_animations {
 sub set_player_pos {
    my ($self, $pos) = @_;
    $self->{phys_obj}->{player}->{pos} = $pos;
+}
+
+sub calc_cam_cone {
+   my ($nplane, $fplane, $fov, $w, $h, $pos, $lv) = @_;
+   my $fdepth = ($h / 2) / tan (deg2rad ($fov) * 0.5);
+   my $fcorn  = sqrt (($w / 2) ** 2 + ($h / 2) ** 2);
+   my $ffov   = atan ($fcorn / $fdepth);
+   ($pos, vnorm ($lv), $ffov);
+}
+
+sub cone_spehere_intersect {
+   my ($cpos, $cv, $cfov, $spos, $srad) = @_;
+   my $u = vsub ($cpos, vsmul ($cv, $srad / sin ($cfov)));
+   my $d = vsub ($spos, $u);
+   if (vdot ($cv, $d) >= vlength ($d) * cos ($cfov)) {
+      my $d = vsub ($spos, $cpos);
+      if (-vdot ($cv, $d) >= vlength ($d) * sin ($cfov)) {
+         return vlength ($d) <= $srad; # inside k
+      } else {
+         return 1;
+      }
+
+   } else {
+      return 0; # outside cone
+   }
+}
+
+sub calc_cam_sphere {
+   my ($nplane, $fplane, $fov, $w, $h, $pos, $lv) = @_;
+   my $vlen = $fplane - $nplane;
+   my $height = $vlen * tan (deg2rad ($fov) * 0.5);
+   my $width  = ($w / $h) * $height;
+   my $half_p = [0, 0, $nplane + $vlen * 0.5];
+   my $frust_corner = [$width, $height, $vlen];
+   my $diff = vsub ($half_p, $frust_corner);
+
+   my $rad = vlength ($diff);
+   $lv = vnorm ($lv);
+   my $sphpos = vadd ($pos, vsmul ($lv, $vlen * 0.5 + $nplane));
+   return ($rad, $sphpos);
 }
 
 my $render_cnt;
@@ -288,13 +328,34 @@ sub render_scene {
    # move and rotate the world:
    glRotatef ($self->{xrotate}, 1, 0, 0);
    glRotatef ($self->{yrotate}, 0, 1, 0);
-   glTranslatef (@{vneg (vaddd ($pp, 0, $PL_HEIGHT, 0))});
+   my $cpos;
+   glTranslatef (@{vneg ($cpos = vaddd ($pp, 0, $PL_HEIGHT, 0))});
+
+   my (@fcone) = calc_cam_cone (0.1, 20, 60, $WIDTH, $HEIGHT, $cpos, $self->get_look_vector);
+   #my ($frad, $fpos) = calc_cam_sphere (0.1, 20, 50, $WIDTH, $HEIGHT, $pp, $cpos, $self->get_look_vector);
+   #warn "CAM $frad | " . vstr ($fpos) . "\n";
+   my $culled = 0;
+   #d#warn "FCONE ".vstr ($fcone[0]). ",".vstr ($fcone[1])." : $fcone[2]\n";
 
    for (world_visible_chunks_at ($pp)) {
       my ($cx, $cy, $cz) = @$_;
-      my $compl = $cc->{$cx}->{$cy}->{$cz};
-      glCallList ($compl) if $compl;
+      my $pos = vsadd (vsmul ([$cx, $cy, $cz], $Games::Blockminer3D::Client::MapChunk::SIZE), $Games::Blockminer3D::Client::MapChunk::SIZE / 2);
+     # my $dv = vsub ($pos, $fpos);
+
+      if (cone_spehere_intersect (@fcone, $pos, $Games::Blockminer3D::Client::MapChunk::BSPHERE)) {
+         my $compl = $cc->{$cx}->{$cy}->{$cz};
+         glCallList ($compl) if $compl;
+      } else {
+         $culled++;
+      }
+      #if (vlength ($dv) < ($frad +  $Games::Blockminer3D::Client::MapChunk::BSPHERE)) {
+      #   my $compl = $cc->{$cx}->{$cy}->{$cz};
+      #   glCallList ($compl) if $compl;
+      #} else {
+ #    #    warn "CHUNK CULL " . vstr ($pos) . " ".vstr ($dv)."( $frad , $Games::Blockminer3D::Client::MapChunk::BSPHERE )\n";
+      #}
    }
+   warn "culled $culled chunks\n";
 
    my $qp = $self->{selected_box};
    _render_highlight ($qp, [1, 0, 0, 0.2], 0.06) if $qp;

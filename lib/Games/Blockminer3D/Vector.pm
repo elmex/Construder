@@ -5,7 +5,7 @@ use POSIX qw/floor/;
 our @ISA = qw/Exporter/;
 our @EXPORT = qw/
    vneg vineg
-   vadd vaddd viadd viaddd
+   vadd vaddd viadd viaddd vsadd visadd
    vsub vsubd visub visubd
    vsdiv visdiv
    vsmod vismod
@@ -53,8 +53,10 @@ sub vneg   { [ map { -$_[0][$_] }        0..2 ] }
 sub vineg  { $_[0][$_] -= -$_[0][$_] for 0..2 }
 
 sub vadd   { [ map { $_[0][$_] + $_[1][$_]  } 0..2 ] }
+sub vsadd  { [ map { $_[0][$_] + $_[1]      } 0..2 ] }
 sub vaddd  { [ map { $_[0][$_] + $_[$_ + 1] } 0..2 ] }
 sub viadd  { $_[0][$_] += $_[1][$_]       for 0..2 }
+sub visadd { $_[0][$_] += $_[1]           for 0..2 }
 sub viaddd { $_[0][$_] += $_[$_ + 1]      for 0..2 }
 
 sub vsub   { [ map { $_[0][$_] - $_[1][$_]  } 0..2 ] }

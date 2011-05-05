@@ -195,7 +195,11 @@ sub _collide_sphere_box {
    if ($dvlen == 0) { # ouch, directly in the side?
       # find the direction away from the center
       my $inside_dir = vsub ($sphere_pos, vadd ($box, 0.5, 0.5, 0.5));
-      vinorm ($inside_dir);
+      if (vlength ($inside_dir) > 0.0001) {
+         vinorm ($inside_dir);
+      } else { # he IS in the center
+         $inside_dir = [0, 1, 0]; # move up :)
+      }
       # and move out one radius!
       return ($inside_dir, vsmul ($inside_dir, $sphere_rad));
 

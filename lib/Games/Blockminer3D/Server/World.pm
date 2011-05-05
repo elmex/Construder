@@ -60,8 +60,19 @@ sub world_sector_at {
 
    } else {
       $$sec = Games::Blockminer3D::Server::Sector->new;
-      $$sec->mk_random;
-      $cb->($$sec);
+         my $dat = $$sec->mk_random;
+         $$sec->{data} = $dat;
+         $cb->($$sec);
+         return;
+      AnyEvent::Util::fork_call {
+         my $dat = $$sec->mk_random;
+         warn "DONE: ".length ($dat)."\n";
+         $dat
+      } sub {
+         my ($data) = @_;
+         $$sec->{data} = $data;
+         $cb->($$sec);
+      };
    }
 }
 

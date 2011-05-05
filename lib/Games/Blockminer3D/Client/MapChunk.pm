@@ -1,5 +1,6 @@
 package Games::Blockminer3D::Client::MapChunk;
 use common::sense;
+use Time::HiRes qw/time/;
 
 use base qw/Object::Event/;
 
@@ -21,7 +22,8 @@ A chunk of the Blockminer3D world.
 
 =cut
 
-our ($SIZE) = 12;
+our $SIZE = 12;
+our $BSPHERE = sqrt (3 * (($SIZE/2) ** 2));
 
 sub new {
    my $this  = shift;
@@ -66,16 +68,22 @@ sub _data2array {
 sub data_fill {
    my ($self, $data) = @_;
 
+   my $t1 = time;
    my $map = [];
    for (my $x = 0; $x < $SIZE; $x++) {
       for (my $y = 0; $y < $SIZE; $y++) {
          for (my $z = 0; $z < $SIZE; $z++) {
             my $chnk_offs = $x + $y * $SIZE + $z * ($SIZE ** 2);
-            $map->[$x]->[$y]->[$z] = _data2array (substr $data, $chnk_offs * 4, 4);
+            my $c = $map->[$x]->[$y]->[$z] = _data2array (substr $data, $chnk_offs * 4, 4);
+            $c->[2] = 1;
+
             #d#warn "DATAFILL: $x,$y,$z: " . JSON->new->encode ($map->[$x]->[$y]->[$z]) . "\n";
          }
       }
    }
+
+   $self->{map} = $map;
+   return;
 
    my $visible;
    for (my $x = 0; $x < $SIZE; $x++) {
@@ -106,8 +114,8 @@ sub data_fill {
          }
       }
    }
-   warn "VISIBLE: $visible\n";
 
+   warn "VISIBLE: $visible : ".(time - $t1)."\n";
    $self->{map} = $map;
 }
 
@@ -145,6 +153,7 @@ sub cube_fill {
 sub visible_quads {
    my ($self, $offs) = @_;
    if ($self->{quads_cache}) {
+      warn "CACHE HIT\n";
       return @{$self->{quads_cache}}
    }
 

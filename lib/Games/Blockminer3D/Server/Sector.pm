@@ -1,5 +1,6 @@
 package Games::Blockminer3D::Server::Sector;
 use common::sense;
+use AnyEvent::Util;
 use Games::Blockminer3D::Vector;
 
 =head1 NAME
@@ -31,6 +32,15 @@ sub new {
    return $self
 }
 
+sub secset {
+   my ($rdata, $pos, $cont) = @_;
+   my $offs = $pos->[0] + $pos->[1] * $SIZE + $pos->[2] * ($SIZE ** 2);
+   my ($type, $light, $m, $a) = @$cont;#(int rand (10) > 5 ? 0 : 1, int rand (16));
+   my $blk = (($type << 4) & 0xFFF0)| ($light & 0x000F);
+   my $content = pack "nCC", $blk, $m, $a;
+   substr $$rdata, $offs * 4, 4, $content;
+}
+
 sub mk_random {
    my ($self) = @_;
 
@@ -38,14 +48,29 @@ sub mk_random {
 
    my $sect = "\x00" x (($SIZE ** 3) * 4);
 
+   #d#for my $cx (0..4) {
+   #d#   for my $cy (0..4) {
+   #d#      for my $cz (0..4) {
+   #d#         my $c = $CHNKSIZE / 2;
+   #d#         my $p = [
+   #d#            $cx * $CHNKSIZE + ($CHNKSIZE / 2),
+   #d#            $cy * $CHNKSIZE + ($CHNKSIZE / 2),
+   #d#            $cz * $CHNKSIZE + ($CHNKSIZE / 2)
+   #d#         ];
+   #d#         secset (\$sect, $p, [1, 16]);
+   #d#         secset (\$sect, vaddd ($p, 0, 0, 1), [1, 16]);
+   #d#         secset (\$sect, vaddd ($p, 1, 0, 0), [1, 16]);
+   #d#         secset (\$sect, vaddd ($p, 1, 0, 1), [1, 16]);
+   #d#         warn "SEt AT " . vstr ($p) . "\n";
+   #d#      }
+   #d#   }
+   #d#}
+
    for my $dx (0..($SIZE - 1)) {
       for my $dy (0..($SIZE - 1)) {
          for my $dz (0..($SIZE - 1)) {
             my $offs = $dx + $dy * $SIZE + $dz * ($SIZE ** 2);
-            my ($type, $light) = (int rand (10) > 5 ? 0 : 1, int rand (16));
-            my $blk = (($type << 4) & 0xFFF0)| ($light & 0x000F);
-            my $content = pack "nCC", $blk, 0, 0;
-            substr $sect, $offs * 4, 4, $content;
+            secset (\$sect, [$dx, $dy, $dz], [1, 16]);
          }
       }
    }
