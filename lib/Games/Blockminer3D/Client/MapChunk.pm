@@ -46,7 +46,7 @@ sub _map_get_if_exists {
 sub _neighbours {
    my ($map, $x, $y, $z) = @_;
  #  my ($cur, $top, $bot, $left, $right, $front, $back) 
-   my @n = (
+   (
       _map_get_if_exists ($map, $x, $y,     $z),
       _map_get_if_exists ($map, $x, $y + 1, $z),
       _map_get_if_exists ($map, $x, $y - 1, $z),
@@ -54,8 +54,7 @@ sub _neighbours {
       _map_get_if_exists ($map, $x + 1, $y, $z),
       _map_get_if_exists ($map, $x, $y,     $z - 1),
       _map_get_if_exists ($map, $x, $y,     $z + 1),
-   );
-   @n
+   )
 }
 
 sub _data2array {

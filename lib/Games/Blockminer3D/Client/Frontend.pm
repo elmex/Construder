@@ -67,6 +67,7 @@ sub new {
 
    return $self
 }
+
 sub init_test {
    my ($self) = @_;
    $self->{active_uis}->{debug_hud} =
@@ -119,8 +120,6 @@ sub init_app {
    glFogf (GL_FOG_END,   20);
 
    $self->{textures} = Games::Blockminer3D::Client::Textures->new;
-   #$self->{textures}->add_file ("res/blocks19.small.png", [[1]]);
-   #$self->{textures}->add_file ("res/metal05.small.png", [[2]]);
 }
 
 #  0 front  1 top    2 back   3 left   4 right  5 bottom
