@@ -268,6 +268,7 @@ sub step_animations {
 sub set_player_pos {
    my ($self, $pos) = @_;
    $self->{phys_obj}->{player}->{pos} = $pos;
+   delete $self->{cached_look_vec};
 }
 
 sub cone_spehere_intersect {
@@ -318,7 +319,7 @@ sub render_scene {
    my $t2 = time;
    my (@fcone) = $self->cam_cone;
    my $culled = 0;
-   #d#warn "FCONE ".vstr ($fcone[0]). ",".vstr ($fcone[1])." : $fcone[2]\n";
+   #d# warn "FCONE ".vstr ($fcone[0]). ",".vstr ($fcone[1])." : $fcone[2]\n";
    my $t3 = time;
 
    for (world_visible_chunks_at ($pp)) {
