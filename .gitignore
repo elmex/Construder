@@ -10,3 +10,6 @@ Object-Event-*
 cover_db
 *.swp
 t/methds/meth_*
+nytprof*
+*.c
+*.o
