@@ -193,7 +193,9 @@ sub start_materialize {
       return;
    }
 
-   $self->send_client ({ cmd => "highlight", pos => $pos, color => [0, 1, 1], fade => 1, solid => 1 });
+   $self->send_client ({
+      cmd => "highlight", pos => $pos, color => [0, 1, 1], fade => 1, solid => 1
+   });
    $self->{materializings}->{$id} = 1;
 
    my $tmr;

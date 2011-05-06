@@ -176,7 +176,7 @@ sub handle_packet : event_cb {
       $self->send_server ({ cmd => 'transfer_poll' });
 
    } elsif ($hdr->{cmd} eq 'transfer_end') {
-      $self->msgbox ("Transfer done!\n");
+      $self->msgbox ("Transfer done! Waiting for map data...\n");
       #print JSON->new->pretty->encode ($self->{front}->{res}->{resource});
       $self->{front}->{res}->post_proc;
       $self->{front}->{res}->dump_resources;
