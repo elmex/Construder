@@ -218,49 +218,40 @@ sub compile_chunk {
    my $chnk = world_get_chunk ($cx, $cy, $cz)
       or return;
    warn "compiling... $cx, $cy, $cz: $chnk\n";
-   my $face_cnt;
-   my $t1 = time;
+
    $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} = OpenGL::List::glpList {
+      my ($txtid) = $self->{res}->obj2texture (1);
+      glBindTexture (GL_TEXTURE_2D, $txtid);
+      glEnableClientState(GL_VERTEX_ARRAY);
+      glEnableClientState(GL_COLOR_ARRAY);
+      glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+      my $compl = $chnk->visible_quads ($self->{res});
       glPushMatrix;
-      glBegin (GL_QUADS);
 
-      my @quads = map {
-         [
-            [
-               $_->[0]->[0] + ($cx * $Games::Blockminer3D::Client::MapChunk::SIZE),
-               $_->[0]->[1] + ($cy * $Games::Blockminer3D::Client::MapChunk::SIZE),
-               $_->[0]->[2] + ($cz * $Games::Blockminer3D::Client::MapChunk::SIZE),
-            ],
-            $_->[1],
-            $_->[2],
-            $_->[3],
-         ]
-      } $chnk->visible_quads;
-      #d# warn "[" . (scalar @quads) . "] quads\n";
+      glTranslatef (
+         $cx * $Games::Blockminer3D::Client::MapChunk::SIZE,
+         $cy * $Games::Blockminer3D::Client::MapChunk::SIZE,
+         $cz * $Games::Blockminer3D::Client::MapChunk::SIZE
+      );
+      glVertexPointer_p (3, $compl->[0]);
+      glColorPointer_p (3, $compl->[1]);
+      glTexCoordPointer_p (2, $compl->[2]);
+   # grmbl... doesn't seem to work:
+   #my @indexes = map {
+   #   my $b = $_ * 4;
+   #   ($b, $b + 1, $b + 2, $b + 3)
+   #} (0..($compl->[3] - 1));
 
-      my $current_texture;
-
-      # sort by texture name:
-      for (sort { $a->[3] cmp $b->[3] } @quads) {
-         my ($pos, $faces, $objid) = @$_;
-         my ($tex_nr, $surf, $uv) = $self->{res}->obj2texture ($objid);#$tex || 1);
-         if ($current_texture != $tex_nr) {
-            glEnd;
-            glBindTexture (GL_TEXTURE_2D, $tex_nr);
-            glBegin (GL_QUADS);
-            $current_texture = $tex_nr;
-         }
-
-         $face_cnt += scalar @$faces;
-
-         _render_quad ($pos, $faces, $uv);
+ #     glDrawElements_p (GL_QUADS, $compl->[3] * 4, GL_UNSIGNED_INT, @indexes);
+      for (0..($compl->[3] - 1)) {
+         glDrawArrays (GL_QUADS, $_ * 4, 4);
       }
-
-      glEnd;
       glPopMatrix;
 
+      glDisableClientState(GL_COLOR_ARRAY);
+      glDisableClientState(GL_VERTEX_ARRAY);
+      glDisableClientState(GL_TEXTURE_COORD_ARRAY);
    };
-   warn "faces: $face_cnt compiled in ".(time - $t1)." sec\n";
 }
 
 sub step_animations {
@@ -314,8 +305,8 @@ sub render_scene {
    my $pp =  $self->{phys_obj}->{player}->{pos};
     #d#  warn "CHUNK " . vstr ($chunk_pos) . " from " . vstr ($pp) . "\n";
 
-#   glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-   glClear (GL_DEPTH_BUFFER_BIT);
+   glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+ #d#  glClear (GL_DEPTH_BUFFER_BIT);
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity;
@@ -345,8 +336,9 @@ sub render_scene {
                        $Games::Blockminer3D::Client::MapChunk::SIZE / 2);
 
       if (cone_spehere_intersect (@fcone, $pos, $Games::Blockminer3D::Client::MapChunk::BSPHERE)) {
-         my $compl = $cc->{$cx}->{$cy}->{$cz};
-         glCallList ($compl) if $compl;
+         my $compl = $cc->{$cx}->{$cy}->{$cz}
+            or next;
+         glCallList ($compl);
       } else {
          $culled++;
       }

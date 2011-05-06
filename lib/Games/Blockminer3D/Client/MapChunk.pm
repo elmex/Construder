@@ -1,6 +1,8 @@
 package Games::Blockminer3D::Client::MapChunk;
 use common::sense;
 use Time::HiRes qw/time/;
+use OpenGL qw/:all/;
+use Games::Blockminer3D::Vector;
 
 use base qw/Object::Event/;
 
@@ -40,7 +42,8 @@ sub _map_get_if_exists {
    my ($map, $x, $y, $z) = @_;
    return [0, 16, 1] if $x < 0     || $y < 0     || $z < 0;
    return [0, 16, 1] if $x >= $SIZE || $y >= $SIZE || $z >= $SIZE;
-   $map->[$x + ($y + $z * $SIZE) * $SIZE]
+   #$map->[$x + ($y + $z * $SIZE) * $SIZE]
+   $map->[$x]->[$y]->[$z]# + ($y + $z * $SIZE) * $SIZE]
 }
 
 sub _neighbours {
@@ -69,11 +72,11 @@ sub data_fill {
 
    my $t1 = time;
    my $map = [];
-   for (my $x = 0; $x < $SIZE; $x++) {
+   for (my $z = 0; $z < $SIZE; $z++) {
       for (my $y = 0; $y < $SIZE; $y++) {
-         for (my $z = 0; $z < $SIZE; $z++) {
+         for (my $x = 0; $x < $SIZE; $x++) {
             my $chnk_offs = $x + $y * $SIZE + $z * ($SIZE ** 2);
-            my $c = $map->[$chnk_offs] = _data2array (substr $data, $chnk_offs * 4, 4);
+            my $c = $map->[$x]->[$y]->[$z] = _data2array (substr $data, $chnk_offs * 4, 4);
             $c->[2] = 1;
 
             #d#warn "DATAFILL: $x,$y,$z: " . JSON->new->encode ($map->[$x]->[$y]->[$z]) . "\n";
@@ -85,9 +88,9 @@ sub data_fill {
    return;
 
    my $visible;
-   for (my $x = 0; $x < $SIZE; $x++) {
+   for (my $z = 0; $z < $SIZE; $z++) {
       for (my $y = 0; $y < $SIZE; $y++) {
-         for (my $z = 0; $z < $SIZE; $z++) {
+         for (my $x = 0; $x < $SIZE; $x++) {
             my ($cur, $top, $bot, $left, $right, $front, $back)
                = _neighbours ($map, $x, $y, $z);
             my $cnt = 0;
@@ -119,24 +122,54 @@ sub data_fill {
    $self->{map} = $map;
 }
 
+my @indices  = (
+   qw/ 0 1 2 3 /, # 0 front
+   qw/ 1 5 6 2 /, # 1 top
+   qw/ 7 6 5 4 /, # 2 back
+   qw/ 4 5 1 0 /, # 3 left
+   qw/ 3 2 6 7 /, # 4 right
+   qw/ 3 7 4 0 /, # 5 bottom
+);
+
+#my @normals = (
+#   [ 0, 0,-1],
+#   [ 0, 1, 0],
+#   [ 0, 0, 1],
+#   [-1, 0, 0],
+#   [ 1, 0, 0],
+#   [ 0,-1, 0],
+#),
+my @vertices = (
+   [ 0,  0,  0 ],
+   [ 0,  1,  0 ],
+   [ 1,  1,  0 ],
+   [ 1,  0,  0 ],
+
+   [ 0,  0,  1 ],
+   [ 0,  1,  1 ],
+   [ 1,  1,  1 ],
+   [ 1,  0,  1 ],
+);
+
+
 sub visible_quads {
-   my ($self, $offs) = @_;
-   if ($self->{quads_cache}) {
-      warn "CACHE HIT\n";
-      return @{$self->{quads_cache}}
-   }
+   my ($self, $res) = @_;
+
+   my (@vertexes, @colors, @texcoords);
 
    my $map = $self->{map};
 
-   my @quads;
-   for (my $x = 0; $x < $SIZE; $x++) {
+   my $quad_cnt;
+   FACES:
+   for (my $z = 0; $z < $SIZE; $z++) {
       for (my $y = 0; $y < $SIZE; $y++) {
-         for (my $z = 0; $z < $SIZE; $z++) {
+         for (my $x = 0; $x < $SIZE; $x++) {
             my ($cur, $top, $bot, $left, $right, $front, $back)
                = _neighbours ($map, $x, $y, $z);
             next unless $cur->[2];
             if ($cur->[0] != 0) {
                my @faces;
+               my ($txtid, $surf, $uv) = $res->obj2texture ($cur->[0]);
 
                if ($front->[2] && $front->[0] == 0) {
                   push @faces, [0, $front->[1] / 15]
@@ -157,19 +190,55 @@ sub visible_quads {
                   push @faces, [5, $bot->[1] / 15]
                }
 
+               for (@faces) {
+                  my ($faceidx, $color) = @$_;
+                  $quad_cnt++;
+                  push @vertexes, map {
+                     my $v = $vertices[$indices[$faceidx * 4 + $_]];
+                     (
+                        $v->[0] + $x,
+                        $v->[1] + $y,
+                        $v->[2] + $z,
+                     )
+                  } 0..3;
+                  push @colors, (
+                     $color, $color, $color,
+                     $color, $color, $color,
+                     $color, $color, $color,
+                     $color, $color, $color,
+                  );
+                  push @texcoords, (
+                     $uv->[2], $uv->[3],
+                     $uv->[2], $uv->[1],
+                     $uv->[0], $uv->[1],
+                     $uv->[0], $uv->[3],
+ #                    1, 1,
+ #                    1, 0,
+ #                    0, 0,
+ #                    0, 1
+                  );
+               }
+
               # my ($pos, $faces, $light, $tex) = @$_;
                #d# warn "QUAD: @faces at $x, $y, $z ($cur->[1])\n";
-               push @quads, [
-                  [$x, $y, $z], # pos
-                  \@faces,      # faces
-                  $cur->[0]     # object type id
-               ];
+              # push @quads, [
+              #    [$x, $y, $z], # pos
+              #    \@faces,      # faces
+              #    $cur->[0]     # object type id
+              # ];
             }
          }
       }
    }
-   $self->{quads_cache} = \@quads;
-   @quads
+   warn "GOT: " . scalar (@vertexes) . " verts, " . scalar (@colors) . " colors and " . scalar (@texcoords) . " texcoords and $quad_cnt quads\n";
+ #d#  warn "LIST[@vertexes | @colors | @texcoords]\n";
+
+   [
+      OpenGL::Array->new_list (GL_FLOAT, @vertexes),
+      OpenGL::Array->new_list (GL_FLOAT, @colors),
+      OpenGL::Array->new_list (GL_FLOAT, @texcoords),
+      $quad_cnt
+   ]
 }
 
 sub chunk_changed : event_cb {
