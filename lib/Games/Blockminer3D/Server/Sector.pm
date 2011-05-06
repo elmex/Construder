@@ -134,7 +134,7 @@ Robin Redeker, C<< <elmex@ta-sa.org> >>
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2009 Robin Redeker, all rights reserved.
+Copyright 2011 Robin Redeker, all rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
