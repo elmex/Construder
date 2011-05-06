@@ -37,7 +37,7 @@ sub init {
    $self->{hud1_tmr} = AE::timer 0, 0.5, sub {
       $self->update_hud_1;
    };
-   $self->teleport ([30, 32, 30]);
+   $self->teleport ([30, 1, 30]);
 }
 
 sub update_pos {
@@ -102,7 +102,7 @@ sub show_inventory {
    my ($self) = @_;
 
    my @listing;
-   my $res = $self->{srv}->{res};
+   my $res = $Games::Blockminer3D::Server::RES;
    for (keys %{$self->{inventory}->{material}}) {
       my $m = $self->{inventory}->{material}->{$_};
       my $o = $res->get_object_by_type ($_);

@@ -27,6 +27,8 @@ Games::Blockminer3D::Server - desc
 
 =cut
 
+our $RES;
+
 sub new {
    my $this  = shift;
    my $class = ref ($this) || $this;
@@ -43,8 +45,8 @@ sub new {
 sub init {
    my ($self) = @_;
 
-   $self->{res} = Games::Blockminer3D::Server::Resources->new;
-   $self->{res}->load_objects;
+   $RES = Games::Blockminer3D::Server::Resources->new;
+   $RES->load_objects;
 }
 
 sub listen {
@@ -142,7 +144,7 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'enter') {
       my $pl = $self->{players}->{$cid}
-         = Games::Blockminer3D::Server::Player->new (cid => $cid, srv => $self);
+         = Games::Blockminer3D::Server::Player->new (cid => $cid);
 
       $self->{player_guards}->{$cid} = $pl->reg_cb (send_client => sub {
          my ($pl, $hdr, $body) = @_;
@@ -160,11 +162,11 @@ sub handle_packet : event_cb {
          if $self->{players}->{$cid};
 
    } elsif ($hdr->{cmd} eq 'list_resources') {
-      my $res = $self->{res}->list_resources;
+      my $res = $RES->list_resources;
       $self->send_client ($cid, { cmd => "resources_list", list => $res });
 
    } elsif ($hdr->{cmd} eq 'get_resources') {
-      my $res = $self->{res}->get_resources_by_id (@{$hdr->{ids}});
+      my $res = $RES->get_resources_by_id (@{$hdr->{ids}});
       $self->transfer_res2client ($cid, $res);
 
    } elsif ($hdr->{cmd} eq 'pos_action') {

@@ -62,12 +62,34 @@ sub mutate_at {
    }
 }
 
+sub mk_construct {
+   my ($self) = @_;
+
+   my $sect = "\x00" x (($SIZE ** 3) * 4);
+
+   for my $dx (0..($SIZE - 1)) {
+      for my $dy (0..($SIZE - 1)) {
+         for my $dz (0..($SIZE - 1)) {
+            if ($dx == 0 || $dy == 0 || $dz == 0
+                || ($dx == ($SIZE - 1))
+                || ($dy == ($SIZE - 1))
+                || ($dz == ($SIZE - 1))
+            ) {
+               secset (\$sect, [$dx, $dy, $dz], [2, 15]);
+            } else {
+               secset (\$sect, [$dx, $dy, $dz], [0, 15]);
+            }
+         }
+      }
+   }
+
+   $self->{data} = $sect;
+}
+
 sub mk_random {
    my ($self) = @_;
 
    warn "SECTOR RANDOM!\n";
-
-   my $sect = "\x00" x (($SIZE ** 3) * 4);
 
    #d#for my $cx (0..4) {
    #d#   for my $cy (0..4) {
@@ -89,6 +111,8 @@ sub mk_random {
    srand (1);
 
    my @types = (2..8);
+
+   my $sect = "\x00" x (($SIZE ** 3) * 4);
 
    for my $dx (0..($SIZE - 1)) {
       for my $dy (0..($SIZE - 1)) {

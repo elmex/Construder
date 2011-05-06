@@ -63,14 +63,19 @@ sub world_mutate_at {
 }
 
 sub load_sector {
-   my ($secref, $cb) = @_;
+   my ($secref, $pos, $cb) = @_;
 
    if (defined $$secref) {
       $cb->($$secref);
 
    } else {
       $$secref = Games::Blockminer3D::Server::Sector->new;
-         my $dat = $$secref->mk_random;
+         my $dat;
+         if ($pos->[0] == 0 && $pos->[1] == 0 && $pos->[2] == 0) {
+            $dat = $$secref->mk_construct;
+         } else {
+            $dat = $$secref->mk_random;
+         }
          $$secref->{data} = $dat;
          $cb->($$secref);
          return;
@@ -96,7 +101,7 @@ sub world_sector_at {
          vsdiv ($chnkpos, $Games::Blockminer3D::Server::Sector::CHNKS_P_SECTOR));
    my $sec = world_pos2secref ($secpos);
 
-   load_sector ($sec, $cb);
+   load_sector ($sec, $secpos, $cb);
 }
 
 sub world_get_chunk_data {

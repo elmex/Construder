@@ -274,7 +274,6 @@ sub step_animations {
             $color->[3] -= (1 / $attr->{fading}) * $dt;
          } else {
             next if $color->[3] >= 1; # remove fade
-            warn "FADE $attr->{fading}\n";
             $color->[3] += (1 / (-1 * $attr->{fading})) * $dt;
          }
       }
@@ -766,6 +765,7 @@ sub physics_tick : event_cb {
    my $movement = _calc_movement (
       $self->{movement}->{straight}, $self->{movement}->{strafe},
       $self->{yrotate});
+   $movement = vsmul ($movement, $self->{movement}->{speed} ? 2 : 1);
    viadd ($player->{pos}, vsmul ($movement, $dt));
 
    #d#warn "check player at $player->{pos}\n";
@@ -841,6 +841,9 @@ sub input_key_up : event_cb {
 
    } elsif ($name eq 't') {
       $self->{app}->fullscreen;
+
+   } elsif ($name eq 'left shift') {
+      $self->{movement}->{speed} = 0;
    }
 
 }
@@ -898,13 +901,16 @@ sub input_key_down : event_cb {
       $self->{ghost_mode} = not $self->{ghost_mode};
    } elsif ($name eq 'f') {
       $self->change_look_lock (not $self->{look_lock});
+   } elsif ($name eq 'left shift') {
+      $self->{movement}->{speed} = 1;
+
    } elsif (grep { $name eq $_ } qw/a s d w/) {
       my ($xdir, $ydir) = (
-         $name eq 'w'        ?  1
-         : ($name eq 's'     ? -1
+         $name eq 'w'        ?  2
+         : ($name eq 's'     ? -2
                              :  0),
-         $name eq 'a'        ? -1
-         : ($name eq 'd'     ?  1
+         $name eq 'a'        ? -2.5
+         : ($name eq 'd'     ?  2.5
                              :  0),
       );
 
