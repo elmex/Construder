@@ -87,13 +87,20 @@ sub load_object {
       $obj->{texture_id} =
          $self->load_texture ($obj->{texture});
    }
-   $self->add_res ({
+   $obj->{name} = $name;
+   my $id = $self->add_res ({
       type => "object",
       data => {
          object_type => $obj->{type},
          texture_map => $obj->{texture_id},
       }
    });
+   $self->{object_res}->{$obj->{type}} = $obj;
+}
+
+sub get_object_by_type {
+   my ($self, $typeid) = @_;
+   $self->{object_res}->{$typeid}
 }
 
 sub load_texture {

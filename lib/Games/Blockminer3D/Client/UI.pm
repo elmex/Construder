@@ -5,6 +5,7 @@ use SDL::Surface;
 use SDL::Video;
 use SDL::TTF;
 use OpenGL qw(:all);
+use JSON;
 
 use base qw/Object::Event/;
 
@@ -77,12 +78,14 @@ sub _clr2color {
 }
 
 sub _calc_extents {
-   my ($ext, $relext, $line_h, $base_w, $base_h) = @_;
+   my ($ext, $relext, $font_h, $base_w, $base_h) = @_;
    my ($pos, $size) = ([$ext->[0], $ext->[1]], [$ext->[2], $ext->[3]]);
 
-   if ($size->[1] eq 'line_height') {
-      $size->[1] = $line_h;
+   if ($size->[1] =~ /^font_height(?:\s*(\d+(?:\.\d+)?))?/) {
+      $size->[1] = $1 ne '' ? $font_h * $1 : $font_h;
+      warn "FONT HEIGHT $font_h\n";
    }
+   #d# warn "RELATIVE: " . JSON->new->pretty->encode ($relext) . "\n";
 
    $size = [$size->[0] * $base_w, $size->[1]] if $size->[0] <= 1;
    $size = [$size->[0], $size->[1] * $base_h] if $size->[1] <= 1;
@@ -114,13 +117,14 @@ sub _calc_extents {
    } elsif ($pos->[1] eq 'center') {
       $pos->[1] = int (($base_h - $size->[1]) / 2);
 
-   } elsif ($pos->[0] =~ /^y_of\s*(\d+)/) {
+   } elsif ($pos->[1] =~ /^y_of\s*(\d+)/) {
       my $ext = $relext->[$1];
       $pos->[1] = $ext->[0]->[1] if $ext;
 
-   } elsif ($pos->[0] =~ /^bottom_of\s*(\d+)/) {
+   } elsif ($pos->[1] =~ /^bottom_of\s*(\d+)/) {
       my $ext = $relext->[$1];
       $pos->[1] = $ext->[0]->[1] + $ext->[1]->[1] if $ext;
+      warn "BOTTOM OF $pos->[1]\n";
 
    } elsif ($pos->[1] <= 1) {
       $pos->[1] = $base_h * $pos->[1];
@@ -143,9 +147,10 @@ sub place_text {
    my ($self, $ext, $align, $wrap, $text, $font, $color) = @_;
 
    my $fnt = $font eq 'big' ? $BIG_FONT : $font eq 'small' ? $SMALL_FONT : $NORM_FONT;
-   my $line_skip = SDL::TTF::font_line_skip ($fnt);
+   my $line_skip   = SDL::TTF::font_line_skip ($fnt);
+   my $font_height = SDL::TTF::font_height ($fnt);
 
-   my ($pos, $size) = _calc_extents ($ext, $self->{relative_extents}, $line_skip, @{$self->{window_size}});
+   my ($pos, $size) = _calc_extents ($ext, $self->{relative_extents}, $font_height, @{$self->{window_size}});
    $self->{relative_extents}->[$self->{element_offset}++] = [$pos, $size];
 
    my $surf = $self->{sdl_surf};
@@ -169,10 +174,24 @@ sub place_text {
       }
    }
 
-   my $curp = $pos;
+   my $curp = [@$pos];
    for my $line (@lines) {
+      if ($line eq '') {
+         $avail_h   -= $line_skip;
+         $curp->[1] += $line_skip;
+         next;
+      }
+
       my $tsurf = SDL::TTF::render_utf8_blended (
          $fnt, $line, SDL::Color->new (_clr2color ($color)));
+
+      unless ($tsurf) {
+         warn "SDL::TTF::render_utf8_blended could not render \"$line\": "
+              . SDL::get_error . "\n";
+         $avail_h   -= $line_skip;
+         $curp->[1] += $line_skip;
+         next;
+      }
 
       my $h = $tsurf->h < $avail_h
                  ? $tsurf->h
@@ -353,7 +372,7 @@ sub input_key_press : event_cb {
 
 sub DESTROY {
    my ($self) = @_;
-   glDestroyTextures_p (delete $self->{gl_id}) if $self->{gl_id};
+   glDeleteTextures_p (delete $self->{gl_id}) if $self->{gl_id};
 }
 
 =back

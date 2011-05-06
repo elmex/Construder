@@ -78,19 +78,21 @@ sub update_hud_1 {
          color => "#440011",
       },
       elements => [
-         { type => "text", extents => ["center", "center", 0.5, 0.5],
-            font => "normal", color => "#000000",
-           text => "Cnt: " . $self->{cnt}
-         },
-         { type => "text", extents => ["center", 0.6, 0.5, 0.4],
+         {
+            type => "text", extents => ["left", 0.1, 0.03, "font_height"],
             font => "small", color => "#000000",
-           text => "Pos: " . vstr ($self->{pos})
-         }
+            text => "Pos:" . vstr ($self->{pos})
+         },
+         {
+            type => "text", extents => ["left", "bottom_of 0", 0.03, 1],
+            font => "small", color => "#ff0000",
+            text => "(Press F1 for Help)"
+         },
       ],
       commands => {
          default_keys => {
-            r => "rere",
-            i => "inventory",
+            f1 => "help",
+            i  => "inventory",
          },
       },
    } });
@@ -99,7 +101,13 @@ sub update_hud_1 {
 sub show_inventory {
    my ($self) = @_;
 
-   warn "HSOW INV\n";
+   my @listing;
+   my $res = $self->{srv}->{res};
+   for (keys %{$self->{inventory}->{material}}) {
+      my $m = $self->{inventory}->{material}->{$_};
+      my $o = $res->get_object_by_type ($_);
+      push @listing, [$o->{name}, $m];
+   }
    $self->send_client ({ cmd => activate_ui => ui => "player_inventory", desc => {
       window => {
          extents => [center => center => 0.8, 0.8],
@@ -109,14 +117,64 @@ sub show_inventory {
       },
       elements => [
          {
-            type => "text", extents => ["center", 0.01, 0.9, "line_height"],
+            type => "text", extents => ["center", 0.01, 0.9, "font_height"],
             font => "big", color => "#ffffff",
+            align => "center",
             text => "Material:"
          },
          {
-            type => "text", extents => ["left", "bottom_of 1", 0.9, 0.01],
+            type => "text", extents => ["left", "bottom_of 0", 0.4, 0.9],
+            font => "normal", color => "#ffffff",
+            align => "right",
+            text => join ("\n", map { $_->[0] } @listing)
+         },
+         {
+            type => "text", extents => ["right", "bottom_of 0", 0.5, 0.9],
+            font => "normal", color => "#ff00ff",
+            text => join ("\n", map { $_->[1] } @listing)
+         }
+      ]
+   } });
+}
+
+sub show_help {
+   my ($self) = @_;
+
+   my $help_txt = <<HELP;
+Basic controls:
+[ w a s d ]
+forward, left, backward, right
+[ f ]
+toggle mouse look
+[ g ]
+enable gravitation and collision detection
+[ i ]
+show up inventory
+[ space ]
+jump
+[ escape ]
+close window or quit game
+HELP
+
+   $self->send_client ({ cmd => activate_ui => ui => "player_inventory", desc => {
+      window => {
+         extents => [center => center => 0.8, 1],
+         alpha => 1,
+         color => "#000000",
+         prio => 100,
+      },
+      elements => [
+         {
+            type => "text", extents => ["center", 0.01, 0.9, "font_height"],
             font => "big", color => "#ffffff",
-            text => "Test"
+            align => "center",
+            text => "Help:"
+         },
+         {
+            type => "text", extents => ["center", "bottom_of 0", 1, 0.9],
+            font => "small", color => "#ffffff",
+            align => "center",
+            text => $help_txt,
          },
       ]
    } });
@@ -137,7 +195,7 @@ sub start_dematerialize {
    $tmr = AE::timer 1.5, 0, sub {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
-         $self->{inventory}->{material}->[$data->[0]]++;
+         $self->{inventory}->{material}->{$data->[0]}++;
          $data->[0] = 0;
 
          # FIXME: this is more or less a hack, we need some chunk update system soon
@@ -171,11 +229,10 @@ sub teleport {
 sub ui_res : event_cb {
    my ($self, $ui, $cmd, $arg) = @_;
    if ($ui eq 'player_hud_1') {
-      if ($cmd eq 'rere') {
-         $self->{cnt}++;
-         $self->update_hud_1;
-      } elsif ($cmd eq 'inventory') {
+      if ($cmd eq 'inventory') {
          $self->show_inventory;
+      } elsif ($cmd eq 'help') {
+         $self->show_help;
       }
    }
 }

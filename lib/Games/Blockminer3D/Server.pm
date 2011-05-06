@@ -142,7 +142,7 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'enter') {
       my $pl = $self->{players}->{$cid}
-         = Games::Blockminer3D::Server::Player->new (cid => $cid);
+         = Games::Blockminer3D::Server::Player->new (cid => $cid, srv => $self);
 
       $self->{player_guards}->{$cid} = $pl->reg_cb (send_client => sub {
          my ($pl, $hdr, $body) = @_;
