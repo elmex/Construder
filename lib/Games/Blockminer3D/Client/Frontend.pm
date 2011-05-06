@@ -99,6 +99,7 @@ sub init_app {
 
    glDepthFunc(GL_LESS);
    glEnable (GL_DEPTH_TEST);
+   glDisable (GL_DITHER);
 
    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    glEnable (GL_BLEND);
@@ -120,6 +121,7 @@ sub init_app {
    glFogf (GL_FOG_END,   20);
 
    $self->{textures} = Games::Blockminer3D::Client::Textures->new;
+
 }
 
 #  0 front  1 top    2 back   3 left   4 right  5 bottom
@@ -169,8 +171,8 @@ sub _render_quad {
          my $index  = $indices[4 * $face + $vertex];
          my $coords = $vertices[$index];
 
-         glTexCoord2d (@{$uv[$vertex]});
-         glVertex3d (
+         glTexCoord2f (@{$uv[$vertex]});
+         glVertex3f (
             $coords->[0] + $pos->[0],
             $coords->[1] + $pos->[1],
             $coords->[2] + $pos->[2]
@@ -186,13 +188,26 @@ sub _render_highlight {
    $pos = vsubd ($pos, $rad, $rad, $rad);
    glPushMatrix;
    glBindTexture (GL_TEXTURE_2D, 0);
-   glColor4d (@$color);
+   glColor4f (@$color);
    glTranslatef (@$pos);
    glScalef (1 + 2*$rad, 1 + 2*$rad, 1+2*$rad);
    glBegin (GL_QUADS);
    _render_quad ([0, 0, 0], [0..5]);
    glEnd;
    glPopMatrix;
+}
+
+sub build_chunk_arrays {
+   my ($self) = @_;
+   my @verts;
+
+   for my $dx (0..$Games::Blockminer3D::Client::MapChunk::SIZE) {
+      for my $dy (0..$Games::Blockminer3D::Client::MapChunk::SIZE) {
+         for my $dz (0..$Games::Blockminer3D::Client::MapChunk::SIZE) {
+            push @verts, [$dx, $dy, $dz];
+         }
+      }
+   }
 }
 
 sub compile_chunk {
@@ -236,7 +251,7 @@ sub compile_chunk {
 
          $face_cnt += scalar @$faces;
 
-         glColor3d ($light, $light, $light) if defined $light;
+         glColor3f ($light, $light, $light) if defined $light;
          _render_quad ($pos, $faces, $uv);
       }
 
@@ -267,7 +282,6 @@ sub step_animations {
 sub set_player_pos {
    my ($self, $pos) = @_;
    $self->{phys_obj}->{player}->{pos} = $pos;
-   delete $self->{cached_look_vec};
 }
 
 sub cone_spehere_intersect {
@@ -299,7 +313,8 @@ sub render_scene {
    my $pp =  $self->{phys_obj}->{player}->{pos};
     #d#  warn "CHUNK " . vstr ($chunk_pos) . " from " . vstr ($pp) . "\n";
 
-   glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#   glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+   glClear (GL_DEPTH_BUFFER_BIT);
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity;
@@ -317,6 +332,7 @@ sub render_scene {
 
    my $t2 = time;
    my (@fcone) = $self->cam_cone;
+   unshift @fcone, $cpos;
    my $culled = 0;
    #d# warn "FCONE ".vstr ($fcone[0]). ",".vstr ($fcone[1])." : $fcone[2]\n";
    my $t3 = time;
@@ -361,13 +377,13 @@ sub render_scene {
 
    $render_time += time - $t1;
    $render_cnt++;
+
 }
 
 sub render_hud {
    my ($self) = @_;
 
    glDisable (GL_DEPTH_TEST);
-   glDepthMask (GL_FALSE);
 
    glMatrixMode (GL_PROJECTION);
    glPushMatrix ();
@@ -382,18 +398,18 @@ sub render_hud {
    my ($mw, $mh) = ($WIDTH / 2, $HEIGHT / 2);
    glPushMatrix;
    glTranslatef ($mw, $mh, 0);
-   glColor4d (1, 1, 1, 0.3);
+   glColor4f (1, 1, 1, 0.3);
    glBindTexture (GL_TEXTURE_2D, 0);
    glBegin (GL_QUADS);
 
    #glTexCoord2d(1, 1);
-   glVertex3d (-5, 5, 0);
+   glVertex3f (-5, 5, 0);
    #glTexCoord2d(1, 0);
-   glVertex3d (5, 5, 0);
+   glVertex3f (5, 5, 0);
    #glTexCoord2d(0, 1);
-   glVertex3d (5, -5, 0);
+   glVertex3f (5, -5, 0);
    #glTexCoord2d(0, 0);
-   glVertex3d (-5, -5, 0);
+   glVertex3f (-5, -5, 0);
 
    glEnd ();
    glPopMatrix;
@@ -404,8 +420,12 @@ sub render_hud {
    glMatrixMode (GL_PROJECTION);
    glPopMatrix;
 
-   glDepthMask (GL_TRUE);
    glEnable (GL_DEPTH_TEST);
+   my $e;
+   while (($e = glGetError ()) != GL_NO_ERROR) {
+      warn "ERORR ".gluErrorString ($e)."\n";
+      exit;
+   }
 }
 
 my $collide_cnt;
@@ -554,19 +574,20 @@ sub setup_event_poller {
 }
 
 sub calc_cam_cone {
-   my ($nplane, $fplane, $fov, $w, $h, $pos, $lv) = @_;
+   my ($nplane, $fplane, $fov, $w, $h, $lv) = @_;
    my $fdepth = ($h / 2) / tan (deg2rad ($fov) * 0.5);
    my $fcorn  = sqrt (($w / 2) ** 2 + ($h / 2) ** 2);
    my $ffov   = atan ($fcorn / $fdepth);
-   ($pos, vnorm ($lv), $ffov);
+   (vnorm ($lv), $ffov);
 }
-
 
 sub cam_cone {
    my ($self) = @_;
    return @{$self->{cached_cam_cone}} if $self->{cached_cam_cone};
-   my $cpos = vaddd ($self->{phys_obj}->{player}->{pos}, 0, $PL_HEIGHT, 0);
-   calc_cam_cone (0.1, 20, 60, $WIDTH, $HEIGHT, $cpos, $self->get_look_vector);
+   $self->{cached_cam_cone} = [
+      calc_cam_cone (0.1, 20, 60, $WIDTH, $HEIGHT, $self->get_look_vector)
+   ];
+   @{$self->{cached_cam_cone}}
 }
 
 sub get_look_vector {
@@ -580,7 +601,7 @@ sub get_look_vector {
    $self->{cached_look_vec} = [$yl * $xd, $yd, $yl * $zd];
 
    delete $self->{cached_cam_cone};
-   $self->{cached_cam_cone} = [ $self->cam_cone ];
+   $self->cam_cone;
 
    return $self->{cached_look_vec};
 }

@@ -70,7 +70,7 @@ sub mk_random {
    for my $dx (0..($SIZE - 1)) {
       for my $dy (0..($SIZE - 1)) {
          for my $dz (0..($SIZE - 1)) {
-            if (rand (100) > 60) {
+            if (rand (100) > 80) {
                my $offs = $dx + $dy * $SIZE + $dz * ($SIZE ** 2);
                secset (\$sect, [$dx, $dy, $dz], [7, int rand (16)]);
             }

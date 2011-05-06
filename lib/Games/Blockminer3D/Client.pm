@@ -147,7 +147,6 @@ sub handle_packet : event_cb {
    warn "cl< $hdr->{cmd} (".length ($body).")\n";
 
    if ($hdr->{cmd} eq 'hello') {
-      $self->send_server ({ cmd => 'enter' });
       $self->msgbox ("Queried Resources");
       $self->send_server ({ cmd => 'list_resources' });
 
@@ -175,6 +174,7 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'transfer_end') {
       $self->msgbox ("Transfer done!\n");
+      $self->send_server ({ cmd => 'enter' });
 
    } elsif ($hdr->{cmd} eq 'place_player') {
       $self->{front}->set_player_pos ($hdr->{pos});

@@ -34,7 +34,7 @@ sub new {
 
 sub init {
    my ($self) = @_;
-   $self->{hud1_tmr} = AE::timer 0, 1, sub {
+   $self->{hud1_tmr} = AE::timer 0, 0.5, sub {
       $self->update_hud_1;
    };
    $self->teleport ([30, 32, 30]);
@@ -84,7 +84,7 @@ sub update_hud_1 {
          },
          { type => "text", extents => ["center", 0.6, 0.5, 0.4],
             font => "small", color => "#000000",
-           text => "Pos: @{$self->{pos}}"
+           text => "Pos: " . vstr ($self->{pos})
          }
       ],
       commands => {

@@ -59,6 +59,7 @@ sub new {
    $self->init_object_events;
 
    $self->{opengl_texture_size} = 1024;
+   $self->prepare_opengl_texture;
 
    return $self
 }
@@ -185,7 +186,6 @@ sub update {
    ($self->{window_pos}, $self->{window_size}) =
       _calc_extents ($win->{extents}, $self->{W}, $self->{H});
 
-   $self->prepare_opengl_texture;
    $self->prepare_sdl_surface; # creates a new sdl surface for this window
 
    $self->{commands}   = $gui_desc->{commands};
@@ -260,18 +260,13 @@ sub render_view {
    my $texture_format = _get_texfmt ($surf);
 
    glBindTexture (GL_TEXTURE_2D, $self->{gl_id});
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_FASTEST);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_FASTEST);
+   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
    SDL::Video::lock_surface($surf);
-   #glTexImage2D_s (GL_TEXTURE_2D,
-   #   0, $surf->format->BytesPerPixel, $surf->w, $surf->h,
-   #   0, $texture_format, GL_UNSIGNED_BYTE, ${$surf->get_pixels_ptr});
-   gluBuild2DMipmaps_s (GL_TEXTURE_2D,
-      $surf->format->BytesPerPixel,
-      $surf->w, $surf->h,
-      $texture_format, GL_UNSIGNED_BYTE,
-      ${$surf->get_pixels_ptr});
+   glTexImage2D_s (GL_TEXTURE_2D,
+      0, $surf->format->BytesPerPixel, $surf->w, $surf->h,
+      0, $texture_format, GL_UNSIGNED_BYTE, ${$surf->get_pixels_ptr});
 
    SDL::Video::unlock_surface($surf);
 
@@ -292,21 +287,21 @@ sub display {
 
    glPushMatrix;
    glTranslatef (@$pos, 0);
-   glColor4d (1, 1, 1, $self->{desc}->{window}->{alpha});
+   glColor4f (1, 1, 1, $self->{desc}->{window}->{alpha});
    glBindTexture (GL_TEXTURE_2D, $self->{gl_id});
    glBegin (GL_QUADS);
 
-   glTexCoord2d(0, $v);
-   glVertex3d (0, $size->[1], 0);
+   glTexCoord2f(0, $v);
+   glVertex3f (0, $size->[1], 0);
 
-   glTexCoord2d($u, $v);
-   glVertex3d ($size->[0], $size->[1], 0);
+   glTexCoord2f($u, $v);
+   glVertex3f ($size->[0], $size->[1], 0);
 
-   glTexCoord2d($u, 0);
-   glVertex3d ($size->[0], 0, 0);
+   glTexCoord2f($u, 0);
+   glVertex3f ($size->[0], 0, 0);
 
-   glTexCoord2d(0, 0);
-   glVertex3d (0, 0, 0);
+   glTexCoord2f(0, 0);
+   glVertex3f (0, 0, 0);
 
    glEnd ();
    glPopMatrix;
