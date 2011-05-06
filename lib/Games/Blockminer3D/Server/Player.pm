@@ -90,8 +90,35 @@ sub update_hud_1 {
       commands => {
          default_keys => {
             r => "rere",
+            i => "inventory",
          },
       },
+   } });
+}
+
+sub show_inventory {
+   my ($self) = @_;
+
+   warn "HSOW INV\n";
+   $self->send_client ({ cmd => activate_ui => ui => "player_inventory", desc => {
+      window => {
+         extents => [center => center => 0.8, 0.8],
+         alpha => 1,
+         color => "#005500",
+         prio => 100,
+      },
+      elements => [
+         {
+            type => "text", extents => ["center", 0.01, 0.9, "line_height"],
+            font => "big", color => "#ffffff",
+            text => "Material:"
+         },
+         {
+            type => "text", extents => ["left", "bottom_of 1", 0.9, 0.01],
+            font => "big", color => "#ffffff",
+            text => "Test"
+         },
+      ]
    } });
 }
 
@@ -147,6 +174,8 @@ sub ui_res : event_cb {
       if ($cmd eq 'rere') {
          $self->{cnt}++;
          $self->update_hud_1;
+      } elsif ($cmd eq 'inventory') {
+         $self->show_inventory;
       }
    }
 }

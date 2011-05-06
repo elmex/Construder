@@ -77,8 +77,12 @@ sub _clr2color {
 }
 
 sub _calc_extents {
-   my ($ext, $base_w, $base_h) = @_;
+   my ($ext, $relext, $line_h, $base_w, $base_h) = @_;
    my ($pos, $size) = ([$ext->[0], $ext->[1]], [$ext->[2], $ext->[3]]);
+
+   if ($size->[1] eq 'line_height') {
+      $size->[1] = $line_h;
+   }
 
    $size = [$size->[0] * $base_w, $size->[1]] if $size->[0] <= 1;
    $size = [$size->[0], $size->[1] * $base_h] if $size->[1] <= 1;
@@ -90,6 +94,15 @@ sub _calc_extents {
       $pos->[0] = ($base_w - $size->[0]);
    } elsif ($pos->[0] eq 'center') {
       $pos->[0] = int (($base_w - $size->[0]) / 2);
+
+   } elsif ($pos->[0] =~ /^x_of\s*(\d+)/) {
+      my $ext = $relext->[$1];
+      $pos->[0] = $ext->[0]->[0] if $ext;
+
+   } elsif ($pos->[0] =~ /^right_of\s*(\d+)/) {
+      my $ext = $relext->[$1];
+      $pos->[0] = $ext->[0]->[0] + $ext->[1]->[0] if $ext;
+
    } elsif ($pos->[0] <= 1) {
       $pos->[0] = $base_w * $pos->[0];
    }
@@ -100,6 +113,15 @@ sub _calc_extents {
       $pos->[1] = ($base_h - $size->[1]);
    } elsif ($pos->[1] eq 'center') {
       $pos->[1] = int (($base_h - $size->[1]) / 2);
+
+   } elsif ($pos->[0] =~ /^y_of\s*(\d+)/) {
+      my $ext = $relext->[$1];
+      $pos->[1] = $ext->[0]->[1] if $ext;
+
+   } elsif ($pos->[0] =~ /^bottom_of\s*(\d+)/) {
+      my $ext = $relext->[$1];
+      $pos->[1] = $ext->[0]->[1] + $ext->[1]->[1] if $ext;
+
    } elsif ($pos->[1] <= 1) {
       $pos->[1] = $base_h * $pos->[1];
    }
@@ -120,13 +142,14 @@ sub render_text {
 sub place_text {
    my ($self, $ext, $align, $wrap, $text, $font, $color) = @_;
 
-   my ($pos, $size) = _calc_extents ($ext, @{$self->{window_size}});
-
    my $fnt = $font eq 'big' ? $BIG_FONT : $font eq 'small' ? $SMALL_FONT : $NORM_FONT;
+   my $line_skip = SDL::TTF::font_line_skip ($fnt);
+
+   my ($pos, $size) = _calc_extents ($ext, $self->{relative_extents}, $line_skip, @{$self->{window_size}});
+   $self->{relative_extents}->[$self->{element_offset}++] = [$pos, $size];
 
    my $surf = $self->{sdl_surf};
    my $avail_h = $size->[1];
-   my $line_skip = SDL::TTF::font_line_skip ($fnt);
 
    my @lines = split /\n/, $text;
    if ($wrap) {
@@ -183,14 +206,18 @@ sub update {
    $gui_desc = $self->{desc};
    my $win = $gui_desc->{window};
 
+   $self->{element_offset} = 0;
+   $self->{relative_extents} = [];
+
    ($self->{window_pos}, $self->{window_size}) =
-      _calc_extents ($win->{extents}, $self->{W}, $self->{H});
+      _calc_extents ($win->{extents}, $self->{relative_extents}, 0, $self->{W}, $self->{H});
 
    $self->prepare_sdl_surface; # creates a new sdl surface for this window
 
    $self->{commands}   = $gui_desc->{commands};
    $self->{command_cb} = $gui_desc->{command_cb};
    $self->{sticky}     = $win->{sticky};
+   $self->{prio}       = $win->{prio};
 
    for my $el (@{$gui_desc->{elements}}) {
 
@@ -291,17 +318,19 @@ sub display {
    glBindTexture (GL_TEXTURE_2D, $self->{gl_id});
    glBegin (GL_QUADS);
 
+   my $z = 0;
+
    glTexCoord2f(0, $v);
-   glVertex3f (0, $size->[1], 0);
+   glVertex3f (0, $size->[1], $z);
 
    glTexCoord2f($u, $v);
-   glVertex3f ($size->[0], $size->[1], 0);
+   glVertex3f ($size->[0], $size->[1], $z);
 
    glTexCoord2f($u, 0);
-   glVertex3f ($size->[0], 0, 0);
+   glVertex3f ($size->[0], 0, $z);
 
    glTexCoord2f(0, 0);
-   glVertex3f (0, 0, 0);
+   glVertex3f (0, 0, $z);
 
    glEnd ();
    glPopMatrix;

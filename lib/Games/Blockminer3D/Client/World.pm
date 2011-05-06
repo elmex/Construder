@@ -16,6 +16,7 @@ our @EXPORT = qw/
    world_get_box_at
    world_get_chunk world_get_chunk_at
    world_set_chunk
+   world_delete_chunk
    world_change_chunk_at world_change_chunk
    world_init
    world
@@ -78,6 +79,12 @@ sub world_get_chunk {
    my ($cx, $cy, $cz) = @_;
    my $q = ($cx < 0 ? 0x1 : 0) | ($cy < 0 ? 0x2 : 0) | ($cz < 0 ? 0x4 : 0);
    $CHUNKS[$q]->[abs $cx]->[abs $cy]->[abs $cz]
+}
+
+sub world_delete_chunk {
+   my ($cx, $cy, $cz) = @_;
+   my $q = ($cx < 0 ? 0x1 : 0) | ($cy < 0 ? 0x2 : 0) | ($cz < 0 ? 0x4 : 0);
+   $CHUNKS[$q]->[abs $cx]->[abs $cy]->[abs $cz] = undef;
 }
 
 sub world_get_chunk_at {

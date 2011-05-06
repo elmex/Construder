@@ -57,7 +57,6 @@ sub new {
    world ()->reg_cb (chunk_changed => sub {
       my ($w, $x, $y, $z) = @_;
       warn "killed chunk at $x $y $z\n";
-      delete $self->{compiled_chunks}->{$x}->{$y}->{$z};
       $self->compile_chunk ($x, $y, $z);
    });
 
@@ -186,7 +185,7 @@ sub _render_quad {
 sub _render_highlight {
    my ($pos, $color, $rad) = @_;
 
-   $rad ||= 0.1;
+   $rad ||= 0.08;
    $pos = vsubd ($pos, $rad, $rad, $rad);
    glPushMatrix;
    glBindTexture (GL_TEXTURE_2D, 0);
@@ -212,6 +211,13 @@ sub build_chunk_arrays {
    }
 }
 
+sub free_chunk {
+   my ($self, $cx, $cy, $cz) = @_;
+   my $l = delete $self->{compiled_chunks}->{$cx}->{$cy}->{$cz};
+   glDeleteLists ($l, 1) if $l;
+   warn "deleted chunk $cx, $cy, $cz\n";
+}
+
 sub compile_chunk {
    my ($self, $cx, $cy, $cz) = @_;
 
@@ -219,6 +225,7 @@ sub compile_chunk {
       or return;
    warn "compiling... $cx, $cy, $cz: $chnk\n";
 
+   $self->free_chunk ($cx, $cy, $cz);
    $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} = OpenGL::List::glpList {
       my ($txtid) = $self->{res}->obj2texture (1);
       glBindTexture (GL_TEXTURE_2D, $txtid);
@@ -368,9 +375,9 @@ sub render_scene {
    }
 
    my $qp = $self->{selected_box};
-   _render_highlight ($qp, [1, 0, 0, 0.2], 0.01) if $qp;
+   _render_highlight ($qp, [1, 0, 0, 0.2], 0.04) if $qp;
    my $qpb = $self->{selected_build_box};
-   _render_highlight ($qpb, [0, 0, 1, 0.05], 0.02) if $qp;
+   _render_highlight ($qpb, [0, 0, 1, 0.05], 0.05) if $qp;
 
    glPopMatrix;
 
@@ -417,7 +424,11 @@ sub render_hud {
    glEnd ();
    glPopMatrix;
 
-   $_->display for values %{$self->{active_uis} || {}};
+   #d# warn "ACTIVE UIS: " . join (', ', keys %{$self->{active_uis} || {}}) . "\n";
+
+   $_->display for
+      sort { $a->{prio} <=> $b->{prio} }
+         values %{$self->{active_uis} || {}};
 
    glPopMatrix;
    glMatrixMode (GL_PROJECTION);
@@ -463,6 +474,21 @@ sub setup_event_poller {
       $collide_cnt = $collide_time = 0;
       $render_cnt = $render_time = 0;
       $fps = 0;
+   };
+
+   $self->{chunk_freeer} = AE::timer 0, 2, sub {
+      my @vis_chunks = world_visible_chunks_at ($self->{phys_obj}->{player}->{pos});
+      for my $kx (keys %{$self->{compiled_chunks}}) {
+         for my $ky (keys %{$self->{compiled_chunks}->{$kx}}) {
+            for my $kz (keys %{$self->{compiled_chunks}->{$kx}->{$ky}}) {
+               unless (grep { $kx == $_->[0] && $ky == $_->[1] && $kz == $_->[2] } @vis_chunks) {
+                  $self->free_chunk ($kx, $ky, $kz);
+                  world_delete_chunk ($kx, $ky, $kz);
+                  warn "freeed chunk $kx, $ky, $kz\n";
+               }
+            }
+         }
+      }
    };
 
    $self->{compile_w} = AE::timer 0, 0.1, sub {
