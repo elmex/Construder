@@ -37,7 +37,7 @@ sub init {
    $self->{hud1_tmr} = AE::timer 0, 0.5, sub {
       $self->update_hud_1;
    };
-   $self->teleport ([30, 1, 30]);
+   $self->teleport ([30, 2, 30]);
 }
 
 sub update_pos {
@@ -79,8 +79,8 @@ sub update_hud_1 {
       },
       elements => [
          {
-            type => "text", extents => ["left", 0.1, 0.03, "font_height"],
-            font => "small", color => "#000000",
+            type => "text", extents => ["left", 0.02, 0.03, "font_height"],
+            font => "small", color => "#ffffff",
             text => "Pos:" . vstr ($self->{pos})
          },
          {
@@ -93,6 +93,7 @@ sub update_hud_1 {
          default_keys => {
             f1 => "help",
             i  => "inventory",
+            f9 => "teleport_home",
          },
       },
    } });
@@ -156,6 +157,8 @@ jump
 close window or quit game
 [ left, right mouse button ]
 dematerialize and materialize
+[ F9 ]
+teleport to the starting point
 HELP
 
    $self->send_client ({ cmd => activate_ui => ui => "player_inventory", desc => {
@@ -263,6 +266,9 @@ sub ui_res : event_cb {
          $self->show_inventory;
       } elsif ($cmd eq 'help') {
          $self->show_help;
+      } elsif ($cmd eq 'teleport_home') {
+         $self->teleport ([30, 2, 30]);
+
       }
    }
 }
