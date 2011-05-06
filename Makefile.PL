@@ -14,6 +14,12 @@ WriteMakefile(
         'Test::More'    => 0,
         'AnyEvent'      => 3.5,
         'common::sense' => 0,
+        'AnyEvent'      => 0,
+        'JSON'          => 0,
+        'OpenGL'        => 0,
+        'OpenGL::List'  => 0,
+        'SDL'           => 0,
+        'Math::Trig'    => 0,
     },
     dist                => {
        COMPRESS => 'gzip -9f',
