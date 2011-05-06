@@ -269,8 +269,14 @@ sub step_animations {
       my ($pos, $color, $attr) = @$bl;
 
       if ($attr->{fading}) {
-         next if $color->[3] >= 1; # remove fade
-         $color->[3] += (1 / $attr->{fading}) * $dt;
+         if ($attr->{fading} > 0) {
+            next if $color->[3] <= 0; # remove fade
+            $color->[3] -= (1 / $attr->{fading}) * $dt;
+         } else {
+            next if $color->[3] >= 1; # remove fade
+            warn "FADE $attr->{fading}\n";
+            $color->[3] += (1 / (-1 * $attr->{fading})) * $dt;
+         }
       }
 
       push @next_hl, $bl;
@@ -284,13 +290,20 @@ sub set_player_pos {
 }
 
 sub add_highlight {
-   my ($self, $pos, $color, $fade) = @_;
+   my ($self, $pos, $color, $fade, $solid) = @_;
 
    push @$color, 0 if @$color < 4;
 
-warn "HIGHLIGHt AT " .vstr ($pos) . " $fade > @$color > \n";
+   #d# warn "HIGHLIGHt AT " .vstr ($pos) . " $fade > @$color > \n";
+
+   $color->[3] = 1 if $fade > 0;
    push @{$self->{box_highlights}},
       [$pos, $color, { fading => $fade }];
+   if ($solid) {
+      my $bx = world_get_box_at ($pos);
+      $bx->[0] = 1; # materialization!
+      world_change_chunk_at ($pos);
+   }
 }
 
 sub cone_spehere_intersect {
@@ -483,7 +496,6 @@ sub setup_event_poller {
             for my $kz (keys %{$self->{compiled_chunks}->{$kx}->{$ky}}) {
                unless (grep { $kx == $_->[0] && $ky == $_->[1] && $kz == $_->[2] } @vis_chunks) {
                   $self->free_chunk ($kx, $ky, $kz);
-                  world_delete_chunk ($kx, $ky, $kz);
                   warn "freeed chunk $kx, $ky, $kz\n";
                }
             }

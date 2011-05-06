@@ -27,7 +27,7 @@ Games::Blockminer3D::Client::UI - A simple and small GUI library for the game
 
 my $BIG_FONT; # should be around 35 pixel
 my $NORM_FONT; # should be around 20 pixel
-my $SMALL_FONT; # should be around 10 pixel
+my $SMALL_FONT; # should be around 12 pixel
 
 sub init_ui {
    unless (SDL::Config->has('SDL_ttf')) {
@@ -47,7 +47,7 @@ sub init_ui {
       or die "Couldn't load font from res/FreeMonoBold.ttf: " . SDL::get_error . "\n";
    $NORM_FONT = SDL::TTF::open_font ('res/FreeMonoBold.ttf', 20)
       or die "Couldn't load font from res/FreeMonoBold.ttf: " . SDL::get_error . "\n";
-   $SMALL_FONT = SDL::TTF::open_font ('res/FreeMonoBold.ttf', 10)
+   $SMALL_FONT = SDL::TTF::open_font ('res/FreeMonoBold.ttf', 12)
       or die "Couldn't load font from res/FreeMonoBold.ttf: " . SDL::get_error . "\n";
 }
 

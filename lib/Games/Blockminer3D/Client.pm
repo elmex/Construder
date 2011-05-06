@@ -200,7 +200,7 @@ sub handle_packet : event_cb {
       $self->{front}->deactivate_ui ($hdr->{ui});
 
    } elsif ($hdr->{cmd} eq 'highlight') {
-      $self->{front}->add_highlight ($hdr->{pos}, $hdr->{color}, $hdr->{fade});
+      $self->{front}->add_highlight ($hdr->{pos}, $hdr->{color}, $hdr->{fade}, $hdr->{solid});
 
    } elsif ($hdr->{cmd} eq 'chunk') {
       my $chnk = Games::Blockminer3D::Client::MapChunk->new;

@@ -163,7 +163,7 @@ HELP
          extents => [center => center => 0.8, 1],
          alpha => 1,
          color => "#000000",
-         prio => 100,
+         prio => 1000,
       },
       elements => [
          {
@@ -190,7 +190,7 @@ sub start_materialize {
       return;
    }
 
-   $self->send_client ({ cmd => "highlight", pos => $pos, color => [0, 1, 1], fade => 1 });
+   $self->send_client ({ cmd => "highlight", pos => $pos, color => [0, 1, 1], fade => 1, solid => 1 });
    $self->{materializings}->{$id} = 1;
 
    my $tmr;
@@ -218,7 +218,7 @@ sub start_dematerialize {
       return;
    }
 
-   $self->send_client ({ cmd => "highlight", pos => $pos, color => [1, 0, 1], fade => 1.5 });
+   $self->send_client ({ cmd => "highlight", pos => $pos, color => [1, 0, 1], fade => -1.5 });
    $self->{dematerializings}->{$id} = 1;
 
    my $tmr;

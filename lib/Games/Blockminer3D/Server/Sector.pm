@@ -88,7 +88,7 @@ sub mk_random {
    #d#}
    srand (1);
 
-   my @types = (1, 10, 2, 3, 4, 5);
+   my @types = (2..8);
 
    for my $dx (0..($SIZE - 1)) {
       for my $dy (0..($SIZE - 1)) {
