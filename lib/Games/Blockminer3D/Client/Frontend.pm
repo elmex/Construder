@@ -525,7 +525,7 @@ sub setup_event_poller {
    my $anim_ltime;
    my $anim_dt = 1 / 25;
    my $anim_accum_time = 0;
-   $self->{selector_w} = AE::timer 0, 1, sub {
+   $self->{selector_w} = AE::timer 0, 0.1, sub {
       ($self->{selected_box}, $self->{selected_build_box})
          = $self->get_selected_box_pos;
 
