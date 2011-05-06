@@ -154,6 +154,8 @@ show up inventory
 jump
 [ escape ]
 close window or quit game
+[ left, right mouse button ]
+dematerialize and materialize
 HELP
 
    $self->send_client ({ cmd => activate_ui => ui => "player_inventory", desc => {
@@ -178,6 +180,34 @@ HELP
          },
       ]
    } });
+}
+
+sub start_materialize {
+   my ($self, $pos) = @_;
+
+   my $id = world_pos2id ($pos);
+   if ($self->{materializings}->{$id}) {
+      return;
+   }
+
+   $self->send_client ({ cmd => "highlight", pos => $pos, color => [0, 1, 1], fade => 1 });
+   $self->{materializings}->{$id} = 1;
+
+   my $tmr;
+   $tmr = AE::timer 1, 0, sub {
+      world_mutate_at ($pos, sub {
+         my ($data) = @_;
+         $data->[0] = 2;
+
+         # FIXME: this is more or less a hack, we need some chunk update system soon
+         $tmr = AE::timer 0, 0, sub {
+            $self->send_chunk (world_pos2chnkpos ($pos)); # FIXME: send incremental updates pls
+            delete $self->{materializings}->{$id};
+         };
+         return 1;
+      });
+   };
+
 }
 
 sub start_dematerialize {

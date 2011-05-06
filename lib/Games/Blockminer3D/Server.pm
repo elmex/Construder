@@ -171,6 +171,9 @@ sub handle_packet : event_cb {
       if ($hdr->{action} == 1) {
          $self->{players}->{$cid}->start_dematerialize ($hdr->{pos})
             if $self->{players}->{$cid};
+      } elsif ($hdr->{action} == 3) {
+         $self->{players}->{$cid}->start_materialize ($hdr->{build_pos})
+            if $self->{players}->{$cid};
       }
 
    } elsif ($hdr->{cmd} eq 'transfer_poll') { # a bit crude :->
