@@ -470,15 +470,15 @@ sub setup_event_poller {
       $self->{active_uis}->{debug_hud}->update ({
          window => {
             sticky => 1,
-            extents => [left => up => 0.3, 0.06],
-            color => "#0000ff",
-            alpha => 1,
+            extents => [left => up => 0.1, 0.05],
+            color => "#000000",
+            alpha => 0.8,
          },
          elements => [
             {
                type => 'text', extents => [0, 0, 1, 0.5],
-               text => sprintf ("%.5f FPS\n", $fps / $fps_intv),
-               color => "#ff0000",
+               text => sprintf ("%.1f FPS\n", $fps / $fps_intv),
+               color => "#ffff00",
                font => 'small'
             },
          ]
