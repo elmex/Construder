@@ -48,9 +48,15 @@ sub new {
    #d#$chnk->cube_fill;
    #d#world_set_chunk (0, 0, 0, $chnk);
 
-   $self->{front}->reg_cb (update_player_pos => sub {
-      $self->send_server ({ cmd => "player_pos", pos => $_[1] });
-   });
+   $self->{front}->reg_cb (
+      update_player_pos => sub {
+         $self->send_server ({ cmd => "player_pos", pos => $_[1] });
+      },
+      position_action => sub {
+         my ($front, $pos, $build_pos, $btn) = @_;
+         $self->send_server ({ cmd => "pos_action", pos => $pos, build_pos => $build_pos, action => $btn });
+      }
+   );
 
    $self->connect (localhost => 9364);
 
@@ -193,11 +199,13 @@ sub handle_packet : event_cb {
    } elsif ($hdr->{cmd} eq 'deactivate_ui') {
       $self->{front}->deactivate_ui ($hdr->{ui});
 
+   } elsif ($hdr->{cmd} eq 'highlight') {
+      $self->{front}->add_highlight ($hdr->{pos}, $hdr->{color}, $hdr->{fade});
+
    } elsif ($hdr->{cmd} eq 'chunk') {
       my $chnk = Games::Blockminer3D::Client::MapChunk->new;
       $chnk->data_fill ($body);
       world_set_chunk (@{$hdr->{pos}}, $chnk);
-      #world_change_chunk ($hdr->{pos});
    }
 }
 

@@ -41,6 +41,27 @@ sub secset {
    substr $$rdata, $offs * 4, 4, $content;
 }
 
+sub _data2array {
+   my ($dat) = @_;
+   my ($blk, $meta, $add) = unpack "nCC", $dat;
+   my ($type, $light) = (($blk & 0xFFF0) >> 4, ($blk & 0x000F));
+   [$type, $light, $meta, $add]
+}
+
+sub secget {
+   my ($rdata, $pos, $cont) = @_;
+   my $offs = $pos->[0] + $pos->[1] * $SIZE + $pos->[2] * ($SIZE ** 2);
+   return _data2array (substr $$rdata, $offs * 4, 4);
+}
+
+sub mutate_at {
+   my ($self, $relpos, $cb) = @_;
+   my $dat = secget (\$self->{data}, $relpos);
+   if ($cb->($dat)) {
+      secset (\$self->{data}, $relpos, $dat);
+   }
+}
+
 sub mk_random {
    my ($self) = @_;
 

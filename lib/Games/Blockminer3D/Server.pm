@@ -167,6 +167,12 @@ sub handle_packet : event_cb {
       my $res = $self->{res}->get_resources_by_id (@{$hdr->{ids}});
       $self->transfer_res2client ($cid, $res);
 
+   } elsif ($hdr->{cmd} eq 'pos_action') {
+      if ($hdr->{action} == 1) {
+         $self->{players}->{$cid}->start_dematerialize ($hdr->{pos})
+            if $self->{players}->{$cid};
+      }
+
    } elsif ($hdr->{cmd} eq 'transfer_poll') { # a bit crude :->
       $self->push_transfer ($cid);
    }

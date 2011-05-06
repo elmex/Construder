@@ -186,7 +186,7 @@ sub _render_quad {
 sub _render_highlight {
    my ($pos, $color, $rad) = @_;
 
-   $rad ||= 0.05;
+   $rad ||= 0.1;
    $pos = vsubd ($pos, $rad, $rad, $rad);
    glPushMatrix;
    glBindTexture (GL_TEXTURE_2D, 0);
@@ -263,7 +263,7 @@ sub step_animations {
 
       if ($attr->{fading}) {
          next if $color->[3] >= 1; # remove fade
-         $color->[3] += $attr->{fading} * $dt;
+         $color->[3] += (1 / $attr->{fading}) * $dt;
       }
 
       push @next_hl, $bl;
@@ -274,6 +274,16 @@ sub step_animations {
 sub set_player_pos {
    my ($self, $pos) = @_;
    $self->{phys_obj}->{player}->{pos} = $pos;
+}
+
+sub add_highlight {
+   my ($self, $pos, $color, $fade) = @_;
+
+   push @$color, 0 if @$color < 4;
+
+warn "HIGHLIGHt AT " .vstr ($pos) . " $fade > @$color > \n";
+   push @{$self->{box_highlights}},
+      [$pos, $color, { fading => $fade }];
 }
 
 sub cone_spehere_intersect {
@@ -353,14 +363,14 @@ sub render_scene {
       warn "culled only $culled chunks in " . (time - $t2) . " secs!!!!";
    }
 
-   my $qp = $self->{selected_box};
-   _render_highlight ($qp, [1, 0, 0, 0.2], 0.06) if $qp;
-   my $qpb = $self->{selected_build_box};
-   _render_highlight ($qpb, [0, 0, 1, 0.05], 0) if $qp;
-
    for (@{$self->{box_highlights}}) {
       _render_highlight ($_->[0], $_->[1]);
    }
+
+   my $qp = $self->{selected_box};
+   _render_highlight ($qp, [1, 0, 0, 0.2], 0.01) if $qp;
+   my $qpb = $self->{selected_build_box};
+   _render_highlight ($qpb, [0, 0, 1, 0.05], 0.02) if $qp;
 
    glPopMatrix;
 
@@ -891,34 +901,42 @@ sub input_mouse_motion : event_cb {
    }
 }
 
+sub position_action : event_cb {
+}
+
 sub input_mouse_button : event_cb {
    my ($self, $btn, $down) = @_;
    warn "MASK $btn $down\n";
    return unless $down;
-   if ($btn == 1) {
-      my $sp = $self->{selected_build_box};
-      return unless $sp;
 
-      my $bx = world_get_box_at ($sp);
-      $bx->[0] = 1;
-      world_change_chunk_at ($sp);
+   my $sbp = $self->{selected_box};
+   my $sbbp = $self->{selected_build_box};
+   $self->position_action ($sbp, $sbbp, $btn);
 
-   } elsif ($btn == 3) {
-      my $sp = $self->{selected_box};
-      return unless $sp;
+   #d#if ($btn == 1) {
+   #d#   my $sp = $self->{selected_build_box};
+   #d#   return unless $sp;
 
-      my $bx = world_get_box_at ($sp);
-      my $pt = $bx->[0];
-      $bx->[0] = 0;
-      world_change_chunk_at ($sp);
-      warn "REMOVED OBJ $pt\n";
+   #d#   my $bx = world_get_box_at ($sp);
+   #d#   $bx->[0] = 1;
+   #d#   world_change_chunk_at ($sp);
 
-   } elsif ($btn == 2) {
-      my $sp = $self->{selected_box};
-      return unless $sp;
-      push @{$self->{box_highlights}},
-         [[@$sp], [0, 1, 0, 0], { fading => 0.3 }];
-   }
+   #d#} elsif ($btn == 3) {
+   #d#   my $sp = $self->{selected_box};
+   #d#   return unless $sp;
+
+   #d#   my $bx = world_get_box_at ($sp);
+   #d#   my $pt = $bx->[0];
+   #d#   $bx->[0] = 0;
+   #d#   world_change_chunk_at ($sp);
+   #d#   warn "REMOVED OBJ $pt\n";
+
+   #d#} elsif ($btn == 2) {
+   #d#   my $sp = $self->{selected_box};
+   #d#   return unless $sp;
+   #d#   push @{$self->{box_highlights}},
+   #d#      [[@$sp], [0, 1, 0, 0], { fading => 0.3 }];
+   #d#}
 }
 
 sub update_player_pos : event_cb {

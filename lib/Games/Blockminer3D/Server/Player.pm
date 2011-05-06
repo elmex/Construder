@@ -95,6 +95,34 @@ sub update_hud_1 {
    } });
 }
 
+sub start_dematerialize {
+   my ($self, $pos) = @_;
+
+   my $id = world_pos2id ($pos);
+   if ($self->{dematerializings}->{$id}) {
+      return;
+   }
+
+   $self->send_client ({ cmd => "highlight", pos => $pos, color => [1, 0, 1], fade => 1.5 });
+   $self->{dematerializings}->{$id} = 1;
+
+   my $tmr;
+   $tmr = AE::timer 1.5, 0, sub {
+      world_mutate_at ($pos, sub {
+         my ($data) = @_;
+         $self->{inventory}->{material}->[$data->[0]]++;
+         $data->[0] = 0;
+
+         # FIXME: this is more or less a hack, we need some chunk update system soon
+         $tmr = AE::timer 0, 0, sub {
+            $self->send_chunk (world_pos2chnkpos ($pos)); # FIXME: send incremental updates pls
+            delete $self->{dematerializings}->{$id};
+         };
+         return 1;
+      });
+   };
+}
+
 sub send_chunk {
    my ($self, $chnk) = @_;
    world_get_chunk_data ($chnk, sub {
