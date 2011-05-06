@@ -152,10 +152,12 @@ sub handle_packet : event_cb {
       $pl->init;
 
    } elsif ($hdr->{cmd} eq 'ui_response') {
-      $self->{players}->{$cid}->ui_res ($hdr->{ui}, $hdr->{ui_command}, $hdr->{arg});
+      $self->{players}->{$cid}->ui_res ($hdr->{ui}, $hdr->{ui_command}, $hdr->{arg})
+         if $self->{players}->{$cid};
 
    } elsif ($hdr->{cmd} eq 'player_pos') {
-      $self->{players}->{$cid}->update_pos ($hdr->{pos});
+      $self->{players}->{$cid}->update_pos ($hdr->{pos})
+         if $self->{players}->{$cid};
 
    } elsif ($hdr->{cmd} eq 'list_resources') {
       my $res = $self->{res}->list_resources;

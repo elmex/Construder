@@ -52,23 +52,29 @@ sub load_objects {
    $self->loaded_objects;
 }
 
+sub add_res {
+   my ($self, $res) = @_;
+
+   $self->{res_ids}++;
+   $self->{resources}->[$self->{res_ids}] = $res;
+   $res->{id} = $self->{res_ids};
+   $res->{id}
+}
+
 sub load_texture_file {
    my ($self, $file) = @_;
 
    my $tex;
    unless ($self->{texture_data}->{$file}) {
-      $self->{res_ids}++;
-
       my $data = _get_file ("res/objects/" . $file);
       my $md5  = md5_base64 ($tex->{data});
-      $self->{resources}->[$self->{res_ids}] = {
+      my $rid = $self->add_res ({
          type => "texture",
-         id   => $self->{res_ids},
          data => $data,
          md5  => $md5
-      };
+      });
 
-      $self->{texture_data}->{$file} = $self->{res_ids};
+      $self->{texture_data}->{$file} = $rid;
       warn "loaded texture $file: $self->{res_ids} $md5 " . length ($data) . "\n";
    }
 
@@ -81,14 +87,13 @@ sub load_object {
       $obj->{texture_id} =
          $self->load_texture ($obj->{texture});
    }
-   $self->{res_ids}++;
-   my $ores = $self->{resources}->[$self->{res_ids}] = {
+   $self->add_res ({
       type => "object",
-      id => $self->{res_ids},
-      object_type => $obj->{type},
-      texture_map_id => $obj->{texture_id},
-   };
-   warn "loaded object $_ => ".JSON->new->pretty->encode ($ores)."\n";
+      data => {
+         object_type => $obj->{type},
+         texture_map => $obj->{texture_id},
+      }
+   });
 }
 
 sub load_texture {
@@ -97,18 +102,16 @@ sub load_texture {
    my $file = ref $texture_def ? $texture_def->[0] : $texture_def;
    my $tex_id = $self->load_texture_file ($file);
 
-   $self->{res_ids}++;
-   $self->{resources}->[$self->{res_ids}] = {
+   my $txtres_id = $self->add_res ({
       type => "texture_mapping",
-      id   => $self->{res_ids},
       data => {
          tex_id => $tex_id,
          (ref $texture_def
             ? (uv_map => [map { $texture_def->[$_] } 1..4])
             : ())
       }
-   };
-   $self->{res_ids}
+   });
+   $txtres_id
 }
 
 sub list_resources {

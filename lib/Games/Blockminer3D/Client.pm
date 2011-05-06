@@ -151,10 +151,14 @@ sub handle_packet : event_cb {
       $self->send_server ({ cmd => 'list_resources' });
 
    } elsif ($hdr->{cmd} eq 'resources_list') {
-      my @ids = map { $_->[0] } grep { defined $_->[2] } @{$hdr->{list}};
-      if (@ids) {
-         $self->send_server ({ cmd => get_resources => ids => \@ids });
-         $self->msgbox ("Initiated Resource Transfer (".scalar (@ids).")");
+      $self->{front}->{res}->set_resources ($hdr->{list});
+
+      #  [ $_, $res->{type}, $res->{md5}, \$res->{data} ]
+      my @data_res_ids = map { $_->[0] } grep { defined $_->[2] } @{$hdr->{list}};
+
+      if (@data_res_ids) {
+         $self->send_server ({ cmd => get_resources => ids => \@data_res_ids });
+         $self->msgbox ("Initiated Resource Transfer (".scalar (@data_res_ids).")");
       } else {
          $self->msgbox ("No Resources Found!");
       }
@@ -162,18 +166,14 @@ sub handle_packet : event_cb {
    } elsif ($hdr->{cmd} eq 'resource') {
       my $res = $hdr->{res};
       #  [ $_, $res->{type}, $res->{md5}, \$res->{data} ]
-      if ($res->[1] eq 'texture') {
-         #warn "got texture $res->[0] : ".length ($body)."\n";
-         warn "TEX " . join (', ', map { length $_ } @$res) . "\n";
-         $self->{front}->{textures}->add (
-            $body, # $res->[3],
-            [[$res->[0], undef, $res->[2]]]
-         );
-      }
+      $self->{front}->{res}->set_resource_data ($hdr->{res}, $body);
       $self->send_server ({ cmd => 'transfer_poll' });
 
    } elsif ($hdr->{cmd} eq 'transfer_end') {
       $self->msgbox ("Transfer done!\n");
+      #print JSON->new->pretty->encode ($self->{front}->{res}->{resource});
+      $self->{front}->{res}->post_proc;
+      $self->{front}->{res}->dump_resources;
       $self->send_server ({ cmd => 'enter' });
 
    } elsif ($hdr->{cmd} eq 'place_player') {
@@ -192,11 +192,6 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'deactivate_ui') {
       $self->{front}->deactivate_ui ($hdr->{ui});
-
-   } elsif ($hdr->{cmd} eq 'texture_upload') {
-      $self->{front}->{textures}->add (
-         $body, [[$hdr->{txt_nr}, $hdr->{txt_uv}, $hdr->{txt_md5}]]
-      );
 
    } elsif ($hdr->{cmd} eq 'chunk') {
       my $chnk = Games::Blockminer3D::Client::MapChunk->new;

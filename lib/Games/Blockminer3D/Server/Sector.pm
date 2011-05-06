@@ -67,12 +67,16 @@ sub mk_random {
    #d#}
    srand (1);
 
+   my @types = (1, 10, 2, 3, 4, 5);
+
    for my $dx (0..($SIZE - 1)) {
       for my $dy (0..($SIZE - 1)) {
          for my $dz (0..($SIZE - 1)) {
             if (rand (100) > 80) {
                my $offs = $dx + $dy * $SIZE + $dz * ($SIZE ** 2);
-               secset (\$sect, [$dx, $dy, $dz], [7, int rand (16)]);
+               secset (\$sect, [$dx, $dy, $dz], [$types[int rand (@types)], int rand (16)]);
+            } else {
+               secset (\$sect, [$dx, $dy, $dz], [0, int rand (16)]);
             }
          }
       }

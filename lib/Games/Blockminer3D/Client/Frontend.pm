@@ -17,7 +17,7 @@ use POSIX qw/floor/;
 use Games::Blockminer3D::Vector;
 
 use Games::Blockminer3D::Client::World;
-use Games::Blockminer3D::Client::Textures;
+use Games::Blockminer3D::Client::Resources;
 use Games::Blockminer3D::Client::UI;
 
 use base qw/Object::Event/;
@@ -72,7 +72,7 @@ sub init_test {
    my ($self) = @_;
    $self->{active_uis}->{debug_hud} =
       Games::Blockminer3D::Client::UI->new (
-         W => $WIDTH, H => $HEIGHT, textures => $self->{textures});
+         W => $WIDTH, H => $HEIGHT, res => $self->{res});
 }
 
 sub init_physics {
@@ -120,7 +120,7 @@ sub init_app {
    glFogf (GL_FOG_START, 10);
    glFogf (GL_FOG_END,   20);
 
-   $self->{textures} = Games::Blockminer3D::Client::Textures->new;
+   $self->{res} = Games::Blockminer3D::Client::Resources->new;
 
 }
 
@@ -166,7 +166,9 @@ sub _render_quad {
       [$uv->[0], $uv->[3]],
    );
 
-   foreach my $face (@$faces) {
+   foreach (@$faces) {
+      my ($face, $light) = @$_;
+      glColor3f ($light, $light, $light) if defined $light;
       foreach my $vertex (0..3) {
          my $index  = $indices[4 * $face + $vertex];
          my $coords = $vertices[$index];
@@ -192,7 +194,7 @@ sub _render_highlight {
    glTranslatef (@$pos);
    glScalef (1 + 2*$rad, 1 + 2*$rad, 1+2*$rad);
    glBegin (GL_QUADS);
-   _render_quad ([0, 0, 0], [0..5]);
+   _render_quad ([0, 0, 0], [map { [$_, undef] } 0..5]);
    glEnd;
    glPopMatrix;
 }
@@ -240,8 +242,8 @@ sub compile_chunk {
 
       # sort by texture name:
       for (sort { $a->[3] cmp $b->[3] } @quads) {
-         my ($pos, $faces, $light, $tex) = @$_;
-         my ($tex_nr, $uv) = $self->{textures}->get_opengl ($tex);#$tex || 1);
+         my ($pos, $faces, $objid) = @$_;
+         my ($tex_nr, $surf, $uv) = $self->{res}->obj2texture ($objid);#$tex || 1);
          if ($current_texture != $tex_nr) {
             glEnd;
             glBindTexture (GL_TEXTURE_2D, $tex_nr);
@@ -251,7 +253,6 @@ sub compile_chunk {
 
          $face_cnt += scalar @$faces;
 
-         glColor3f ($light, $light, $light) if defined $light;
          _render_quad ($pos, $faces, $uv);
       }
 
@@ -705,7 +706,7 @@ sub physics_tick : event_cb {
    my $bx = world_get_box_at (vaddd ($player->{pos}, 0, -1, 0));
 
    my $gforce = [0, -9.5, 0];
-   if ($bx->[0] == 2) {
+   if ($bx->[0] == 15) {
       $gforce = [0, 9.5, 0];
    }
    $gforce = [0,0,0] if $self->{ghost_mode};
@@ -811,7 +812,7 @@ sub activate_ui {
 
    $obj ||=
       Games::Blockminer3D::Client::UI->new (
-         W => $WIDTH, H => $HEIGHT, textures => $self->{textures});
+         W => $WIDTH, H => $HEIGHT, res => $self->{res});
    $obj->update ($desc);
    $self->{active_uis}->{$ui} = $obj;
 }
@@ -915,8 +916,10 @@ sub input_mouse_button : event_cb {
       return unless $sp;
 
       my $bx = world_get_box_at ($sp);
+      my $pt = $bx->[0];
       $bx->[0] = 0;
       world_change_chunk_at ($sp);
+      warn "REMOVED OBJ $pt\n";
 
    } elsif ($btn == 2) {
       my $sp = $self->{selected_box};

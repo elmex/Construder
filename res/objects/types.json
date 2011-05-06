@@ -9,9 +9,9 @@
      "texture" : "stones.png",
      "lore" : "Stones are the most basic block",
    },
-   "cat_a" : { "texture" : ["cat1.png", 0, 0,  64, 64], "type" : 2 },
-   "cat_b" : { "texture" : ["cat1.png", 0, 64, 64, 64], "type" : 3 },
-   "cat_c" : { "texture" : ["cat1.png", 64, 0, 64, 64], "type" : 4 },
+   "cat_a" : { "texture" : ["cat1.png", 0, 0,   64, 64], "type" : 2 },
+   "cat_b" : { "texture" : ["cat1.png", 0, 64,  64, 64], "type" : 3 },
+   "cat_c" : { "texture" : ["cat1.png", 64, 0,  64, 64], "type" : 4 },
    "cat_d" : { "texture" : ["cat1.png", 64, 64, 64, 64],"type" : 5 },
    "gravity_pusher" : {
       "type" : 15,

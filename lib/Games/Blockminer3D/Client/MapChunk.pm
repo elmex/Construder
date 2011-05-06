@@ -139,22 +139,22 @@ sub visible_quads {
                my @faces;
 
                if ($front->[2] && $front->[0] == 0) {
-                  push @faces, 0
+                  push @faces, [0, $front->[1] / 15]
                }
                if ($top->[2] && $top->[0] == 0) {
-                  push @faces, 1
+                  push @faces, [1, $top->[1] / 15]
                }
                if ($back->[2] && $back->[0] == 0) {
-                  push @faces, 2
+                  push @faces, [2, $back->[1] / 15]
                }
                if ($left->[2] && $left->[0] == 0) {
-                  push @faces, 3
+                  push @faces, [3, $left->[1] / 15]
                }
                if ($right->[2] && $right->[0] == 0) {
-                  push @faces, 4
+                  push @faces, [4, $right->[1] / 15];
                }
                if ($bot->[2] && $bot->[0] == 0) {
-                  push @faces, 5
+                  push @faces, [5, $bot->[1] / 15]
                }
 
               # my ($pos, $faces, $light, $tex) = @$_;
@@ -162,10 +162,7 @@ sub visible_quads {
                push @quads, [
                   [$x, $y, $z], # pos
                   \@faces,      # faces
-                  $cur->[1],    # light
-                  $cur->[3]     # texture!?
-                     ? $cur->[3]
-                     : ($cur->[0] != 0 ? 7 : 0)
+                  $cur->[0]     # object type id
                ];
             }
          }
