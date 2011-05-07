@@ -3,12 +3,8 @@ use common::sense;
 
 our $VERSION = '0.01';
 
-#d#require DynaLoader;
-#d#our @ISA = qw(DynaLoader);
-#d#
-#d#sub dl_load_flags { $^O eq 'darwin' ? 0x00 : 0x01 }
-#d#
-#d#Games::Blockminer3D->bootstrap ($VERSION);
+use XSLoader;
+XSLoader::load "Games::Blockminer3D", $Games::Blockminer3D::VERSION;
 
 =head1 NAME
 

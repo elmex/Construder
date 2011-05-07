@@ -171,10 +171,10 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'pos_action') {
       if ($hdr->{action} == 1) {
-         $self->{players}->{$cid}->start_dematerialize ($hdr->{pos})
+         $self->{players}->{$cid}->start_materialize ($hdr->{build_pos})
             if $self->{players}->{$cid};
       } elsif ($hdr->{action} == 3) {
-         $self->{players}->{$cid}->start_materialize ($hdr->{build_pos})
+         $self->{players}->{$cid}->start_dematerialize ($hdr->{pos})
             if $self->{players}->{$cid};
       }
 

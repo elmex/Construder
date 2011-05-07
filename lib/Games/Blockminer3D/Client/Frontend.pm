@@ -14,6 +14,7 @@ use AnyEvent;
 use Math::Trig qw/deg2rad rad2deg pi tan atan/;
 use Time::HiRes qw/time/;
 use POSIX qw/floor/;
+use Games::Blockminer3D;
 use Games::Blockminer3D::Vector;
 
 use Games::Blockminer3D::Client::World;
@@ -286,6 +287,7 @@ sub add_highlight {
 
 sub cone_spehere_intersect {
    my ($cpos, $cv, $cfov, $spos, $srad) = @_;
+
    my $u = vsub ($cpos, vsmul ($cv, $srad / sin ($cfov)));
    my $d = vsub ($spos, $u);
    my $ld = vlength ($d);
@@ -343,19 +345,26 @@ sub render_scene {
                        $Games::Blockminer3D::Client::MapChunk::SIZE),
                        $Games::Blockminer3D::Client::MapChunk::SIZE / 2);
 
-      if (cone_spehere_intersect (@fcone, $pos, $Games::Blockminer3D::Client::MapChunk::BSPHERE)) {
+      if (Games::Blockminer3D::Math::cone_sphere_intersect (
+            @{$fcone[0]},
+            @{$fcone[1]},
+            $fcone[2],
+            @$pos,
+            $Games::Blockminer3D::Client::MapChunk::BSPHERE
+      )) {
          my $compl = $cc->{$cx}->{$cy}->{$cz}
             or next;
          glCallList ($compl);
       } else {
          $culled++;
       }
-      #if (vlength ($dv) < ($frad +  $Games::Blockminer3D::Client::MapChunk::BSPHERE)) {
-      #   my $compl = $cc->{$cx}->{$cy}->{$cz};
-      #   glCallList ($compl) if $compl;
-      #} else {
- #    #    warn "CHUNK CULL " . vstr ($pos) . " ".vstr ($dv)."( $frad , $Games::Blockminer3D::Client::MapChunk::BSPHERE )\n";
-      #}
+#      if (cone_spehere_intersect (@fcone, $pos, $Games::Blockminer3D::Client::MapChunk::BSPHERE)) {
+#         my $compl = $cc->{$cx}->{$cy}->{$cz}
+#            or next;
+#         glCallList ($compl);
+#      } else {
+#         $culled++;
+#      }
    }
    if ($culled < 3) {
       warn "culled only $culled chunks in " . (time - $t2) . " secs!!!!";
