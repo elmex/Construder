@@ -21,12 +21,8 @@
    },
    "gravity_pusher" : {
       "type" : 15,
-      "model" : [
-         "11  \n11  \n    \n     ",
-         "    \n    \n    \n     ",
-         "    \n    \n    \n     ",
-         "    \n    \n    \n     ",
-      ],
+      # dimensions work by counting the lower plane, then walk up Y
+      "model" : [2, [1, 2], [2, 3], [3, 3], [4, 8] ],
       "lore" : "Some advanced tech, that pushes you from the floor",
    },
 }

@@ -2,6 +2,7 @@ package Games::Blockminer3D::Client;
 use common::sense;
 use Games::Blockminer3D::Client::Frontend;
 use Games::Blockminer3D::Client::MapChunk;
+use Games::Blockminer3D::Client::Renderer;
 use Games::Blockminer3D::Client::World;
 use Games::Blockminer3D::Protocol;
 use AnyEvent;
@@ -33,20 +34,14 @@ sub new {
    my $class = ref ($this) || $this;
    my $self  = { @_ };
    bless $self, $class;
-   #d# my $sect = Games::Blockminer3D::Server::Sector->new;
-   #d# timethese (20, { test => sub {
-   #d#    $sect->mk_random;
-   #d# }});
-   #d#    my $chunk = $sect->get_chunk (1, 1, 1);
-   #d# exit;
 
    $self->init_object_events;
 
-   $self->{front} = Games::Blockminer3D::Client::Frontend->new;
+   $self->{res} = Games::Blockminer3D::Client::Resources->new;
+   $Games::Blockminer3D::Client::Renderer::RES = $self->{res};
 
-   #d#my $chnk = Games::Blockminer3D::Client::MapChunk->new;
-   #d#$chnk->cube_fill;
-   #d#world_set_chunk (0, 0, 0, $chnk);
+   $self->{front} =
+      Games::Blockminer3D::Client::Frontend->new (res => $self->{res});
 
    $self->{front}->reg_cb (
       update_player_pos => sub {
@@ -54,7 +49,10 @@ sub new {
       },
       position_action => sub {
          my ($front, $pos, $build_pos, $btn) = @_;
-         $self->send_server ({ cmd => "pos_action", pos => $pos, build_pos => $build_pos, action => $btn });
+         $self->send_server ({
+            cmd => "pos_action", pos => $pos,
+            build_pos => $build_pos, action => $btn
+         });
       }
    );
 
@@ -157,7 +155,7 @@ sub handle_packet : event_cb {
       $self->send_server ({ cmd => 'list_resources' });
 
    } elsif ($hdr->{cmd} eq 'resources_list') {
-      $self->{front}->{res}->set_resources ($hdr->{list});
+      $self->{res}->set_resources ($hdr->{list});
 
       #  [ $_, $res->{type}, $res->{md5}, \$res->{data} ]
       my @data_res_ids = map { $_->[0] } grep { defined $_->[2] } @{$hdr->{list}};
@@ -172,14 +170,14 @@ sub handle_packet : event_cb {
    } elsif ($hdr->{cmd} eq 'resource') {
       my $res = $hdr->{res};
       #  [ $_, $res->{type}, $res->{md5}, \$res->{data} ]
-      $self->{front}->{res}->set_resource_data ($hdr->{res}, $body);
+      $self->{res}->set_resource_data ($hdr->{res}, $body);
       $self->send_server ({ cmd => 'transfer_poll' });
 
    } elsif ($hdr->{cmd} eq 'transfer_end') {
       $self->msgbox ("Transfer done! Waiting for map data...\n");
       #print JSON->new->pretty->encode ($self->{front}->{res}->{resource});
-      $self->{front}->{res}->post_proc;
-      $self->{front}->{res}->dump_resources;
+      $self->{res}->post_proc;
+      $self->{res}->dump_resources;
       $self->send_server ({ cmd => 'enter' });
 
    } elsif ($hdr->{cmd} eq 'place_player') {
@@ -204,7 +202,7 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'chunk') {
       my $chnk = Games::Blockminer3D::Client::MapChunk->new;
-      $chnk->data_fill ($body);
+      $chnk->data_fill ($self->{res}, $body);
       world_set_chunk (@{$hdr->{pos}}, $chnk);
    }
 }

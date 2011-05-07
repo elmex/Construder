@@ -93,6 +93,7 @@ sub load_object {
       data => {
          object_type => $obj->{type},
          texture_map => $obj->{texture_id},
+         ($obj->{model} ? (model => $obj->{model}) : ()),
       }
    });
    $self->{object_res}->{$obj->{type}} = $obj;

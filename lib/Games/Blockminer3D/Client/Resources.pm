@@ -49,23 +49,36 @@ sub post_proc {
 
    for (@{$self->{resource}}) {
       if ($_->{type} eq 'object') {
-         my $texmap_id = $_->{data}->{texture_map};
+         my $uv;
+         my $model = $_->{data}->{model};
+         my $txt = [];
+         warn "MODEL: " . JSON->new->pretty->encode ($_) . "\n";
 
-         my $map = $self->{resource}->[$texmap_id]
-            or next;
-         my $texture = $self->{resource}->[$map->{data}->{tex_id}]
-            or next;
+         if ($_->{data}->{texture_map}) {
+            my $texmap_id = $_->{data}->{texture_map};
 
-         my $txt = $texture->{texture};
+            my $map = $self->{resource}->[$texmap_id];
+            unless ($map) {
+               warn "Warning: Couldn't find resource for texture map $texmap_id\n";
+            }
 
-         my $uv = [0, 0, 1, 1];
-         if ($map->{data}->{uv_map}) {
-            $uv = [@{$map->{data}->{uv_map}}];
-            _pixel2uv ($uv, $txt->[2], $txt->[3]);
+            my $texture = $self->{resource}->[$map->{data}->{tex_id}];
+            unless ($texture) {
+               warn "Warning: Couldn't find resource for texture "
+                    . "$map->{data}->{tex_id} in texmap $texmap_id\n";
+            }
+
+            $txt = $texture->{texture};
+
+            $uv = [0, 0, 1, 1];
+            if ($map->{data}->{uv_map}) {
+               $uv = [@{$map->{data}->{uv_map}}];
+               _pixel2uv ($uv, $txt->[2], $txt->[3]);
+            }
          }
 
          $objtype2texture->[$_->{data}->{object_type}] = [
-            $txt->[0], $txt->[1], $uv
+            $txt->[0], $txt->[1], $uv, $model
          ];
       }
    }

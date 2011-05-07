@@ -82,6 +82,9 @@ sub mk_construct {
          }
       }
    }
+   for (0..30) {
+      secset (\$sect, [31, 2, $_], [15, 8]);
+   }
 
    $self->{data} = $sect;
 }

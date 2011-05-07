@@ -19,6 +19,7 @@ use Games::Blockminer3D::Vector;
 use Games::Blockminer3D::Client::World;
 use Games::Blockminer3D::Client::Resources;
 use Games::Blockminer3D::Client::UI;
+use Games::Blockminer3D::Client::Renderer;
 
 use base qw/Object::Event/;
 
@@ -118,9 +119,6 @@ sub init_app {
    glHint (GL_FOG_HINT, GL_DONT_CARE);
    glFogf (GL_FOG_START, 10);
    glFogf (GL_FOG_END,   20);
-
-   $self->{res} = Games::Blockminer3D::Client::Resources->new;
-
 }
 
 #  0 front  1 top    2 back   3 left   4 right  5 bottom
@@ -232,7 +230,7 @@ sub compile_chunk {
       glEnableClientState(GL_VERTEX_ARRAY);
       glEnableClientState(GL_COLOR_ARRAY);
       glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-      my $compl = $chnk->visible_quads ($self->{res});
+      my $compl = render_visible_quads ($chnk->{map});
       glPushMatrix;
 
       glTranslatef (

@@ -74,14 +74,14 @@ sub update_hud_1 {
       window => {
          sticky => 1,
          extents => [right => down => 0.3, 0.3],
-         alpha => 1,
-         color => "#440011",
+         alpha => 0.8,
+         color => "#000000",
       },
       elements => [
          {
             type => "text", extents => ["left", 0.02, 0.03, "font_height"],
             font => "small", color => "#ffffff",
-            text => "Pos:" . vstr ($self->{pos})
+            text => "Pos:" . sprintf ("%3.2f/%3.2f/%3.2f", @{$self->{pos}})
          },
          {
             type => "text", extents => ["left", "bottom_of 0", 0.03, 1],
@@ -113,7 +113,7 @@ sub show_inventory {
       window => {
          extents => [center => center => 0.8, 0.8],
          alpha => 1,
-         color => "#005500",
+         color => "#444444",
          prio => 100,
       },
       elements => [
@@ -142,9 +142,10 @@ sub show_help {
    my ($self) = @_;
 
    my $help_txt = <<HELP;
-Basic controls:
 [ w a s d ]
 forward, left, backward, right
+[ shift ]
+holding down shift doubles your speed
 [ f ]
 toggle mouse look
 [ g ]
@@ -161,7 +162,7 @@ dematerialize and materialize
 teleport to the starting point
 HELP
 
-   $self->send_client ({ cmd => activate_ui => ui => "player_inventory", desc => {
+   $self->send_client ({ cmd => activate_ui => ui => "player_help", desc => {
       window => {
          extents => [center => center => 0.8, 1],
          alpha => 1,

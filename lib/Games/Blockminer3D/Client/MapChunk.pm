@@ -40,8 +40,8 @@ sub new {
 
 sub _map_get_if_exists {
    my ($map, $x, $y, $z) = @_;
-   return [0, 16, 1] if $x < 0     || $y < 0     || $z < 0;
-   return [0, 16, 1] if $x >= $SIZE || $y >= $SIZE || $z >= $SIZE;
+   return [0, 16, 1, 0, 1] if $x < 0     || $y < 0     || $z < 0;
+   return [0, 16, 1, 0, 1] if $x >= $SIZE || $y >= $SIZE || $z >= $SIZE;
    #$map->[$x + ($y + $z * $SIZE) * $SIZE]
    $map->[$x]->[$y]->[$z]# + ($y + $z * $SIZE) * $SIZE]
 }
@@ -68,7 +68,7 @@ sub _data2array {
 }
 
 sub data_fill {
-   my ($self, $data) = @_;
+   my ($self, $res, $data) = @_;
 
    my $t1 = time;
    my $map = [];
@@ -78,6 +78,8 @@ sub data_fill {
             my $chnk_offs = $x + $y * $SIZE + $z * ($SIZE ** 2);
             my $c = $map->[$x]->[$y]->[$z] = _data2array (substr $data, $chnk_offs * 4, 4);
             $c->[2] = 1;
+            my ($txtid, $surf, $uv, $model) = $res->obj2texture ($c->[0]);
+            if ($c->[0] == 0 || $model) { $c->[4] = 1; }
 
             #d#warn "DATAFILL: $x,$y,$z: " . JSON->new->encode ($map->[$x]->[$y]->[$z]) . "\n";
          }
@@ -94,12 +96,12 @@ sub data_fill {
             my ($cur, $top, $bot, $left, $right, $front, $back)
                = _neighbours ($map, $x, $y, $z);
             my $cnt = 0;
-            $cnt++ if $top->[0]   == 0;
-            $cnt++ if $bot->[0]   == 0;
-            $cnt++ if $left->[0]  == 0;
-            $cnt++ if $right->[0] == 0;
-            $cnt++ if $front->[0] == 0;
-            $cnt++ if $back->[0]  == 0;
+            $cnt++ if $top->[0]   == 0 || $top->[4];
+            $cnt++ if $bot->[0]   == 0 || $bot->[4];
+            $cnt++ if $left->[0]  == 0 || $left->[4];
+            $cnt++ if $right->[0] == 0 || $right->[4];
+            $cnt++ if $front->[0] == 0 || $front->[4];
+            $cnt++ if $back->[0]  == 0 || $back->[4];
 
             if ($cnt == 0
                 && not (
@@ -108,7 +110,6 @@ sub data_fill {
                    || $z == 0 || $z == $SIZE - 1)
             ) {
                $cur->[2] = 0;
- #              $map->[$x]->[$y]->[$z] = [1, 16, 1];
             } else {
                $cur->[2] = 1;
                $visible++;
@@ -120,125 +121,6 @@ sub data_fill {
 
    warn "VISIBLE: $visible : ".(time - $t1)."\n";
    $self->{map} = $map;
-}
-
-my @indices  = (
-   qw/ 0 1 2 3 /, # 0 front
-   qw/ 1 5 6 2 /, # 1 top
-   qw/ 7 6 5 4 /, # 2 back
-   qw/ 4 5 1 0 /, # 3 left
-   qw/ 3 2 6 7 /, # 4 right
-   qw/ 3 7 4 0 /, # 5 bottom
-);
-
-#my @normals = (
-#   [ 0, 0,-1],
-#   [ 0, 1, 0],
-#   [ 0, 0, 1],
-#   [-1, 0, 0],
-#   [ 1, 0, 0],
-#   [ 0,-1, 0],
-#),
-my @vertices = (
-   [ 0,  0,  0 ],
-   [ 0,  1,  0 ],
-   [ 1,  1,  0 ],
-   [ 1,  0,  0 ],
-
-   [ 0,  0,  1 ],
-   [ 0,  1,  1 ],
-   [ 1,  1,  1 ],
-   [ 1,  0,  1 ],
-);
-
-
-sub visible_quads {
-   my ($self, $res) = @_;
-
-   my (@vertexes, @colors, @texcoords);
-
-   my $map = $self->{map};
-
-   my $quad_cnt;
-   FACES:
-   for (my $z = 0; $z < $SIZE; $z++) {
-      for (my $y = 0; $y < $SIZE; $y++) {
-         for (my $x = 0; $x < $SIZE; $x++) {
-            my ($cur, $top, $bot, $left, $right, $front, $back)
-               = _neighbours ($map, $x, $y, $z);
-            next unless $cur->[2];
-            if ($cur->[0] != 0) {
-               my @faces;
-               my ($txtid, $surf, $uv) = $res->obj2texture ($cur->[0]);
-
-               if ($front->[2] && $front->[0] == 0) {
-                  push @faces, [0, $front->[1] / 15]
-               }
-               if ($top->[2] && $top->[0] == 0) {
-                  push @faces, [1, $top->[1] / 15]
-               }
-               if ($back->[2] && $back->[0] == 0) {
-                  push @faces, [2, $back->[1] / 15]
-               }
-               if ($left->[2] && $left->[0] == 0) {
-                  push @faces, [3, $left->[1] / 15]
-               }
-               if ($right->[2] && $right->[0] == 0) {
-                  push @faces, [4, $right->[1] / 15];
-               }
-               if ($bot->[2] && $bot->[0] == 0) {
-                  push @faces, [5, $bot->[1] / 15]
-               }
-
-               for (@faces) {
-                  my ($faceidx, $color) = @$_;
-                  $quad_cnt++;
-                  push @vertexes, map {
-                     my $v = $vertices[$indices[$faceidx * 4 + $_]];
-                     (
-                        $v->[0] + $x,
-                        $v->[1] + $y,
-                        $v->[2] + $z,
-                     )
-                  } 0..3;
-                  push @colors, (
-                     $color, $color, $color,
-                     $color, $color, $color,
-                     $color, $color, $color,
-                     $color, $color, $color,
-                  );
-                  push @texcoords, (
-                     $uv->[2], $uv->[3],
-                     $uv->[2], $uv->[1],
-                     $uv->[0], $uv->[1],
-                     $uv->[0], $uv->[3],
- #                    1, 1,
- #                    1, 0,
- #                    0, 0,
- #                    0, 1
-                  );
-               }
-
-              # my ($pos, $faces, $light, $tex) = @$_;
-               #d# warn "QUAD: @faces at $x, $y, $z ($cur->[1])\n";
-              # push @quads, [
-              #    [$x, $y, $z], # pos
-              #    \@faces,      # faces
-              #    $cur->[0]     # object type id
-              # ];
-            }
-         }
-      }
-   }
-   warn "GOT: " . scalar (@vertexes) . " verts, " . scalar (@colors) . " colors and " . scalar (@texcoords) . " texcoords and $quad_cnt quads\n";
- #d#  warn "LIST[@vertexes | @colors | @texcoords]\n";
-
-   [
-      OpenGL::Array->new_list (GL_FLOAT, @vertexes),
-      OpenGL::Array->new_list (GL_FLOAT, @colors),
-      OpenGL::Array->new_list (GL_FLOAT, @texcoords),
-      $quad_cnt
-   ]
 }
 
 sub chunk_changed : event_cb {
