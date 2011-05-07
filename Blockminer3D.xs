@@ -42,3 +42,6 @@ unsigned int games_b3d_cone_sphere_intersect ( double cam_x, double cam_y, doubl
 
   OUTPUT:
     RETVAL
+
+
+MODULE = Games::Blockminer3D PACKAGE = Games::Blockminer3D::World PREFIX = games_b3d_

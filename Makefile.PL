@@ -21,6 +21,9 @@ WriteMakefile(
         'SDL'           => 0,
         'Math::Trig'    => 0,
     },
+    depend => {
+       "Blockminer3D.c" => "vectorlib.c world.c"
+    },
     dist                => {
        COMPRESS => 'gzip -9f',
        SUFFIX   => 'gz',
