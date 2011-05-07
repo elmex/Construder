@@ -7,6 +7,8 @@ require Exporter;
 our @ISA = qw/Exporter/;
 our @EXPORT = qw/
    render_visible_quads
+   render_quads
+   render_object_type_sample
 /;
 
 =head1 NAME
@@ -172,6 +174,52 @@ sub render_visible_quads {
    ]
 }
 
+sub render_object_type_sample {
+   my ($type) = @_;
+   my ($txtid, $surf, $uv, $model) = $RES->obj2texture ($type);
+   my ($verts, $txtcoord);
+
+   if ($model) {
+      unless ($model_cache{$type}) {
+         $model_cache{$type} = _render_model (@$model);
+      }
+      ($verts, $txtcoord) = @{$model_cache{$type}};
+
+   } else {
+      ($verts, $txtcoord) = @{_render_model (1, [1, $type])};
+   }
+
+   my @verts = map { @$_ } @$verts;
+
+   my $quads = [
+      OpenGL::Array->new_list (GL_FLOAT, @verts),
+      OpenGL::Array->new_list (GL_FLOAT, map { (1, 1, 1) } @$verts),
+      OpenGL::Array->new_list (GL_FLOAT, @$txtcoord),
+      @verts / 12 # 3 * 4 vertices
+   ];
+   #d# warn "sample quads: $quads->[3] | $type | @$model | @verts | @$txtcoord\n";
+   render_quads ($quads)
+}
+
+sub render_quads {
+   my ($quads) = @_;
+   my ($txtid) = $RES->obj2texture (1);
+
+   glBindTexture (GL_TEXTURE_2D, $txtid);
+   glEnableClientState(GL_VERTEX_ARRAY);
+   glEnableClientState(GL_COLOR_ARRAY);
+   glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+   glVertexPointer_p (3, $quads->[0]);
+   glColorPointer_p (3, $quads->[1]);
+   glTexCoordPointer_p (2, $quads->[2]);
+   for (0..($quads->[3] - 1)) {
+      glDrawArrays (GL_QUADS, $_ * 4, 4);
+   }
+   glDisableClientState(GL_COLOR_ARRAY);
+   glDisableClientState(GL_VERTEX_ARRAY);
+   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+}
 
 
 =back

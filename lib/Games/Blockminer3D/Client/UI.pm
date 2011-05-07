@@ -6,6 +6,8 @@ use SDL::Video;
 use SDL::TTF;
 use OpenGL qw(:all);
 use JSON;
+use Games::Blockminer3D::Client::Renderer;
+use Games::Blockminer3D::Vector;
 
 use base qw/Object::Event/;
 
@@ -84,6 +86,8 @@ sub _calc_extents {
    if ($size->[1] =~ /^font_height(?:\s*(\d+(?:\.\d+)?))?/) {
       $size->[1] = $1 ne '' ? $font_h * $1 : $font_h;
       warn "FONT HEIGHT $font_h\n";
+   } elsif ($size->[1] eq 'w') {
+      $size->[1] = $size->[0];
    }
    #d# warn "RELATIVE: " . JSON->new->pretty->encode ($relext) . "\n";
 
@@ -237,6 +241,7 @@ sub update {
    $self->{command_cb} = $gui_desc->{command_cb};
    $self->{sticky}     = $win->{sticky};
    $self->{prio}       = $win->{prio};
+   $self->{models}     = [];
 
    for my $el (@{$gui_desc->{elements}}) {
 
@@ -253,9 +258,11 @@ sub update {
          );
 
       } elsif ($el->{type} eq 'model') {
-         $self->place_model (
-            $el->{pos}, $el->{size}, $el->{number}, $el->{label}
-         );
+         my ($pos, $size) =
+            _calc_extents ($el->{extents}, $self->{relative_extents},
+                           0, @{$self->{window_size}});
+         $size->[1] = $size->[0];
+         push @{$self->{models}}, [$pos, $size, $el->{object_type}];
       }
    }
 
@@ -332,27 +339,40 @@ sub display {
    );
 
    glPushMatrix;
-   glTranslatef (@$pos, 0);
+   my $z = -8 + -(1 - $self->{desc}->{window}->{prio} / 1000);
+   glTranslatef (@$pos, $z);
    glColor4f (1, 1, 1, $self->{desc}->{window}->{alpha});
    glBindTexture (GL_TEXTURE_2D, $self->{gl_id});
    glBegin (GL_QUADS);
 
-   my $z = 0;
-
    glTexCoord2f(0, $v);
-   glVertex3f (0, $size->[1], $z);
+   glVertex3f (0, $size->[1], 0);
 
    glTexCoord2f($u, $v);
-   glVertex3f ($size->[0], $size->[1], $z);
+   glVertex3f ($size->[0], $size->[1], 0);
 
    glTexCoord2f($u, 0);
-   glVertex3f ($size->[0], 0, $z);
+   glVertex3f ($size->[0], 0, 0);
 
    glTexCoord2f(0, 0);
-   glVertex3f (0, 0, $z);
+   glVertex3f (0, 0, 0);
 
    glEnd ();
    glPopMatrix;
+
+   for (@{$self->{models}}) {
+      my ($pos, $size, $model) = @$_;
+      glPushMatrix;
+      my ($w, $h) = ($size->[0] * 0.3, $size->[1] * 0.3);
+      glTranslatef ($pos->[0], $pos->[1] + ($h * 1.25), -1);
+      glScalef ($w, $h, 0.01);
+      glScalef (1, -1, 1);
+      glRotatef (45, 1, 0, 0);
+      glRotatef (45, 0, 1, 0);
+
+      render_object_type_sample ($_->[2]);
+      glPopMatrix;
+   }
 }
 
 sub input_key_press : event_cb {

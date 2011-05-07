@@ -225,11 +225,6 @@ sub compile_chunk {
 
    $self->free_chunk ($cx, $cy, $cz);
    $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} = OpenGL::List::glpList {
-      my ($txtid) = $self->{res}->obj2texture (1);
-      glBindTexture (GL_TEXTURE_2D, $txtid);
-      glEnableClientState(GL_VERTEX_ARRAY);
-      glEnableClientState(GL_COLOR_ARRAY);
-      glEnableClientState(GL_TEXTURE_COORD_ARRAY);
       my $compl = render_visible_quads ($chnk->{map});
       glPushMatrix;
 
@@ -238,24 +233,10 @@ sub compile_chunk {
          $cy * $Games::Blockminer3D::Client::MapChunk::SIZE,
          $cz * $Games::Blockminer3D::Client::MapChunk::SIZE
       );
-      glVertexPointer_p (3, $compl->[0]);
-      glColorPointer_p (3, $compl->[1]);
-      glTexCoordPointer_p (2, $compl->[2]);
-   # grmbl... doesn't seem to work:
-   #my @indexes = map {
-   #   my $b = $_ * 4;
-   #   ($b, $b + 1, $b + 2, $b + 3)
-   #} (0..($compl->[3] - 1));
 
- #     glDrawElements_p (GL_QUADS, $compl->[3] * 4, GL_UNSIGNED_INT, @indexes);
-      for (0..($compl->[3] - 1)) {
-         glDrawArrays (GL_QUADS, $_ * 4, 4);
-      }
+      render_quads ($compl);
+
       glPopMatrix;
-
-      glDisableClientState(GL_COLOR_ARRAY);
-      glDisableClientState(GL_VERTEX_ARRAY);
-      glDisableClientState(GL_TEXTURE_COORD_ARRAY);
    };
 }
 
@@ -403,12 +384,13 @@ sub render_scene {
 sub render_hud {
    my ($self) = @_;
 
-   glDisable (GL_DEPTH_TEST);
+   #glDisable (GL_DEPTH_TEST);
+   glClear (GL_DEPTH_BUFFER_BIT);
 
    glMatrixMode (GL_PROJECTION);
    glPushMatrix ();
    glLoadIdentity;
-   glOrtho (0, $WIDTH, $HEIGHT, 0, -1, 1);
+   glOrtho (0, $WIDTH, $HEIGHT, 0, -20, 20);
 
    glMatrixMode (GL_MODELVIEW);
    glPushMatrix ();
@@ -423,13 +405,13 @@ sub render_hud {
    glBegin (GL_QUADS);
 
    #glTexCoord2d(1, 1);
-   glVertex3f (-5, 5, 0);
+   glVertex3f (-5, 5, -9.99);
    #glTexCoord2d(1, 0);
-   glVertex3f (5, 5, 0);
+   glVertex3f (5, 5, -9.99);
    #glTexCoord2d(0, 1);
-   glVertex3f (5, -5, 0);
+   glVertex3f (5, -5, -9.99);
    #glTexCoord2d(0, 0);
-   glVertex3f (-5, -5, 0);
+   glVertex3f (-5, -5, -9.99);
 
    glEnd ();
    glPopMatrix;
@@ -437,14 +419,14 @@ sub render_hud {
    #d# warn "ACTIVE UIS: " . join (', ', keys %{$self->{active_uis} || {}}) . "\n";
 
    $_->display for
-      sort { $a->{prio} <=> $b->{prio} }
+      sort { $b->{prio} <=> $a->{prio} }
          values %{$self->{active_uis} || {}};
 
    glPopMatrix;
    glMatrixMode (GL_PROJECTION);
    glPopMatrix;
 
-   glEnable (GL_DEPTH_TEST);
+   #glEnable (GL_DEPTH_TEST);
    my $e;
    while (($e = glGetError ()) != GL_NO_ERROR) {
       warn "ERORR ".gluErrorString ($e)."\n";
@@ -468,7 +450,7 @@ sub setup_event_poller {
       $self->{active_uis}->{debug_hud}->update ({
          window => {
             sticky => 1,
-            extents => [left => up => 0.1, 0.05],
+            extents => [left => up => 0.15, 0.05],
             color => "#000000",
             alpha => 0.8,
          },
@@ -478,7 +460,7 @@ sub setup_event_poller {
                text => sprintf ("%.1f FPS\n", $fps / $fps_intv),
                color => "#ffff00",
                font => 'small'
-            },
+            }
          ]
       });
       $collide_cnt = $collide_time = 0;

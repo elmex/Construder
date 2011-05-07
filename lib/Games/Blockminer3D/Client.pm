@@ -201,7 +201,9 @@ sub handle_packet : event_cb {
       $self->{front}->add_highlight ($hdr->{pos}, $hdr->{color}, $hdr->{fade}, $hdr->{solid});
 
    } elsif ($hdr->{cmd} eq 'chunk') {
-      my $chnk = Games::Blockminer3D::Client::MapChunk->new;
+      my $chnk = world_get_chunk (@{$hdr->{pos}});
+      $chnk = Games::Blockminer3D::Client::MapChunk->new
+         unless $chnk;
       $chnk->data_fill ($self->{res}, $body);
       world_set_chunk (@{$hdr->{pos}}, $chnk);
    }

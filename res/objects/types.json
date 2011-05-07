@@ -6,7 +6,7 @@
    },
    "stones" : {
      "type" : 2,
-     "texture" : ["cat2.png", 128, 0, 64, 64],
+     "texture" : ["cat2.png", 192, 0, 64, 64],
      "lore" : "Stones are the most basic block",
    },
    "cat_a" : { "texture" : ["cat2.png", 0, 0,   64, 64], "type" : 3 },
@@ -16,7 +16,7 @@
    "cat_d" : { "texture" : ["cat2.png", 64, 64, 64, 64],"type" : 7 },
    "rubber" : {
       "type" : 8,
-      "texture" : ["cat2.png", 192, 0, 64, 64],
+      "texture" : ["cat2.png", 128, 0, 64, 64],
       "lore" : "Your regular rubber",
    },
    "gravity_pusher" : {

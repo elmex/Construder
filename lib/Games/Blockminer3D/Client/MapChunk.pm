@@ -125,7 +125,6 @@ sub data_fill {
 
 sub chunk_changed : event_cb {
    my ($self) = @_;
-   delete $self->{quads_cache};
 }
 
 =back

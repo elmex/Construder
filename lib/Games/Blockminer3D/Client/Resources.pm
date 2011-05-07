@@ -124,8 +124,11 @@ sub _data2surface {
    print $fh $data;
    close $fh;
 
-   my $img = SDL::Image::load ($fname)
-      or die "Couldn't load texture from '$fname': " . SDL::get_error () . "\n";
+   my $img = SDL::Image::load ($fname);
+   unlink $fname;
+   unless ($img) {
+      die "Couldn't load texture from '$fname': " . SDL::get_error () . "\n";
+   }
    $img
 }
 
