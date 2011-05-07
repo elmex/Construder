@@ -285,26 +285,6 @@ sub add_highlight {
    }
 }
 
-sub cone_spehere_intersect {
-   my ($cpos, $cv, $cfov, $spos, $srad) = @_;
-
-   my $u = vsub ($cpos, vsmul ($cv, $srad / sin ($cfov)));
-   my $d = vsub ($spos, $u);
-   my $ld = vlength ($d);
-   if (vdot ($cv, $d) >= $ld * cos ($cfov)) {
-      my $d = vsub ($spos, $cpos);
-      $ld = vlength ($d);
-      if (-vdot ($cv, $d) >= $ld * sin ($cfov)) {
-         return $ld <= $srad; # inside k
-      } else {
-         return 1;
-      }
-
-   } else {
-      return 0; # outside cone
-   }
-}
-
 my $render_cnt;
 my $render_time;
 sub render_scene {
@@ -358,13 +338,6 @@ sub render_scene {
       } else {
          $culled++;
       }
-#      if (cone_spehere_intersect (@fcone, $pos, $Games::Blockminer3D::Client::MapChunk::BSPHERE)) {
-#         my $compl = $cc->{$cx}->{$cy}->{$cz}
-#            or next;
-#         glCallList ($compl);
-#      } else {
-#         $culled++;
-#      }
    }
    if ($culled < 3) {
       warn "culled only $culled chunks in " . (time - $t2) . " secs!!!!";
@@ -498,6 +471,8 @@ sub setup_event_poller {
       # FIXME: vfloor is definitively NOT correct - probably :->
       my (@chunks) = world_visible_chunks_at ($pp);
       my @fcone = $self->cam_cone;
+      unshift @fcone,
+         vaddd ($pp, 0, $PL_HEIGHT, 0);
       for (@chunks) {
          my ($cx, $cy, $cz) = @$_;
          my $pos = vsadd (vsmul ($_,
@@ -505,8 +480,9 @@ sub setup_event_poller {
                           $Games::Blockminer3D::Client::MapChunk::SIZE / 2);
 
          next unless
-            cone_spehere_intersect (
-               @fcone, $pos, $Games::Blockminer3D::Client::MapChunk::BSPHERE);
+            Games::Blockminer3D::Math::cone_sphere_intersect (
+               @{$fcone[0]}, @{$fcone[1]}, $fcone[2],
+               @$pos, $Games::Blockminer3D::Client::MapChunk::BSPHERE);
 
          unless ($cc->{$cx}->{$cy}->{$cz}) {
             $self->compile_chunk ($cx, $cy, $cz);
