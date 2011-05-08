@@ -5,6 +5,7 @@ use Games::Blockminer3D::Client::MapChunk;
 use Games::Blockminer3D::Client::Renderer;
 use Games::Blockminer3D::Client::World;
 use Games::Blockminer3D::Protocol;
+use Games::Blockminer3D;
 use AnyEvent;
 use AnyEvent::Socket;
 use AnyEvent::Handle;
@@ -37,6 +38,7 @@ sub new {
 
    $self->init_object_events;
 
+   Games::Blockminer3D::World::init;
    $self->{res} = Games::Blockminer3D::Client::Resources->new;
    $Games::Blockminer3D::Client::Renderer::RES = $self->{res};
 
@@ -204,8 +206,10 @@ sub handle_packet : event_cb {
       my $chnk = world_get_chunk (@{$hdr->{pos}});
       $chnk = Games::Blockminer3D::Client::MapChunk->new
          unless $chnk;
+      printf ("BODY LEN %d\n", length $body);
       $chnk->data_fill ($self->{res}, $body);
       world_set_chunk (@{$hdr->{pos}}, $chnk);
+      Games::Blockminer3D::World::set_chunk_data (@{$hdr->{pos}}, $body, length $body);
    }
 }
 

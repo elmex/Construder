@@ -87,7 +87,6 @@ sub data_fill {
    }
 
    $self->{map} = $map;
-   return;
 
    my $visible;
    for (my $z = 0; $z < $SIZE; $z++) {
@@ -117,7 +116,6 @@ sub data_fill {
          }
       }
    }
-   $self->visible_quads;
 
    warn "VISIBLE: $visible : ".(time - $t1)."\n";
    $self->{map} = $map;

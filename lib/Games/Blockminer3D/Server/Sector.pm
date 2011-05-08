@@ -139,7 +139,7 @@ sub get_chunk {
 
    my $from = vsmul ($relchnkpos, $CHNKSIZE);
    my $to   = vsmul (vaddd ($relchnkpos, 1, 1, 1), $CHNKSIZE);
-   my $chnk = "\x00" x ((16 ** 3) * 4);
+   my $chnk = "\x00" x (($CHNKSIZE ** 3) * 4);
 
    my $blks = 0;
    for my $dx ($from->[0]..($to->[0] - 1)) {

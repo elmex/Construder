@@ -1,6 +1,7 @@
 package Games::Blockminer3D::Client::World;
 use common::sense;
 use Games::Blockminer3D::Vector;
+use Games::Blockminer3D;
 use POSIX qw/floor/;
 use Object::Event;
 
@@ -112,6 +113,7 @@ sub world_get_box_at {
       + ($npos->[1] + $npos->[2] * $Games::Blockminer3D::Client::MapChunk::SIZE)
           * $Games::Blockminer3D::Client::MapChunk::SIZE;
  #  $chnk->{map}->[$offs]
+#  warn "get box at @$pos => @$npos\n";
    $chnk->{map}->[$npos->[0]]->[$npos->[1]]->[$npos->[2]]
 }
 
@@ -302,8 +304,9 @@ sub world_collide {
          for my $y (@yr) {
             for my $z (@zr) {
                my $cur_box = vaddd ($my_box, $x, $y, $z);
-               my $bx = world_get_box_at ($cur_box);
-               next unless world_is_solid_box ($bx);
+#              my $bx = world_get_box_at ($cur_box);
+#              next unless world_is_solid_box ($bx);
+               next unless Games::Blockminer3D::World::is_solid_at (@$cur_box);
 
                my ($col_dir, $pos_adj) = _collide_sphere_box ($spos, $srad, $cur_box);
                if ($col_dir && vdot ([0, $coll_y, 0], $col_dir) <= 0) { # collided!

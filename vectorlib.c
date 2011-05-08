@@ -1,3 +1,5 @@
+#ifndef VECTORLIB_C
+#define VECTORLIB_C 1
 #include <stdio.h>
 #include <math.h>
 
@@ -11,6 +13,7 @@
 #define vec3_dot(v1,v2)        (v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2])
 #define vec3_len(v)            sqrt (vec3_dot (v, v))
 #define vec3_norm(v)           vec3_s_div (v, vec3_len (v))
+#define vec3_floor(v)          v[0] = floor (v[0]); v[1] = floor (v[1]); v[2] = floor (v[2]);
 
 typedef struct vec3d_ { double v[3]; } vec3d;
 
@@ -106,3 +109,4 @@ void vec3d_norm (vec3d *v)
 
 void vec3d_dump (const char *name, vec3d *v)
 { printf ("%s [%5.4g %5.4g %5.4g] ", name, v->v[0], v->v[1], v->v[2]); }
+#endif
