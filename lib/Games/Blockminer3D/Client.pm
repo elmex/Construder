@@ -207,9 +207,9 @@ sub handle_packet : event_cb {
       $chnk = Games::Blockminer3D::Client::MapChunk->new
          unless $chnk;
       printf ("BODY LEN %d\n", length $body);
-      $chnk->data_fill ($self->{res}, $body);
-      world_set_chunk (@{$hdr->{pos}}, $chnk);
+#$chnk->data_fill ($self->{res}, $body);
       Games::Blockminer3D::World::set_chunk_data (@{$hdr->{pos}}, $body, length $body);
+      world_set_chunk (@{$hdr->{pos}}, $chnk);
    }
 }
 

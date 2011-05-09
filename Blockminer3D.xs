@@ -7,6 +7,7 @@
 
 #include "vectorlib.c"
 #include "world.c"
+#include "render.c"
 
 MODULE = Games::Blockminer3D PACKAGE = Games::Blockminer3D::Math PREFIX = b3d_
 
@@ -80,15 +81,26 @@ b3d_point_aabb_distance (double pt_x, double pt_y, double pt_z, double box_min_x
   OUTPUT:
     RETVAL
 
+MODULE = Games::Blockminer3D PACKAGE = Games::Blockminer3D::Renderer PREFIX = b3d_render_
+
+
+void b3d_render_chunk (int x, int y, int z, AV *a, AV *b, AV *c)
+  CODE:
+    b3d_render_chunk (x, y, z, a, b, c);
+
 MODULE = Games::Blockminer3D PACKAGE = Games::Blockminer3D::World PREFIX = b3d_world_
 
-void b3d_world_init ();
+void b3d_world_init ()
+  CODE:
+     b3d_world_init ();
+     b3d_render_init ();
 
 void b3d_world_set_chunk_data (int x, int y, int z, unsigned char *data, unsigned int len)
   CODE:
     b3d_chunk *chnk = b3d_world_chunk (x, y, z, 1);
     assert (chnk);
     b3d_world_set_chunk_from_data (chnk, data, len);
+    printf ("SET CHUNK FROM DATA %d %d %d\n", x, y, z);
     int lenc = (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) * 4;
     if (lenc != len)
       {
@@ -128,8 +140,7 @@ int b3d_world_is_solid_at (double x, double y, double z)
   OUTPUT:
     RETVAL
 
-void b3d_world_set_object_type (unsigned int type, unsigned int transparent, unsigned int blocking);
-
+void b3d_world_set_object_type (unsigned int type, unsigned int transparent, unsigned int blocking, unsigned int model, double uv0, double uv1, double uv2, double uv3);
 
 AV *
 b3d_world_at (double x, double y, double z)
@@ -150,7 +161,6 @@ b3d_world_at (double x, double y, double z)
 
   OUTPUT:
     RETVAL
-
 
 AV *
 b3d_world_chunk_visible_faces (int x, int y, int z)

@@ -46,6 +46,10 @@ sub set_resources {
 sub post_proc {
    my ($self) = @_;
 
+   Games::Blockminer3D::World::set_object_type (
+      0, 1, 0, 0,
+      0, 0, 0, 0
+   );
    my $objtype2texture = [];
 
    for (@{$self->{resource}}) {
@@ -84,8 +88,10 @@ sub post_proc {
          ];
          Games::Blockminer3D::World::set_object_type (
             $typeid,
-            $typeid == 0 || defined $model ? 1 : 0,
-            $typeid != 0
+            ($typeid == 0 || defined $model ? 1 : 0),
+            $typeid != 0,
+            ($model ? 1 : 0),
+            @{$uv || [0,0,0,0]}
          );
       }
    }

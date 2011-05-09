@@ -13,8 +13,10 @@
 #include "world_data_struct.c"
 
 typedef struct _b3d_obj_attr {
+  double uv[4];
   unsigned short transparent : 1;
   unsigned short blocking    : 1;
+  unsigned short model       : 1;
 } b3d_obj_attr;
 
 typedef struct _b3d_cell {
@@ -37,12 +39,19 @@ typedef struct _b3d_world {
 
 static b3d_obj_attr OBJ_ATTR_MAP[POSSIBLE_OBJECTS];
 static b3d_world WORLD;
+static b3d_cell neighbour_cell;
+
 
 void b3d_world_init ()
 {
   int i;
   WORLD.y = b3d_axis_array_new ();
   memset (OBJ_ATTR_MAP, 0, sizeof (OBJ_ATTR_MAP));
+  neighbour_cell.type    = 0;
+  neighbour_cell.light   = 15;
+  neighbour_cell.add     = 0;
+  neighbour_cell.meta    = 0;
+  neighbour_cell.visible = 1;
 }
 
 b3d_obj_attr *b3d_world_get_attr (unsigned int type)
@@ -51,11 +60,17 @@ b3d_obj_attr *b3d_world_get_attr (unsigned int type)
 }
 
 void b3d_world_set_object_type (
-        unsigned int type, unsigned int transparent, unsigned int blocking)
+        unsigned int type, unsigned int transparent, unsigned int blocking,
+        unsigned int model, double uv0, double uv1, double uv2, double uv3)
 {
   b3d_obj_attr *oa = b3d_world_get_attr (type);
   oa->transparent = transparent;
   oa->blocking    = blocking;
+  oa->model       = model;
+  oa->uv[0]       = uv0;
+  oa->uv[1]       = uv1;
+  oa->uv[2]       = uv2;
+  oa->uv[3]       = uv3;
 }
 
 void b3d_set_cell_from_data (b3d_cell *c, unsigned char *ptr)
@@ -103,6 +118,35 @@ b3d_cell *b3d_chunk_cell_at_abs (b3d_chunk *chnk, double x, double y, double z)
   return &(chnk->cells[offs]);
 }
 
+int b3d_world_cell_transparent (b3d_cell *c)
+{
+  b3d_obj_attr *oa = b3d_world_get_attr (c->type);
+  return c->type == 0 || oa->transparent;
+}
+
+
+b3d_cell *
+b3d_world_chunk_neighbour_cell (b3d_chunk *c, int x, int y, int z)
+{
+  if (   x < 0 || y < 0 || z < 0
+      || x >= CHUNK_SIZE || y >= CHUNK_SIZE || z >= CHUNK_SIZE)
+    {
+      return &neighbour_cell;
+    }
+
+  unsigned int offs = REL_POS2OFFS(x, y, z);
+
+  return &(c->cells[offs]);
+}
+
+#define GET_NEIGHBOURS(c, x,y,z) \
+  b3d_cell *top   = b3d_world_chunk_neighbour_cell (c, x, y + 1, z); \
+  b3d_cell *bot   = b3d_world_chunk_neighbour_cell (c, x, y - 1, z); \
+  b3d_cell *left  = b3d_world_chunk_neighbour_cell (c, x - 1, y, z); \
+  b3d_cell *right = b3d_world_chunk_neighbour_cell (c, x + 1, y, z); \
+  b3d_cell *front = b3d_world_chunk_neighbour_cell (c, x, y, z - 1); \
+  b3d_cell *back  = b3d_world_chunk_neighbour_cell (c, x, y, z + 1);
+
 void b3d_world_chunk_calc_visibility (b3d_chunk *chnk)
 {
   unsigned int x, y, z;
@@ -118,19 +162,18 @@ void b3d_world_chunk_calc_visibility (b3d_chunk *chnk)
     for (y = 0; y < CHUNK_SIZE; y++)
       for (x = 0; x < CHUNK_SIZE; x++)
         {
-          unsigned int offs = REL_POS2OFFS (x, y, z);
-          b3d_cell *cell = &(chnk->cells[offs]);
-          b3d_obj_attr *oa = b3d_world_get_attr (cell->type);
-          cell->visible = 1;
-          if (oa->transparent)
+          b3d_cell *cell = &(chnk->cells[REL_POS2OFFS(x,y,z)]);
+          if (b3d_world_cell_transparent (cell))
             {
               cell->visible = 1;
 
-              unsigned int i,d,k;
-              for (i = -1; i <= 1; i++)
-                for (d = -1; d <= 1; d++)
-                  for (k = -1; k <= 1; k++)
-                    chnk->cells[REL_POS2OFFS (x + i, y + d, z + k)].visible = 1;
+              GET_NEIGHBOURS(chnk, x, y, z);
+              top->visible = 1;
+              bot->visible = 1;
+              left->visible = 1;
+              right->visible = 1;
+              front->visible = 1;
+              back->visible = 1;
             }
         }
 }

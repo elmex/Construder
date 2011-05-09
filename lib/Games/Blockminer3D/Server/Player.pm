@@ -49,9 +49,9 @@ sub update_pos {
    my $old_state = $self->{chunk_state};
    my $chunk_state = {};
    LASTUP:
-   for my $dx (0, -1, 1) {
-      for my $dy (0, -1, 1) {
-         for my $dz (0, -1, 1) {
+   for my $dx (0, -1, 1, -2, 2) {
+      for my $dy (0, -1, 1, -2, 2) {
+         for my $dz (0, -1, 1, -2, 2) {
             my $cur_chunk = vaddd ($chnk, $dx, $dy, $dz);
             my $id = world_pos2id ($cur_chunk);
             if ($old_state->{$id}) {

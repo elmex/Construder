@@ -226,8 +226,17 @@ sub compile_chunk {
 
    $self->free_chunk ($cx, $cy, $cz);
    $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} = OpenGL::List::glpList {
-      my $compl = render_visible_quads ($chnk->{map});
-#my $compl = render_visible_quads ($cx, $cy, $cz);
+         my $compl;
+      my (@vert, @color, @tex);
+      Games::Blockminer3D::Renderer::chunk ($cx, $cy, $cz, \@vert, \@color, \@tex);
+#d#     warn "VERTEXES: " . scalar (@vert) . " TEX: " . scalar (@tex) . "\n";
+      $compl = [
+         OpenGL::Array->new_list (GL_FLOAT, @vert),
+         OpenGL::Array->new_list (GL_FLOAT, @color),
+         OpenGL::Array->new_list (GL_FLOAT, @tex),
+         scalar (@vert) / 12
+      ];
+
       glPushMatrix;
 
       glTranslatef (
@@ -625,9 +634,9 @@ sub get_selected_box_pos {
    my ($select_pos);
 
    my $min_dist = 9999;
-   for my $dx (-3..3) {
+   for my $dx (-2..2) {
       for my $dy (-3..2) { # floor and above head?!
-         for my $dz (-3..3) {
+         for my $dz (-2..2) {
             # now skip the player boxes
             my $cur_box = vaddd ($head_box, $dx, $dy, $dz);
             #d# next unless $dx == 0 && $dz == 0 && $cur_box->[1] == $foot_box->[1] - 1;
@@ -707,7 +716,7 @@ sub physics_tick : event_cb {
 
    my $player = $self->{phys_obj}->{player};
 
-   my $bx = world_get_box_at (vaddd ($player->{pos}, 0, -1, 0));
+   my $bx = Games::Blockminer3D::World::at (@{vaddd ($player->{pos}, 0, -1, 0)});
 
    my $gforce = [0, -9.5, 0];
    if ($bx->[0] == 15) {
