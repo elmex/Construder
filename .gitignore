@@ -11,5 +11,6 @@ cover_db
 *.swp
 t/methds/meth_*
 nytprof*
-*.c
+Blockminer3D.c
 *.o
+*.bs

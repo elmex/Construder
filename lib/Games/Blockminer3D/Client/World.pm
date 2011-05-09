@@ -169,38 +169,12 @@ sub world_visible_chunks_at {
    @chnkposes
 }
 
-sub _closest_pt_point_aabb_2d {
-   my ($pt, $box_min, $box_max) = @_;
-   my @out;
-   for (0..1) {
-      my $pv = $pt->[$_];
-      my ($bmin, $bmax) = ($box_min->[$_], $box_max->[$_]);
-      if ($bmin > $bmax) { $bmax = $box_min->[$_]; $bmin = $box_max->[$_] }
-      $pv = $bmin if $pv < $bmin;
-      $pv = $bmax if $pv > $bmax;
-      push @out, $pv;
-   }
-   \@out
-}
-
-sub _closest_pt_point_aabb {
-   my ($pt, $box_min, $box_max) = @_;
-   my @out;
-   for (0..2) {
-      my $pv = $pt->[$_];
-      my ($bmin, $bmax) = ($box_min->[$_], $box_max->[$_]);
-      if ($bmin > $bmax) { $bmax = $box_min->[$_]; $bmin = $box_max->[$_] }
-      $pv = $bmin if $pv < $bmin;
-      $pv = $bmax if $pv > $bmax;
-      push @out, $pv;
-   }
-   \@out
-}
-
 sub _collide_sphere_box {
    my ($sphere_pos, $sphere_rad, $box) = @_;
 
-   my $abpt = _closest_pt_point_aabb ($sphere_pos, $box, vaddd ($box, 1, 1, 1));
+   my $abpt =
+      Games::Blockminer3D::Math::point_aabb_distance (
+         @$sphere_pos, @$box, @{vaddd ($box, 1, 1, 1)});
    my $dv   = vsub ($sphere_pos, $abpt);
 
    #d#warn "solid box at $cur_box, dist vec $dv |"

@@ -12,7 +12,6 @@ WriteMakefile(
     test                => { TESTS => "t/*.t t/methds/*.t" },
     PREREQ_PM => {
         'Test::More'    => 0,
-        'AnyEvent'      => 3.5,
         'common::sense' => 0,
         'AnyEvent'      => 0,
         'JSON'          => 0,
@@ -22,7 +21,7 @@ WriteMakefile(
         'Math::Trig'    => 0,
     },
     depend => {
-       "Blockminer3D.c" => "vectorlib.c world.c"
+       "Blockminer3D.c" => "vectorlib.c world.c world_data_struct.c"
     },
     dist                => {
        COMPRESS => 'gzip -9f',

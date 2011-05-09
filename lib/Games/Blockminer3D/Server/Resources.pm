@@ -36,6 +36,7 @@ sub _get_file {
    my ($file) = @_;
    open my $f, "<", $file
       or die "Couldn't open '$file': $!\n";
+   binmode $f, ":raw";
    do { local $/; <$f> }
 }
 
@@ -96,6 +97,7 @@ sub load_object {
          ($obj->{model} ? (model => $obj->{model}) : ()),
       }
    });
+
    $self->{object_res}->{$obj->{type}} = $obj;
 }
 

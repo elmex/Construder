@@ -4,6 +4,7 @@ use File::Temp qw/tempfile/;
 use SDL::Image;
 use SDL::Video;
 use OpenGL qw(:all);
+use Games::Blockminer3D;
 
 =head1 NAME
 
@@ -77,9 +78,15 @@ sub post_proc {
             }
          }
 
-         $objtype2texture->[$_->{data}->{object_type}] = [
+         my $typeid = $_->{data}->{object_type};
+         $objtype2texture->[$typeid] = [
             $txt->[0], $txt->[1], $uv, $model
          ];
+         Games::Blockminer3D::World::set_object_type (
+            $typeid,
+            $typeid == 0 || defined $model ? 1 : 0,
+            $typeid != 0
+         );
       }
    }
 

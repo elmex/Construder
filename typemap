@@ -1,0 +1,2 @@
+TYPEMAP
+struct vec3d *		T_PTROBJ
