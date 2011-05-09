@@ -288,11 +288,12 @@ sub add_highlight {
    $color->[3] = 1 if $fade > 0;
    push @{$self->{box_highlights}},
       [$pos, $color, { fading => $fade }];
-   if ($solid) {
-      my $bx = world_get_box_at ($pos);
-      $bx->[0] = 1; # materialization!
-      world_change_chunk_at ($pos);
-   }
+# FIXME => move to server!
+#   if ($solid) {
+#      my $bx = world_get_box_at ($pos);
+#      $bx->[0] = 1; # materialization!
+#      world_change_chunk_at ($pos);
+#   }
 }
 
 my $render_cnt;

@@ -49,9 +49,9 @@ sub update_pos {
    my $old_state = $self->{chunk_state};
    my $chunk_state = {};
    LASTUP:
-   for my $dx (0, -1, 1, -2, 2) {
-      for my $dy (0, -1, 1, -2, 2) {
-         for my $dz (0, -1, 1, -2, 2) {
+   for my $dx (0, -1, 1) {
+      for my $dy (0, -1, 1) {
+         for my $dz (0, -1, 1) {
             my $cur_chunk = vaddd ($chnk, $dx, $dy, $dz);
             my $id = world_pos2id ($cur_chunk);
             if ($old_state->{$id}) {
@@ -198,6 +198,18 @@ sub start_materialize {
       cmd => "highlight", pos => $pos, color => [0, 1, 1], fade => 1, solid => 1
    });
    $self->{materializings}->{$id} = 1;
+   world_mutate_at ($pos, sub {
+      my ($data) = @_;
+      $data->[0] = 1;
+
+      # FIXME: this is more or less a hack, we need some chunk update system soon
+      my $tmr;
+      $tmr = AE::timer 0, 0, sub {
+         $self->send_chunk (world_pos2chnkpos ($pos)); # FIXME: send incremental updates pls
+         undef $tmr;
+      };
+      return 1;
+   });
 
    my $tmr;
    $tmr = AE::timer 1, 0, sub {
@@ -209,6 +221,7 @@ sub start_materialize {
          $tmr = AE::timer 0, 0, sub {
             $self->send_chunk (world_pos2chnkpos ($pos)); # FIXME: send incremental updates pls
             delete $self->{materializings}->{$id};
+            undef $tmr;
          };
          return 1;
       });
