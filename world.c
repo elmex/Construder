@@ -6,6 +6,8 @@
 #define CHUNK_SIZE 12
 #define CHUNK_ALEN (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE)
 #define POSSIBLE_OBJECTS 4096 // this is the max number of different object types!
+#define MAX_MODEL_DIM   4
+#define MAX_MODEL_SIZE  (MAX_MODEL_DIM * MAX_MODEL_DIM * MAX_MODEL_DIM)
 
 #define myabs(x) ((x) < 0 ? -(x) : (x))
 #define REL_POS2OFFS(x,y,z) (myabs (x) + myabs (y) * CHUNK_SIZE + myabs (z) * (CHUNK_SIZE * CHUNK_SIZE))
@@ -17,6 +19,8 @@ typedef struct _b3d_obj_attr {
   unsigned short transparent : 1;
   unsigned short blocking    : 1;
   unsigned short model       : 1;
+  unsigned int   model_dim   : 3;
+  unsigned int   model_blocks[MAX_MODEL_SIZE];
 } b3d_obj_attr;
 
 typedef struct _b3d_cell {
@@ -61,16 +65,35 @@ b3d_obj_attr *b3d_world_get_attr (unsigned int type)
 
 void b3d_world_set_object_type (
         unsigned int type, unsigned int transparent, unsigned int blocking,
-        unsigned int model, double uv0, double uv1, double uv2, double uv3)
+        double uv0, double uv1, double uv2, double uv3)
 {
   b3d_obj_attr *oa = b3d_world_get_attr (type);
   oa->transparent = transparent;
   oa->blocking    = blocking;
-  oa->model       = model;
   oa->uv[0]       = uv0;
   oa->uv[1]       = uv1;
   oa->uv[2]       = uv2;
   oa->uv[3]       = uv3;
+}
+
+void b3d_world_set_object_model (unsigned int type, unsigned int dim, AV *blocks)
+{
+  b3d_obj_attr *oa = b3d_world_get_attr (type);
+  oa->model        = 1;
+  oa->model_dim    = dim;
+
+  int midx = av_len (blocks);
+  if (midx < 0)
+    return;
+
+  int i;
+  for (i = 0; i <= midx; i++)
+    {
+      SV **block = av_fetch (blocks, i, 0);
+      if (!block)
+        continue;
+      oa->model_blocks[i] = SvIV (*block);
+    }
 }
 
 void b3d_set_cell_from_data (b3d_cell *c, unsigned char *ptr)

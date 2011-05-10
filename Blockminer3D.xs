@@ -140,7 +140,9 @@ int b3d_world_is_solid_at (double x, double y, double z)
   OUTPUT:
     RETVAL
 
-void b3d_world_set_object_type (unsigned int type, unsigned int transparent, unsigned int blocking, unsigned int model, double uv0, double uv1, double uv2, double uv3);
+void b3d_world_set_object_type (unsigned int type, unsigned int transparent, unsigned int blocking, double uv0, double uv1, double uv2, double uv3);
+
+void b3d_world_set_object_model (unsigned int type, unsigned int dim, AV *blocks);
 
 AV *
 b3d_world_at (double x, double y, double z)

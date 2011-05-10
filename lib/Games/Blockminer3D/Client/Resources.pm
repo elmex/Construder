@@ -48,7 +48,7 @@ sub post_proc {
 
    Games::Blockminer3D::World::set_object_type (
       0, 1, 0, 0,
-      0, 0, 0, 0
+      0, 0, 0
    );
    my $objtype2texture = [];
 
@@ -90,9 +90,23 @@ sub post_proc {
             $typeid,
             ($typeid == 0 || defined $model ? 1 : 0),
             $typeid != 0,
-            ($model ? 1 : 0),
             @{$uv || [0,0,0,0]}
          );
+         if ($model) {
+            my ($dim, @blocks) = @$model;
+            my @constr;
+            for my $blknr (1..($dim ** 3)) {
+               my ($blk) = grep { $blknr == $_->[0] } @blocks;
+               if ($blk) {
+                  push @constr, $blk->[1];
+               } else {
+                  push @constr, 0;
+               }
+            }
+            Games::Blockminer3D::World::set_object_model (
+               $typeid, $dim, \@constr,
+            );
+         }
       }
    }
 
