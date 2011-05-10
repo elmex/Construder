@@ -164,6 +164,28 @@ b3d_world_at (double x, double y, double z)
   OUTPUT:
     RETVAL
 
+void
+b3d_world_set_at (double x, double y, double z, AV *cell)
+  CODE:
+    b3d_chunk *chnk = b3d_world_chunk_at (x, y, z, 1);
+    assert (chnk);
+    b3d_cell *c = b3d_chunk_cell_at_abs (chnk, x, y, z);
+
+    SV **t = av_fetch (cell, 0, 0);
+    if (t) c->type = SvIV (*t);
+
+    t = av_fetch (cell, 1, 0);
+    if (t) c->light = SvIV (*t);
+
+    t = av_fetch (cell, 2, 0);
+    if (t) c->meta = SvIV (*t);
+
+    t = av_fetch (cell, 3, 0);
+    if (t) c->add = SvIV (*t);
+
+    t = av_fetch (cell, 4, 0);
+    if (t) c->visible = SvIV (*t);
+
 AV *
 b3d_world_chunk_visible_faces (int x, int y, int z)
   CODE:
