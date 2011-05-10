@@ -1,0 +1,67 @@
+- iron
+- stee
+- rubber
+- cobblestones
+- energie-zelle minicell
+- biomassen-generator
+- CPU
+- störsender
+
+- titan
+- aluminum
+- materialize
+- concrete
+- message-block / text-block
+- light
+- modelizer
+- wasserstoffzelle
+
+- ziegelsteine
+- teleporter drohne
+- asphalt
+- marmor
+- kupfer
+- biomasse / proteine
+- moos / moss
+- erde / earth / dirt
+
+- granit
+- sand
+- silver
+- gold
+- silicon
+- superconductor
+- uran
+- plutonium
+
+- nuclear reactor
+- fission reactor
+- flutlicht
+- not-licht
+- diamant (??)
+- oel-schlamm
+- ICs
+
+
+textures from:
+  openarena.org
+  imageafter
+     - http://www.imageafter.com/image.php?image=b19marbles011.jpg
+     - http://www.imageafter.com/image.php?image=b1metalfloor000.jpg
+     - http://www.imageafter.com/image.php?image=b19nature091.jpg
+     - http://www.imageafter.com/image.php?image=b8marbles003.jpg
+     - http://www.imageafter.com/image.php?image=b15metals016.jpg
+     - http://www.imageafter.com/image.php?image=b3_scripts008.jpg
+     - http://www.imageafter.com/image.php?image=b20objects_signs002.jpg
+     - b19objects_circuits096.jpg
+  opengameart.org
+     - http://opengameart.org/content/p0sss-texture-pack-1 author: p0ss (http://opengameart.org/user/877)
+     - http://opengameart.org/content/iron-plague-gravbconbmp author: Daniel Cook
+     - http://opengameart.org/content/26-high-res-ground-textures author: bart (OpenGameArt.org user)
+     - http://www.opengameart.org/content/wall-grass-rock-stone-wood-and-dirt-480 author: west
+     - http://www.opengameart.org/content/golgotha-textures-bunkergalvanizedjpg
+     - http://www.opengameart.org/content/golgotha-textures-airbaseradarpanelsjpg
+     - http://www.opengameart.org/content/filth-texture-set-trakrustypanellightjpg
+
+   convert -depth 8 GravBcon.png rgba:- | /opt/deliantra/bin/cfhq2xa 48 48 0 | convert -depth 8 -size 96x96 rgba:- oo.png
+
