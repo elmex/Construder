@@ -166,7 +166,7 @@ b3d_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
   b3d_chunk *c = b3d_world_chunk (x, y, z, 0);
   if (!c)
     return;
-  b3d_world_chunk_calc_visibility (c);
+  //d// b3d_world_chunk_calc_visibility (c);
 
   int ix, iy, iz;
   for (iz = 0; iz < CHUNK_SIZE; iz++)
@@ -175,7 +175,7 @@ b3d_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
         {
 //         printf ("OFFS %d %d %d \n", ix, iy, iz);
           b3d_cell *cur = b3d_world_chunk_neighbour_cell (c, ix, iy, iz);
-          if (!cur->visible || cur->type == 0)
+          if (!cur->visible || b3d_world_cell_transparent (cur))
             continue;
 
           GET_NEIGHBOURS(c, ix, iy, iz);

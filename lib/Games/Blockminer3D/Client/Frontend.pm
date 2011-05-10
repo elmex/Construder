@@ -56,11 +56,14 @@ sub new {
    Games::Blockminer3D::Client::UI::init_ui;
    world_init;
 
-   world ()->reg_cb (chunk_changed => sub {
-      my ($w, $x, $y, $z) = @_;
-      warn "killed chunk at $x $y $z\n";
-      $self->compile_chunk ($x, $y, $z);
-   });
+#   world ()->reg_cb (chunk_changed => sub {
+#      my ($w, $x, $y, $z, $force_render) = @_;
+#      warn "killed chunk at $x $y $z\n";
+#      if ($force_render)
+#         {
+#            $self->compile_chunk ($x, $y, $z);
+#         }
+#   });
 
    $self->init_physics;
    $self->setup_event_poller;
@@ -220,9 +223,7 @@ sub free_chunk {
 sub compile_chunk {
    my ($self, $cx, $cy, $cz) = @_;
 
-   my $chnk = world_get_chunk ($cx, $cy, $cz)
-      or return;
-   warn "compiling... $cx, $cy, $cz: $chnk\n";
+   warn "compiling... $cx, $cy, $cz.\n";
 
    $self->free_chunk ($cx, $cy, $cz);
    $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} = OpenGL::List::glpList {
@@ -276,6 +277,22 @@ sub step_animations {
 sub set_player_pos {
    my ($self, $pos) = @_;
    $self->{phys_obj}->{player}->{pos} = $pos;
+}
+
+sub is_player_chunk {
+   my ($self, $cx, $cy, $cz) = @_;
+   my ($pcx, $pcy, $pcz) = world_pos2chunk ($self->{phys_obj}->{player}->{pos});
+   return $pcx == $cx && $pcy == $cy && $pcz == $cz;
+}
+
+sub update_chunk {
+   my ($self, $cx, $cy, $cz) = @_;
+
+   if (is_player_chunk ($cx, $cy, $cz)) {
+      unshift @{$self->{chunk_update}}, [$cx, $cy, $cz];
+   } else {
+      push @{$self->{chunk_update}}, [$cx, $cy, $cz];
+   }
 }
 
 sub add_highlight {
@@ -475,11 +492,17 @@ sub setup_event_poller {
       }
    };
 
-   $self->{compile_w} = AE::timer 0, 0.1, sub {
+   $self->{compile_w} = AE::timer 0, 0.028, sub {
       my $cc = $self->{compiled_chunks};
       my $pp = $self->{phys_obj}->{player}->{pos};
       #d# warn "compile at pos " . vstr ($pp) . "\n";
       # FIXME: vfloor is definitively NOT correct - probably :->
+      while (@{$self->{chunk_update}}) {
+         my $c = shift @{$self->{chunk_update}};
+         $self->compile_chunk (@$c);
+         return;
+      }
+
       my (@chunks) = world_visible_chunks_at ($pp);
       my @fcone = $self->cam_cone;
       unshift @fcone,

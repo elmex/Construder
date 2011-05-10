@@ -9,6 +9,7 @@ require Exporter;
 use POSIX qw/floor/;
 our @ISA = qw/Exporter/;
 our @EXPORT = qw/
+   world_pos2chunk
    world_visible_chunks_at
    world_collide
    world_collide_cylinder_aabb
@@ -39,82 +40,11 @@ Games::Blockminer3D::Client::World - desc
 
 my @CHUNKS;
 
-my $EVENT_SINGLETON = Object::Event->new;
-
 sub world_init {
-   $EVENT_SINGLETON->reg_cb (chunk_changed => sub {
-      my ($e, $x, $y, $z) = @_;
-      my $chunk = world_get_chunk ($x, $y, $z)
-         or return;
-      $chunk->chunk_changed;
-   });
 }
 
-sub world { $EVENT_SINGLETON }
-
-sub pos2chunk {
+sub world_pos2chunk {
    @{vfloor (vsdiv ($_[0], $Games::Blockminer3D::Client::MapChunk::SIZE))};
-}
-
-sub world_change_chunk {
-   my ($pos) = @_;
-   world ()->event (chunk_changed => @$pos);
-}
-
-sub world_change_chunk_at {
-   my ($pos) = @_;
-   world ()->event (chunk_changed => pos2chunk ($pos));
-}
-
-sub world_set_chunk {
-   my ($cx, $cy, $cz, $chunk) = @_;
-   warn "set chunk: $cx $cy $cz $chunk\n";
-   my $q = ($cx < 0 ? 0x1 : 0) | ($cy < 0 ? 0x2 : 0) | ($cz < 0 ? 0x4 : 0);
-   my $rc = \$CHUNKS[$q]->[abs $cx]->[abs $cy]->[abs $cz];
-   my $p = $$rc;
-   $$rc = $chunk;
-   world_change_chunk ([$cx, $cy, $cz]) if $p;
-}
-
-sub world_get_chunk {
-   my ($cx, $cy, $cz) = @_;
-   my $q = ($cx < 0 ? 0x1 : 0) | ($cy < 0 ? 0x2 : 0) | ($cz < 0 ? 0x4 : 0);
-   $CHUNKS[$q]->[abs $cx]->[abs $cy]->[abs $cz]
-}
-
-sub world_delete_chunk {
-   my ($cx, $cy, $cz) = @_;
-   my $q = ($cx < 0 ? 0x1 : 0) | ($cy < 0 ? 0x2 : 0) | ($cz < 0 ? 0x4 : 0);
-   $CHUNKS[$q]->[abs $cx]->[abs $cy]->[abs $cz] = undef;
-}
-
-sub world_get_chunk_at {
-   my ($pos) = @_;
-   my (@chnkp) = pos2chunk ($pos);
-   world_get_chunk (@chnkp)
-}
-
-sub world_get_box_at {
-   my ($pos) = @_;
-
-   my ($cx, $cy, $cz) = pos2chunk ($pos);
-   my $chnk = world_get_chunk ($cx, $cy, $cz);
-   unless ($chnk) {
-      return [1, 20, 0]; # invisible block
-   }
-
-   my $npos = vsubd ($pos,
-      $cx * $Games::Blockminer3D::Client::MapChunk::SIZE,
-      $cy * $Games::Blockminer3D::Client::MapChunk::SIZE,
-      $cz * $Games::Blockminer3D::Client::MapChunk::SIZE
-   );
-   vifloor ($npos);
-   my $offs = $npos->[0]
-      + ($npos->[1] + $npos->[2] * $Games::Blockminer3D::Client::MapChunk::SIZE)
-          * $Games::Blockminer3D::Client::MapChunk::SIZE;
- #  $chnk->{map}->[$offs]
-#  warn "get box at @$pos => @$npos\n";
-   $chnk->{map}->[$npos->[0]]->[$npos->[1]]->[$npos->[2]]
 }
 
 sub world_intersect_ray_box {
@@ -155,7 +85,7 @@ sub world_intersect_ray_box {
 
 sub world_visible_chunks_at {
    my ($pos) = @_;
-   my (@chunk_pos) = pos2chunk ($pos);
+   my (@chunk_pos) = world_pos2chunk ($pos);
 
    my @chnkposes;
    for my $dx (0, -1, 1) {

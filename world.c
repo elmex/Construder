@@ -121,7 +121,7 @@ b3d_cell *b3d_chunk_cell_at_abs (b3d_chunk *chnk, double x, double y, double z)
 int b3d_world_cell_transparent (b3d_cell *c)
 {
   b3d_obj_attr *oa = b3d_world_get_attr (c->type);
-  return c->type == 0 || oa->transparent;
+  return oa->transparent;
 }
 
 
@@ -158,6 +158,7 @@ void b3d_world_chunk_calc_visibility (b3d_chunk *chnk)
           chnk->cells[offs].visible = 0;
         }
 
+  int cnt, cnt2;
   for (z = 0; z < CHUNK_SIZE; z++)
     for (y = 0; y < CHUNK_SIZE; y++)
       for (x = 0; x < CHUNK_SIZE; x++)
@@ -165,15 +166,19 @@ void b3d_world_chunk_calc_visibility (b3d_chunk *chnk)
           b3d_cell *cell = &(chnk->cells[REL_POS2OFFS(x,y,z)]);
           if (b3d_world_cell_transparent (cell))
             {
-              cell->visible = 1;
-
               GET_NEIGHBOURS(chnk, x, y, z);
-              top->visible = 1;
-              bot->visible = 1;
-              left->visible = 1;
-              right->visible = 1;
-              front->visible = 1;
-              back->visible = 1;
+              if (top->type != 0)
+                top->visible = 1;
+              if (bot->type != 0)
+                bot->visible = 1;
+              if (left->type != 0)
+                left->visible = 1;
+              if (right->type != 0)
+                right->visible = 1;
+              if (front->type != 0)
+                front->visible = 1;
+              if (back->type != 0)
+                back->visible = 1;
             }
         }
 }
