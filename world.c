@@ -39,6 +39,7 @@ typedef struct _b3d_chunk {
 
 typedef struct _b3d_world {
     b3d_axis_array *y;
+    SV *chunk_change_cb;
 } b3d_world;
 
 static b3d_obj_attr OBJ_ATTR_MAP[POSSIBLE_OBJECTS];
@@ -56,6 +57,25 @@ void b3d_world_init ()
   neighbour_cell.add     = 0;
   neighbour_cell.meta    = 0;
   neighbour_cell.visible = 1;
+}
+
+void b3d_world_emit_chunk_change (int x, int y, int z)
+{
+  if (WORLD.chunk_change_cb)
+    {
+      dSP;
+      ENTER;
+      SAVETMPS;
+      PUSHMARK(SP);
+      XPUSHs(sv_2mortal(newSViv (x)));
+      XPUSHs(sv_2mortal(newSViv (y)));
+      XPUSHs(sv_2mortal(newSViv (z)));
+      PUTBACK;
+      call_sv (WORLD.chunk_change_cb, G_DISCARD | G_VOID);
+      SPAGAIN;
+      FREETMPS;
+      LEAVE;
+    }
 }
 
 b3d_obj_attr *b3d_world_get_attr (unsigned int type)
@@ -123,6 +143,12 @@ void b3d_get_data_from_cell (b3d_cell *c, unsigned char *ptr)
   ptr++;
   *ptr = c->add;
  //d//printf ("CELL GET DATA %p: %02x %02x %02x %02x\n", c, *optr, *(optr + 1), *(optr + 2), *(optr + 3));
+}
+
+b3d_cell *b3d_chunk_cell_at_rel (b3d_chunk *chnk, unsigned int x, unsigned int y, unsigned int z)
+{
+  unsigned int offs = REL_POS2OFFS (x, y, z);
+  return &(chnk->cells[offs]);
 }
 
 b3d_cell *b3d_chunk_cell_at_abs (b3d_chunk *chnk, double x, double y, double z)
@@ -297,6 +323,8 @@ void b3d_world_purge_chunk (int x, int y, int z)
   b3d_chunk *c = (b3d_chunk *) b3d_axis_remove (zn, z);
   if (c)
     free (c);
+  // FIXME: we need probably feedback in query_context, in
+  //        case this chunk is loaded there!
 }
 
 

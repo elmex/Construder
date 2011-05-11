@@ -47,6 +47,10 @@ sub init {
 
    $RES = Games::Blockminer3D::Server::Resources->new;
    $RES->load_objects;
+
+   world_init (sub {
+      warn "CHUNK CHANGED (@_)\n";
+   });
 }
 
 sub listen {

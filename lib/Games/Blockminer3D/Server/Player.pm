@@ -45,6 +45,18 @@ sub update_pos {
 
    $self->{pos} = $pos;
 
+   # keep track of chunk changes and maintain a generation counter
+   # this function then synchronizes the client's chunks with the
+   # generation counter of the current visible chunks and possibly
+   # sends an update or generates the chunks
+
+   # the server needs to query all players for changed chunks and
+   # see whether some player sees the changed chunks and actively
+   # sends a chunk update himself
+
+   # sector module will be dumped
+   # world module is responsible for loading, generating and saving chunks
+
    my $chnk = world_pos2chnkpos ($pos);
    my $old_state = $self->{chunk_state};
    my $chunk_state = {};
@@ -65,6 +77,18 @@ sub update_pos {
       }
    }
    $self->{chunk_state} = $chunk_state;
+}
+
+sub send_chunk {
+   my ($self, $chnk) = @_;
+   # only send chunk when allcoated, in all other cases the chunk will
+   # be sent by the chunk_changed-callback by the server (when it checks
+   # whether any player might be interested in that chunk).
+   my $data = b3d_world_get_chunk_data (@$chnk);
+   return unless defined $data;
+   $self->send_client ({ cmd => "chunk", pos => $chnk }, $data);
+
+   # TODO / FIXME: check the generation of the chunk here and store it!
 }
 
 sub update_hud_1 {
@@ -255,14 +279,6 @@ sub start_dematerialize {
          return 1;
       });
    };
-}
-
-sub send_chunk {
-   my ($self, $chnk) = @_;
-   world_get_chunk_data ($chnk, sub {
-      $self->send_client ({ cmd => "chunk", pos => $chnk }, $_[0]);
-      $self->{chunk_sending} = 0;
-   });
 }
 
 sub send_client : event_cb {

@@ -2,6 +2,13 @@ package Games::Blockminer3D::Server::Sector;
 use common::sense;
 use AnyEvent::Util;
 use Games::Blockminer3D::Vector;
+use Games::Blockminer3D;
+
+require Exporter;
+our @ISA = qw/Exporter/;
+our @EXPORT = qw/
+   sector_load
+/;
 
 =head1 NAME
 
@@ -30,6 +37,23 @@ sub new {
    bless $self, $class;
 
    return $self
+}
+
+sub sector_load {
+   my ($pos) = @_;
+
+   my $base_chunk = vsmul ($pos, $CHNKS_P_SECTOR);
+   my $last_chunk = vsmul (vaddd ($pos, 1, 1, 1), $CHNKS_P_SECTOR);
+
+}
+
+sub sector_at {
+}
+
+sub sector_set_at {
+}
+
+sub sector_mutate_at {
 }
 
 sub secset {
@@ -63,8 +87,6 @@ sub mutate_at {
 }
 
 sub mk_construct {
-   my ($self) = @_;
-
    my $sect = "\x00" x (($SIZE ** 3) * 4);
 
    for my $dx (0..($SIZE - 1)) {
@@ -82,6 +104,7 @@ sub mk_construct {
          }
       }
    }
+
    for (0..30) {
       secset (\$sect, [31, 2, $_], [15, 8]);
    }
@@ -158,18 +181,6 @@ sub get_chunk {
    }
 
    $chnk
-}
-
-sub get_chunk_data_at_chnkpos {
-   my ($self, $chnkpos) = @_;
-
-   # FIXME: calculation of positions needs to be cleaned up!
-   my $sector = vfloor (vsdiv ($chnkpos, $CHNKS_P_SECTOR));
-   my $relchnkpos = vsub ($chnkpos, vsmul ($sector, $CHNKS_P_SECTOR));
-   warn "Chunk pos (sector " . vstr ($sector) .  " ) "
-        . vstr ($chnkpos) . " =>rel: " . vstr ($relchnkpos) . "\n";
-
-   $self->get_chunk ($relchnkpos)
 }
 
 =back

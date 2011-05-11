@@ -38,7 +38,10 @@ sub new {
 
    $self->init_object_events;
 
-   Games::Blockminer3D::World::init;
+   Games::Blockminer3D::World::init (sub {
+      warn "chunk changed: @_\n";
+   });
+
    $self->{res} = Games::Blockminer3D::Client::Resources->new;
    $Games::Blockminer3D::Client::Renderer::RES = $self->{res};
 

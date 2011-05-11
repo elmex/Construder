@@ -2,10 +2,12 @@ package Games::Blockminer3D::Server::World;
 use common::sense;
 use Games::Blockminer3D::Vector;
 use Games::Blockminer3D::Server::Sector;
+use Games::Blockminer3D;
 
 require Exporter;
 our @ISA = qw/Exporter/;
 our @EXPORT = qw/
+   world_init
    world_pos2id
    world_sector_at
    world_pos2secref
@@ -30,6 +32,10 @@ Games::Blockminer3D::Server::World - desc
 =cut
 
 my %SECTORS;
+
+sub world_init {
+   Games::Blockminer3D::World::init ($_[0]);
+}
 
 sub world_pos2id {
    my ($pos) = @_;
@@ -107,11 +113,17 @@ sub world_sector_at {
 sub world_get_chunk_data {
    my ($chnkpos, $cb) = @_;
 
-   world_sector_at ($chnkpos, sub {
-      my ($sector) = @_;
-      my $data = $sector->get_chunk_data_at_chnkpos ($chnkpos);
-      $cb->($data);
-   });
+   my $data = Games::Blockminer3D::World::get_chunk_data (@$chnkpos);
+   unless ($data) {
+      Games::Blockminer3D::
+   }
+   $cb->($data);
+
+   #world_sector_at ($chnkpos, sub {
+   #   my ($sector) = @_;
+   #   my $data = $sector->get_chunk_data_at_chnkpos ($chnkpos);
+   #   $cb->($data);
+   #});
 }
 
 

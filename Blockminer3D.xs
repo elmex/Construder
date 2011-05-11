@@ -7,6 +7,7 @@
 
 #include "vectorlib.c"
 #include "world.c"
+#include "world_drawing.c"
 #include "render.c"
 
 MODULE = Games::Blockminer3D PACKAGE = Games::Blockminer3D::Math PREFIX = b3d_
@@ -90,10 +91,30 @@ void b3d_render_chunk (int x, int y, int z, AV *a, AV *b, AV *c)
 
 MODULE = Games::Blockminer3D PACKAGE = Games::Blockminer3D::World PREFIX = b3d_world_
 
-void b3d_world_init ()
+void b3d_world_init (SV *change_cb)
   CODE:
      b3d_world_init ();
+     SvREFCNT_inc (change_cb);
+     WORLD.chunk_change_cb = change_cb;
      b3d_render_init ();
+
+SV *
+b3d_world_get_chunk_data (int x, int y, int z)
+  CODE:
+    b3d_chunk *chnk = b3d_world_chunk (x, y, z, 0);
+    if (!chnk)
+      {
+        XSRETURN_UNDEF;
+      }
+
+    int len = CHUNK_ALEN * 4;
+    unsigned char *data = malloc (sizeof (unsigned char) * len);
+    b3d_world_get_chunk_data (chnk, data);
+
+    RETVAL = newSVpv (data, len);
+  OUTPUT:
+    RETVAL
+
 
 void b3d_world_set_chunk_data (int x, int y, int z, unsigned char *data, unsigned int len)
   CODE:
@@ -109,6 +130,8 @@ void b3d_world_set_chunk_data (int x, int y, int z, unsigned char *data, unsigne
       }
 
     b3d_world_chunk_calc_visibility (chnk);
+
+    b3d_world_emit_chunk_change (x, y, z);
 
     //d// b3d_world_dump ();
 
@@ -163,28 +186,6 @@ b3d_world_at (double x, double y, double z)
 
   OUTPUT:
     RETVAL
-
-void
-b3d_world_set_at (double x, double y, double z, AV *cell)
-  CODE:
-    b3d_chunk *chnk = b3d_world_chunk_at (x, y, z, 1);
-    assert (chnk);
-    b3d_cell *c = b3d_chunk_cell_at_abs (chnk, x, y, z);
-
-    SV **t = av_fetch (cell, 0, 0);
-    if (t) c->type = SvIV (*t);
-
-    t = av_fetch (cell, 1, 0);
-    if (t) c->light = SvIV (*t);
-
-    t = av_fetch (cell, 2, 0);
-    if (t) c->meta = SvIV (*t);
-
-    t = av_fetch (cell, 3, 0);
-    if (t) c->add = SvIV (*t);
-
-    t = av_fetch (cell, 4, 0);
-    if (t) c->visible = SvIV (*t);
 
 AV *
 b3d_world_chunk_visible_faces (int x, int y, int z)
