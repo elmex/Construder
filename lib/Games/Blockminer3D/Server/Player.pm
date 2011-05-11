@@ -57,26 +57,61 @@ sub update_pos {
    # sector module will be dumped
    # world module is responsible for loading, generating and saving chunks
 
-   my $chnk = world_pos2chnkpos ($pos);
-   my $old_state = $self->{chunk_state};
-   my $chunk_state = {};
-   LASTUP:
-   for my $dx (0, -1, 1) {
-      for my $dy (0, -1, 1) {
-         for my $dz (0, -1, 1) {
-            my $cur_chunk = vaddd ($chnk, $dx, $dy, $dz);
-            my $id = world_pos2id ($cur_chunk);
-            if ($old_state->{$id}) {
-               $chunk_state->{$id} = delete $old_state->{$id};
+   unless ($self->{world_created}) {
+      my $chnk = world_pos2chnkpos ($pos);
+      Games::Blockminer3D::World::query_setup (
+         $chnk->[0] - 3,
+         $chnk->[1] - 3,
+         $chnk->[2] - 3,
+         $chnk->[0] + 3,
+         $chnk->[1] + 3,
+         $chnk->[2] + 3
+      );
+      Games::Blockminer3D::World::query_load_chunks ();
 
-            } else {
-               $self->send_chunk ($cur_chunk);
-               $chunk_state->{$id} = 1;
+      my @types = (2..8);
+      for my $x (0..(12 * 6 - 1)) {
+         for my $y (0..(12 * 6 - 1)) {
+            for my $z (0..(12 * 6 - 1)) {
+               my $t = [$types[int rand (@types)], int rand (16)];
+               if (int rand (100) > 90) {
+                  Games::Blockminer3D::World::query_set_at (
+                     $x, $y, $z, $t
+                  );
+               }
             }
          }
       }
+
+      $self->{world_created} = 1;
+
+      Games::Blockminer3D::World::query_desetup ();
    }
-   $self->{chunk_state} = $chunk_state;
+#   my $old_state = $self->{chunk_state};
+#   my $chunk_state = {};
+#   LASTUP:
+#   for my $dx (0, -1, 1) {
+#      for my $dy (0, -1, 1) {
+#         for my $dz (0, -1, 1) {
+#            my $cur_chunk = vaddd ($chnk, $dx, $dy, $dz);
+#            my $id = world_pos2id ($cur_chunk);
+#            if ($old_state->{$id}) {
+#               $chunk_state->{$id} = delete $old_state->{$id};
+#
+#            } else {
+#               $self->send_chunk ($cur_chunk);
+#               $chunk_state->{$id} = 1;
+#            }
+#         }
+#      }
+#   }
+#   $self->{chunk_state} = $chunk_state;
+}
+
+sub chunk_updated {
+   my ($self, @chnk) = @_;
+   # FIXME: check against visible/sent chunks!
+   $self->send_chunk (\@chnk);
 }
 
 sub send_chunk {
@@ -84,7 +119,7 @@ sub send_chunk {
    # only send chunk when allcoated, in all other cases the chunk will
    # be sent by the chunk_changed-callback by the server (when it checks
    # whether any player might be interested in that chunk).
-   my $data = b3d_world_get_chunk_data (@$chnk);
+   my $data = Games::Blockminer3D::World::get_chunk_data (@$chnk);
    return unless defined $data;
    $self->send_client ({ cmd => "chunk", pos => $chnk }, $data);
 

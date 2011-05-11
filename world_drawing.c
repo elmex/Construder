@@ -88,9 +88,9 @@ void b3d_world_query_set_at (unsigned int rel_x, unsigned int rel_y, unsigned in
       chnk_z = rel_z / CHUNK_SIZE;
 
   assert (QUERY_CONTEXT.loaded);
-  assert (chnk_x <= QUERY_CONTEXT.end_chnk_x);
-  assert (chnk_y <= QUERY_CONTEXT.end_chnk_y);
-  assert (chnk_z <= QUERY_CONTEXT.end_chnk_z);
+  assert (chnk_x < QUERY_CONTEXT.x_w);
+  assert (chnk_y < QUERY_CONTEXT.y_w);
+  assert (chnk_z < QUERY_CONTEXT.z_w);
 
   b3d_chunk *chnk = QUERY_CHUNK(chnk_x, chnk_y, chnk_z);
   b3d_cell *c =

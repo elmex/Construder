@@ -8,6 +8,7 @@ use JSON;
 use Games::Blockminer3D::Protocol;
 use Games::Blockminer3D::Server::Resources;
 use Games::Blockminer3D::Server::Player;
+use Games::Blockminer3D::Server::World;
 
 use base qw/Object::Event/;
 
@@ -50,6 +51,9 @@ sub init {
 
    world_init (sub {
       warn "CHUNK CHANGED (@_)\n";
+      for (values %{$self->{players}}) {
+         $_->chunk_updated (@_);
+      }
    });
 }
 

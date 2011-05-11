@@ -86,31 +86,31 @@ sub mutate_at {
    }
 }
 
-sub mk_construct {
-   my $sect = "\x00" x (($SIZE ** 3) * 4);
-
-   for my $dx (0..($SIZE - 1)) {
-      for my $dy (0..($SIZE - 1)) {
-         for my $dz (0..($SIZE - 1)) {
-            if ($dx == 0 || $dy == 0 || $dz == 0
-                || ($dx == ($SIZE - 1))
-                || ($dy == ($SIZE - 1))
-                || ($dz == ($SIZE - 1))
-            ) {
-               secset (\$sect, [$dx, $dy, $dz], [2, 15]);
-            } else {
-               secset (\$sect, [$dx, $dy, $dz], [0, 15]);
-            }
-         }
-      }
-   }
-
-   for (0..30) {
-      secset (\$sect, [31, 2, $_], [15, 8]);
-   }
-
-   $self->{data} = $sect;
-}
+#sub mk_construct {
+#   my $sect = "\x00" x (($SIZE ** 3) * 4);
+#
+#   for my $dx (0..($SIZE - 1)) {
+#      for my $dy (0..($SIZE - 1)) {
+#         for my $dz (0..($SIZE - 1)) {
+#            if ($dx == 0 || $dy == 0 || $dz == 0
+#                || ($dx == ($SIZE - 1))
+#                || ($dy == ($SIZE - 1))
+#                || ($dz == ($SIZE - 1))
+#            ) {
+#               secset (\$sect, [$dx, $dy, $dz], [2, 15]);
+#            } else {
+#               secset (\$sect, [$dx, $dy, $dz], [0, 15]);
+#            }
+#         }
+#      }
+#   }
+#
+#   for (0..30) {
+#      secset (\$sect, [31, 2, $_], [15, 8]);
+#   }
+#
+#   $self->{data} = $sect;
+#}
 
 sub mk_random {
    my ($self) = @_;

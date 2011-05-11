@@ -291,3 +291,14 @@ b3d_world_test_binsearch ()
     chnk = b3d_world_chunk (2, 3, 1, 1);
     assert (chnk);
     b3d_world_dump ();
+
+
+void b3d_world_query_load_chunks ();
+
+void b3d_world_query_set_at (unsigned int rel_x, unsigned int rel_y, unsigned int rel_z, AV *cell);
+
+void b3d_world_query_unallocated_chunks (AV *chnkposes);
+
+void b3d_world_query_setup (int x, int y, int z, int ex, int ey, int ez);
+
+void b3d_world_query_desetup ();
