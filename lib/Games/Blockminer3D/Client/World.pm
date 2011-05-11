@@ -88,9 +88,9 @@ sub world_visible_chunks_at {
    my (@chunk_pos) = world_pos2chunk ($pos);
 
    my @chnkposes;
-   for my $dx (0, -1, 1) {
-      for my $dy (0, -1, 1) {
-         for my $dz (0, -1, 1) {
+   for my $dx (0, -1, 1, -2, 2) {
+      for my $dy (0, -1, 1, -2, 2) {
+         for my $dz (0, -1, 1, -2, 2) {
             push @chnkposes, vaddd (\@chunk_pos, $dx, $dy, $dz);
          }
       }

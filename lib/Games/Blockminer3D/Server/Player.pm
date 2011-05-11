@@ -69,14 +69,25 @@ sub update_pos {
       );
       Games::Blockminer3D::World::query_load_chunks ();
 
+      my $center = [12 * 3, 12 * 3, 12 * 3];
+
       my @types = (2..8);
       for my $x (0..(12 * 6 - 1)) {
          for my $y (0..(12 * 6 - 1)) {
             for my $z (0..(12 * 6 - 1)) {
-               my $t = [$types[int rand (@types)], int rand (16)];
-               if (int rand (100) > 90) {
+
+               my $cur = [$x, $y, $z];
+               my $l = vlength (vsub ($cur, $center));
+
+               if ($l > 20 && $l < 21) {
+                  my $t = [$types[int rand (@types)], int rand (16)];
                   Games::Blockminer3D::World::query_set_at (
                      $x, $y, $z, $t
+                  );
+               } else {
+                  Games::Blockminer3D::World::query_set_at (
+                     $x, $y, $z,
+                     [0,int rand (16)]
                   );
                }
             }

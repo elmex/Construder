@@ -121,8 +121,8 @@ sub init_app {
    glFogfv_p (GL_FOG_COLOR, 0.5, 0.5, 0.5, 1);
    glFogf (GL_FOG_DENSITY, 0.35);
    glHint (GL_FOG_HINT, GL_DONT_CARE);
-   glFogf (GL_FOG_START, 10);
-   glFogf (GL_FOG_END,   20);
+   glFogf (GL_FOG_START, 20);
+   glFogf (GL_FOG_END,   32);
 }
 
 #  0 front  1 top    2 back   3 left   4 right  5 bottom
@@ -328,7 +328,7 @@ sub render_scene {
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity;
-   gluPerspective (60, $WIDTH / $HEIGHT, 0.1, 20);
+   gluPerspective (60, $WIDTH / $HEIGHT, 0.1, 40);
 
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity;
