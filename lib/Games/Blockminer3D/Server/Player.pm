@@ -37,8 +37,10 @@ sub init {
    $self->{hud1_tmr} = AE::timer 0, 0.5, sub {
       $self->update_hud_1;
    };
-   $self->teleport ([30, 2, 30]);
+   #$self->teleport ([30, 2, 30]);
 }
+
+my $world_c = 0;
 
 sub update_pos {
    my ($self, $pos) = @_;
@@ -57,7 +59,7 @@ sub update_pos {
    # sector module will be dumped
    # world module is responsible for loading, generating and saving chunks
 
-   unless ($self->{world_created}) {
+   unless ($world_c) {
       my $chnk = world_pos2chnkpos ($pos);
       Games::Blockminer3D::World::query_setup (
          $chnk->[0] - 3,
@@ -94,7 +96,7 @@ sub update_pos {
          }
       }
 
-      $self->{world_created} = 1;
+      $world_c = 1;
 
       Games::Blockminer3D::World::query_desetup ();
    }
@@ -302,6 +304,7 @@ sub start_dematerialize {
    $tmr = AE::timer 1.5, 0, sub {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
+         warn "DEMATERIALIZE $data->[0]\n";
          $self->{inventory}->{material}->{$data->[0]}++;
          $data->[0] = 0;
          delete $self->{dematerializings}->{$id};

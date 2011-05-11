@@ -183,18 +183,23 @@ b3d_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
           if (b3d_world_cell_transparent (front))
             b3d_render_add_face (
               0, cur->type, (double) front->light / 15, ix, iy, iz, vertex, color, tex);
+
           if (b3d_world_cell_transparent (top))
             b3d_render_add_face (
               1, cur->type, (double) top->light / 15, ix, iy, iz, vertex, color, tex);
+
           if (b3d_world_cell_transparent (back))
             b3d_render_add_face (
               2, cur->type, (double) back->light / 15, ix, iy, iz, vertex, color, tex);
+
           if (b3d_world_cell_transparent (left))
             b3d_render_add_face (
               3, cur->type, (double) left->light / 15, ix, iy, iz, vertex, color, tex);
+
           if (b3d_world_cell_transparent (right))
             b3d_render_add_face (
               4, cur->type, (double) right->light / 15, ix, iy, iz, vertex, color, tex);
+
           if (b3d_world_cell_transparent (bot))
             b3d_render_add_face (
               5, cur->type, (double) bot->light / 15, ix, iy, iz, vertex, color, tex);

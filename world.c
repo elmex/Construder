@@ -46,7 +46,6 @@ static b3d_obj_attr OBJ_ATTR_MAP[POSSIBLE_OBJECTS];
 static b3d_world WORLD;
 static b3d_cell neighbour_cell;
 
-
 void b3d_world_init ()
 {
   int i;
@@ -198,7 +197,8 @@ b3d_world_chunk_neighbour_cell (b3d_chunk *c, int x, int y, int z)
 
 void b3d_world_chunk_calc_visibility (b3d_chunk *chnk)
 {
-  unsigned int x, y, z;
+  printf ("CHUNK VIS %d %d %d\n", chnk->x, chnk->y, chnk->z);
+  int x, y, z;
   for (z = 0; z < CHUNK_SIZE; z++)
     for (y = 0; y < CHUNK_SIZE; y++)
       for (x = 0; x < CHUNK_SIZE; x++)
@@ -213,22 +213,22 @@ void b3d_world_chunk_calc_visibility (b3d_chunk *chnk)
       for (x = 0; x < CHUNK_SIZE; x++)
         {
           b3d_cell *cell = &(chnk->cells[REL_POS2OFFS(x,y,z)]);
-          if (b3d_world_cell_transparent (cell))
-            {
-              GET_NEIGHBOURS(chnk, x, y, z);
-              if (top->type != 0)
-                top->visible = 1;
-              if (bot->type != 0)
-                bot->visible = 1;
-              if (left->type != 0)
-                left->visible = 1;
-              if (right->type != 0)
-                right->visible = 1;
-              if (front->type != 0)
-                front->visible = 1;
-              if (back->type != 0)
-                back->visible = 1;
-            }
+          if (cell->type == 0)
+            continue;
+
+          GET_NEIGHBOURS(chnk, x, y, z);
+          if (b3d_world_cell_transparent (top))
+            cell->visible = 1;
+          if (b3d_world_cell_transparent (bot))
+            cell->visible = 1;
+          if (b3d_world_cell_transparent (left))
+            cell->visible = 1;
+          if (b3d_world_cell_transparent (right))
+            cell->visible = 1;
+          if (b3d_world_cell_transparent (front))
+            cell->visible = 1;
+          if (b3d_world_cell_transparent (back))
+            cell->visible = 1;
         }
 }
 
