@@ -56,16 +56,29 @@ sub world_pos2secref {
 
 sub world_mutate_at {
    my ($pos, $cb) = @_;
-   my ($secpos) =
-      vfloor (
-        vsdiv ($pos, $Games::Blockminer3D::Server::Sector::SIZE));
+   my ($chnk) = world_pos2chnkpos ($pos);
 
-   my ($relpos) =
-      vfloor (vsub ($pos, vsmul ($secpos, $Games::Blockminer3D::Server::Sector::SIZE)));
-   my $sec = world_pos2secref ($secpos);
-   if ($$sec) {
-      $$sec->mutate_at ($relpos, $cb);
+   Games::Blockminer3D::World::query_setup (
+      $chnk->[0],
+      $chnk->[1],
+      $chnk->[2],
+      $chnk->[0],
+      $chnk->[1],
+      $chnk->[2]
+   );
+   Games::Blockminer3D::World::query_load_chunks ();
+
+   my $b = Games::Blockminer3D::World::at (@$pos);
+   if ($cb->($b)) {
+      my $relpos = vfloor (vsubd ($pos,
+         $chnk->[0] * 12,
+         $chnk->[1] * 12,
+         $chnk->[2] * 12));
+
+      Games::Blockminer3D::World::query_set_at (@$relpos, $b);
    }
+
+   Games::Blockminer3D::World::query_desetup ();
 }
 
 sub load_sector {

@@ -80,7 +80,7 @@ sub update_pos {
                my $l = vlength (vsub ($cur, $center));
 
                if ($l > 20 && $l < 21) {
-                  my $t = [$types[int rand (@types)], int rand (16)];
+                  my $t = [2, int rand (16)];
                   Games::Blockminer3D::World::query_set_at (
                      $x, $y, $z, $t
                   );
@@ -271,13 +271,6 @@ sub start_materialize {
    world_mutate_at ($pos, sub {
       my ($data) = @_;
       $data->[0] = 1;
-
-      # FIXME: this is more or less a hack, we need some chunk update system soon
-      my $tmr;
-      $tmr = AE::timer 0, 0, sub {
-         $self->send_chunk (world_pos2chnkpos ($pos)); # FIXME: send incremental updates pls
-         undef $tmr;
-      };
       return 1;
    });
 
@@ -286,13 +279,8 @@ sub start_materialize {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
          $data->[0] = 2;
-
-         # FIXME: this is more or less a hack, we need some chunk update system soon
-         $tmr = AE::timer 0, 0, sub {
-            $self->send_chunk (world_pos2chnkpos ($pos)); # FIXME: send incremental updates pls
-            delete $self->{materializings}->{$id};
-            undef $tmr;
-         };
+         delete $self->{materializings}->{$id};
+         undef $tmr;
          return 1;
       });
    };
@@ -316,12 +304,8 @@ sub start_dematerialize {
          my ($data) = @_;
          $self->{inventory}->{material}->{$data->[0]}++;
          $data->[0] = 0;
-
-         # FIXME: this is more or less a hack, we need some chunk update system soon
-         $tmr = AE::timer 0, 0, sub {
-            $self->send_chunk (world_pos2chnkpos ($pos)); # FIXME: send incremental updates pls
-            delete $self->{dematerializings}->{$id};
-         };
+         delete $self->{dematerializings}->{$id};
+         undef $tmr;
          return 1;
       });
    };

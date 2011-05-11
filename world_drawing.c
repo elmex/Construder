@@ -42,9 +42,9 @@ void b3d_world_query_setup (int x, int y, int z, int ex, int ey, int ez)
   QUERY_CONTEXT.end_chnk_y = ey;
   QUERY_CONTEXT.end_chnk_z = ez;
 
-  QUERY_CONTEXT.x_w = ex - x;
-  QUERY_CONTEXT.y_w = ey - y;
-  QUERY_CONTEXT.z_w = ez - z;
+  QUERY_CONTEXT.x_w = (ex - x) + 1;
+  QUERY_CONTEXT.y_w = (ey - y) + 1;
+  QUERY_CONTEXT.z_w = (ez - z) + 1;
 
   QUERY_CONTEXT.loaded = 0;
 }
