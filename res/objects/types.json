@@ -1,28 +1,133 @@
 {
-   "materialization" : {
+   "Materialization" : {
       "type" : 1,
       "texture" : ["cat2.png", 128, 64, 64, 64],
       "lore" : "This is the whirl of materialization",
    },
-   "stones" : {
+   "Stones" : {
      "type" : 2,
      "texture" : ["cat2.png", 192, 0, 64, 64],
      "lore" : "Stones are the most basic block",
    },
-   "cat_a" : { "texture" : ["cat2.png", 0, 0,   64, 64], "type" : 3 },
-   "cat_a2" : { "texture" : ["cat2.png", 0, 0,   64, 64], "type" : 4 },
-   "cat_b" : { "texture" : ["cat2.png", 0, 64,  64, 64], "type" : 5 },
-   "cat_c" : { "texture" : ["cat2.png", 64, 0,  64, 64], "type" : 6 },
-   "cat_d" : { "texture" : ["cat2.png", 64, 64, 64, 64],"type" : 7 },
-   "rubber" : {
-      "type" : 8,
-      "texture" : ["cat2.png", 128, 0, 64, 64],
-      "lore" : "Your regular rubber",
+   "Iron" : {
+     "type" : 10,
+     "texture" : ["cat2.png", 0, 0, 64, 64],
+     "lore" : "Iron is probably the most basic metal you will find."
    },
-   "gravity_pusher" : {
-      "type" : 15,
-      # dimensions work by counting the lower plane, then walk up Y
-      "model" : [2, [1, 2], [2, 3], [3, 3], [4, 8] ],
-      "lore" : "Some advanced tech, that pushes you from the floor",
+   "Steel" : {
+     "type" : 11,
+     "texture" : ["cat2.png", 64, 0, 64, 64],
+     "lore" : "Steel is a very sturdy build material.",
    },
+   "Rubber" : {
+     "type" : 12,
+     "texture" : ["cat2.png", 128, 0, 64, 64],
+     "lore" : "Rubber can be used for a lot of things."
+   },
+   "Aluminum" : {
+     "type" : 13,
+     "texture" : ["cat2.png", 0, 64, 64, 64],
+     "lore" : "Not that sturdy metal, but quite light on the other hand."
+   },
+   "Titan" : {
+     "type" : 14,
+     "texture" : ["cat2.png", 64, 64, 64, 64],
+     "lore" : "A very sturdy metal."
+   },
+   "Concrete" : {
+     "type" : 15,
+     "texture" : ["cat2.png", 192, 64, 64, 64],
+     "lore" : "Much sturdier than the stones and used a lot for building."
+   },
+   "Brickwall" : {
+     "type" : 16,
+     "texture" : ["cat2.png", 0, 128, 64, 64],
+     "lore" : "Very anachronistic build material. But still used these days."
+   },
+   "Asphalt" : {
+      "type" : 17,
+      "texture" : ["cat2.png", 128, 128, 64, 64],
+      "lore" : "Brought to you straight from the 20th and 21st century. Back in those days it was used as ground for automobile routes. These days it still serves well as ground material."
+   },
+   "Marble" : {
+      "type" : 18,
+      "texture" : ["cat2.png", 192, 128, 64, 64],
+      "lore" : "Very dense and hard material. Very nice for building."
+   },
+   "Copper" : {
+      "type" : 18,
+      "texture" : ["cat2.png", 256, 128, 64, 64],
+      "lore" : "This metal is commonly used for connections of electronic devices, but they don't help the power source much with distributing the energy."
+   },
+   "Dirt" : {
+      "type" : 19,
+      "texture" : ["cat2.png", 448, 128, 64, 64],
+      "lore" : "It's just dirt."
+   },
+
+
+   "Minicell" : {
+     "type" : 20,
+     "texture" : ["cat2.png", 256, 0, 64, 64],
+     "lore" : "The Minicell is the most basic and least powerful electrical power source."
+   },
+   "Biogen" : {
+     "type" : 21,
+     "texture" : ["cat2.png", 320, 0, 64, 64],
+     "lore" : "The Biogen generator creates healty chunk of eatable food from a wide variety of things."
+   },
+   "CPU" : {
+     "type" : 22,
+     "texture" : ["cat2.png", 384, 0, 64, 64],
+     "lore" : "A CPU is used in nearly any electronical device you will build."
+   },
+   "Jammer" : {
+     "type" : 23,
+     "texture" : ["cat2.png", 448, 0, 64, 64],
+     "lore" : "The Jammer jams navigation signals of robots."
+   },
+   "Messagebox" : {
+     "type" : 24,
+     "texture" : ["cat2.png", 256, 64, 64, 64],
+     "lore" : "Messageboxes are used to label things. Can be very handy to find your way and leave notes for others."
+   },
+   "Light" : {
+     "type" : 24,
+     "texture" : ["cat2.png", 320, 64, 64, 64],
+     "lore" : "Your usual light source. Does not need a lot of enery and provides cozy light for your buildings."
+   },
+   "Modellizer" : {
+     "type" : 25,
+     "texture" : ["cat2.png", 384, 64, 64, 64],
+     "lore" : "A very complex piece of equipment. It transforms big sized models into usable devices and materials."
+   },
+   "Hydrogencell" : {
+     "type" : 26,
+     "texture" : ["cat2.png", 448, 64, 64, 64],
+     "lore" : "Much longer lasting than the Minicell, but is not much more powerful."
+   },
+
+   "Drone" : {
+     "type" : 40,
+     "texture" : ["cat2.png", 64, 128, 64, 64],
+     "lore" : "A building Drone. Usually only annoying, due to their bad programming they still teleport everyone who seems to got lost to their home."
+   },
+
+   "Proteins" : {
+      "type" : 50,
+      "texture" : ["cat2.png", 320, 128, 64, 64],
+      "lore" : "Your only source for nutrition. Lucky you have a generator handy that generates it for you."
+   },
+   "Moss" : {
+      "type" : 51,
+      "texture" : ["cat2.png", 384, 128, 64, 64],
+      "lore" : "Moss, the main problem of this century. Much stuff is overgrown by moss. You can convert it to proteins."
+   },
+
+   #"gravity_pusher" : {
+   #   "type" : 15,
+   #   # dimensions work by counting the lower plane, then walk up Y
+   #   "model" : [2, [1, 2], [2, 3], [3, 3], [4, 8] ],
+   #   "lore" : "Some advanced tech, that pushes you from the floor",
+   #},
 }
