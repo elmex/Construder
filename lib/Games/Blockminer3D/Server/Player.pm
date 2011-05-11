@@ -37,6 +37,7 @@ sub init {
    $self->{hud1_tmr} = AE::timer 0, 0.5, sub {
       $self->update_hud_1;
    };
+   $self->send_visible_chunks;
    #$self->teleport ([30, 2, 30]);
 }
 
@@ -122,13 +123,29 @@ sub update_pos {
 }
 
 sub chunk_updated {
-   my ($self, @chnk) = @_;
+   my ($self, $chnk) = @_;
    # FIXME: check against visible/sent chunks!
-   $self->send_chunk (\@chnk);
+   $self->send_chunk ($chnk);
+}
+
+sub send_visible_chunks {
+   my ($self) = @_;
+   for my $dx (-4..4) {
+      for my $dy (-4..4) {
+         for my $dz (-4..4) {
+            $self->send_chunk ([$dx, $dy, $dz]);
+         }
+      }
+   }
 }
 
 sub send_chunk {
    my ($self, $chnk) = @_;
+
+   my $plchnk = world_pos2chnkpos ($self->{pos});
+   my $divvec = vsub ($chnk, $plchnk);
+   return if vlength ($divvec) >= 4;
+
    # only send chunk when allcoated, in all other cases the chunk will
    # be sent by the chunk_changed-callback by the server (when it checks
    # whether any player might be interested in that chunk).

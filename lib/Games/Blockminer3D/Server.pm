@@ -51,8 +51,9 @@ sub init {
 
    world_init (sub {
       warn "CHUNK CHANGED (@_)\n";
+      my $chnk = [@_];
       for (values %{$self->{players}}) {
-         $_->chunk_updated (@_);
+         $_->chunk_updated ($chnk);
       }
    });
 }
