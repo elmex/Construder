@@ -57,8 +57,12 @@ sub render_quads {
    glVertexPointer_p (3, $quads->[0]);
    glColorPointer_p (3, $quads->[1]);
    glTexCoordPointer_p (2, $quads->[2]);
-   for (0..($quads->[3] - 1)) {
-      glDrawArrays (GL_QUADS, $_ * 4, 4);
+   if (1) { # much faster!
+      glDrawElements_p (GL_QUADS, map { ($_ * 4, $_ * 4 + 1, $_ * 4 + 2, $_ * 4 + 3) } 0..($quads->[3] - 1));#$quads->[3] * 4, GL_UNSIGNED_INT, $ar);
+   } else {
+      for (0..($quads->[3] - 1)) {
+         glDrawArrays (GL_QUADS, $_ * 4, 4);
+      }
    }
    glDisableClientState(GL_COLOR_ARRAY);
    glDisableClientState(GL_VERTEX_ARRAY);

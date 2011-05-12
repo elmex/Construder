@@ -21,7 +21,7 @@ Games::Blockminer3D::Server::Player - desc
 
 =cut
 
-my $PL_VIS_RAD = 3.5;
+my $PL_VIS_RAD = 3;
 
 sub new {
    my $this  = shift;
@@ -123,6 +123,7 @@ sub send_visible_chunks {
    my @chnks = _visible_chunks ($self->{pos});
    $self->send_chunk ($_) for @chnks;
 
+   warn "done sending " . scalar (@chnks) . " visible chunks.\n";
    $self->send_client ({ cmd => "chunk_upd_done" });
 }
 
