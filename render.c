@@ -162,10 +162,12 @@ b3d_render_add_face (unsigned int face, unsigned int type, double light,
 void
 b3d_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
 {
-  printf ("CHUNK %d %d %d\n", x, y,z);
   b3d_chunk *c = b3d_world_chunk (x, y, z, 0);
   if (!c)
     return;
+
+  LOAD_NEIGHBOUR_CHUNKS(x,y,z);
+
   //d// b3d_world_chunk_calc_visibility (c);
 
   int ix, iy, iz;
@@ -174,7 +176,7 @@ b3d_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
       for (ix = 0; ix < CHUNK_SIZE; ix++)
         {
 //         printf ("OFFS %d %d %d \n", ix, iy, iz);
-          b3d_cell *cur = b3d_world_chunk_neighbour_cell (c, ix, iy, iz);
+          b3d_cell *cur = b3d_world_chunk_neighbour_cell (c, ix, iy, iz, 0);
           if (!cur->visible || b3d_world_cell_transparent (cur))
             continue;
 

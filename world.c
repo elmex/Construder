@@ -174,12 +174,23 @@ int b3d_world_cell_transparent (b3d_cell *c)
 
 
 b3d_cell *
-b3d_world_chunk_neighbour_cell (b3d_chunk *c, int x, int y, int z)
+b3d_world_chunk_neighbour_cell (b3d_chunk *c, int x, int y, int z, b3d_chunk *neigh_chunk)
 {
   if (   x < 0 || y < 0 || z < 0
       || x >= CHUNK_SIZE || y >= CHUNK_SIZE || z >= CHUNK_SIZE)
     {
-      return &neighbour_cell;
+      if (neigh_chunk)
+        {
+          if (x < 0) x += CHUNK_SIZE;
+          if (y < 0) y += CHUNK_SIZE;
+          if (z < 0) z += CHUNK_SIZE;
+          if (x >= CHUNK_SIZE) x -= CHUNK_SIZE;
+          if (y >= CHUNK_SIZE) y -= CHUNK_SIZE;
+          if (z >= CHUNK_SIZE) z -= CHUNK_SIZE;
+          c = neigh_chunk;
+        }
+      else
+        return &neighbour_cell;
     }
 
   unsigned int offs = REL_POS2OFFS(x, y, z);
@@ -187,17 +198,33 @@ b3d_world_chunk_neighbour_cell (b3d_chunk *c, int x, int y, int z)
   return &(c->cells[offs]);
 }
 
+#define LOAD_NEIGHBOUR_CHUNKS(x,y,z) \
+  b3d_chunk *top_chunk = b3d_world_chunk (x, y + 1, z, 0); \
+  b3d_chunk *bot_chunk = b3d_world_chunk (x, y - 1, z, 0); \
+  b3d_chunk *left_chunk = b3d_world_chunk (x - 1, y, z, 0); \
+  b3d_chunk *right_chunk = b3d_world_chunk (x + 1, y, z, 0); \
+  b3d_chunk *front_chunk = b3d_world_chunk (x, y, z - 1, 0); \
+  b3d_chunk *back_chunk = b3d_world_chunk (x, y, z + 1, 0);
+
 #define GET_NEIGHBOURS(c, x,y,z) \
-  b3d_cell *top   = b3d_world_chunk_neighbour_cell (c, x, y + 1, z); \
-  b3d_cell *bot   = b3d_world_chunk_neighbour_cell (c, x, y - 1, z); \
-  b3d_cell *left  = b3d_world_chunk_neighbour_cell (c, x - 1, y, z); \
-  b3d_cell *right = b3d_world_chunk_neighbour_cell (c, x + 1, y, z); \
-  b3d_cell *front = b3d_world_chunk_neighbour_cell (c, x, y, z - 1); \
-  b3d_cell *back  = b3d_world_chunk_neighbour_cell (c, x, y, z + 1);
+  b3d_cell *top   = b3d_world_chunk_neighbour_cell (c, x, y + 1, z, top_chunk); \
+  b3d_cell *bot   = b3d_world_chunk_neighbour_cell (c, x, y - 1, z, bot_chunk); \
+  b3d_cell *left  = b3d_world_chunk_neighbour_cell (c, x - 1, y, z, left_chunk); \
+  b3d_cell *right = b3d_world_chunk_neighbour_cell (c, x + 1, y, z, right_chunk); \
+  b3d_cell *front = b3d_world_chunk_neighbour_cell (c, x, y, z - 1, front_chunk); \
+  b3d_cell *back  = b3d_world_chunk_neighbour_cell (c, x, y, z + 1, back_chunk);
+
+
+#define GET_LOCAL_NEIGHBOURS(c, x,y,z) \
+  b3d_cell *top   = b3d_world_chunk_neighbour_cell (c, x, y + 1, z, 0); \
+  b3d_cell *bot   = b3d_world_chunk_neighbour_cell (c, x, y - 1, z, 0); \
+  b3d_cell *left  = b3d_world_chunk_neighbour_cell (c, x - 1, y, z, 0); \
+  b3d_cell *right = b3d_world_chunk_neighbour_cell (c, x + 1, y, z, 0); \
+  b3d_cell *front = b3d_world_chunk_neighbour_cell (c, x, y, z - 1, 0); \
+  b3d_cell *back  = b3d_world_chunk_neighbour_cell (c, x, y, z + 1, 0);
 
 void b3d_world_chunk_calc_visibility (b3d_chunk *chnk)
 {
-  printf ("CHUNK VIS %d %d %d\n", chnk->x, chnk->y, chnk->z);
   int x, y, z;
   for (z = 0; z < CHUNK_SIZE; z++)
     for (y = 0; y < CHUNK_SIZE; y++)
@@ -216,19 +243,20 @@ void b3d_world_chunk_calc_visibility (b3d_chunk *chnk)
           if (cell->type == 0)
             continue;
 
-          GET_NEIGHBOURS(chnk, x, y, z);
+          // afraid of slowness to not use GET_NEIGHBOURS...
+          GET_LOCAL_NEIGHBOURS(chnk, x, y, z);
           if (b3d_world_cell_transparent (top))
-            cell->visible = 1;
+            { cell->visible = 1; continue; }
           if (b3d_world_cell_transparent (bot))
-            cell->visible = 1;
+            { cell->visible = 1; continue; }
           if (b3d_world_cell_transparent (left))
-            cell->visible = 1;
+            { cell->visible = 1; continue; }
           if (b3d_world_cell_transparent (right))
-            cell->visible = 1;
+            { cell->visible = 1; continue; }
           if (b3d_world_cell_transparent (front))
-            cell->visible = 1;
+            { cell->visible = 1; continue; }
           if (b3d_world_cell_transparent (back))
-            cell->visible = 1;
+            { cell->visible = 1; continue; }
         }
 }
 
@@ -240,13 +268,8 @@ void b3d_world_set_chunk_from_data (b3d_chunk *chnk, unsigned char *data, unsign
       for (x = 0; x < CHUNK_SIZE; x++)
         {
           unsigned int offs = REL_POS2OFFS (x, y, z);
-          if (len > (offs * 4) + 3)
-            b3d_set_cell_from_data (&(chnk->cells[offs]), data + (offs * 4));
-          else
-            {
-              //d//printf ("BAD OFFSET: %d vs %d\n", offs * 4, len);
-              exit (1);
-            }
+          assert (len > (offs * 4) + 3);
+          b3d_set_cell_from_data (&(chnk->cells[offs]), data + (offs * 4));
         }
 }
 

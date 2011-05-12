@@ -83,22 +83,6 @@ sub world_intersect_ray_box {
    return ($tmin, vadd ($pos, vsmul ($dir, $tmin))); # return intersection position!
 }
 
-sub world_visible_chunks_at {
-   my ($pos) = @_;
-   my (@chunk_pos) = world_pos2chunk ($pos);
-
-   my @chnkposes;
-   for my $dx (0, -1, 1, -2, 2) {
-      for my $dy (0, -1, 1, -2, 2) {
-         for my $dz (0, -1, 1, -2, 2) {
-            push @chnkposes, vaddd (\@chunk_pos, $dx, $dy, $dz);
-         }
-      }
-   }
-
-   @chnkposes
-}
-
 sub _collide_sphere_box {
    my ($sphere_pos, $sphere_rad, $box) = @_;
 

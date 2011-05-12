@@ -1,7 +1,6 @@
 package Games::Blockminer3D::Server::World;
 use common::sense;
 use Games::Blockminer3D::Vector;
-use Games::Blockminer3D::Server::Sector;
 use Games::Blockminer3D;
 
 require Exporter;
@@ -9,10 +8,7 @@ our @ISA = qw/Exporter/;
 our @EXPORT = qw/
    world_init
    world_pos2id
-   world_sector_at
-   world_pos2secref
    world_pos2chnkpos
-   world_get_chunk_data
    world_mutate_at
 /;
 
@@ -31,10 +27,47 @@ Games::Blockminer3D::Server::World - desc
 
 =cut
 
-my %SECTORS;
+our $CHNKSIZE = 12;
 
 sub world_init {
    Games::Blockminer3D::World::init ($_[0]);
+
+   my $chnk = [0,0,0];
+   Games::Blockminer3D::World::query_setup (
+      $chnk->[0] - 3,
+      $chnk->[1] - 3,
+      $chnk->[2] - 3,
+      $chnk->[0] + 3,
+      $chnk->[1] + 3,
+      $chnk->[2] + 3
+   );
+   Games::Blockminer3D::World::query_load_chunks ();
+
+   my $center = [12 * 3, 12 * 3, 12 * 3];
+
+   my @types = (2..8);
+   for my $x (0..(12 * 6 - 1)) {
+      for my $y (0..(12 * 6 - 1)) {
+         for my $z (0..(12 * 6 - 1)) {
+
+            my $cur = [$x, $y, $z];
+            my $l = vlength (vsub ($cur, $center));
+            if ($x == 36 || $y == 36 || $z == 36 || ($l > 20 && $l < 21)) {
+               my $t = [13, int rand (16)];
+               Games::Blockminer3D::World::query_set_at (
+                  $x, $y, $z, $t
+               );
+            } else {
+               Games::Blockminer3D::World::query_set_at (
+                  $x, $y, $z,
+                  [0,int rand (16)]
+               );
+            }
+         }
+      }
+   }
+
+   Games::Blockminer3D::World::query_desetup ();
 }
 
 sub world_pos2id {
@@ -43,15 +76,7 @@ sub world_pos2id {
 }
 
 sub world_pos2chnkpos {
-   vfloor (vsdiv ($_[0], $Games::Blockminer3D::Server::Sector::CHNKSIZE))
-}
-
-sub world_pos2secref {
-   my ($pos) = @_;
-   my $id = world_pos2id ($pos);
-   my $s = \$SECTORS{$id};
-   warn "SECTOR ID $id: $$s\n";
-   $s
+   vfloor (vsdiv ($_[0], $CHNKSIZE))
 }
 
 sub world_mutate_at {
@@ -71,74 +96,15 @@ sub world_mutate_at {
    my $b = Games::Blockminer3D::World::at (@$pos);
    if ($cb->($b)) {
       my $relpos = vfloor (vsubd ($pos,
-         $chnk->[0] * 12,
-         $chnk->[1] * 12,
-         $chnk->[2] * 12));
+         $chnk->[0] * $CHNKSIZE,
+         $chnk->[1] * $CHNKSIZE,
+         $chnk->[2] * $CHNKSIZE));
 
       Games::Blockminer3D::World::query_set_at (@$relpos, $b);
    }
 
    Games::Blockminer3D::World::query_desetup ();
 }
-
-sub load_sector {
-   my ($secref, $pos, $cb) = @_;
-
-   if (defined $$secref) {
-      $cb->($$secref);
-
-   } else {
-      $$secref = Games::Blockminer3D::Server::Sector->new;
-         my $dat;
-         if ($pos->[0] == 0 && $pos->[1] == 0 && $pos->[2] == 0) {
-            $dat = $$secref->mk_construct;
-         } else {
-            $dat = $$secref->mk_random;
-         }
-         $$secref->{data} = $dat;
-         $cb->($$secref);
-         return;
-
-      #d# AnyEvent::Util::fork_call {
-      #d#    my $dat = $$secref->mk_random;
-      #d#    warn "DONE: ".length ($dat)."\n";
-      #d#    $dat
-      #d# } sub {
-      #d#    my ($data) = @_;
-      #d#    $$secref->{data} = $data;
-      #d#    $cb->($$secref);
-      #d# };
-   }
-
-}
-
-sub world_sector_at {
-   my ($chnkpos, $cb) = @_;
-
-   my $secpos =
-      vfloor (
-         vsdiv ($chnkpos, $Games::Blockminer3D::Server::Sector::CHNKS_P_SECTOR));
-   my $sec = world_pos2secref ($secpos);
-
-   load_sector ($sec, $secpos, $cb);
-}
-
-sub world_get_chunk_data {
-   my ($chnkpos, $cb) = @_;
-
-   my $data = Games::Blockminer3D::World::get_chunk_data (@$chnkpos);
-   unless ($data) {
-      Games::Blockminer3D::
-   }
-   $cb->($data);
-
-   #world_sector_at ($chnkpos, sub {
-   #   my ($sector) = @_;
-   #   my $data = $sector->get_chunk_data_at_chnkpos ($chnkpos);
-   #   $cb->($data);
-   #});
-}
-
 
 =back
 

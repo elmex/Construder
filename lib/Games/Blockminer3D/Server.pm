@@ -182,6 +182,10 @@ sub handle_packet : event_cb {
       if ($hdr->{action} == 1 && @{$hdr->{build_pos} || []}) {
          $self->{players}->{$cid}->start_materialize ($hdr->{build_pos})
             if $self->{players}->{$cid};
+      } elsif ($hdr->{action} == 2 && @{$hdr->{build_pos} || []}) {
+         $self->{players}->{$cid}->set_debug_light ($hdr->{build_pos})
+            if $self->{players}->{$cid};
+
       } elsif ($hdr->{action} == 3 && @{$hdr->{pos} || []}) {
          $self->{players}->{$cid}->start_dematerialize ($hdr->{pos})
             if $self->{players}->{$cid};

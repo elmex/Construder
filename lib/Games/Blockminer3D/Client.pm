@@ -206,9 +206,19 @@ sub handle_packet : event_cb {
       $self->{front}->add_highlight ($hdr->{pos}, $hdr->{color}, $hdr->{fade}, $hdr->{solid});
 
    } elsif ($hdr->{cmd} eq 'chunk') {
-      printf ("BODY LEN %d\n", length $body);
       Games::Blockminer3D::World::set_chunk_data (@{$hdr->{pos}}, $body, length $body);
-      $self->{front}->update_chunk (@{$hdr->{pos}});
+      if (!$self->{in_chunk_upd}) {
+         $self->{front}->update_chunk (@{$hdr->{pos}});
+      } else {
+         push @{$self->{upd_chunks}}, $hdr->{pos};
+      }
+
+   } elsif ($hdr->{cmd} eq 'chunk_upd_start') {
+      $self->{in_chunk_upd} = 1;
+
+   } elsif ($hdr->{cmd} eq 'chunk_upd_done') {
+      delete $self->{in_chunk_upd};
+      $self->{front}->update_chunks (delete $self->{upd_chunks});
    }
 }
 

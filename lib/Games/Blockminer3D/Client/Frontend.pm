@@ -44,6 +44,7 @@ my ($WIDTH, $HEIGHT) = (720, 400);#600, 400);
 
 my $PL_HEIGHT = 1;
 my $PL_RAD    = 0.3;
+my $PL_VIS_RAD = 3;
 
 sub new {
    my $this  = shift;
@@ -121,8 +122,8 @@ sub init_app {
    glFogfv_p (GL_FOG_COLOR, 0.5, 0.5, 0.5, 1);
    glFogf (GL_FOG_DENSITY, 0.35);
    glHint (GL_FOG_HINT, GL_DONT_CARE);
-   glFogf (GL_FOG_START, 15);
-   glFogf (GL_FOG_END,   32);
+   glFogf (GL_FOG_START, 10);
+   glFogf (GL_FOG_END,   29);
 }
 
 #  0 front  1 top    2 back   3 left   4 right  5 bottom
@@ -213,11 +214,13 @@ sub build_chunk_arrays {
    }
 }
 
-sub free_chunk {
+sub free_compiled_chunk {
    my ($self, $cx, $cy, $cz) = @_;
    my $l = delete $self->{compiled_chunks}->{$cx}->{$cy}->{$cz};
-   glDeleteLists ($l, 1) if $l;
-   warn "deleted chunk $cx, $cy, $cz\n";
+   if ($l) {
+      glDeleteLists ($l, 1) if $l;
+      warn "deleted chunk $cx, $cy, $cz\n";
+   }
 }
 
 sub compile_chunk {
@@ -225,7 +228,7 @@ sub compile_chunk {
 
    warn "compiling... $cx, $cy, $cz.\n";
 
-   $self->free_chunk ($cx, $cy, $cz);
+   $self->free_compiled_chunk ($cx, $cy, $cz);
    $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} = OpenGL::List::glpList {
          my $compl;
       my (@vert, @color, @tex);
@@ -279,19 +282,62 @@ sub set_player_pos {
    $self->{phys_obj}->{player}->{pos} = $pos;
 }
 
+sub get_visible_chunks {
+   my ($self) = @_;
+
+   my $chnks =
+      Games::Blockminer3D::Math::calc_visible_chunks_at (
+         @{$self->{phys_obj}->{player}->{pos}}, $PL_VIS_RAD);
+   my @o;
+   for (my $i = 0; $i < @$chnks; $i += 3) {
+      push @o, [$chnks->[$i], $chnks->[$i + 1], $chnks->[$i + 2]];
+   }
+   return @o
+}
+
+sub can_see_chunk {
+   my ($self, $cx, $cy, $cz, $range_fact) = @_;
+   my $plc = [world_pos2chunk ($self->{phys_obj}->{player}->{pos})];
+   vlength (vsub ([$cx, $cy, $cz], $plc)) < $PL_VIS_RAD * ($range_fact || 1);
+}
+
 sub is_player_chunk {
    my ($self, $cx, $cy, $cz) = @_;
    my ($pcx, $pcy, $pcz) = world_pos2chunk ($self->{phys_obj}->{player}->{pos});
    return $pcx == $cx && $pcy == $cy && $pcz == $cz;
 }
 
+sub update_chunks {
+   my ($self, $chnks) = @_;
+   $self->update_chunk (@$_) for @$chnks;
+}
+
 sub update_chunk {
    my ($self, $cx, $cy, $cz) = @_;
 
+   my @upd;
+   for (
+      [0, 0, 0],
+      [-1, 0, 0],
+      [+1, 0, 0],
+      [0, -1, 0],
+      [0, +1, 0],
+      [0, 0, -1],
+      [0, 0, +1]
+   ) {
+      my $cur = [$cx + $_->[0], $cy + $_->[1], $cz + $_->[2]];
+      next if grep {
+         $cur->[0] == $_->[0]
+         && $cur->[1] == $_->[1]
+         && $cur->[2] == $_->[2]
+      } @{$self->{chunk_update}};
+      push @upd, $cur;
+   }
+
    if (is_player_chunk ($cx, $cy, $cz)) {
-      unshift @{$self->{chunk_update}}, [$cx, $cy, $cz];
+      unshift @{$self->{chunk_update}}, @upd;
    } else {
-      push @{$self->{chunk_update}}, [$cx, $cy, $cz];
+      push @{$self->{chunk_update}}, @upd;
    }
 }
 
@@ -305,12 +351,6 @@ sub add_highlight {
    $color->[3] = 1 if $fade > 0;
    push @{$self->{box_highlights}},
       [$pos, $color, { fading => $fade }];
-# FIXME => move to server!
-#   if ($solid) {
-#      my $bx = world_get_box_at ($pos);
-#      $bx->[0] = 1; # materialization!
-#      world_change_chunk_at ($pos);
-#   }
 }
 
 my $render_cnt;
@@ -328,7 +368,7 @@ sub render_scene {
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity;
-   gluPerspective (60, $WIDTH / $HEIGHT, 0.1, 40);
+   gluPerspective (60, $WIDTH / $HEIGHT, 0.1, 30);
 
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity;
@@ -343,32 +383,20 @@ sub render_scene {
    my $t2 = time;
    my (@fcone) = $self->cam_cone;
    unshift @fcone, $cpos;
-   my $culled = 0;
    #d# warn "FCONE ".vstr ($fcone[0]). ",".vstr ($fcone[1])." : $fcone[2]\n";
    my $t3 = time;
 
-   for (world_visible_chunks_at ($pp)) {
-      my ($cx, $cy, $cz) = @$_;
-      my $pos = vsadd (vsmul ([$cx, $cy, $cz],
-                       $Games::Blockminer3D::Client::MapChunk::SIZE),
-                       $Games::Blockminer3D::Client::MapChunk::SIZE / 2);
+   my $vis_chunks =
+      Games::Blockminer3D::Math::calc_visible_chunks_at_in_cone (
+         @$pp, $PL_VIS_RAD,
+         @{$fcone[0]}, @{$fcone[1]}, $fcone[2],
+         $Games::Blockminer3D::Client::MapChunk::BSPHERE);
 
-      if (Games::Blockminer3D::Math::cone_sphere_intersect (
-            @{$fcone[0]},
-            @{$fcone[1]},
-            $fcone[2],
-            @$pos,
-            $Games::Blockminer3D::Client::MapChunk::BSPHERE
-      )) {
-         my $compl = $cc->{$cx}->{$cy}->{$cz}
-            or next;
-         glCallList ($compl);
-      } else {
-         $culled++;
-      }
-   }
-   if ($culled < 3) {
-      warn "culled only $culled chunks in " . (time - $t2) . " secs!!!!";
+   while (@$vis_chunks) {
+      my ($cx, $cy, $cz) = (shift @$vis_chunks, shift @$vis_chunks, shift @$vis_chunks);
+      my $compl = $cc->{$cx}->{$cy}->{$cz}
+         or next;
+      glCallList ($compl);
    }
 
    for (@{$self->{box_highlights}}) {
@@ -479,53 +507,31 @@ sub setup_event_poller {
    };
 
    $self->{chunk_freeer} = AE::timer 0, 2, sub {
-      my @vis_chunks = world_visible_chunks_at ($self->{phys_obj}->{player}->{pos});
       for my $kx (keys %{$self->{compiled_chunks}}) {
          for my $ky (keys %{$self->{compiled_chunks}->{$kx}}) {
             for my $kz (keys %{$self->{compiled_chunks}->{$kx}->{$ky}}) {
-               unless (grep { $kx == $_->[0] && $ky == $_->[1] && $kz == $_->[2] } @vis_chunks) {
-                  $self->free_chunk ($kx, $ky, $kz);
-                  warn "freeed chunk $kx, $ky, $kz\n";
+               unless ($self->can_see_chunk ($kx, $ky, $kz, 2)) {
+                  $self->free_compiled_chunk ($kx, $ky, $kz);
+                  warn "freeed compiled chunk $kx, $ky, $kz\n";
                }
             }
          }
       }
    };
 
-   $self->{compile_w} = AE::timer 0, 0.028, sub {
+   $self->{compile_w} = AE::timer 0, 0.01, sub {
       my $cc = $self->{compiled_chunks};
-      my $pp = $self->{phys_obj}->{player}->{pos};
-      #d# warn "compile at pos " . vstr ($pp) . "\n";
-      # FIXME: vfloor is definitively NOT correct - probably :->
-      while (@{$self->{chunk_update}}) {
-         my $c = shift @{$self->{chunk_update}};
-         $self->compile_chunk (@$c);
-         return;
+      for ($self->get_visible_chunks) {
+         unless ($cc->{$_->[0]}->{$_->[1]}->{$_->[2]}) {
+            $self->compile_chunk (@$_);
+         }
       }
 
-      my (@chunks) = world_visible_chunks_at ($pp);
-      my @fcone = $self->cam_cone;
-      unshift @fcone,
-         vaddd ($pp, 0, $PL_HEIGHT, 0);
-      for (@chunks) {
-         my ($cx, $cy, $cz) = @$_;
-         my $pos = vsadd (vsmul ($_,
-                          $Games::Blockminer3D::Client::MapChunk::SIZE),
-                          $Games::Blockminer3D::Client::MapChunk::SIZE / 2);
-
-         next unless
-            Games::Blockminer3D::Math::cone_sphere_intersect (
-               @{$fcone[0]}, @{$fcone[1]}, $fcone[2],
-               @$pos, $Games::Blockminer3D::Client::MapChunk::BSPHERE);
-
-         unless ($cc->{$cx}->{$cy}->{$cz}) {
-            $self->compile_chunk ($cx, $cy, $cz);
-            if ($cc->{$cx}->{$cy}->{$cz}) {
-               warn "compiled $cx, $cy, $cz\n";
-               return;
-            }
-         }
-
+      while (@{$self->{chunk_update}}) {
+         my $c = shift @{$self->{chunk_update}};
+         next unless $self->can_see_chunk (@$c);
+         $self->compile_chunk (@$c);
+         return;
       }
    };
 
@@ -600,12 +606,6 @@ sub setup_event_poller {
          $upd_pos = 0;
       }
 
-      #d#if (delete $self->{change}) {
-      #d#   warn "player status: pos: "
-      #d#        . vstr ($self->{phys_obj}->{player}->{pos})
-      #d#        . " rotx: $self->{xrotate}, roty: $self->{yrotate}\n";
-      #d#}
-
       $self->render_scene;
       $fps++;
       #}
@@ -624,7 +624,7 @@ sub cam_cone {
    my ($self) = @_;
    return @{$self->{cached_cam_cone}} if $self->{cached_cam_cone};
    $self->{cached_cam_cone} = [
-      calc_cam_cone (0.1, 20, 60, $WIDTH, $HEIGHT, $self->get_look_vector)
+      calc_cam_cone (0.1, 30, 60, $WIDTH, $HEIGHT, $self->get_look_vector)
    ];
    @{$self->{cached_cam_cone}}
 }

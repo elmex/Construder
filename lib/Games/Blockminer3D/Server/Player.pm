@@ -21,6 +21,8 @@ Games::Blockminer3D::Server::Player - desc
 
 =cut
 
+my $PL_VIS_RAD = 4.5;
+
 sub new {
    my $this  = shift;
    my $class = ref ($this) || $this;
@@ -43,108 +45,88 @@ sub init {
 
 my $world_c = 0;
 
+sub _visible_chunks {
+   my ($from, $chnk) = @_;
+
+   my $plchnk = world_pos2chnkpos ($from);
+   $chnk ||= $plchnk;
+
+   my @c;
+   for my $dx (-$PL_VIS_RAD..$PL_VIS_RAD) {
+      for my $dy (-$PL_VIS_RAD..$PL_VIS_RAD) {
+         for my $dz (-$PL_VIS_RAD..$PL_VIS_RAD) {
+            my $cur = [$chnk->[0] + $dx, $chnk->[1] + $dy, $chnk->[2] + $dz];
+            next if vlength (vsub ($cur, $plchnk)) >= $PL_VIS_RAD;
+            push @c, $cur;
+         }
+      }
+   }
+
+   @c
+}
+
 sub update_pos {
    my ($self, $pos) = @_;
 
+   my $opos = $self->{pos};
    $self->{pos} = $pos;
 
-   # keep track of chunk changes and maintain a generation counter
-   # this function then synchronizes the client's chunks with the
-   # generation counter of the current visible chunks and possibly
-   # sends an update or generates the chunks
+   my $oblk = vfloor ($opos);
+   my $nblk = vfloor ($pos);
+   return unless (
+         $oblk->[0] != $nblk->[0]
+      || $oblk->[1] != $nblk->[1]
+      || $oblk->[2] != $nblk->[2]
+   );
 
-   # the server needs to query all players for changed chunks and
-   # see whether some player sees the changed chunks and actively
-   # sends a chunk update himself
-
-   # sector module will be dumped
-   # world module is responsible for loading, generating and saving chunks
-
-   unless ($world_c) {
-      my $chnk = world_pos2chnkpos ($pos);
-      Games::Blockminer3D::World::query_setup (
-         $chnk->[0] - 3,
-         $chnk->[1] - 3,
-         $chnk->[2] - 3,
-         $chnk->[0] + 3,
-         $chnk->[1] + 3,
-         $chnk->[2] + 3
-      );
-      Games::Blockminer3D::World::query_load_chunks ();
-
-      my $center = [12 * 3, 12 * 3, 12 * 3];
-
-      my @types = (2..8);
-      for my $x (0..(12 * 6 - 1)) {
-         for my $y (0..(12 * 6 - 1)) {
-            for my $z (0..(12 * 6 - 1)) {
-
-               my $cur = [$x, $y, $z];
-               my $l = vlength (vsub ($cur, $center));
-
-               if ($l > 20 && $l < 21) {
-                  my $t = [2, int rand (16)];
-                  Games::Blockminer3D::World::query_set_at (
-                     $x, $y, $z, $t
-                  );
-               } else {
-                  Games::Blockminer3D::World::query_set_at (
-                     $x, $y, $z,
-                     [0,int rand (16)]
-                  );
-               }
-            }
-         }
-      }
-
-      $world_c = 1;
-
-      Games::Blockminer3D::World::query_desetup ();
+   my @old_chunks = _visible_chunks ($opos);
+   my @chunks     = _visible_chunks ($pos);
+   my @new_chunks;
+   for my $chnk (@chunks) {
+      next if grep {
+         $chnk->[0] == $_->[0]
+         && $chnk->[1] == $_->[1]
+         && $chnk->[2] == $_->[2]
+      } @old_chunks;
+      push @new_chunks, $chnk;
    }
-#   my $old_state = $self->{chunk_state};
-#   my $chunk_state = {};
-#   LASTUP:
-#   for my $dx (0, -1, 1) {
-#      for my $dy (0, -1, 1) {
-#         for my $dz (0, -1, 1) {
-#            my $cur_chunk = vaddd ($chnk, $dx, $dy, $dz);
-#            my $id = world_pos2id ($cur_chunk);
-#            if ($old_state->{$id}) {
-#               $chunk_state->{$id} = delete $old_state->{$id};
-#
-#            } else {
-#               $self->send_chunk ($cur_chunk);
-#               $chunk_state->{$id} = 1;
-#            }
-#         }
-#      }
-#   }
-#   $self->{chunk_state} = $chunk_state;
+
+   if (@new_chunks) {
+      $self->send_client ({ cmd => "chunk_upd_start" });
+      $self->send_chunk ($_) for @new_chunks;
+      $self->send_client ({ cmd => "chunk_upd_done" });
+   }
 }
 
+# TODO:
+#  X light-setzen per maus
+#  X player inkrementell updates der welt schicken
+#  - modelle einbauen
+#  - objekte weiter eintragen
 sub chunk_updated {
    my ($self, $chnk) = @_;
    # FIXME: check against visible/sent chunks!
+
+   my $plchnk = world_pos2chnkpos ($self->{pos});
+   my $divvec = vsub ($chnk, $plchnk);
+   return if vlength ($divvec) >= $PL_VIS_RAD;
+
    $self->send_chunk ($chnk);
 }
 
 sub send_visible_chunks {
    my ($self) = @_;
-   for my $dx (-4..4) {
-      for my $dy (-4..4) {
-         for my $dz (-4..4) {
-            $self->send_chunk ([$dx, $dy, $dz]);
-         }
-      }
-   }
+
+   $self->send_client ({ cmd => "chunk_upd_start" });
+
+   my @chnks = _visible_chunks ($self->{pos});
+   $self->send_chunk ($_) for @chnks;
+
+   $self->send_client ({ cmd => "chunk_upd_done" });
 }
 
 sub send_chunk {
    my ($self, $chnk) = @_;
-
-   my $plchnk = world_pos2chnkpos ($self->{pos});
-   my $divvec = vsub ($chnk, $plchnk);
-   return if vlength ($divvec) >= 4;
 
    # only send chunk when allcoated, in all other cases the chunk will
    # be sent by the chunk_changed-callback by the server (when it checks
@@ -152,8 +134,6 @@ sub send_chunk {
    my $data = Games::Blockminer3D::World::get_chunk_data (@$chnk);
    return unless defined $data;
    $self->send_client ({ cmd => "chunk", pos => $chnk }, $data);
-
-   # TODO / FIXME: check the generation of the chunk here and store it!
 }
 
 sub update_hud_1 {
@@ -183,6 +163,7 @@ sub update_hud_1 {
             f1 => "help",
             i  => "inventory",
             f9 => "teleport_home",
+            f12 => "exit_server",
          },
       },
    } });
@@ -275,6 +256,15 @@ HELP
    } });
 }
 
+sub set_debug_light {
+   my ($self, $pos) = @_;
+   world_mutate_at ($pos, sub {
+      my ($data) = @_;
+      $data->[1] = $data->[1] > 8 ? 1 : 15;
+      return 1;
+   });
+}
+
 sub start_materialize {
    my ($self, $pos) = @_;
 
@@ -349,8 +339,9 @@ sub ui_res : event_cb {
       } elsif ($cmd eq 'help') {
          $self->show_help;
       } elsif ($cmd eq 'teleport_home') {
-         $self->teleport ([30, 2, 30]);
-
+         $self->teleport ([0, 0, 0]);
+      } elsif ($cmd eq 'exit_server') {
+         exit;
       }
    }
 }

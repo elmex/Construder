@@ -10,42 +10,40 @@
 #include "world_drawing.c"
 #include "render.c"
 
+
+unsigned int b3d_cone_sphere_intersect (double cam_x, double cam_y, double cam_z, double cam_v_x, double cam_v_y, double cam_v_z, double cam_fov, double sphere_x, double sphere_y, double sphere_z, double sphere_rad)
+{
+  vec3_init(cam,    cam_x, cam_y, cam_z);
+  vec3_init(cam_v,  cam_v_x, cam_v_y, cam_v_z);
+  vec3_init(sphere, sphere_x, sphere_y, sphere_z);
+  vec3_clone(u,  cam);
+  vec3_clone(uv, cam_v);
+  vec3_clone(d,  sphere);
+
+  vec3_s_mul (uv, sphere_rad / sinl (cam_fov));
+  vec3_sub (u, uv);
+  vec3_sub (d, u);
+
+  double l = vec3_len (d);
+
+  if (vec3_dot (cam_v, d) >= l * cosl (cam_fov))
+    {
+       vec3_assign (d, sphere);
+       vec3_sub (d, cam);
+       l = vec3_len (d);
+
+       if (-vec3_dot (cam_v, d) >= l * sinl (cam_fov))
+         return (l <= sphere_rad);
+       else
+         return 1;
+    }
+  else
+    return 0;
+}
+
 MODULE = Games::Blockminer3D PACKAGE = Games::Blockminer3D::Math PREFIX = b3d_
 
-unsigned int b3d_cone_sphere_intersect ( double cam_x, double cam_y, double cam_z, double cam_v_x, double cam_v_y, double cam_v_z, double cam_fov, double sphere_x, double sphere_y, double sphere_z, double sphere_rad)
-  CODE:
-      vec3_init(cam,    cam_x, cam_y, cam_z);
-      vec3_init(cam_v,  cam_v_x, cam_v_y, cam_v_z);
-      vec3_init(sphere, sphere_x, sphere_y, sphere_z);
-      vec3_clone(u,  cam);
-      vec3_clone(uv, cam_v);
-      vec3_clone(d,  sphere);
-
-      vec3_s_mul (uv, sphere_rad / sinl (cam_fov));
-      vec3_sub (u, uv);
-      vec3_sub (d, u);
-
-      double l = vec3_len (d);
-
-      if (vec3_dot (cam_v, d) >= l * cosl (cam_fov))
-        {
-           vec3_assign (d, sphere);
-           vec3_sub (d, cam);
-           l = vec3_len (d);
-
-           if (-vec3_dot (cam_v, d) >= l * sinl (cam_fov))
-             RETVAL = (l <= sphere_rad);
-           else
-             RETVAL = 1;
-        }
-      else
-        {
-          RETVAL = 0;
-        }
-
-  OUTPUT:
-    RETVAL
-
+unsigned int b3d_cone_sphere_intersect (double cam_x, double cam_y, double cam_z, double cam_v_x, double cam_v_y, double cam_v_z, double cam_fov, double sphere_x, double sphere_y, double sphere_z, double sphere_rad);
 
 AV *
 b3d_point_aabb_distance (double pt_x, double pt_y, double pt_z, double box_min_x, double box_min_y, double box_min_z, double box_max_x, double box_max_y, double box_max_z)
@@ -78,6 +76,85 @@ b3d_point_aabb_distance (double pt_x, double pt_y, double pt_z, double box_min_x
 
     for (i = 0; i < 3; i++)
       av_push (RETVAL, newSVnv (out[i]));
+
+  OUTPUT:
+    RETVAL
+
+
+
+AV *
+b3d_calc_visible_chunks_at_in_cone (double pt_x, double pt_y, double pt_z, double rad, double cam_x, double cam_y, double cam_z, double cam_v_x, double cam_v_y, double cam_v_z, double cam_fov, double sphere_rad)
+  CODE:
+    int r = rad;
+
+    RETVAL = newAV ();
+    sv_2mortal ((SV *)RETVAL);
+
+    vec3_init (pt, pt_x, pt_y, pt_z);
+    vec3_s_div (pt, CHUNK_SIZE);
+    vec3_floor (pt);
+
+    int x, y, z;
+    for (x = -r; x <= r; x++)
+      for (y = -r; y <= r; y++)
+        for (z = -r; z <= r; z++)
+          {
+            vec3_init (chnk,  x, y, z);
+            vec3_add (chnk, pt);
+            vec3_clone (chnk_p, chnk);
+
+            vec3_sub (chnk, pt);
+            if (vec3_len (chnk) < rad)
+              {
+                vec3_clone (sphere_pos, chnk_p);
+                vec3_s_mul (sphere_pos, CHUNK_SIZE);
+                sphere_pos[0] += CHUNK_SIZE / 2;
+                sphere_pos[1] += CHUNK_SIZE / 2;
+                sphere_pos[2] += CHUNK_SIZE / 2;
+
+                if (b3d_cone_sphere_intersect (
+                      cam_x, cam_y, cam_z, cam_v_x, cam_v_y, cam_v_z,
+                      cam_fov, sphere_pos[0], sphere_pos[1], sphere_pos[2],
+                      sphere_rad))
+                  {
+                    int i;
+                    for (i = 0; i < 3; i++)
+                      av_push (RETVAL, newSVnv (chnk_p[i]));
+                  }
+              }
+          }
+
+  OUTPUT:
+    RETVAL
+
+AV *
+b3d_calc_visible_chunks_at (double pt_x, double pt_y, double pt_z, double rad)
+  CODE:
+    int r = rad;
+
+    RETVAL = newAV ();
+    sv_2mortal ((SV *)RETVAL);
+
+    vec3_init (pt, pt_x, pt_y, pt_z);
+    vec3_s_div (pt, CHUNK_SIZE);
+    vec3_floor (pt);
+
+    int x, y, z;
+    for (x = -r; x <= r; x++)
+      for (y = -r; y <= r; y++)
+        for (z = -r; z <= r; z++)
+          {
+            vec3_init (chnk,  x, y, z);
+            vec3_add (chnk, pt);
+            vec3_clone (chnk_p, chnk);
+            vec3_sub (chnk, pt);
+            if (vec3_len (chnk) < rad)
+              {
+                int i;
+                for (i = 0; i < 3; i++)
+                  av_push (RETVAL, newSVnv (chnk_p[i]));
+              }
+          }
 
   OUTPUT:
     RETVAL
