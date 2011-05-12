@@ -124,10 +124,10 @@
       "lore" : "Moss, the main problem of this century. Much stuff is overgrown by moss. You can convert it to proteins."
    },
 
-   #"gravity_pusher" : {
-   #   "type" : 15,
-   #   # dimensions work by counting the lower plane, then walk up Y
-   #   "model" : [2, [1, 2], [2, 3], [3, 3], [4, 8] ],
-   #   "lore" : "Some advanced tech, that pushes you from the floor",
-   #},
+   "gravity_pusher" : {
+      "type" : 90,
+      # dimensions work by counting the lower plane, then walk up Y
+      "model" : [2, [1, 10], [2, 10], [3, 11], [4, 12]],
+      "lore" : "Some advanced tech, that pushes you from the floor",
+   },
 }

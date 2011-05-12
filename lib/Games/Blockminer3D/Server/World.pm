@@ -60,7 +60,7 @@ sub world_init {
             } else {
                Games::Blockminer3D::World::query_set_at (
                   $x, $y, $z,
-                  [0,int rand (16)]
+                  [(rand (1000) > 990 ? 90 : 0),int rand (16)]
                );
             }
          }
