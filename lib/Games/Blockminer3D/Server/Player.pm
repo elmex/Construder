@@ -79,17 +79,18 @@ sub update_pos {
       || $oblk->[2] != $nblk->[2]
    );
 
-   my @old_chunks = _visible_chunks ($opos);
-   my @chunks     = _visible_chunks ($pos);
+   my $last_vis = $self->{last_vis} || {};
+   my $next_vis = {};
+   my @chunks   = _visible_chunks ($pos);
    my @new_chunks;
-   for my $chnk (@chunks) {
-      next if grep {
-         $chnk->[0] == $_->[0]
-         && $chnk->[1] == $_->[1]
-         && $chnk->[2] == $_->[2]
-      } @old_chunks;
-      push @new_chunks, $chnk;
+   for (@chunks) {
+      my $id = world_pos2id ($_);
+      unless ($last_vis->{$id}) {
+         push @new_chunks, $_;
+      }
+      $next_vis->{$id} = 1;
    }
+   $self->{last_vis} = $next_vis;
 
    if (@new_chunks) {
       $self->send_client ({ cmd => "chunk_upd_start" });
@@ -105,7 +106,6 @@ sub update_pos {
 #  - objekte weiter eintragen
 sub chunk_updated {
    my ($self, $chnk) = @_;
-   # FIXME: check against visible/sent chunks!
 
    my $plchnk = world_pos2chnkpos ($self->{pos});
    my $divvec = vsub ($chnk, $plchnk);
