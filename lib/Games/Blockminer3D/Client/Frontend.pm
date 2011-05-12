@@ -502,7 +502,7 @@ sub setup_event_poller {
             {
                type => "model",
                extents => [0, 0, 1, 1],
-               object_type => 90,
+               object_type => 13,
                animated => 1
             }
          ]

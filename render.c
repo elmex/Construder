@@ -165,35 +165,39 @@ void
 b3d_render_model (unsigned int type, double light, unsigned int xo, unsigned int yo, unsigned int zo, AV *vertex, AV *color, AV *tex)
 {
   b3d_obj_attr *oa = b3d_world_get_attr (type);
+  unsigned int dim = oa->model_dim;
+  unsigned int *blocks = &(oa->model_blocks[0]);
 
-  if (oa->model)
+  if (!oa->model)
     {
-      unsigned int dim = oa->model_dim;
-      int x, y, z;
-      unsigned int blk_offs = 0;
-      double scale = (double) 1 / (double) (dim > 0 ? dim : 1);
-
-      for (y = 0; y < dim; y++)
-        for (z = 0; z < dim; z++)
-          for (x = 0; x < dim; x++)
-            {
-              unsigned int blktype = oa->model_blocks[blk_offs];
-              b3d_obj_attr *oa = b3d_world_get_attr (blktype);
-
-              if (oa->transparent)
-                continue;
-              //d//printf ("MODEL FACE %d %d %d: %d %g\n", x + xo, y + yo, z + zo, blktype, scale);
-
-              int face;
-              for (face = 0; face < 6; face++)
-                b3d_render_add_face (
-                  face, blktype, light,
-                  x, y, z, scale,
-                  xo, yo, zo,
-                  vertex, color, tex);
-              blk_offs++;
-            }
+      blocks = &type;
+      dim = 1;
     }
+
+  int x, y, z;
+  unsigned int blk_offs = 0;
+  double scale = (double) 1 / (double) (dim > 0 ? dim : 1);
+
+  for (y = 0; y < dim; y++)
+    for (z = 0; z < dim; z++)
+      for (x = 0; x < dim; x++)
+        {
+          unsigned int blktype = blocks[blk_offs];
+          b3d_obj_attr *oa = b3d_world_get_attr (blktype);
+
+          if (oa->transparent)
+            continue;
+          //d//printf ("MODEL FACE %d %d %d: %d %g\n", x + xo, y + yo, z + zo, blktype, scale);
+
+          int face;
+          for (face = 0; face < 6; face++)
+            b3d_render_add_face (
+              face, blktype, light,
+              x, y, z, scale,
+              xo, yo, zo,
+              vertex, color, tex);
+          blk_offs++;
+        }
 }
 
 void

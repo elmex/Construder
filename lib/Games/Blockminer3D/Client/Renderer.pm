@@ -29,17 +29,11 @@ our $CHNK_SIZE = $Games::Blockminer3D::Client::MapChunk::SIZE;
 
 sub render_object_type_sample {
    my ($type) = @_;
-   my ($txtid, $surf, $uv, $model) = $RES->obj2texture ($type);
-   my ($verts, $txtcoord);
 
    my (@vert, @color, @txt);
-   if ($model) {
-      Games::Blockminer3D::Renderer::model (
-         $type, 1, 0, 0, 0, \@vert, \@color, \@txt
-      );
- #  } else {
-  #    ($verts, $txtcoord) = @{_render_model (1, [1, $type])};
-   }
+   Games::Blockminer3D::Renderer::model (
+      $type, 1, 0, 0, 0, \@vert, \@color, \@txt
+   );
 
    my $quads = [
       OpenGL::Array->new_list (GL_FLOAT, @vert),
@@ -47,7 +41,7 @@ sub render_object_type_sample {
       OpenGL::Array->new_list (GL_FLOAT, @txt),
       @vert / 12 # 3 * 4 vertices
    ];
-   #d# warn "sample quads: $quads->[3] | $type | @$model | @verts | @$txtcoord\n";
+
    render_quads ($quads)
 }
 
