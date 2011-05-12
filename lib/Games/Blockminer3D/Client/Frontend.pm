@@ -525,7 +525,7 @@ sub setup_event_poller {
       }
    };
 
-   $self->{compile_w} = AE::timer 0, 0.01, sub {
+   $self->{compile_w} = AE::timer 0, 0.02, sub {
       my $cc = $self->{compiled_chunks};
       for ($self->get_visible_chunks) {
          unless ($cc->{$_->[0]}->{$_->[1]}->{$_->[2]}) {
@@ -596,7 +596,7 @@ sub setup_event_poller {
    my $accum_time = 0;
    my $dt = 1 / 40;
    my $upd_pos = 0;
-   $self->{poll_w} = AE::timer 0, 0.024, sub {
+   $self->{poll_w} = AE::timer 0, 0.02, sub { # 50fps!?
       $ltime = time - 0.02 if not defined $ltime;
       my $ctime = time;
       $accum_time += time - $ltime;
