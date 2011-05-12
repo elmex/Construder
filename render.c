@@ -182,7 +182,7 @@ b3d_render_model (unsigned int type, double light, unsigned int xo, unsigned int
 
               if (oa->transparent)
                 continue;
-              printf ("MODEL FACE %d %d %d: %d %g\n", x + xo, y + yo, z + zo, blktype, scale);
+              //d//printf ("MODEL FACE %d %d %d: %d %g\n", x + xo, y + yo, z + zo, blktype, scale);
 
               int face;
               for (face = 0; face < 6; face++)

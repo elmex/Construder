@@ -166,6 +166,9 @@ void b3d_render_chunk (int x, int y, int z, AV *a, AV *b, AV *c)
   CODE:
     b3d_render_chunk (x, y, z, a, b, c);
 
+void
+b3d_render_model (unsigned int type, double light, unsigned int xo, unsigned int yo, unsigned int zo, AV *vertex, AV *color, AV *tex);
+
 MODULE = Games::Blockminer3D PACKAGE = Games::Blockminer3D::World PREFIX = b3d_world_
 
 void b3d_world_init (SV *change_cb)

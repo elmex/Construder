@@ -44,7 +44,7 @@ my ($WIDTH, $HEIGHT) = (720, 400);#600, 400);
 
 my $PL_HEIGHT = 1;
 my $PL_RAD    = 0.3;
-my $PL_VIS_RAD = 3;
+my $PL_VIS_RAD = 2.6;
 
 sub new {
    my $this  = shift;
@@ -498,6 +498,12 @@ sub setup_event_poller {
                text => sprintf ("%.1f FPS\n", $fps / $fps_intv),
                color => "#ffff00",
                font => 'small'
+            },
+            {
+               type => "model",
+               extents => [0, 0, 1, 1],
+               object_type => 90,
+               animated => 1
             }
          ]
       });

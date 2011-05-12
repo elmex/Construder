@@ -21,7 +21,7 @@ Games::Blockminer3D::Server::Player - desc
 
 =cut
 
-my $PL_VIS_RAD = 4.5;
+my $PL_VIS_RAD = 3.5;
 
 sub new {
    my $this  = shift;
@@ -30,6 +30,7 @@ sub new {
    bless $self, $class;
 
    $self->init_object_events;
+   $self->{pos} = [0, 0, 0];
 
    return $self
 }
