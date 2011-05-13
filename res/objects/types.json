@@ -64,62 +64,136 @@
       "texture" : ["cat2.png", 448, 128, 64, 64],
       "lore" : "It's just dirt."
    },
-
+   "Granite" : {
+      "type" : 20,
+      "texture" : ["cat2.png", 0, 192, 64, 64],
+      "lore" : "You'll almost bite your teeth out on granite. But never the less, it's great stuff for building."
+   },
+   "Sand" : {
+      "type" : 21,
+      "texture" : ["cat2.png", 64, 192, 64, 64],
+      "lore" : "Sand is not great if your electronic stuff is covered in it. But you might get some silicon from it."
+   },
+   "Silver" : {
+      "type" : 22,
+      "texture" : ["cat2.png", 128, 192, 64, 64],
+      "lore" : "Silver is a useful raw material for lots of things."
+   },
+   "Gold" : {
+      "type" : 23,
+      "texture" : ["cat2.png", 192, 192, 64, 64],
+      "lore" : "Gold, as precious as it is, it's required for almost any electronic circuit."
+   },
+   "Silicon" : {
+      "type" : 23,
+      "texture" : ["cat2.png", 256, 192, 64, 64],
+      "lore" : "Similiar to gold, it's required for any CPU."
+   },
+   "Superconductor" : {
+      "type" : 24,
+      "texture" : ["cat2.png", 320, 192, 64, 64],
+      "lore" : "Probably the best connection for transmitting electricity."
+   },
+   "Uran" : {
+      "type" : 25,
+      "texture" : ["cat2.png", 384, 192, 64, 64],
+      "lore" : "Uran, a powerful energy source. But be careful of the radiation!"
+   },
+   "Plutonium" : {
+      "type" : 26,
+      "texture" : ["cat2.png", 448, 192, 64, 64],
+      "lore" : "Plutonium, a very powerful energy source. But be very careful of the radiation!"
+   },
+   "Diamond" : {
+      "type" : 27,
+      "texture" : ["cat2.png", 256, 256, 64, 64],
+      "lore" : "The hardest material you will find."
+   },
+   "Oilsmear" : {
+      "type" : 28,
+      "texture" : ["cat2.png", 320, 256, 64, 64],
+      "lore" : "Oil is a very useful chemical resource. You can make lots of stuff from it."
+   },
 
    "Minicell" : {
-     "type" : 20,
+     "type" : 30,
      "texture" : ["cat2.png", 256, 0, 64, 64],
      "lore" : "The Minicell is the most basic and least powerful electrical power source."
    },
    "Biogen" : {
-     "type" : 21,
+     "type" : 31,
      "texture" : ["cat2.png", 320, 0, 64, 64],
      "lore" : "The Biogen generator creates healty chunk of eatable food from a wide variety of things."
    },
    "CPU" : {
-     "type" : 22,
+     "type" : 32,
      "texture" : ["cat2.png", 384, 0, 64, 64],
      "lore" : "A CPU is used in nearly any electronical device you will build."
    },
    "Jammer" : {
-     "type" : 23,
+     "type" : 33,
      "texture" : ["cat2.png", 448, 0, 64, 64],
      "lore" : "The Jammer jams navigation signals of robots."
    },
    "Messagebox" : {
-     "type" : 24,
+     "type" : 34,
      "texture" : ["cat2.png", 256, 64, 64, 64],
      "lore" : "Messageboxes are used to label things. Can be very handy to find your way and leave notes for others."
    },
    "Light" : {
-     "type" : 24,
+     "type" : 35,
      "texture" : ["cat2.png", 320, 64, 64, 64],
      "lore" : "Your usual light source. Does not need a lot of enery and provides cozy light for your buildings."
    },
    "Modellizer" : {
-     "type" : 25,
+     "type" : 36,
      "texture" : ["cat2.png", 384, 64, 64, 64],
      "lore" : "A very complex piece of equipment. It transforms big sized models into usable devices and materials."
    },
    "Hydrogencell" : {
-     "type" : 26,
+     "type" : 37,
      "texture" : ["cat2.png", 448, 64, 64, 64],
      "lore" : "Much longer lasting than the Minicell, but is not much more powerful."
    },
+   "Nuclearcell" : {
+     "type" : 38,
+     "texture" : ["cat2.png", 0, 256, 64, 64],
+     "lore" : "Very powerful energy generator, but doesn't last that long."
+   },
+   "Fusioncell" : {
+     "type" : 39,
+     "texture" : ["cat2.png", 64, 256, 64, 64],
+     "lore" : "Very powerful energy generator, which lasts a fair amount of time."
+   },
+   "Floodlight" : {
+     "type" : 40,
+     "texture" : ["cat2.png", 128, 256, 64, 64],
+     "lore" : "Very bright light source. You will love it. Unfortunately it needs lots of energy."
+   },
+   "Safelight" : {
+     "type" : 41,
+     "texture" : ["cat2.png", 192, 256, 64, 64],
+     "lore" : "Quite dim light source, but it lasts a long time."
+   },
+   "Circuits" : {
+     "type" : 42,
+     "texture" : ["cat2.png", 384, 256, 64, 64],
+     "lore" : "Base component for any electronical device."
+   },
 
    "Drone" : {
-     "type" : 40,
+     "type" : 50,
      "texture" : ["cat2.png", 64, 128, 64, 64],
      "lore" : "A building Drone. Usually only annoying, due to their bad programming they still teleport everyone who seems to got lost to their home."
    },
 
    "Proteins" : {
-      "type" : 50,
+      "type" : 60,
       "texture" : ["cat2.png", 320, 128, 64, 64],
       "lore" : "Your only source for nutrition. Lucky you have a generator handy that generates it for you."
    },
    "Moss" : {
-      "type" : 51,
+      "type" : 61,
       "texture" : ["cat2.png", 384, 128, 64, 64],
       "lore" : "Moss, the main problem of this century. Much stuff is overgrown by moss. You can convert it to proteins."
    },

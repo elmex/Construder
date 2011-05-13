@@ -49,7 +49,27 @@ sub init {
    $RES = Games::Blockminer3D::Server::Resources->new;
    $RES->load_objects;
 
+   # active objects verwaltung
+   #    - player
+   #       inventory / aktive objekte
+   #    - chunks
+   #       chunk id => position, liste der aktiven objekte
+   # => aber wie die einzelnen entities identifizieren?!
+   #    evtl. unique-id einführen und beim laden
+   #    in eine globale liste einfügen?
+   #    => währe also ambesten eine 32 (oder 28) Bit ID an der Entity
+   #      => könnte erzeugt werden aus timestamp oder sowas....
+   #         oder besser: globaler counter
+   #
+   # speicherung evtl. einfach als liste von objekten im json
+   # laden genauso, record enthält beim laden aber position in der map
+   #                position kann sich aber ändern:
+   #                - 2 typen ovn positionen: in chunk, in player
+
    world_init (sub {
+      my ($x, $y, $z, $action, $offsetid) = @_;
+      # $action   => remove (-1), add (1), undefined (0/undef)
+      # $offsetid => id des objekts
       warn "CHUNK CHANGED (@_)\n";
       my $chnk = [@_];
       for (values %{$self->{players}}) {

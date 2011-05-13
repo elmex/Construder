@@ -58,6 +58,27 @@ void b3d_world_init ()
   neighbour_cell.visible = 1;
 }
 
+//void b3d_world_emit_chunk_change_obj (int x, int y, int z, int act, unsigned int id)
+//{
+//  if (WORLD.chunk_change_cb)
+//    {
+//      dSP;
+//      ENTER;
+//      SAVETMPS;
+//      PUSHMARK(SP);
+//      XPUSHs(sv_2mortal(newSViv (x)));
+//      XPUSHs(sv_2mortal(newSViv (y)));
+//      XPUSHs(sv_2mortal(newSViv (z)));
+//      XPUSHs(sv_2mortal(newSViv (act)));
+//      XPUSHs(sv_2mortal(newSViv (id)));
+//      PUTBACK;
+//      call_sv (WORLD.chunk_change_cb, G_DISCARD | G_VOID);
+//      SPAGAIN;
+//      FREETMPS;
+//      LEAVE;
+//    }
+//}
+
 void b3d_world_emit_chunk_change (int x, int y, int z)
 {
   if (WORLD.chunk_change_cb)
