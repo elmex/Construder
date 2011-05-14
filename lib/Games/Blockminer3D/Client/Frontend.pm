@@ -843,9 +843,6 @@ sub input_key_up : event_cb {
    } elsif (grep { $name eq $_ } qw/a d/) {
       delete $self->{movement}->{strafe};
 
-   } elsif ($name eq 't') {
-      $self->{app}->fullscreen;
-
    } elsif ($name eq 'left shift') {
       $self->{movement}->{speed} = 0;
    }
@@ -905,6 +902,8 @@ sub input_key_down : event_cb {
       $self->{ghost_mode} = not $self->{ghost_mode};
    } elsif ($name eq 'f') {
       $self->change_look_lock (not $self->{look_lock});
+   } elsif ($name eq 't') {
+      $self->{app}->fullscreen;
    } elsif ($name eq 'left shift') {
       $self->{movement}->{speed} = 1;
 

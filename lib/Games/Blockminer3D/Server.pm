@@ -47,6 +47,7 @@ sub init {
    my ($self) = @_;
 
    $RES = Games::Blockminer3D::Server::Resources->new;
+   $RES->init_directories;
    $RES->load_objects;
 
    # active objects verwaltung
@@ -153,9 +154,11 @@ sub push_transfer {
 
 sub client_disconnected : event_cb {
    my ($self, $cid) = @_;
-   delete $self->{players}->{$cid};
+   my $pl = delete $self->{players}->{$cid};
+   $pl->logout;
    delete $self->{player_guards}->{$cid};
    delete $self->{clients}->{$cid};
+   warn "client disconnected: $cid\n";
 }
 
 sub client_connected : event_cb {
@@ -201,7 +204,7 @@ sub handle_packet : event_cb {
       if ($hdr->{ui_command} eq 'login') {
 
          my $pl = $self->{players}->{$cid}
-            = Games::Blockminer3D::Server::Player->new (cid => $cid);
+            = Games::Blockminer3D::Server::Player->new (cid => $cid, name => $hdr->{arg}->[0]);
 
          $self->{player_guards}->{$cid} = $pl->reg_cb (send_client => sub {
             my ($pl, $hdr, $body) = @_;
@@ -235,18 +238,12 @@ sub handle_packet : event_cb {
                bg_color => "#00ff00",
             },
             {
-               type => "entry", extents => ["right_of 1", "bottom_of 0", 0.3, "font_height"],
+               type => "entry", extents => ["right_of 1", "bottom_of 0", "text_width normal:mmmmmmm", "font_height"],
                font => "normal", color => "#333300",
                bg_color => "#ffff55",
                hl_color => "#33ff00",
-               text => "*"
-            },
-            {
-               type => "entry", extents => ["right_of 1", "bottom_of 2", 0.3, "font_height"],
-               font => "normal", color => "#333300",
-               bg_color => "#ffff55",
-               hl_color => "#33ff00",
-               text => "*"
+               max_chars => 7,
+               text => ""
             },
          ],
          commands => {

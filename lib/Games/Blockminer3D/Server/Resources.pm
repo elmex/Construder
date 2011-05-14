@@ -21,6 +21,13 @@ Games::Blockminer3D::Server::Resources - desc
 
 =cut
 
+our $VARDIR = $ENV{HOME}    ? "$ENV{HOME}/.blockminer3d"
+            : $ENV{AppData} ? "$ENV{APPDATA}/blockminer3d"
+            : File::Spec->tmpdir . "/blockminer3d";
+
+our $PLAYERDIR = "$VARDIR/players";
+our $MAPDIR    = "$VARDIR/chunks";
+
 sub new {
    my $this  = shift;
    my $class = ref ($this) || $this;
@@ -30,6 +37,25 @@ sub new {
    $self->init_object_events;
 
    return $self
+}
+
+sub init_directories {
+   my ($self) = @_;
+
+   unless (-e $VARDIR && -d $VARDIR) {
+      mkdir $VARDIR
+         or die "Couldn't create var data dir '$VARDIR': $!\n";
+   }
+
+   unless (-e $PLAYERDIR && -d $PLAYERDIR) {
+      mkdir $PLAYERDIR
+         or die "Couldn't create player data dir '$PLAYERDIR': $!\n";
+   }
+
+   unless (-e $MAPDIR && -d $MAPDIR) {
+      mkdir $MAPDIR
+         or die "Couldn't create map data dir '$MAPDIR': $!\n";
+   }
 }
 
 sub _get_file {

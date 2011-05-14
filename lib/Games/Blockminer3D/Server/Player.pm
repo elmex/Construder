@@ -4,6 +4,7 @@ use AnyEvent;
 use Games::Blockminer3D::Server::World;
 use Games::Blockminer3D::Vector;
 use base qw/Object::Event/;
+use Scalar::Util qw/weaken/;
 
 =head1 NAME
 
@@ -35,13 +36,100 @@ sub new {
    return $self
 }
 
+sub _check_file {
+   my ($self) = @_;
+   my $pld = $Games::Blockminer3D::Server::Resources::PLAYERDIR;
+   my $file = "$pld/$self->{name}.json";
+   return unless -e "$file";
+
+   if (open my $plf, "<", $file) {
+      binmode $plf, ":raw";
+      my $cont = do { local $/; <$plf> };
+      my $data = eval { JSON->new->relaxed->utf8->decode ($cont) };
+      if ($@) {
+         warn "Couldn't parse player data from file '$file': $!\n";
+         return;
+      }
+
+      return $data
+
+   } else {
+      warn "Couldn't open player file $file: $!\n";
+      return;
+   }
+}
+
+sub _initialize_player {
+   my ($self) = @_;
+   my $data = {
+      name      => $self->{name},
+      health    => 100,
+      bio_e     => 100,
+      happyness => 100,
+      score     => 0,
+   };
+
+   $data
+}
+
+sub load {
+   my ($self) = @_;
+
+   my $data = $self->_check_file;
+   unless (defined $data) {
+      $data = $self->_initialize_player;
+   }
+
+   $self->{data} = $data;
+}
+
+sub save {
+   my ($self) = @_;
+   my $cont = JSON->new->pretty->utf8->encode ($self->{data});
+   my $pld = $Games::Blockminer3D::Server::Resources::PLAYERDIR;
+   my $file = "$pld/$self->{name}.json";
+
+   if (open my $plf, ">", "$file~") {
+      binmode $plf, ":raw";
+      print $plf $cont;
+      close $plf;
+
+      if (-s "$file~" != length ($cont)) {
+         warn "Couldn't write out player file completely to '$file~': $!\n";
+         return;
+      }
+
+      unless (rename "$file~", "$file") {
+         warn "Couldn't rename $file~ to $file: $!\n";
+         return;
+      }
+
+      warn "saved player $self->{name}.\n";
+
+   } else {
+      warn "Couldn't open player file $file~ for writing: $!\n";
+      return;
+   }
+}
+
 sub init {
    my ($self) = @_;
+   $self->load;
+   $self->save;
+   weaken $wself;
    $self->{hud1_tmr} = AE::timer 0, 0.5, sub {
-      $self->update_hud_1;
+      $wself->update_hud_1;
+   };
+   $self->{save_timer} = AE::timer 0, 30, sub {
+      $wself->save;
    };
    $self->send_visible_chunks;
    #$self->teleport ([30, 2, 30]);
+}
+
+sub logout {
+   my ($self) = @_;
+   $self->save;
 }
 
 my $world_c = 0;

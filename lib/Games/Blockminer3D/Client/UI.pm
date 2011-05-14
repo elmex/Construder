@@ -67,6 +67,11 @@ sub new {
    return $self
 }
 
+sub _fnt2font {
+   my $fnt = shift;
+   $fnt eq 'big' ? $BIG_FONT : $fnt eq 'small' ? $SMALL_FONT : $NORM_FONT;
+}
+
 sub _clr2color {
    my ($clr) = @_;
    if ($clr =~ /#(..)(..)(..)(..)?/) {
@@ -83,13 +88,21 @@ sub _calc_extents {
    my ($ext, $relext, $txt_w, $font_h, $base_w, $base_h) = @_;
    my ($pos, $size) = ([$ext->[0], $ext->[1]], [$ext->[2], $ext->[3]]);
 
-   if ($size->[0] eq 'text_width') {
-      $size->[0] = $txt_w;
+   if ($size->[0] =~ /^text_width(?:\s*(\S+):(.*))?$/) {
+      if ($1 ne '') {
+         my $font = _fnt2font ($1);
+         if ($font) {
+            $size->[0] = text_width ($font, $2);
+         } else {
+            $size->[0] = $txt_w;
+         }
+      } else {
+         $size->[0] = $txt_w;
+      }
    }
 
    if ($size->[1] =~ /^font_height(?:\s*(\d+(?:\.\d+)?))?/) {
       $size->[1] = $1 ne '' ? $font_h * $1 : $font_h;
-      warn "FONT HEIGHT $font_h\n";
    } elsif ($size->[1] eq 'w') {
       $size->[1] = $size->[0];
    }
@@ -424,9 +437,10 @@ sub input_key_press : event_cb {
       $cmd = "cancel" unless $self->{sticky};
 
    } elsif (defined $self->{active_entry}) {
+      my $ent = $self->{entries}->[$self->{active_entry}];
  warn "UNICO $name: [$unicode]\n";
       if ($name eq 'backspace' || $name eq 'delete') {
-         chop $self->{entries}->[$self->{active_entry}]->{text};
+         chop $ent->{text};
          $self->update;
          $$rhandled = 1;
          return;
@@ -450,7 +464,12 @@ sub input_key_press : event_cb {
          $cmd = $self->{commands}->{default_keys}->{$name}
 
       } elsif ($unicode ne '') {
-         $self->{entries}->[$self->{active_entry}]->{text} .= $unicode;
+         if (
+            not ($ent->{max_chars} && length ($ent->{text}) >= $ent->{max_chars})
+            && $unicode =~ /^([A-Za-z0-9]+)$/
+         ) {
+            $ent->{text} .= $unicode;
+         }
          $self->update;
          $$rhandled = 1;
          return;
@@ -461,8 +480,9 @@ sub input_key_press : event_cb {
       my $arg;
       if (@{$self->{entries}}) {
          $arg = [map { $_->{text} } @{$self->{entries}}];
+         warn "ARG @$arg\n";
       }
-      $self->{command_cb}->($cmd) if $self->{command_cb};
+      $self->{command_cb}->($cmd, $arg) if $self->{command_cb};
       $$rhandled = $cmd eq 'cancel' ? 2 : 1;
    }
 }
