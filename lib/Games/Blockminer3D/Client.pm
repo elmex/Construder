@@ -179,11 +179,11 @@ sub handle_packet : event_cb {
       $self->send_server ({ cmd => 'transfer_poll' });
 
    } elsif ($hdr->{cmd} eq 'transfer_end') {
-      $self->msgbox ("Transfer done! Waiting for map data...\n");
+      $self->msgbox ("Transfer done! Logging in...\n");
       #print JSON->new->pretty->encode ($self->{front}->{res}->{resource});
       $self->{res}->post_proc;
       $self->{res}->dump_resources;
-      $self->send_server ({ cmd => 'enter' });
+      $self->send_server ({ cmd => 'login' });
 
    } elsif ($hdr->{cmd} eq 'place_player') {
       $self->{front}->set_player_pos ($hdr->{pos});

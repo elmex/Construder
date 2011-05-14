@@ -80,8 +80,12 @@ sub _clr2color {
 }
 
 sub _calc_extents {
-   my ($ext, $relext, $font_h, $base_w, $base_h) = @_;
+   my ($ext, $relext, $txt_w, $font_h, $base_w, $base_h) = @_;
    my ($pos, $size) = ([$ext->[0], $ext->[1]], [$ext->[2], $ext->[3]]);
+
+   if ($size->[0] eq 'text_width') {
+      $size->[0] = $txt_w;
+   }
 
    if ($size->[1] =~ /^font_height(?:\s*(\d+(?:\.\d+)?))?/) {
       $size->[1] = $1 ne '' ? $font_h * $1 : $font_h;
@@ -128,7 +132,6 @@ sub _calc_extents {
    } elsif ($pos->[1] =~ /^bottom_of\s*(\d+)/) {
       my $ext = $relext->[$1];
       $pos->[1] = $ext->[0]->[1] + $ext->[1]->[1] if $ext;
-      warn "BOTTOM OF $pos->[1]\n";
 
    } elsif ($pos->[1] <= 1) {
       $pos->[1] = $base_h * $pos->[1];
@@ -147,14 +150,27 @@ sub render_text {
    my ($self, $text, $wrap, $font, $color) = @_;
 }
 
+sub text_width {
+   my ($fnt, $txt) = @_;
+   my $w = 0;
+   for (split /\n/, $txt) {
+      my ($line_width) = @{ SDL::TTF::size_utf8 ($fnt, $_) };
+      $w = $line_width if $w < $line_width;
+   }
+   $w
+}
+
 sub place_text {
-   my ($self, $ext, $align, $wrap, $text, $font, $color) = @_;
+   my ($self, $ext, $align, $wrap, $text, $font, $color, $bgcolor) = @_;
 
    my $fnt = $font eq 'big' ? $BIG_FONT : $font eq 'small' ? $SMALL_FONT : $NORM_FONT;
    my $line_skip   = SDL::TTF::font_line_skip ($fnt);
    my $font_height = SDL::TTF::font_height ($fnt);
+   my $text_width  = text_width ($fnt, $text);
 
-   my ($pos, $size) = _calc_extents ($ext, $self->{relative_extents}, $font_height, @{$self->{window_size}});
+   my ($pos, $size) =
+      _calc_extents ($ext, $self->{relative_extents}, $text_width,
+                     $font_height, @{$self->{window_size}});
    $self->{relative_extents}->[$self->{element_offset}++] = [$pos, $size];
 
    my $surf = $self->{sdl_surf};
@@ -176,6 +192,15 @@ sub place_text {
          }
          push @lines, $l;
       }
+   }
+
+   if (defined $bgcolor) {
+      my $clr = SDL::Video::map_RGB ($surf->format, _clr2color ($bgcolor));
+      SDL::Video::fill_rect (
+         $surf,
+         SDL::Rect->new (@$pos, @$size),
+         $clr
+      );
    }
 
    my $curp = [@$pos];
@@ -233,7 +258,7 @@ sub update {
    $self->{relative_extents} = [];
 
    ($self->{window_pos}, $self->{window_size}) =
-      _calc_extents ($win->{extents}, $self->{relative_extents}, 0, $self->{W}, $self->{H});
+      _calc_extents ($win->{extents}, $self->{relative_extents}, 0, 0, $self->{W}, $self->{H});
 
    $self->prepare_sdl_surface; # creates a new sdl surface for this window
 
@@ -243,14 +268,26 @@ sub update {
    $self->{prio}       = $win->{prio};
    $self->{models}     = [];
 
+   $self->{entries}    = [];
+
+   my $entry_idx = 0;
    for my $el (@{$gui_desc->{elements}}) {
 
       if ($el->{type} eq 'text') {
-         $self->place_text ($el->{extents}, $el->{align}, $el->{wrap}, $el->{text}, $el->{font}, $el->{color});
+         $self->place_text (
+            $el->{extents}, $el->{align}, $el->{wrap}, $el->{text},
+            $el->{font}, $el->{color}, $el->{bg_color});
          # render text
 
       } elsif ($el->{type} eq 'entry') {
-         $self->place_text ($el->{pos}, $el->{size}, $el->{text}, $el->{font}, $el->{color});
+         my $bgcolor = $self->{bg_color};
+         if ($self->{active_entry} == $entry_idx) {
+            $bgcolor = $el->{hl_color};
+         }
+         $self->place_text (
+            $el->{extents}, $el->{align}, $el->{wrap},
+            $el->{text}, $el->{font}, $el->{color}, $bgcolor);
+         $self->{entries}->[$entry_idx++] = $el;
 
       } elsif ($el->{type} eq 'image') {
          $self->place_gauge (
@@ -260,10 +297,14 @@ sub update {
       } elsif ($el->{type} eq 'model') {
          my ($pos, $size) =
             _calc_extents ($el->{extents}, $self->{relative_extents},
-                           0, @{$self->{window_size}});
+                           0, 0, @{$self->{window_size}});
          $size->[1] = $size->[0];
          push @{$self->{models}}, [$pos, $size, $el->{object_type}];
       }
+   }
+
+   if (not (defined $self->{active_entry}) && @{$self->{entries}}) {
+      $self->{active_entry} = 0;
    }
 
    $self->render_view; # refresh rendering to opengl texture
@@ -381,10 +422,46 @@ sub input_key_press : event_cb {
    my $cmd;
    if ($name eq 'escape') {
       $cmd = "cancel" unless $self->{sticky};
-   } elsif ($self->{commands}) {
-      $cmd = $self->{commands}->{default_keys}->{$name}
+
+   } elsif (defined $self->{active_entry}) {
+ warn "UNICO $name: [$unicode]\n";
+      if ($name eq 'backspace' || $name eq 'delete') {
+         chop $self->{entries}->[$self->{active_entry}]->{text};
+         $self->update;
+         $$rhandled = 1;
+         return;
+
+      } elsif ($name eq 'down') {
+         $self->{active_entry}++;
+         my $max = @{$self->{entries}} - 1;
+         $self->{active_entry} = $max if $self->{active_entry} > $max;
+         $self->update;
+         $$rhandled = 1;
+         return;
+
+      } elsif ($name eq 'up') {
+         $self->{active_entry}--;
+         $self->{active_entry} = 0 if $self->{active_entry} < 0;
+         $self->update;
+         $$rhandled = 1;
+         return;
+
+      } elsif ($self->{commands} && $self->{commands}->{default_keys}->{$name}) {
+         $cmd = $self->{commands}->{default_keys}->{$name}
+
+      } elsif ($unicode ne '') {
+         $self->{entries}->[$self->{active_entry}]->{text} .= $unicode;
+         $self->update;
+         $$rhandled = 1;
+         return;
+      }
    }
+
    if ($cmd ne '') {
+      my $arg;
+      if (@{$self->{entries}}) {
+         $arg = [map { $_->{text} } @{$self->{entries}}];
+      }
       $self->{command_cb}->($cmd) if $self->{command_cb};
       $$rhandled = $cmd eq 'cancel' ? 2 : 1;
    }

@@ -162,6 +162,30 @@ sub client_connected : event_cb {
    my ($self, $cid) = @_;
 }
 
+sub handle_player_packet : event_cb {
+   my ($self, $player, $hdr, $body) = @_;
+
+   if ($hdr->{cmd} eq 'ui_response') {
+      $player->ui_res ($hdr->{ui}, $hdr->{ui_command}, $hdr->{arg});
+
+   } elsif ($hdr->{cmd} eq 'player_pos') {
+      $player->update_pos ($hdr->{pos});
+
+   } elsif ($hdr->{cmd} eq 'pos_action') {
+      if ($hdr->{action} == 1 && @{$hdr->{build_pos} || []}) {
+         $player->start_materialize ($hdr->{build_pos});
+
+      } elsif ($hdr->{action} == 2 && @{$hdr->{build_pos} || []}) {
+         $player->set_debug_light ($hdr->{build_pos});
+
+      } elsif ($hdr->{action} == 3 && @{$hdr->{pos} || []}) {
+         $player->start_dematerialize ($hdr->{pos});
+      }
+
+   }
+
+}
+
 sub handle_packet : event_cb {
    my ($self, $cid, $hdr, $body) = @_;
 
@@ -171,24 +195,69 @@ sub handle_packet : event_cb {
       $self->send_client ($cid,
          { cmd => "hello", version => "Games::Blockminer3D::Server 0.1" });
 
-   } elsif ($hdr->{cmd} eq 'enter') {
-      my $pl = $self->{players}->{$cid}
-         = Games::Blockminer3D::Server::Player->new (cid => $cid);
+   } elsif ($hdr->{cmd} eq 'ui_response' && $hdr->{ui} eq 'login') {
+      $self->send_client ($cid, { cmd => deactivate_ui => ui => "login" });
 
-      $self->{player_guards}->{$cid} = $pl->reg_cb (send_client => sub {
-         my ($pl, $hdr, $body) = @_;
-         $self->send_client ($cid, $hdr, $body);
-      });
+      if ($hdr->{ui_command} eq 'login') {
 
-      $pl->init;
+         my $pl = $self->{players}->{$cid}
+            = Games::Blockminer3D::Server::Player->new (cid => $cid);
 
-   } elsif ($hdr->{cmd} eq 'ui_response') {
-      $self->{players}->{$cid}->ui_res ($hdr->{ui}, $hdr->{ui_command}, $hdr->{arg})
-         if $self->{players}->{$cid};
+         $self->{player_guards}->{$cid} = $pl->reg_cb (send_client => sub {
+            my ($pl, $hdr, $body) = @_;
+            $self->send_client ($cid, $hdr, $body);
+         });
 
-   } elsif ($hdr->{cmd} eq 'player_pos') {
-      $self->{players}->{$cid}->update_pos ($hdr->{pos})
-         if $self->{players}->{$cid};
+         $pl->init;
+
+         $self->send_client ($cid,
+            { cmd => "login" });
+      }
+
+   } elsif ($hdr->{cmd} eq 'login') {
+      $self->send_client ($cid, { cmd => activate_ui => ui => "login", desc => {
+         window => {
+            extents => [center => center => 0.4, 0.5],
+            alpha => 1,
+            color => "#0000ff",
+         },
+         elements => [
+            {
+               type => "text", extents => [0, 0.02, 1, "font_height"],
+               align => "center",
+               font => "normal", color => "#ffffff",
+               text => "Login"
+            },
+            {
+               type => "text", extents => [0.01, "bottom_of 0", "text_width", "font_height"],
+               font => "normal", color => "#ff0000",
+               text => "Player name:",
+               bg_color => "#00ff00",
+            },
+            {
+               type => "entry", extents => ["right_of 1", "bottom_of 0", 0.3, "font_height"],
+               font => "normal", color => "#333300",
+               bg_color => "#ffff55",
+               hl_color => "#33ff00",
+               text => "*"
+            },
+            {
+               type => "entry", extents => ["right_of 1", "bottom_of 2", 0.3, "font_height"],
+               font => "normal", color => "#333300",
+               bg_color => "#ffff55",
+               hl_color => "#33ff00",
+               text => "*"
+            },
+         ],
+         commands => {
+            default_keys => {
+               return => "login",
+            },
+         },
+      } });
+
+   } elsif ($hdr->{cmd} eq 'transfer_poll') { # a bit crude :->
+      $self->push_transfer ($cid);
 
    } elsif ($hdr->{cmd} eq 'list_resources') {
       my $res = $RES->list_resources;
@@ -198,21 +267,11 @@ sub handle_packet : event_cb {
       my $res = $RES->get_resources_by_id (@{$hdr->{ids}});
       $self->transfer_res2client ($cid, $res);
 
-   } elsif ($hdr->{cmd} eq 'pos_action') {
-      if ($hdr->{action} == 1 && @{$hdr->{build_pos} || []}) {
-         $self->{players}->{$cid}->start_materialize ($hdr->{build_pos})
-            if $self->{players}->{$cid};
-      } elsif ($hdr->{action} == 2 && @{$hdr->{build_pos} || []}) {
-         $self->{players}->{$cid}->set_debug_light ($hdr->{build_pos})
-            if $self->{players}->{$cid};
+   } else {
+      my $pl = $self->{players}->{$cid}
+         or return;
 
-      } elsif ($hdr->{action} == 3 && @{$hdr->{pos} || []}) {
-         $self->{players}->{$cid}->start_dematerialize ($hdr->{pos})
-            if $self->{players}->{$cid};
-      }
-
-   } elsif ($hdr->{cmd} eq 'transfer_poll') { # a bit crude :->
-      $self->push_transfer ($cid);
+      $self->handle_player_packet ($pl, $hdr, $body);
    }
 }
 
