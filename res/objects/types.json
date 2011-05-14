@@ -3,6 +3,7 @@
       "type" : 1,
       "texture" : ["cat2.png", 128, 64, 64, 64],
       "lore" : "This is the whirl of materialization",
+      "untransformable" : true
    },
    "Stones" : {
      "type" : 2,
@@ -184,7 +185,8 @@
    "Drone" : {
      "type" : 50,
      "texture" : ["cat2.png", 64, 128, 64, 64],
-     "lore" : "A building Drone. Usually only annoying, due to their bad programming they still teleport everyone who seems to got lost to their home."
+     "lore" : "A building Drone. Usually only annoying, due to their bad programming they still teleport everyone who seems to got lost to their home.",
+      "untransformable" : true
    },
 
    "Proteins" : {
@@ -203,5 +205,6 @@
       # dimensions work by counting the lower plane, then walk up Y
       "model" : [2, [1, 10], [2, 10], [3, 11], [4, 12]],
       "lore" : "Some advanced tech, that pushes you from the floor",
+      "untransformable" : true
    },
 }

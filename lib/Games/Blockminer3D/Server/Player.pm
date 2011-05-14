@@ -116,6 +116,7 @@ sub init {
    my ($self) = @_;
    $self->load;
    $self->save;
+   my $wself = $self;
    weaken $wself;
    $self->{hud1_tmr} = AE::timer 0, 0.5, sub {
       $wself->update_hud_1;
@@ -401,12 +402,16 @@ sub start_dematerialize {
    $tmr = AE::timer 1.5, 0, sub {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
-         warn "DEMATERIALIZE $data->[0]\n";
-         $self->{inventory}->{material}->{$data->[0]}++;
-         $data->[0] = 0;
+         my $obj = $Games::Blockminer3D::Server::RES->get_object_by_type ($data->[0]);
+         my $succ = 0;
+         unless ($obj->{untransformable}) {
+            $self->{data}->{inventory}->{material}->{$data->[0]}++;
+            $data->[0] = 0;
+            $succ = 1;
+         }
          delete $self->{dematerializings}->{$id};
          undef $tmr;
-         return 1;
+         return $succ;
       });
    };
 }
