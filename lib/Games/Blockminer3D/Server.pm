@@ -9,6 +9,7 @@ use Games::Blockminer3D::Protocol;
 use Games::Blockminer3D::Server::Resources;
 use Games::Blockminer3D::Server::Player;
 use Games::Blockminer3D::Server::World;
+use Games::Blockminer3D::Server::ChunkManager;
 
 use base qw/Object::Event/;
 
@@ -29,6 +30,7 @@ Games::Blockminer3D::Server - desc
 =cut
 
 our $RES;
+our $CHNK;
 
 sub new {
    my $this  = shift;
@@ -49,6 +51,8 @@ sub init {
    $RES = Games::Blockminer3D::Server::Resources->new;
    $RES->init_directories;
    $RES->load_objects;
+
+   $CHNK = Games::Blockminer3D::Server::ChunkManager->new;
 
    # active objects verwaltung
    #    - player
@@ -72,6 +76,7 @@ sub init {
       # $action   => remove (-1), add (1), undefined (0/undef)
       # $offsetid => id des objekts
       warn "CHUNK CHANGED (@_)\n";
+      $CHNK->chunk_changed (@_);
       my $chnk = [@_];
       for (values %{$self->{players}}) {
          $_->chunk_updated ($chnk);
@@ -222,7 +227,7 @@ sub handle_packet : event_cb {
          window => {
             extents => [center => center => 0.4, 0.5],
             alpha => 1,
-            color => "#0000ff",
+            color => "#000000",
          },
          elements => [
             {
@@ -232,16 +237,16 @@ sub handle_packet : event_cb {
                text => "Login"
             },
             {
-               type => "text", extents => [0.01, "bottom_of 0", "text_width", "font_height"],
-               font => "normal", color => "#ff0000",
+               type => "text", extents => [0.02, "bottom_of 0", "text_width", "font_height"],
+               font => "normal", color => "#ffffff",
                text => "Player name:",
-               bg_color => "#00ff00",
+               bg_color => "#000000",
             },
             {
                type => "entry", extents => ["right_of 1", "bottom_of 0", "text_width normal:mmmmmmm", "font_height"],
-               font => "normal", color => "#333300",
-               bg_color => "#ffff55",
-               hl_color => "#33ff00",
+               font => "normal", color => "#ffffff",
+               bg_color => "#000000",
+               hl_color => "#333333",
                max_chars => 7,
                text => ""
             },

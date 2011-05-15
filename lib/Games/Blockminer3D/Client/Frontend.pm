@@ -525,7 +525,7 @@ sub setup_event_poller {
       }
    };
 
-   $self->{compile_w} = AE::timer 0, 0.02, sub {
+   $self->{compile_w} = AE::timer 0, 0.04, sub {
       my $cc = $self->{compiled_chunks};
       for ($self->get_visible_chunks) {
          unless ($cc->{$_->[0]}->{$_->[1]}->{$_->[2]}) {
