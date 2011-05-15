@@ -77,6 +77,11 @@ sub start {
 sub msgbox {
    my ($self, $msg, $cb) = @_;
 
+   unless (defined $msg) {
+      $self->{front}->deactivate_ui ('cl_msgbox');
+      return;
+   }
+
    $self->{front}->activate_ui (cl_msgbox => {
       window => {
          extents => [ 'center', 'center', 0.9, 0.1 ],
@@ -167,9 +172,9 @@ sub handle_packet : event_cb {
 
       if (@data_res_ids) {
          $self->send_server ({ cmd => get_resources => ids => \@data_res_ids });
-         $self->msgbox ("Initiated Resource Transfer (".scalar (@data_res_ids).")");
+         $self->msgbox ("Initiated resource transfer (".scalar (@data_res_ids).")");
       } else {
-         $self->msgbox ("No Resources Found!");
+         $self->msgbox ("No resources on server found!");
       }
 
    } elsif ($hdr->{cmd} eq 'resource') {
@@ -179,7 +184,7 @@ sub handle_packet : event_cb {
       $self->send_server ({ cmd => 'transfer_poll' });
 
    } elsif ($hdr->{cmd} eq 'transfer_end') {
-      $self->msgbox ("Transfer done! Logging in...\n");
+      $self->msgbox;
       #print JSON->new->pretty->encode ($self->{front}->{res}->{resource});
       $self->{res}->post_proc;
       $self->{res}->dump_resources;

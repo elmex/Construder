@@ -160,7 +160,7 @@ sub push_transfer {
 sub client_disconnected : event_cb {
    my ($self, $cid) = @_;
    my $pl = delete $self->{players}->{$cid};
-   $pl->logout;
+   $pl->logout if $pl;
    delete $self->{player_guards}->{$cid};
    delete $self->{clients}->{$cid};
    warn "client disconnected: $cid\n";
@@ -225,7 +225,7 @@ sub handle_packet : event_cb {
    } elsif ($hdr->{cmd} eq 'login') {
       $self->send_client ($cid, { cmd => activate_ui => ui => "login", desc => {
          window => {
-            extents => [center => center => 0.4, 0.5],
+            extents => [center => center => 0.4, 0.2],
             alpha => 1,
             color => "#000000",
          },
@@ -243,7 +243,8 @@ sub handle_packet : event_cb {
                bg_color => "#000000",
             },
             {
-               type => "entry", extents => ["right_of 1", "bottom_of 0", "text_width normal:mmmmmmm", "font_height"],
+               type => "entry",
+               extents => ["right_of 1", "bottom_of 0", "text_width normal:mmmmmmm", "font_height"],
                font => "normal", color => "#ffffff",
                bg_color => "#000000",
                hl_color => "#333333",

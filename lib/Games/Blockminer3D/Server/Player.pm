@@ -270,11 +270,14 @@ sub show_inventory {
       my $o = $res->get_object_by_type ($_);
       push @listing, [$o->{name}, $m];
    }
+
+   warn "INVEN\n";
+
    $self->send_client ({ cmd => activate_ui => ui => "player_inventory", desc => {
       window => {
-         extents => [center => center => 0.8, 0.8],
+         extents => [center => center => 0.8, 0.9],
          alpha => 1,
-         color => "#444444",
+         color => "#000000",
          prio => 100,
       },
       elements => [
