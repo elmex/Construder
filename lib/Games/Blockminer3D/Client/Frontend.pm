@@ -499,12 +499,12 @@ sub setup_event_poller {
                color => "#ffff00",
                font => 'small'
             },
-            {
-               type => "model",
-               extents => [0, 0, 1, 1],
-               object_type => 13,
-               animated => 1
-            }
+#            {
+#               type => "model",
+#               extents => [0, 0, 1, 1],
+#               object_type => 13,
+#               animated => 1
+#            }
          ]
       });
       $collide_cnt = $collide_time = 0;
@@ -525,7 +525,7 @@ sub setup_event_poller {
       }
    };
 
-   $self->{compile_w} = AE::timer 0, 0.04, sub {
+   $self->{compile_w} = AE::timer 0, 0.015, sub {
       my $cc = $self->{compiled_chunks};
       for ($self->get_visible_chunks) {
          unless ($cc->{$_->[0]}->{$_->[1]}->{$_->[2]}) {
