@@ -40,7 +40,8 @@ Games::Blockminer3D::Client::Frontend - desc
 
 =cut
 
-my ($WIDTH, $HEIGHT) = (720, 400);#600, 400);
+my ($WIDTH, $HEIGHT) = (800, 600);#600, 400);
+#my ($WIDTH, $HEIGHT) = (1200, 720);#600, 400);
 
 my $PL_HEIGHT = 1;
 my $PL_RAD    = 0.3;
@@ -121,7 +122,7 @@ sub init_app {
    glFogi (GL_FOG_MODE, GL_LINEAR);
    glFogfv_p (GL_FOG_COLOR, 0.5, 0.5, 0.5, 1);
    glFogf (GL_FOG_DENSITY, 0.35);
-   glHint (GL_FOG_HINT, GL_DONT_CARE);
+   glHint (GL_FOG_HINT, GL_FASTEST);
    glFogf (GL_FOG_START, 10);
    glFogf (GL_FOG_END,   29);
 }
@@ -423,6 +424,7 @@ sub render_hud {
    my ($self) = @_;
 
    #glDisable (GL_DEPTH_TEST);
+   glDisable (GL_FOG);
    glClear (GL_DEPTH_BUFFER_BIT);
 
    glMatrixMode (GL_PROJECTION);
@@ -464,6 +466,8 @@ sub render_hud {
    glMatrixMode (GL_PROJECTION);
    glPopMatrix;
 
+   glEnable (GL_FOG);
+
    #glEnable (GL_DEPTH_TEST);
    my $e;
    while (($e = glGetError ()) != GL_NO_ERROR) {
@@ -480,7 +484,7 @@ sub setup_event_poller {
    my $sdle = $self->{sdl_event};
 
    my $fps;
-   my $fps_intv = 1;
+   my $fps_intv = 0.4;
    $self->{fps_w} = AE::timer 0, $fps_intv, sub {
       #printf "%.5f FPS\n", $fps / $fps_intv;
       printf "%.5f secsPcoll\n", $collide_time / $collide_cnt if $collide_cnt;

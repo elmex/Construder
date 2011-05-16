@@ -329,6 +329,7 @@ sub prepare_opengl_texture {
 
    my ($nr) = glGenTextures_p (1);
    $self->{gl_id} = $nr;
+   $self->{gl_texture} = 0;
 }
 
 sub prepare_sdl_surface {
@@ -371,10 +372,18 @@ sub render_view {
    glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
    SDL::Video::lock_surface($surf);
-   glTexImage2D_s (GL_TEXTURE_2D,
-      0, $surf->format->BytesPerPixel, $surf->w, $surf->h,
-      0, $texture_format, GL_UNSIGNED_BYTE, ${$surf->get_pixels_ptr});
+   #if ($self->{gl_texture}) {
+   #   glTexSubImage2D_s (GL_TEXTURE_2D,
+   #      0, 0, 0, $surf->w, $surf->h,
+   #      $texture_format, GL_UNSIGNED_BYTE, ${$surf->get_pixels_ptr});
 
+   #} else {
+      # without SubImage it seems to be faster in nytprof...
+      glTexImage2D_s (GL_TEXTURE_2D,
+         0, $surf->format->BytesPerPixel, $surf->w, $surf->h,
+         0, $texture_format, GL_UNSIGNED_BYTE, ${$surf->get_pixels_ptr});
+    #  $self->{gl_texture} = 1;
+   #}
    SDL::Video::unlock_surface($surf);
 
    $self->{rendered} = 1;

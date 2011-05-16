@@ -193,7 +193,7 @@ sub setup_texture {
 
    my $id = glGenTextures_p(1);
    glBindTexture (GL_TEXTURE_2D, $id);
-   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+   glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
    glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
    gluBuild2DMipmaps_s (GL_TEXTURE_2D,
