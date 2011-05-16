@@ -53,6 +53,7 @@ sub init {
    $RES->load_objects;
 
    $CHNK = Games::Blockminer3D::Server::ChunkManager->new;
+   $CHNK->init;
 
    # active objects verwaltung
    #    - player

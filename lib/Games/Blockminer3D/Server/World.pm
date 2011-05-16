@@ -39,7 +39,7 @@ sub world_init {
 
 sub world_pos2id {
    my ($pos) = @_;
-   join ",", @{vfloor ($pos)};
+   join "x", map { $_ < 0 ? "N" . abs ($_) : $_ } @{vfloor ($pos)};
 }
 
 sub world_pos2chnkpos {

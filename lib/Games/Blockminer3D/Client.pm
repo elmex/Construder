@@ -229,6 +229,8 @@ sub handle_packet : event_cb {
 
 sub disconnected : event_cb {
    my ($self) = @_;
+   delete $self->{srv};
+   $self->msgbox ("Disconnected from server!");
 }
 
 =back

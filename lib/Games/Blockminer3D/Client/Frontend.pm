@@ -351,7 +351,7 @@ sub add_highlight {
 
    $color->[3] = 1 if $fade > 0;
    push @{$self->{box_highlights}},
-      [$pos, $color, { fading => $fade }];
+      [$pos, $color, { fading => $fade, rad => 0.08 + rand (0.005) }];
 }
 
 my $render_cnt;
@@ -401,7 +401,7 @@ sub render_scene {
    }
 
    for (@{$self->{box_highlights}}) {
-      _render_highlight ($_->[0], $_->[1]);
+      _render_highlight ($_->[0], $_->[1], $_->[2]->{rad});
    }
 
    my $qp = $self->{selected_box};

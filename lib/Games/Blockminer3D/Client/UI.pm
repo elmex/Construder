@@ -447,7 +447,7 @@ sub input_key_press : event_cb {
 
    } elsif (defined $self->{active_entry}) {
       my $ent = $self->{entries}->[$self->{active_entry}];
- warn "UNICO $name: [$unicode]\n";
+      warn "UNICO $name: [$unicode]\n";
       if ($name eq 'backspace' || $name eq 'delete') {
          chop $ent->{text};
          $self->update;
@@ -483,6 +483,8 @@ sub input_key_press : event_cb {
          $$rhandled = 1;
          return;
       }
+   } elsif ($self->{commands} && $self->{commands}->{default_keys}->{$name}) {
+      $cmd = $self->{commands}->{default_keys}->{$name}
    }
 
    if ($cmd ne '') {
