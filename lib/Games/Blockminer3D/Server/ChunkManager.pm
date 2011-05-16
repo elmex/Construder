@@ -178,6 +178,7 @@ sub load_sector {
             }
          }
 
+         delete $self->{sector}->{$id}->{dirty}; # saved with the sector
          warn "loaded sector $id from '$file', took "
               . sprintf ("%.3f seconds", time - $t1)
               . ".\n";

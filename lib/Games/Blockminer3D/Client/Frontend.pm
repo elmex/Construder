@@ -545,7 +545,7 @@ sub setup_event_poller {
       }
    };
 
-   $self->{poll_input_w} = AE::timer 0, 0.03, sub {
+   $self->{poll_input_w} = AE::timer 0, 0.019, sub {
       SDL::Events::pump_events();
 
       while (SDL::Events::poll_event($sdle)) {
@@ -668,9 +668,9 @@ sub get_selected_box_pos {
    my ($select_pos);
 
    my $min_dist = 9999;
-   for my $dx (-2..2) {
+   for my $dx (-3..3) {
       for my $dy (-3..2) { # floor and above head?!
-         for my $dz (-2..2) {
+         for my $dz (-3..3) {
             # now skip the player boxes
             my $cur_box = vaddd ($head_box, $dx, $dy, $dz);
             #d# next unless $dx == 0 && $dz == 0 && $cur_box->[1] == $foot_box->[1] - 1;
@@ -766,14 +766,14 @@ sub physics_tick : event_cb {
    #d#warn "DT: $dt => " .vstr( $player->{vel})."\n";
 
    if ((vlength ($player->{vel}) * $dt) > $PL_RAD) {
-      $player->{vel} = vsmul (vnorm ($player->{vel}), 0.28 / $dt);
+      $player->{vel} = vsmul (vnorm ($player->{vel}), ($PL_RAD - 0.02) / $dt);
    }
    viadd ($player->{pos}, vsmul ($player->{vel}, $dt));
 
    my $movement = _calc_movement (
       $self->{movement}->{straight}, $self->{movement}->{strafe},
       $self->{yrotate});
-   $movement = vsmul ($movement, $self->{movement}->{speed} ? 2 : 1);
+   $movement = vsmul ($movement, $self->{movement}->{speed} ? 1.5 : 1);
    viadd ($player->{pos}, vsmul ($movement, $dt));
 
    #d#warn "check player at $player->{pos}\n";
@@ -913,11 +913,11 @@ sub input_key_down : event_cb {
 
    } elsif (grep { $name eq $_ } qw/a s d w/) {
       my ($xdir, $ydir) = (
-         $name eq 'w'        ?  2
-         : ($name eq 's'     ? -2
+         $name eq 'w'        ?  4
+         : ($name eq 's'     ? -4
                              :  0),
-         $name eq 'a'        ? -2.5
-         : ($name eq 'd'     ?  2.5
+         $name eq 'a'        ? -5
+         : ($name eq 'd'     ?  5
                              :  0),
       );
 
