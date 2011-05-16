@@ -9,6 +9,8 @@ our @EXPORT = qw/
    world_init
    world_pos2id
    world_pos2chnkpos
+   world_chnkpos2secpos
+   world_secpos2chnkpos
    world_mutate_at
 /;
 
@@ -28,46 +30,11 @@ Games::Blockminer3D::Server::World - desc
 =cut
 
 our $CHNKSIZE = 12;
+our $CHNKS_P_SEC = 5;
 
 sub world_init {
    Games::Blockminer3D::World::init ($_[0]);
 
-   my $chnk = [0,0,0];
-   Games::Blockminer3D::World::query_setup (
-      $chnk->[0] - 3,
-      $chnk->[1] - 3,
-      $chnk->[2] - 3,
-      $chnk->[0] + 3,
-      $chnk->[1] + 3,
-      $chnk->[2] + 3
-   );
-   Games::Blockminer3D::World::query_load_chunks ();
-
-   my $center = [12 * 3, 12 * 3, 12 * 3];
-
-   my @types = (2..8);
-   for my $x (0..(12 * 6 - 1)) {
-      for my $y (0..(12 * 6 - 1)) {
-         for my $z (0..(12 * 6 - 1)) {
-
-            my $cur = [$x, $y, $z];
-            my $l = vlength (vsub ($cur, $center));
-            if ($x == 36 || $y == 36 || $z == 36 || ($l > 20 && $l < 21)) {
-               my $t = [13, int rand (16)];
-               Games::Blockminer3D::World::query_set_at (
-                  $x, $y, $z, $t
-               );
-            } else {
-               Games::Blockminer3D::World::query_set_at (
-                  $x, $y, $z,
-                  [(rand (1000) > 990 ? 90 : 0),int rand (16)]
-               );
-            }
-         }
-      }
-   }
-
-   Games::Blockminer3D::World::query_desetup ();
 }
 
 sub world_pos2id {
@@ -78,6 +45,19 @@ sub world_pos2id {
 sub world_pos2chnkpos {
    vfloor (vsdiv ($_[0], $CHNKSIZE))
 }
+
+sub world_chnkpos2secpos {
+   my $unadj_sec = vfloor (vsdiv ($_[0], $CHNKS_P_SEC));
+   my $offs = ($unadj_sec->[1] % 3);
+   my $nchnk = vaddd ($_[0], $offs, 0, $offs);
+   vfloor (vsdiv ($nchnk, $CHNKS_P_SEC))
+}
+
+sub world_secpos2chnkpos {
+   my $chnk = vsmul ($_[0], $CHNKS_P_SEC);
+   vsubd ($chnk, $_[0]->[1] % 3, 0, $_[0]->[1] % 3)
+}
+
 
 sub world_mutate_at {
    my ($pos, $cb) = @_;

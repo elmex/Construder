@@ -22,7 +22,7 @@ Games::Blockminer3D::Server::Player - desc
 
 =cut
 
-my $PL_VIS_RAD = 3;
+my $PL_VIS_RAD = 2.6;
 
 sub new {
    my $this  = shift;

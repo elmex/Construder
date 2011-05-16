@@ -177,6 +177,7 @@ sub handle_player_packet : event_cb {
       $player->ui_res ($hdr->{ui}, $hdr->{ui_command}, $hdr->{arg});
 
    } elsif ($hdr->{cmd} eq 'player_pos') {
+      $CHNK->check_adjacent_sectors_at ($hdr->{pos});
       $player->update_pos ($hdr->{pos});
 
    } elsif ($hdr->{cmd} eq 'pos_action') {

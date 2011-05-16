@@ -1,6 +1,7 @@
 package Games::Blockminer3D::Server::ChunkManager;
 use common::sense;
 use Games::Blockminer3D::Server::World;
+use Games::Blockminer3D::Vector;
 use JSON;
 use AnyEvent::Util;
 use Time::HiRes qw/time/;
@@ -21,6 +22,8 @@ Games::Blockminer3D::Server::ChunkManager - desc
 
 =cut
 
+our $CHUNKS_P_SECTOR = 5;
+
 sub new {
    my $this  = shift;
    my $class = ref ($this) || $this;
@@ -28,6 +31,68 @@ sub new {
    bless $self, $class;
 
    return $self
+}
+
+sub check_adjacent_sectors_at {
+   my ($self, $pos) = @_;
+   my $chnk = world_pos2chnkpos ($pos);
+
+   for my $dx (-2, 0, 2) {
+      for my $dy (-2, 0, 2) {
+         for my $dz (-2, 0, 2) {
+            my $sec   = world_chnkpos2secpos (vaddd ($chnk, $dx, $dy, $dz));
+            my $secid = world_pos2id ($sec);
+            unless ($self->{sector}->{$secid}) {
+               warn "LOAD SECTOR $secid\n";
+               $self->load_sector ($sec);
+            }
+         }
+      }
+   }
+
+}
+
+sub load_sector {
+   my ($self, $sec) = @_;
+
+   my $chnk = world_secpos2chnkpos ($sec);
+   Games::Blockminer3D::World::query_setup (
+      $chnk->[0],
+      $chnk->[1],
+      $chnk->[2],
+      $chnk->[0] + ($CHUNKS_P_SECTOR - 1),
+      $chnk->[1] + ($CHUNKS_P_SECTOR - 1),
+      $chnk->[2] + ($CHUNKS_P_SECTOR - 1)
+   );
+   Games::Blockminer3D::World::query_load_chunks ();
+
+   my $center = [12 * 2, 12 * 2, 12 * 2];
+
+   my @types = (2..8);
+   for my $x (0..(12 * 5 - 1)) {
+      for my $y (0..(12 * 5 - 1)) {
+         for my $z (0..(12 * 5 - 1)) {
+
+            my $cur = [$x, $y, $z];
+            my $l = vlength (vsub ($cur, $center));
+            if ($x == 36 || $y == 36 || $z == 36 || ($l > 20 && $l < 21)) {
+               my $t = [13, int rand (16)];
+               Games::Blockminer3D::World::query_set_at (
+                  $x, $y, $z, $t
+               );
+            } else {
+               Games::Blockminer3D::World::query_set_at (
+                  $x, $y, $z,
+                  [(rand (1000) > 990 ? 90 : 0),int rand (16)]
+               );
+            }
+         }
+      }
+   }
+
+   Games::Blockminer3D::World::query_desetup ();
+
+   $self->{sector}->{world_pos2id ($sec)} = 1;
 }
 
 sub chunk_changed {
