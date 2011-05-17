@@ -46,102 +46,6 @@ sub setup {
    glShadeModel (GL_FLAT);
 }
 
-#  0 front  1 top    2 back   3 left   4 right  5 bottom
-my @indices  = (
-   qw/ 0 1 2 3 /, # 0 front
-   qw/ 1 5 6 2 /, # 1 top
-   qw/ 7 6 5 4 /, # 2 back
-   qw/ 4 5 1 0 /, # 3 left
-   qw/ 3 2 6 7 /, # 4 right
-   qw/ 3 7 4 0 /, # 5 bottom
-);
-
-my @vertices = (
-   [ 0,  0,  0 ],
-   [ 0,  1,  0 ],
-   [ 1,  1,  0 ],
-   [ 1,  0,  0 ],
-
-   [ 0,  0,  1 ],
-   [ 0,  1,  1 ],
-   [ 1,  1,  1 ],
-   [ 1,  0,  1 ],
-);
-
-my @light = (
-);
-
-sub _build_geometry {
-   my ($arr, $skipv, $carve) = @_;
-
-   $skipv ||= [0,0,0];
-
-   my (@vertex, @color);
-
-   my $sidelen = @$arr;
-
-   for my $x ($skipv->[0]..($sidelen - 1)) {
-      for my $y ($skipv->[1]..($sidelen - 1)) {
-         for my $z ($skipv->[2]..($sidelen - 1)) {
-            if (my $box = $arr->[$x]->[$y]->[$z]) {
-               my $clr;
-               my $val;
-
-               if (ref $box) {
-                  $val = $box->[3];
-                  $clr = [$box->[0], $box->[1], $box->[2]];
-               } else {
-                  next if $box < $carve;
-                  $clr = [$box, $box, $box];
-                  $val = $box;
-               }
-
-               if ($carve < 0) {
-                  next if $val > abs ($carve);
-               } else {
-                  next if $val < abs ($carve);
-               }
-
-               for my $face (0..5) {
-                  my $fclr = [ map {
-                     my $c = $_;
-                     $c += $light[$face];
-                     $c = 1 if $c > 1;
-                     $c
-                  } @$clr ];
-
-                  for my $vert (0..3) {
-                     my $idx = $indices[$face * 4 + $vert];
-                     push @vertex,
-                        $vertices[$idx]->[0] + $x,
-                        $vertices[$idx]->[1] + $y,
-                        $vertices[$idx]->[2] + $z;
-                     push @color, @$fclr;
-                  }
-               }
-            }
-         }
-      }
-   }
-
-   warn "model has " . scalar (@vertex) . " vertices\n";
-
-   (
-      OpenGL::Array->new_list (GL_FLOAT, @vertex),
-      OpenGL::Array->new_list (GL_FLOAT, @color),
-      [
-         map {
-            (
-               $_ * 4,
-               $_ * 4 + 1,
-               $_ * 4 + 2,
-               $_ * 4 + 3,
-            )
-         } 0..(@vertex / 12 - 1)
-      ]
-   )
-}
-
 our @VERTS;
 our $SIDELEN;
 
@@ -154,28 +58,10 @@ sub set_model {
 sub update_geometry {
    my ($skipv, $carve) = @_;
    warn "Constructing geometry (@$skipv, carving $carve)\n";
- #  my (@vertex, @color);
 
    $carve *= 1;
 
    main::render_model (@{$skipv || [0,0,0]}, $carve);#, \@vertex, \@color);
-
- #  (@VERTS) = (
- #     OpenGL::Array->new_list (GL_FLOAT, @vertex),
- #     OpenGL::Array->new_list (GL_FLOAT, @color),
- #     [
- #        map {
- #           (
- #              $_ * 4,
- #              $_ * 4 + 1,
- #              $_ * 4 + 2,
- #              $_ * 4 + 3,
- #           )
- #        } 0..(@vertex / 12 - 1)
- #     ]
- #  )
-
- #  (@VERTS) = _build_geometry ($MODEL, $skipv, $carve);
 }
 
 our @ROTATION;
@@ -203,31 +89,11 @@ sub render {
 
    main::show_model ();
 
-   #glEnableClientState(GL_VERTEX_ARRAY);
-   #glEnableClientState(GL_COLOR_ARRAY);
-
-   #glVertexPointer_p (3, $VERTS[0]);
-   #glColorPointer_p (3, $VERTS[1]);
-
-   #glDrawElements_p (GL_QUADS, @{$VERTS[2]});
-
-   #glDisableClientState(GL_COLOR_ARRAY);
-   #glDisableClientState(GL_VERTEX_ARRAY);
-
    glPopMatrix;
 }
 
 sub start_loop {
    my $cv = AE::cv;
-
-   #warn "Building model...\n";
-   #for my $x (0..30) {
-   #   for my $y (0..30) {
-   #      for my $z (0..30) {
-   #         $MODEL->[$x]->[$y]->[$z] = rand (100) > 90 ? [0.3, 0, 0] : 0;
-   #      }
-   #   }
-   #}
 
    update_geometry;
    default_translation;
@@ -575,8 +441,8 @@ sub fbm_3d {
 
 
 warn "making 3d noise\n";
-my $cube = 30;
-my $m = fbm_3d ($cube, 5, 0.5, $ARGV[0]);
+my $cube = 50;
+my $m = fbm_3d ($cube, 5, 0.3, $ARGV[0]);
 
 renderer::setup;
 init_c_renderer ();
