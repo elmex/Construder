@@ -332,11 +332,24 @@ sub cell_noise {
    rnd_xor_1 (hash (num (bits2 ($x + 1, $y + 1)) + $seed))
 }
 
-sub cell_noise_3d {
+sub cell_noise_3d_old_old {
    my ($x,$y,$z,$seed) = @_;
    rnd_xor_1 (hash (num (bits3 ($x + 1, $y + 1, $z + 1)) + $seed))
 }
 
+sub cell_noise_3d_old {
+   my ($x,$y,$z,$seed) = @_;
+   rnd_xor_1 (hash (map_coord2int ($x + 1, $y + 1, $z + 1) + $seed))
+}
+
+sub cell_noise_3d {
+   my ($x,$y,$z,$seed,$cache) = @_;
+   my $id = join (',', $x, $y, $z);
+   if ($cache->{$id}) {
+      return $cache->{$id};
+   }
+   $cache->{$id} = rnd_xor_1 (map_coord2int ($x + 1, $y + 1, $z + 1, $seed))
+}
 
 sub lerp {
    my ($a, $b, $x) = @_;
@@ -380,29 +393,31 @@ sub add_noise {
 sub add_noise_3d {
    my ($l, $freq, $ampl, $seed) = @_;
 
+   my $cache = {};
+
    for my $x (0..($l - 1)) {
-      my $xf = $x / $freq;
+      my $xf = int ($x / $freq);
       my $xr = ($x % $freq) / $freq;
 
       for my $y (0..($l - 1)) {
-         my $yf = $y / $freq;
+         my $yf = int ($y / $freq);
          my $yr = ($y % $freq) / $freq;
 
             for my $z (0..($l - 1)) {
-               my $zf = $z / $freq;
+               my $zf = int ($z / $freq);
                my $zr = ($z % $freq) / $freq;
 
-               my $xv_a1 = cell_noise_3d ($xf,     $yf,     $zf, $seed);
-               my $xv_a2 = cell_noise_3d ($xf + 1, $yf,     $zf, $seed);
+               my $xv_a1 = cell_noise_3d ($xf,     $yf,     $zf, $seed, $cache);
+               my $xv_a2 = cell_noise_3d ($xf + 1, $yf,     $zf, $seed, $cache);
 
-               my $xv_b1 = cell_noise_3d ($xf,     $yf + 1, $zf, $seed);
-               my $xv_b2 = cell_noise_3d ($xf + 1, $yf + 1, $zf, $seed);
+               my $xv_b1 = cell_noise_3d ($xf,     $yf + 1, $zf, $seed, $cache);
+               my $xv_b2 = cell_noise_3d ($xf + 1, $yf + 1, $zf, $seed, $cache);
 
-               my $xv_c1 = cell_noise_3d ($xf,     $yf,     $zf + 1, $seed);
-               my $xv_c2 = cell_noise_3d ($xf + 1, $yf,     $zf + 1, $seed);
+               my $xv_c1 = cell_noise_3d ($xf,     $yf,     $zf + 1, $seed, $cache);
+               my $xv_c2 = cell_noise_3d ($xf + 1, $yf,     $zf + 1, $seed, $cache);
 
-               my $xv_d1 = cell_noise_3d ($xf,     $yf + 1, $zf + 1, $seed);
-               my $xv_d2 = cell_noise_3d ($xf + 1, $yf + 1, $zf + 1, $seed);
+               my $xv_d1 = cell_noise_3d ($xf,     $yf + 1, $zf + 1, $seed, $cache);
+               my $xv_d2 = cell_noise_3d ($xf + 1, $yf + 1, $zf + 1, $seed, $cache);
 
                my $xv_a = coserp ($xv_a1, $xv_a2, $xr);
                my $xv_b = coserp ($xv_b1, $xv_b2, $xr);
@@ -436,13 +451,14 @@ sub fbm_3d {
       add_noise_3d ($cubelen, $freq, $amp, $seed);
    }
 
+   warn "amp correct $amp_correction\n";
    div_model ($amp_correction);
 }
 
 
 warn "making 3d noise\n";
-my $cube = 50;
-my $m = fbm_3d ($cube, 5, 0.3, $ARGV[0]);
+my $cube = 70;
+my $m = fbm_3d ($cube, 4, 0.36, $ARGV[0]);
 
 renderer::setup;
 init_c_renderer ();
@@ -524,6 +540,36 @@ GLdouble light[6] = {
    0.1,
    0.06,
 };
+
+unsigned int hash32int (unsigned int i)
+{
+   i = (i << 15) - i - 1;
+   i = i ^ (i >> 12);
+   i = i + (i << 2);
+   i = i ^ (i >> 4);
+   i = i * 2057; // key = (key + (key << 3)) + (key << 11);
+   i = i ^ (i >> 16);
+   return i;
+}
+
+unsigned long map_coord2int (unsigned int x, unsigned int y, unsigned int z, unsigned int seed)
+{
+   unsigned long out = 0;
+   unsigned int i = 0;
+   while (x > 0 || y > 0 || z > 0)
+     {
+        out += (x & 0x1) ? (0x1 << i) : 0;
+        i++;
+        out += (y & 0x1) ? (0x1 << i) : 0;
+        i++;
+        out += (z & 0x1) ? (0x1 << i) : 0;
+        i++;
+        x >>= 1;
+        y >>= 1;
+        z >>= 1;
+     }
+   return hash32int (out + seed);
+}
 
 void show_model ()
 {
