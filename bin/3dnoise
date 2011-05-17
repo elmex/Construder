@@ -19,7 +19,7 @@ our $H = 600;
 
 sub setup {
    $APP = SDLx::App->new (
-      title => "3D fBm Noise",
+      title => "Layered 3D Noise",
       width => $W,
       height => $H,
       gl => 1
@@ -437,7 +437,7 @@ sub add_noise_3d {
    }
 }
 
-sub fbm_3d {
+sub layer_3d_noise {
    my ($cubelen, $octaves, $persistence, $seed) = @_;
 
    alloc_model ($cubelen);
@@ -458,7 +458,7 @@ sub fbm_3d {
 
 warn "making 3d noise\n";
 my $cube = 70;
-my $m = fbm_3d ($cube, 4, 0.36, $ARGV[0]);
+my $m = layer_3d_noise ($cube, 4, 0.36, $ARGV[0]);
 
 renderer::setup;
 init_c_renderer ();
