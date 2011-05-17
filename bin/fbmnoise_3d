@@ -1,0 +1,677 @@
+#!/opt/perl/bin/perl
+package fast;
+
+
+package renderer;
+use common::sense;
+use AnyEvent;
+use SDL;
+use SDLx::App;
+use SDL::Mouse;
+use SDL::Event;
+use OpenGL qw/:all/;
+use OpenGL::List;
+
+our $APP;
+our $SDLE;
+our $W = 800;
+our $H = 600;
+
+sub setup {
+   $APP = SDLx::App->new (
+      title => "3D fBm Noise",
+      width => $W,
+      height => $H,
+      gl => 1
+   );
+   SDL::Events::enable_unicode (1);
+   $SDLE = SDL::Event->new;
+   SDL::Video::GL_set_attribute (SDL::Constants::SDL_GL_SWAP_CONTROL, 1);
+   SDL::Video::GL_set_attribute (SDL::Constants::SDL_GL_DOUBLEBUFFER, 1);
+
+   glDepthFunc(GL_LESS);
+   glEnable (GL_DEPTH_TEST);
+   glDisable (GL_DITHER);
+
+   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   glEnable (GL_BLEND);
+   glEnable (GL_CULL_FACE);
+   glCullFace (GL_BACK);
+
+   glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
+   glDisable (GL_TEXTURE_2D);
+   glDisable (GL_FOG);
+   glClearColor (0,0,0,1);
+   glClearDepth (1.0);
+   glShadeModel (GL_FLAT);
+}
+
+#  0 front  1 top    2 back   3 left   4 right  5 bottom
+my @indices  = (
+   qw/ 0 1 2 3 /, # 0 front
+   qw/ 1 5 6 2 /, # 1 top
+   qw/ 7 6 5 4 /, # 2 back
+   qw/ 4 5 1 0 /, # 3 left
+   qw/ 3 2 6 7 /, # 4 right
+   qw/ 3 7 4 0 /, # 5 bottom
+);
+
+my @vertices = (
+   [ 0,  0,  0 ],
+   [ 0,  1,  0 ],
+   [ 1,  1,  0 ],
+   [ 1,  0,  0 ],
+
+   [ 0,  0,  1 ],
+   [ 0,  1,  1 ],
+   [ 1,  1,  1 ],
+   [ 1,  0,  1 ],
+);
+
+my @light = (
+   0.08,
+   0.15,
+   0.2,
+   0.15,
+   0.1,
+   0.06,
+);
+
+sub _build_geometry {
+   my ($arr, $skipv, $carve) = @_;
+
+   $skipv ||= [0,0,0];
+
+   my (@vertex, @color);
+
+   my $sidelen = @$arr;
+
+   for my $x ($skipv->[0]..($sidelen - 1)) {
+      for my $y ($skipv->[1]..($sidelen - 1)) {
+         for my $z ($skipv->[2]..($sidelen - 1)) {
+            if (my $box = $arr->[$x]->[$y]->[$z]) {
+               my $clr;
+               my $val;
+
+               if (ref $box) {
+                  $val = $box->[3];
+                  $clr = [$box->[0], $box->[1], $box->[2]];
+               } else {
+                  next if $box < $carve;
+                  $clr = [$box, $box, $box];
+                  $val = $box;
+               }
+
+               if ($carve < 0) {
+                  next if $val > abs ($carve);
+               } else {
+                  next if $val < abs ($carve);
+               }
+
+               for my $face (0..5) {
+                  my $fclr = [ map {
+                     my $c = $_;
+                     $c += $light[$face];
+                     $c = 1 if $c > 1;
+                     $c
+                  } @$clr ];
+
+                  for my $vert (0..3) {
+                     my $idx = $indices[$face * 4 + $vert];
+                     push @vertex,
+                        $vertices[$idx]->[0] + $x,
+                        $vertices[$idx]->[1] + $y,
+                        $vertices[$idx]->[2] + $z;
+                     push @color, @$fclr;
+                  }
+               }
+            }
+         }
+      }
+   }
+
+   warn "model has " . scalar (@vertex) . " vertices\n";
+
+   (
+      OpenGL::Array->new_list (GL_FLOAT, @vertex),
+      OpenGL::Array->new_list (GL_FLOAT, @color),
+      [
+         map {
+            (
+               $_ * 4,
+               $_ * 4 + 1,
+               $_ * 4 + 2,
+               $_ * 4 + 3,
+            )
+         } 0..(@vertex / 12 - 1)
+      ]
+   )
+}
+
+our $MODEL;
+our @VERTS;
+
+sub set_model {
+   my $m = shift;
+   $MODEL = $m;
+   update_geometry ();
+   default_translation ();
+}
+
+sub update_geometry {
+   my ($skipv, $carve) = @_;
+   warn "Constructing geometry (@$skipv, carving $carve)\n";
+   (@VERTS) = _build_geometry ($MODEL, $skipv, $carve);
+}
+
+our @ROTATION;
+our @TRANSLAT;
+
+sub default_translation {
+   my $sidelen = scalar @$MODEL;
+   (@TRANSLAT) = (
+      0, 0, -$sidelen * 1.5
+
+      #-($sidelen / 2),
+      #-$sidelen * 2
+   );
+}
+
+sub render {
+   glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+   glMatrixMode(GL_PROJECTION);
+   glLoadIdentity;
+   gluPerspective (60, $W / $H, 0.1, 1000);
+
+   glMatrixMode(GL_MODELVIEW);
+   glLoadIdentity;
+   glPushMatrix;
+
+   my $sidelen = scalar @$MODEL;
+   glTranslatef (@TRANSLAT);
+   glRotatef ($ROTATION[0], 0, 1, 0);
+   glRotatef ($ROTATION[1], 1, 0, 0);
+   glTranslatef (-($sidelen / 2), -($sidelen / 2), -($sidelen / 2));
+
+   glEnableClientState(GL_VERTEX_ARRAY);
+   glEnableClientState(GL_COLOR_ARRAY);
+
+   glVertexPointer_p (3, $VERTS[0]);
+   glColorPointer_p (3, $VERTS[1]);
+
+   glDrawElements_p (GL_QUADS, @{$VERTS[2]});
+
+   glDisableClientState(GL_COLOR_ARRAY);
+   glDisableClientState(GL_VERTEX_ARRAY);
+
+   glPopMatrix;
+}
+
+sub start_loop {
+   my $cv = AE::cv;
+
+   #warn "Building model...\n";
+   #for my $x (0..30) {
+   #   for my $y (0..30) {
+   #      for my $z (0..30) {
+   #         $MODEL->[$x]->[$y]->[$z] = rand (100) > 90 ? [0.3, 0, 0] : 0;
+   #      }
+   #   }
+   #}
+
+   update_geometry;
+   default_translation;
+
+   my $ROT;
+   my $TRANS;
+   my $SKIPL;
+   my $SKIPV;
+   my $CARVE_OFFS;
+   my $keyactions;
+   $keyactions = AE::timer 0, 0.02, sub {
+      if ($ROT) {
+         $ROTATION[0] += $ROT->[0];
+         $ROTATION[1] += $ROT->[1];
+      }
+      if ($TRANS) {
+         $TRANSLAT[0] += $TRANS->[0];
+         $TRANSLAT[1] += $TRANS->[1];
+         $TRANSLAT[2] += $TRANS->[2];
+      }
+   };
+   my $skipanim;
+   $skipanim = AE::timer 0, 0.5, sub {
+      if ($SKIPL) {
+         my $sidelen = scalar @$MODEL;
+         my $change = grep { $_ > 0 } @$SKIPL;
+         for (0..2) {
+            $SKIPV->[$_] += $SKIPL->[$_];
+            if ($SKIPV->[$_] > $sidelen) {
+               $SKIPV->[$_] = 0;
+            }
+         }
+         update_geometry ($SKIPV, $CARVE_OFFS) if $change
+      }
+   };
+   my $evpoll;
+   $evpoll = AE::timer 0, 0.04, sub {
+      SDL::Events::pump_events();
+
+      while (SDL::Events::poll_event($SDLE)) {
+         my $type = $SDLE->type;
+         my $key  = ($type == 2 || $type == 3) ? $SDLE->key_sym : "";
+
+         if ($type == 4) { # mouse motion
+
+         } elsif ($type == 2) { # key down
+            my $name = SDL::Events::get_key_name ($key);
+            ($name eq "q" || $name eq 'escape') and exit;
+
+            if ($name eq 'up') {
+               $ROT->[1] += 1;
+            } elsif ($name eq 'down') {
+               $ROT->[1] -= 1;
+            } elsif ($name eq 'left') {
+               $ROT->[0] += 1;
+            } elsif ($name eq 'right') {
+               $ROT->[0] -= 1;
+            } elsif ($name eq 'backspace') {
+               undef $ROT;
+               @ROTATION = (0,0);
+               default_translation;
+            } elsif ($name eq 'w') {
+               $TRANS->[2] += 1;
+            } elsif ($name eq 's') {
+               $TRANS->[2] -= 1;
+            } elsif ($name eq 'a') {
+               $TRANS->[0] -= 1;
+            } elsif ($name eq 'd') {
+               $TRANS->[0] += 1;
+            } elsif ($name eq 'v') {
+               $SKIPV = [0,0,0];
+               $SKIPL = [0,0,0];
+               update_geometry ($SKIPV);
+            } elsif ($name eq 'y') {
+               $SKIPL->[0] = not $SKIPL->[0];
+            } elsif ($name eq 'x') {
+               $SKIPL->[1] = not $SKIPL->[1];
+            } elsif ($name eq 'c') {
+               $SKIPL->[2] = not $SKIPL->[2];
+            } elsif ($name eq '+') {
+               $CARVE_OFFS += 0.02;
+               update_geometry ($SKIPL, $CARVE_OFFS);
+            } elsif ($name eq '-') {
+               $CARVE_OFFS -= 0.02;
+               update_geometry ($SKIPL, $CARVE_OFFS);
+            }
+
+         } elsif ($type == 3) { # key up
+            my $name = SDL::Events::get_key_name ($key);
+
+            if ($name eq 'w' || $name eq 's') {
+               $TRANS->[2] = 0;
+            } elsif ($name eq 'a' || $name eq 'd') {
+               $TRANS->[0] = 0;
+            } elsif ($name eq 'up' || $name eq 'down') {
+               $ROT->[1] = 0;
+            } elsif ($name eq 'left' || $name eq 'right') {
+               $ROT->[0] = 0;
+            }
+         } elsif ($type == SDL_MOUSEBUTTONUP) {
+
+         } elsif ($type == SDL_MOUSEBUTTONDOWN) {
+
+         } elsif ($type == 12) {
+            warn "Exit event!\n";
+            exit;
+         } else {
+            warn "unknown sdl type: $type\n";
+         }
+      }
+   };
+
+
+   my $tmr;
+   $tmr = AE::timer 0, 0.01, sub {
+      render ();
+      $APP->sync;
+   };
+
+   $cv->recv;
+}
+
+package main;
+use Inline "C";
+use common::sense;
+use GD;
+
+srand (1);
+
+sub hash {
+   my $key = shift;
+   # >> should be unsigned!
+   $key = (($key << 15) & (2**32 - 1)) - $key - 1;
+   $key = $key ^ ($key >> 12) & (2**32 - 1);
+   $key = $key + ($key << 2) & (2**32 - 1);
+   $key = $key ^ ($key >> 4) & (2**32 - 1);
+   $key = $key * 2057; # key = (key + (key << 3)) + (key << 11);
+   $key &= (2**32 - 1);
+   $key = $key ^ ($key >> 16) & (2**32 - 1);
+   return $key;
+}
+
+sub rnd_lcg_1 {
+   my $x = shift;
+   $x * 69069 & 0x7fffffff
+}
+
+sub rnd_xor_1 {
+   my $x = shift;
+   $x ^= ($x << 6) & (2**32 - 1);
+   $x ^= ($x >> 3) & (2**32 - 1);
+   $x ^= ($x << 17) & (2**32 - 1);
+   $x
+}
+
+sub rnd_xor_2 {
+   my $x = shift;
+   $x ^= ($x << 17) & (2**32 - 1);
+   $x ^= ($x >> 15) & (2**32 - 1);
+   $x ^= ($x << 26) & (2**32 - 1);
+   $x
+}
+
+sub rnd_xor_3 {
+   my $x = shift;
+   $x ^= ($x << 13) & (2**32 - 1);
+   $x ^= ($x >> 5)  & (2**32 - 1);
+   $x ^= ($x << 19) & (2**32 - 1);
+   $x
+}
+
+sub rnd_xor_4 {
+   my $x = shift;
+   $x ^= ($x << 13) & (2**64 - 1);
+   $x ^= ($x >> 7)  & (2**64 - 1);
+   $x ^= ($x << 17) & (2**64 - 1);
+   $x
+}
+
+
+sub bits2 {
+   my $num = shift;
+   my $num2 = shift;
+   my $idx = 0;
+   my @a;
+   while ($num > 0 || $num2 > 0) {
+      push @a, ($num & 0x1), ($num2 & 0x1);
+      $num >>= 1;
+      $num2 >>= 1;
+   }
+   @a
+}
+
+sub bits3 {
+   my $num  = shift;
+   my $num2 = shift;
+   my $num3 = shift;
+   my $idx = 0;
+   my @a;
+   while ($num > 0 || $num2 > 0 || $num3 > 0) {
+      push @a, ($num & 0x1), ($num2 & 0x1), ($num3 & 0x1);
+      $num >>= 1;
+      $num2 >>= 1;
+      $num3 >>= 1;
+   }
+   @a
+}
+
+sub bits {
+   my $num = shift;
+   my $idx = 0;
+   my @a;
+   while ($num > 0) {
+      push @a, ($num & 0x1);
+      $num >>= 1;
+   }
+   @a
+}
+
+sub num {
+   my (@b) = @_;
+   my $n;
+   my $i = 0;
+   while (@b) {
+      my $b = shift @b;
+      $n += $b ? (0x1 << $i) : 0;
+      $i++;
+   }
+   $n
+}
+
+sub cell_noise {
+   my ($x,$y,$seed) = @_;
+   rnd_xor_1 (hash (num (bits2 ($x + 1, $y + 1)) + $seed))
+}
+
+sub cell_noise_3d {
+   my ($x,$y,$z,$seed) = @_;
+   rnd_xor_1 (hash (num (bits3 ($x + 1, $y + 1, $z + 1)) + $seed))
+}
+
+
+sub lerp {
+   my ($a, $b, $x) = @_;
+   $a * (1 - $x) + $b * $x
+}
+
+sub coserp {
+   my ($a, $b, $x) = @_;
+   my $ft = $x * 3.1415927;
+   my $f = (1 - cos ($ft)) * 0.5;
+   $a * (1 - $f) + $b * $f
+}
+
+sub add_noise {
+   my ($ar, $w, $h, $freq, $ampl, $seed) = @_;
+
+   for my $x (0..$w) {
+      my $xf = $x / $freq;
+      my $xr = ($x % $freq) / $freq;
+
+      for my $y (0..$h) {
+         my $yf = $y / $freq;
+         my $yr = ($y % $freq) / $freq;
+
+         my $v1 = cell_noise ($xf,     $yf, $seed);
+         my $v2 = cell_noise ($xf + 1, $yf, $seed);
+
+         my $v3 = cell_noise ($xf,     $yf + 1, $seed);
+         my $v4 = cell_noise ($xf + 1, $yf + 1, $seed);
+
+         my $xv1 = coserp ($v1, $v2, $xr);
+         my $xv2 = coserp ($v3, $v4, $xr);
+         my $yv1 = coserp ($xv1, $xv2, $yr);
+         $yv1 /= (2**32 - 1);
+
+         $ar->[$x]->[$y] += $yv1 * $ampl;
+      }
+   }
+}
+
+sub add_noise_3d {
+   my ($ar, $l, $freq, $ampl, $seed) = @_;
+
+   for my $x (0..($l - 1)) {
+      my $xf = $x / $freq;
+      my $xr = ($x % $freq) / $freq;
+
+      for my $y (0..($l - 1)) {
+         my $yf = $y / $freq;
+         my $yr = ($y % $freq) / $freq;
+
+            for my $z (0..($l - 1)) {
+               my $zf = $z / $freq;
+               my $zr = ($z % $freq) / $freq;
+
+               my $xv_a1 = cell_noise_3d ($xf,     $yf,     $zf, $seed);
+               my $xv_a2 = cell_noise_3d ($xf + 1, $yf,     $zf, $seed);
+
+               my $xv_b1 = cell_noise_3d ($xf,     $yf + 1, $zf, $seed);
+               my $xv_b2 = cell_noise_3d ($xf + 1, $yf + 1, $zf, $seed);
+
+               my $xv_c1 = cell_noise_3d ($xf,     $yf,     $zf + 1, $seed);
+               my $xv_c2 = cell_noise_3d ($xf + 1, $yf,     $zf + 1, $seed);
+
+               my $xv_d1 = cell_noise_3d ($xf,     $yf + 1, $zf + 1, $seed);
+               my $xv_d2 = cell_noise_3d ($xf + 1, $yf + 1, $zf + 1, $seed);
+
+               my $xv_a = coserp ($xv_a1, $xv_a2, $xr);
+               my $xv_b = coserp ($xv_b1, $xv_b2, $xr);
+               my $xv_c = coserp ($xv_c1, $xv_c2, $xr);
+               my $xv_d = coserp ($xv_d1, $xv_d2, $xr);
+
+               my $yv_a = coserp ($xv_a, $xv_b, $yr);
+               my $yv_b = coserp ($xv_c, $xv_d, $yr);
+
+               my $zv_a = coserp ($yv_a, $yv_b, $zr);
+
+               $zv_a /= (2**32 - 1);
+
+               $ar->[$x]->[$y]->[$z] += $zv_a * $ampl;
+            }
+      }
+   }
+}
+
+sub fbm_3d {
+   my ($cubelen, $octaves, $persistence, $seed) = @_;
+
+   my $model = [];
+
+   my $amp_correction;
+   for (my $i = 0; $i <= $octaves; $i++) {
+      my $freq = 2 ** ($octaves - $i);
+      my $amp  = $persistence ** $i;
+      $amp_correction += $amp;
+      warn "freq $freq, amp $amp\n";
+      add_noise_3d ($model, $cubelen, $freq, $amp, $seed);
+   }
+
+   for my $x (0..($cubelen - 1)) {
+      for my $y (0..($cubelen - 1)) {
+         for my $z (0..($cubelen - 1)) {
+            $model->[$x]->[$y]->[$z] /= $amp_correction;
+           #d# warn "$model->[$x]->[$y]->[$z]\n";
+         }
+      }
+   }
+
+   $model
+}
+
+
+warn "making 3d noise\n";
+my $m = fbm_3d (30, 3, 0.5);
+
+renderer::setup;
+renderer::set_model ($m);;
+renderer::start_loop;
+
+#my $i = GD::Image->new (506, 404);
+#
+#my @clrs = map { $i->colorAllocate ($_, $_, $_) } 0..255;
+#
+#if ($ARGV[0] eq 'fbm') {
+#   my ($w, $h) = (300, 300);
+#   my $ar = [];
+#   my $p = 0.5;
+#   my $n = 6;
+#   my $amp_compensation;
+#   for (my $i = 0; $i <= $n; $i++) {
+#      my $freq = 2 ** ($n - $i);
+#      my $amp = $p ** $i;
+#      warn sprintf "octave %f p %f\n", $freq, $amp;
+#      $amp_compensation += $amp;
+#      add_noise ($ar, $w, $h, $freq, $amp, $ARGV[1] );
+#   }
+#   warn "amp compensation: $amp_compensation\n";
+#   #add_noise ($ar, $w, $h, 50, 0.5 + 0.03125, $ARGV[1] );
+#   #add_noise ($ar, $w, $h, 25, 0.25  , $ARGV[1] );
+#   #add_noise ($ar, $w, $h, 17, 0.125 , $ARGV[1] );
+#   #add_noise ($ar, $w, $h, 5, 0.0625 , $ARGV[1] );
+#   #add_noise ($ar, $w, $h, 1, 0.03125, $ARGV[1] );
+#   for my $x (0..$w) {
+#      for my $y (0..$h) {
+#         my $clr = $clrs[($ar->[$x]->[$y] / $amp_compensation) * 255];
+#         $i->setPixel ($x, $y, $clr);
+#      }
+#   }
+#
+#} else {
+#
+#   my $rng = $ARGV[0] || "rnd";
+#   my $pow = $ARGV[1] || 32;
+#
+#   my $xo = 0;
+#   for my $seed (10, 11, 12, 400, 1337) {
+#      for my $x (0..99) {
+#         for my $y (0..99) {
+#            my $n = num (bits2 (($x / 10) + 1, ($y / 10) + 1));
+#            $n += $seed;
+#            my $o = &{$rng}($n);
+#            my $c = int ($o * 255 / (2**$pow - 1));
+#
+#            $i->setPixel ($x + $xo * 101, $y, $clrs[$c]);
+#
+#            my $o2 = &{$rng}(hash ($n));
+#            my $c2 = int ($o2 * 255 / (2**$pow - 1));
+#            $i->setPixel ($x + $xo * 101, $y + 101, $clrs[$c2]);
+#
+#            my $o3 = hash ($n);
+#            my $c3 = int ($o3 * 255 / (2**$pow - 1));
+#            $i->setPixel ($x + $xo * 101, $y + 202, $clrs[$c3]);
+#
+#            my $c4 = abs ($c3 - $c2);
+#            $i->setPixel ($x + $xo * 101, $y + 303, $clrs[$c4]);
+#
+#            print "rnd $x,$y (300): $n $o2 $o $c $c2 $c3 : $c4\n";
+#         }
+#      }
+#      $xo++;
+#   }
+#}
+#
+#open my $f, ">", "xorshout.png";
+#binmode $f;
+#print $f $i->png;
+#close $f;
+#system ("cv", "xorshout.png");
+
+__END__
+__C__
+static int sidelen;
+static double *model;
+#define OFFS(x,y,z) ((x) + (y) * sidelen + (z) * (sidelen * sidelen))
+
+void alloc_model (int slen) {
+   if (model)
+      free (model);
+   sidelen = slen;
+   model = malloc (sizeof (double) * sidelen * sidelen * sidelen);
+}
+
+void add_model (int x, int y, int z, double v) {
+   model[OFFS(x,y,z)] += v;
+}
+
+void div_model (int x, int y, int z, double a) {
+   int i = 0;
+   for (i = 0; i <= (OFFS(sidelen - 1,sidelen - 1,sidelen - 1)); i++)
+      model[i] /= a;
+}
+
+void render_model (int skip_x, int skip_y, int skip_z, double carve, AV *vertex, AV *color) {
+
+}
