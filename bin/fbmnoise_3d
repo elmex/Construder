@@ -69,12 +69,6 @@ my @vertices = (
 );
 
 my @light = (
-   0.08,
-   0.15,
-   0.2,
-   0.15,
-   0.1,
-   0.06,
 );
 
 sub _build_geometry {
@@ -148,12 +142,11 @@ sub _build_geometry {
    )
 }
 
-our $MODEL;
 our @VERTS;
+our $SIDELEN;
 
 sub set_model {
-   my $m = shift;
-   $MODEL = $m;
+   $SIDELEN = shift;
    update_geometry ();
    default_translation ();
 }
@@ -161,20 +154,35 @@ sub set_model {
 sub update_geometry {
    my ($skipv, $carve) = @_;
    warn "Constructing geometry (@$skipv, carving $carve)\n";
-   (@VERTS) = _build_geometry ($MODEL, $skipv, $carve);
+ #  my (@vertex, @color);
+
+   $carve *= 1;
+
+   main::render_model (@{$skipv || [0,0,0]}, $carve);#, \@vertex, \@color);
+
+ #  (@VERTS) = (
+ #     OpenGL::Array->new_list (GL_FLOAT, @vertex),
+ #     OpenGL::Array->new_list (GL_FLOAT, @color),
+ #     [
+ #        map {
+ #           (
+ #              $_ * 4,
+ #              $_ * 4 + 1,
+ #              $_ * 4 + 2,
+ #              $_ * 4 + 3,
+ #           )
+ #        } 0..(@vertex / 12 - 1)
+ #     ]
+ #  )
+
+ #  (@VERTS) = _build_geometry ($MODEL, $skipv, $carve);
 }
 
 our @ROTATION;
 our @TRANSLAT;
 
 sub default_translation {
-   my $sidelen = scalar @$MODEL;
-   (@TRANSLAT) = (
-      0, 0, -$sidelen * 1.5
-
-      #-($sidelen / 2),
-      #-$sidelen * 2
-   );
+   (@TRANSLAT) = (0, 0, -$SIDELEN * 1.5);
 }
 
 sub render {
@@ -188,22 +196,23 @@ sub render {
    glLoadIdentity;
    glPushMatrix;
 
-   my $sidelen = scalar @$MODEL;
    glTranslatef (@TRANSLAT);
    glRotatef ($ROTATION[0], 0, 1, 0);
    glRotatef ($ROTATION[1], 1, 0, 0);
-   glTranslatef (-($sidelen / 2), -($sidelen / 2), -($sidelen / 2));
+   glTranslatef (-($SIDELEN / 2), -($SIDELEN / 2), -($SIDELEN / 2));
 
-   glEnableClientState(GL_VERTEX_ARRAY);
-   glEnableClientState(GL_COLOR_ARRAY);
+   main::show_model ();
 
-   glVertexPointer_p (3, $VERTS[0]);
-   glColorPointer_p (3, $VERTS[1]);
+   #glEnableClientState(GL_VERTEX_ARRAY);
+   #glEnableClientState(GL_COLOR_ARRAY);
 
-   glDrawElements_p (GL_QUADS, @{$VERTS[2]});
+   #glVertexPointer_p (3, $VERTS[0]);
+   #glColorPointer_p (3, $VERTS[1]);
 
-   glDisableClientState(GL_COLOR_ARRAY);
-   glDisableClientState(GL_VERTEX_ARRAY);
+   #glDrawElements_p (GL_QUADS, @{$VERTS[2]});
+
+   #glDisableClientState(GL_COLOR_ARRAY);
+   #glDisableClientState(GL_VERTEX_ARRAY);
 
    glPopMatrix;
 }
@@ -243,11 +252,10 @@ sub start_loop {
    my $skipanim;
    $skipanim = AE::timer 0, 0.5, sub {
       if ($SKIPL) {
-         my $sidelen = scalar @$MODEL;
          my $change = grep { $_ > 0 } @$SKIPL;
          for (0..2) {
             $SKIPV->[$_] += $SKIPL->[$_];
-            if ($SKIPV->[$_] > $sidelen) {
+            if ($SKIPV->[$_] > $SIDELEN) {
                $SKIPV->[$_] = 0;
             }
          }
@@ -291,7 +299,7 @@ sub start_loop {
             } elsif ($name eq 'v') {
                $SKIPV = [0,0,0];
                $SKIPL = [0,0,0];
-               update_geometry ($SKIPV);
+               update_geometry ($SKIPV, $CARVE_OFFS);
             } elsif ($name eq 'y') {
                $SKIPL->[0] = not $SKIPL->[0];
             } elsif ($name eq 'x') {
@@ -300,10 +308,10 @@ sub start_loop {
                $SKIPL->[2] = not $SKIPL->[2];
             } elsif ($name eq '+') {
                $CARVE_OFFS += 0.02;
-               update_geometry ($SKIPL, $CARVE_OFFS);
+               update_geometry ($SKIPV, $CARVE_OFFS);
             } elsif ($name eq '-') {
                $CARVE_OFFS -= 0.02;
-               update_geometry ($SKIPL, $CARVE_OFFS);
+               update_geometry ($SKIPV, $CARVE_OFFS);
             }
 
          } elsif ($type == 3) { # key up
@@ -342,7 +350,10 @@ sub start_loop {
 }
 
 package main;
-use Inline "C";
+use Inline C =>
+       Config => LIBS => `sdl-config --libs`
+       => INC => `sdl-config --cflags`;
+use Inline 'C';
 use common::sense;
 use GD;
 
@@ -501,7 +512,7 @@ sub add_noise {
 }
 
 sub add_noise_3d {
-   my ($ar, $l, $freq, $ampl, $seed) = @_;
+   my ($l, $freq, $ampl, $seed) = @_;
 
    for my $x (0..($l - 1)) {
       my $xf = $x / $freq;
@@ -539,7 +550,7 @@ sub add_noise_3d {
 
                $zv_a /= (2**32 - 1);
 
-               $ar->[$x]->[$y]->[$z] += $zv_a * $ampl;
+               add_model ($x, $y, $z, $zv_a * $ampl);
             }
       }
    }
@@ -548,7 +559,7 @@ sub add_noise_3d {
 sub fbm_3d {
    my ($cubelen, $octaves, $persistence, $seed) = @_;
 
-   my $model = [];
+   alloc_model ($cubelen);
 
    my $amp_correction;
    for (my $i = 0; $i <= $octaves; $i++) {
@@ -556,122 +567,202 @@ sub fbm_3d {
       my $amp  = $persistence ** $i;
       $amp_correction += $amp;
       warn "freq $freq, amp $amp\n";
-      add_noise_3d ($model, $cubelen, $freq, $amp, $seed);
+      add_noise_3d ($cubelen, $freq, $amp, $seed);
    }
 
-   for my $x (0..($cubelen - 1)) {
-      for my $y (0..($cubelen - 1)) {
-         for my $z (0..($cubelen - 1)) {
-            $model->[$x]->[$y]->[$z] /= $amp_correction;
-           #d# warn "$model->[$x]->[$y]->[$z]\n";
-         }
-      }
-   }
-
-   $model
+   div_model ($amp_correction);
 }
 
 
 warn "making 3d noise\n";
-my $m = fbm_3d (30, 3, 0.5);
+my $cube = 30;
+my $m = fbm_3d ($cube, 5, 0.5, $ARGV[0]);
 
 renderer::setup;
-renderer::set_model ($m);;
+init_c_renderer ();
+renderer::set_model ($cube);
 renderer::start_loop;
-
-#my $i = GD::Image->new (506, 404);
-#
-#my @clrs = map { $i->colorAllocate ($_, $_, $_) } 0..255;
-#
-#if ($ARGV[0] eq 'fbm') {
-#   my ($w, $h) = (300, 300);
-#   my $ar = [];
-#   my $p = 0.5;
-#   my $n = 6;
-#   my $amp_compensation;
-#   for (my $i = 0; $i <= $n; $i++) {
-#      my $freq = 2 ** ($n - $i);
-#      my $amp = $p ** $i;
-#      warn sprintf "octave %f p %f\n", $freq, $amp;
-#      $amp_compensation += $amp;
-#      add_noise ($ar, $w, $h, $freq, $amp, $ARGV[1] );
-#   }
-#   warn "amp compensation: $amp_compensation\n";
-#   #add_noise ($ar, $w, $h, 50, 0.5 + 0.03125, $ARGV[1] );
-#   #add_noise ($ar, $w, $h, 25, 0.25  , $ARGV[1] );
-#   #add_noise ($ar, $w, $h, 17, 0.125 , $ARGV[1] );
-#   #add_noise ($ar, $w, $h, 5, 0.0625 , $ARGV[1] );
-#   #add_noise ($ar, $w, $h, 1, 0.03125, $ARGV[1] );
-#   for my $x (0..$w) {
-#      for my $y (0..$h) {
-#         my $clr = $clrs[($ar->[$x]->[$y] / $amp_compensation) * 255];
-#         $i->setPixel ($x, $y, $clr);
-#      }
-#   }
-#
-#} else {
-#
-#   my $rng = $ARGV[0] || "rnd";
-#   my $pow = $ARGV[1] || 32;
-#
-#   my $xo = 0;
-#   for my $seed (10, 11, 12, 400, 1337) {
-#      for my $x (0..99) {
-#         for my $y (0..99) {
-#            my $n = num (bits2 (($x / 10) + 1, ($y / 10) + 1));
-#            $n += $seed;
-#            my $o = &{$rng}($n);
-#            my $c = int ($o * 255 / (2**$pow - 1));
-#
-#            $i->setPixel ($x + $xo * 101, $y, $clrs[$c]);
-#
-#            my $o2 = &{$rng}(hash ($n));
-#            my $c2 = int ($o2 * 255 / (2**$pow - 1));
-#            $i->setPixel ($x + $xo * 101, $y + 101, $clrs[$c2]);
-#
-#            my $o3 = hash ($n);
-#            my $c3 = int ($o3 * 255 / (2**$pow - 1));
-#            $i->setPixel ($x + $xo * 101, $y + 202, $clrs[$c3]);
-#
-#            my $c4 = abs ($c3 - $c2);
-#            $i->setPixel ($x + $xo * 101, $y + 303, $clrs[$c4]);
-#
-#            print "rnd $x,$y (300): $n $o2 $o $c $c2 $c3 : $c4\n";
-#         }
-#      }
-#      $xo++;
-#   }
-#}
-#
-#open my $f, ">", "xorshout.png";
-#binmode $f;
-#print $f $i->png;
-#close $f;
-#system ("cv", "xorshout.png");
 
 __END__
 __C__
-static int sidelen;
-static double *model;
+#include <SDL_opengl.h>
+
+static int sidelen = 0;
+static double *model = 0;
+static GLdouble *vertexes = 0;
+static GLdouble *colors   = 0;
+static GLuint  *vertex_idx = 0;
+static int           vertex_idxs = 0;
+static GLuint dl;
+static dl_dirty = 1;
 #define OFFS(x,y,z) ((x) + (y) * sidelen + (z) * (sidelen * sidelen))
+
+void init_c_renderer () {
+   dl = glGenLists (1);
+}
 
 void alloc_model (int slen) {
    if (model)
-      free (model);
+     {
+       free (model);
+       free (vertexes);
+       free (vertex_idx);
+       free (colors);
+     }
    sidelen = slen;
    model = malloc (sizeof (double) * sidelen * sidelen * sidelen);
+   memset (model, 0, sizeof (double) * sidelen * sidelen * sidelen);
+
+   vertexes   = malloc (sizeof (GLdouble) * (sidelen * sidelen * sidelen) * 6 * 4 * 3);
+   vertex_idx = malloc (sizeof (GLuint) * (sidelen * sidelen * sidelen) * 6 * 4);
+   colors     = malloc (sizeof (GLdouble) * (sidelen * sidelen * sidelen) * 6 * 4 * 3);
+   printf ("alloc %d %d\n", (sidelen * sidelen * sidelen) * 6 * 4 * 3, (sidelen * sidelen * sidelen) * 6 * 4);
 }
 
 void add_model (int x, int y, int z, double v) {
    model[OFFS(x,y,z)] += v;
 }
 
-void div_model (int x, int y, int z, double a) {
+void div_model (double a) {
    int i = 0;
    for (i = 0; i <= (OFFS(sidelen - 1,sidelen - 1,sidelen - 1)); i++)
       model[i] /= a;
 }
 
-void render_model (int skip_x, int skip_y, int skip_z, double carve, AV *vertex, AV *color) {
+unsigned int quad_vert_idx[6][4] = {
+  {0, 1, 2, 3},
+  {1, 5, 6, 2},
+  {7, 6, 5, 4},
+  {4, 5, 1, 0},
+  {3, 2, 6, 7},
+  {3, 7, 4, 0},
+};
 
+GLdouble quad_vert[8][3] = {
+  { 0, 0, 0 },
+  { 0, 1, 0 },
+  { 1, 1, 0 },
+  { 1, 0, 0 },
+
+  { 0, 0, 1 },
+  { 0, 1, 1 },
+  { 1, 1, 1 },
+  { 1, 0, 1 },
+};
+
+GLdouble light[6] = {
+   0.08,
+   0.15,
+   0.2,
+   0.15,
+   0.1,
+   0.06,
+};
+
+void show_model ()
+{
+   if (dl_dirty)
+      {
+         glNewList (dl, GL_COMPILE);
+         glEnableClientState(GL_VERTEX_ARRAY);
+         glEnableClientState(GL_COLOR_ARRAY);
+
+         glVertexPointer (3, GL_DOUBLE, 0, vertexes);
+         glColorPointer (3, GL_DOUBLE, 0, colors);
+         glDrawElements (GL_QUADS, vertex_idxs, GL_UNSIGNED_INT, vertex_idx);
+
+         glDisableClientState(GL_COLOR_ARRAY);
+         glDisableClientState(GL_VERTEX_ARRAY);
+         glEndList ();
+         dl_dirty = 0;
+         glCallList (dl);
+      }
+   else
+      {
+         glCallList (dl);
+      }
+
+}
+
+// , AV *vertex, AV *color) {
+
+
+int is_carved (int x, int y, int z, int sx, int sy, int sz, double carve)
+{
+  if (((x - sx) - 1) < 0 || ((y - sy) - 1) < 0 || ((z - sz) - 1) < 0
+      || (x + 1) >= sidelen || (y + 1) >= sidelen || (z + 1) >= sidelen)
+     return 1;
+
+  double *cell = &(model[OFFS(x,y,z)]);
+  if (carve < 0) {
+    if (*cell > (1 - -carve))
+      return 1;
+  } else {
+    if (*cell < carve)
+      return 1;
+  }
+
+  return 0;
+}
+
+void add_face (int f, int x, int y, int z, double color)
+{
+  int h;
+
+  double face_clr = color + light[f];
+  if (face_clr > 1)
+    face_clr = 1;
+
+  for (h = 0; h < 4; h++)
+    {
+      GLdouble *vert = &(quad_vert[quad_vert_idx[f][h]][0]);
+
+      vertexes[vertex_idxs * 3]     = vert[0] + x;
+      vertexes[vertex_idxs * 3 + 1] = vert[1] + y;
+      vertexes[vertex_idxs * 3 + 2] = vert[2] + z;
+
+      colors[vertex_idxs * 3]     = face_clr;
+      colors[vertex_idxs * 3 + 1] = face_clr;
+      colors[vertex_idxs * 3 + 2] = face_clr;
+
+      vertex_idx[vertex_idxs] = vertex_idxs;
+      vertex_idxs++;
+    }
+}
+
+void render_model (int skip_x, int skip_y, int skip_z, double carve) {
+   int x, y, z;
+
+   memset (vertex_idx, 0, sizeof (GLuint) * (sidelen * sidelen * sidelen) * 6 * 4);
+   vertex_idxs = 0;
+
+   dl_dirty = 1;
+
+   for (x = skip_x; x < sidelen; x++)
+      for (y = skip_y; y < sidelen; y++)
+         for (z = skip_z; z < sidelen; z++)
+           {
+              double *cell = &(model[OFFS(x,y,z)]);
+              if (is_carved (x, y, z, skip_x, skip_y, skip_z, carve))
+                continue;
+
+              if (is_carved (x, y, z - 1, skip_x, skip_y, skip_z, carve))
+                add_face (0, x, y, z, *cell);
+
+              if (is_carved (x, y + 1, z, skip_x, skip_y, skip_z, carve))
+                add_face (1, x, y, z, *cell);
+
+              if (is_carved (x, y, z + 1, skip_x, skip_y, skip_z, carve))
+                add_face (2, x, y, z, *cell);
+
+              if (is_carved (x - 1, y, z, skip_x, skip_y, skip_z, carve))
+                add_face (3, x, y, z, *cell);
+
+              if (is_carved (x + 1, y, z, skip_x, skip_y, skip_z, carve))
+                add_face (4, x, y, z, *cell);
+
+              if (is_carved (x, y - 1, z, skip_x, skip_y, skip_z, carve))
+                add_face (5, x, y, z, *cell);
+           }
+   printf ("rendered %d vertexes\n", vertex_idxs);
 }

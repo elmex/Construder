@@ -142,7 +142,7 @@ b3d_render_add_face (unsigned int face, unsigned int type, double light,
       av_push (vertex, newSVnv (((vert[2] + zoffs) * scale) + zsoffs));
     }
 
-  for (h = 0; h < 12; h++)
+  for (h = 0; h < 12; h++) // FIXME: is this really 12??? or just 4 (for each vertex)
     av_push (color, newSVnv (light));
 
   b3d_obj_attr *oa = b3d_world_get_attr (type);
