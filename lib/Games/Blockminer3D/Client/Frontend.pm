@@ -896,8 +896,6 @@ sub input_key_down : event_cb {
    #-135 -180/180  135
    if ($name eq 'space') {
       viaddd ($self->{phys_obj}->{player}->{vel}, 0, 5, 0);
-   } elsif ($name eq 'return') {
-      viaddd ($self->{phys_obj}->{player}->{vel}, 0, -5, 0);
    } elsif ($name eq 'y') {
       viaddd ($self->{phys_obj}->{player}->{pos}, 0, -0.1, 0);
    } elsif ($name eq 'x') {

@@ -1,0 +1,205 @@
+#!/opt/perl/bin/perl
+use common::sense;
+use GD;
+
+sub hash {
+   my $key = shift;
+   # >> should be unsigned!
+   $key = (($key << 15) & (2**32 - 1)) - $key - 1;
+   $key = $key ^ ($key >> 12) & (2**32 - 1);
+   $key = $key + ($key << 2) & (2**32 - 1);
+   $key = $key ^ ($key >> 4) & (2**32 - 1);
+   $key = $key * 2057; # key = (key + (key << 3)) + (key << 11);
+   $key &= (2**32 - 1);
+   $key = $key ^ ($key >> 16) & (2**32 - 1);
+   return $key;
+}
+
+sub rnd_lcg_1 {
+   my $x = shift;
+   $x * 69069 & 0x7fffffff
+}
+
+sub rnd_xor_1 {
+   my $x = shift;
+   $x ^= ($x << 6) & (2**32 - 1);
+   $x ^= ($x >> 3) & (2**32 - 1);
+   $x ^= ($x << 17) & (2**32 - 1);
+   $x
+}
+
+sub rnd_xor_2 {
+   my $x = shift;
+   $x ^= ($x << 17) & (2**32 - 1);
+   $x ^= ($x >> 15) & (2**32 - 1);
+   $x ^= ($x << 26) & (2**32 - 1);
+   $x
+}
+
+sub rnd_xor_3 {
+   my $x = shift;
+   $x ^= ($x << 13) & (2**32 - 1);
+   $x ^= ($x >> 5)  & (2**32 - 1);
+   $x ^= ($x << 19) & (2**32 - 1);
+   $x
+}
+
+sub rnd_xor_4 {
+   my $x = shift;
+   $x ^= ($x << 13) & (2**64 - 1);
+   $x ^= ($x >> 7)  & (2**64 - 1);
+   $x ^= ($x << 17) & (2**64 - 1);
+   $x
+}
+
+
+sub bits2 {
+   my $num = shift;
+   my $num2 = shift;
+   my $idx = 0;
+   my @a;
+   while ($num > 0 || $num2 > 0) {
+      push @a, ($num & 0x1), ($num2 & 0x1);
+      $num >>= 1;
+      $num2 >>= 1;
+   }
+   @a
+}
+
+sub bits {
+   my $num = shift;
+   my $idx = 0;
+   my @a;
+   while ($num > 0) {
+      push @a, ($num & 0x1);
+      $num >>= 1;
+   }
+   @a
+}
+
+
+sub num {
+   my (@b) = @_;
+   my $n;
+   my $i = 0;
+   while (@b) {
+      my $b = shift @b;
+      $n += $b ? (0x1 << $i) : 0;
+      $i++;
+   }
+   $n
+}
+
+sub cell_noise {
+   my ($x,$y,$seed) = @_;
+   rnd_xor_1 (hash (num (bits2 ($x + 1, $y + 1)) + $seed))
+}
+
+sub lerp {
+   my ($a, $b, $x) = @_;
+   $a * (1 - $x) + $b * $x
+}
+
+sub coserp {
+   my ($a, $b, $x) = @_;
+   my $ft = $x * 3.1415927;
+   my $f = (1 - cos ($ft)) * 0.5;
+   $a * (1 - $f) + $b * $f
+}
+
+sub add_noise {
+   my ($ar, $w, $h, $freq, $ampl, $seed) = @_;
+
+   for my $x (0..$w) {
+      my $xf = $x / $freq;
+      my $xr = ($x % $freq) / $freq;
+
+      for my $y (0..$h) {
+         my $yf = $y / $freq;
+         my $yr = ($y % $freq) / $freq;
+
+         my $v1 = cell_noise ($xf,     $yf, $seed);
+         my $v2 = cell_noise ($xf + 1, $yf, $seed);
+
+         my $v3 = cell_noise ($xf,     $yf + 1, $seed);
+         my $v4 = cell_noise ($xf + 1, $yf + 1, $seed);
+
+         my $xv1 = coserp ($v1, $v2, $xr);
+         my $xv2 = coserp ($v3, $v4, $xr);
+         my $yv1 = coserp ($xv1, $xv2, $yr);
+         $yv1 /= (2**32 - 1);
+
+         $ar->[$x]->[$y] += $yv1 * $ampl;
+      }
+   }
+}
+
+my $i = GD::Image->new (506, 404);
+
+my @clrs = map { $i->colorAllocate ($_, $_, $_) } 0..255;
+
+if ($ARGV[0] eq 'fbm') {
+   my ($w, $h) = (300, 300);
+   my $ar = [];
+   my $p = 0.5;
+   my $n = 6;
+   my $amp_compensation;
+   for (my $i = 0; $i <= $n; $i++) {
+      my $freq = 2 ** ($n - $i);
+      my $amp = $p ** $i;
+      warn sprintf "octave %f p %f\n", $freq, $amp;
+      $amp_compensation += $amp;
+      add_noise ($ar, $w, $h, $freq, $amp, $ARGV[1] );
+   }
+   warn "amp compensation: $amp_compensation\n";
+   #add_noise ($ar, $w, $h, 50, 0.5 + 0.03125, $ARGV[1] );
+   #add_noise ($ar, $w, $h, 25, 0.25  , $ARGV[1] );
+   #add_noise ($ar, $w, $h, 17, 0.125 , $ARGV[1] );
+   #add_noise ($ar, $w, $h, 5, 0.0625 , $ARGV[1] );
+   #add_noise ($ar, $w, $h, 1, 0.03125, $ARGV[1] );
+   for my $x (0..$w) {
+      for my $y (0..$h) {
+         my $clr = $clrs[($ar->[$x]->[$y] / $amp_compensation) * 255];
+         $i->setPixel ($x, $y, $clr);
+      }
+   }
+
+} else {
+
+   my $rng = $ARGV[0] || "rnd";
+   my $pow = $ARGV[1] || 32;
+
+   my $xo = 0;
+   for my $seed (10, 11, 12, 400, 1337) {
+      for my $x (0..99) {
+         for my $y (0..99) {
+            my $n = num (bits2 (($x / 10) + 1, ($y / 10) + 1));
+            $n += $seed;
+            my $o = &{$rng}($n);
+            my $c = int ($o * 255 / (2**$pow - 1));
+
+            $i->setPixel ($x + $xo * 101, $y, $clrs[$c]);
+
+            my $o2 = &{$rng}(hash ($n));
+            my $c2 = int ($o2 * 255 / (2**$pow - 1));
+            $i->setPixel ($x + $xo * 101, $y + 101, $clrs[$c2]);
+
+            my $o3 = hash ($n);
+            my $c3 = int ($o3 * 255 / (2**$pow - 1));
+            $i->setPixel ($x + $xo * 101, $y + 202, $clrs[$c3]);
+
+            my $c4 = abs ($c3 - $c2);
+            $i->setPixel ($x + $xo * 101, $y + 303, $clrs[$c4]);
+
+            print "rnd $x,$y (300): $n $o2 $o $c $c2 $c3 : $c4\n";
+         }
+      }
+      $xo++;
+   }
+}
+
+open my $f, ">", "xorshout.png";
+binmode $f;
+print $f $i->png;
+close $f;
+system ("cv", "xorshout.png");
