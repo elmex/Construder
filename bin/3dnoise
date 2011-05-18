@@ -420,7 +420,8 @@ sub layer_3d_noise {
       $amp_correction += $amp;
       warn "freq $freq, amp $amp\n";
       #add_noise_3d ($cubelen, $freq, $amp, $seed);
-      add_noise_3d_n ($cubelen, $n, $freq, $amp, $seed);
+      add_model_sample_layer ($n, $freq, $amp);
+ #     add_noise_3d_n ($cubelen, $n, $freq, $amp, $seed);
    }
 
    free_3d_noise ($n);
@@ -631,6 +632,20 @@ unsigned long sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, u
    samples[1] = cos_interp (samples[2], samples[3], y_rest);
 
    return cos_interp (samples[0], samples[1], z_rest);
+}
+
+void add_model_sample_layer (void *noise, unsigned int freq, double ampl)
+{
+  int x, y, z;
+
+  for (x = 0; x < sidelen; x++)
+    for (y = 0; y < sidelen; y++)
+      for (z = 0; z < sidelen; z++)
+        {
+          unsigned long s = sample_3d_noise_at (noise, x, y, z, freq);
+          double val = (double) s / (double) 0xFFFFFFFF;
+          add_model (x, y, z, val * ampl);
+        }
 }
 
 void free_3d_noise (void *noise)
