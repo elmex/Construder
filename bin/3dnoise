@@ -587,6 +587,27 @@ unsigned long cos_interp (unsigned int a, unsigned int b, double x)
    return a * (1 - ratio) + b * ratio;
 }
 
+unsigned long linerp (unsigned int a, unsigned int b, double x)
+{
+   return a * (1 - x) + b * x;
+}
+
+unsigned long smoothstep(unsigned int a, unsigned int b, double x)
+{
+  x = x * x * (3 - 2 * x);
+  return a * (1 - x) + b * x;
+}
+
+//float smootherstep(float edge0, float edge1, float x)
+//{
+//    // Scale, and clamp x to 0..1 range
+//    x = clamp((x - edge0)/(edge1 - edge0), 0, 1);
+//    // Evaluate polynomial
+//    return x*x*x*(x*(x*6 - 15) + 10);
+//}
+
+
+
 unsigned long sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, unsigned int z, unsigned int scale)
 {
    unsigned long *noise_3d = noise;
@@ -622,6 +643,9 @@ unsigned long sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, u
 
    samples[6] = noise_3d[NOISE_ARR_OFFS(slen,x    , y + 1, z + 1)];
    samples[7] = noise_3d[NOISE_ARR_OFFS(slen,x + 1, y + 1, z + 1)];
+
+#define cos_interp linerp
+#define cos_interp smoothstep
 
    samples[0] = cos_interp (samples[0], samples[1], x_rest);
    samples[1] = cos_interp (samples[2], samples[3], x_rest);
