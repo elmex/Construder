@@ -47,14 +47,25 @@ sub setup {
 our @VERTS;
 our $SIDELEN;
 
-sub set_model {
-   $SIDELEN = shift;
+our @PARAMS;
+our $RECALC;
+
+our ($SKIPV, $CARVE_OFFS);
+
+sub set_recalc_cb {
+   my ($o, $p, $a, $slen, $cb) = @_;
+   (@PARAMS) = ($o, $p, $a, $slen);
+   $RECALC = $cb;
+   recalc ();
+}
+
+sub recalc {
+   $SIDELEN = $RECALC->(@PARAMS);
    update_geometry ();
-   default_translation ();
 }
 
 sub update_geometry {
-   my ($skipv, $carve) = @_;
+   my ($skipv, $carve) = ($SKIPV, $CARVE_OFFS);
    warn "Constructing geometry (@$skipv, carving $carve)\n";
    $carve *= 1;
    main::render_model (@{$skipv || [0,0,0]}, $carve);
@@ -97,8 +108,6 @@ sub start_loop {
    my $ROT;
    my $TRANS;
    my $SKIPL;
-   my $SKIPV;
-   my $CARVE_OFFS;
 
    my $keyactions;
    $keyactions = AE::timer 0, 0.02, sub {
@@ -126,8 +135,7 @@ sub start_loop {
             }
          }
 
-         update_geometry ($SKIPV, $CARVE_OFFS)
-            if $change
+         update_geometry if $change
       }
    };
 
@@ -168,7 +176,7 @@ sub start_loop {
             } elsif ($name eq 'v') {
                $SKIPV = [0,0,0];
                $SKIPL = [0,0,0];
-               update_geometry ($SKIPV, $CARVE_OFFS);
+               update_geometry;
             } elsif ($name eq 'y') {
                $SKIPL->[0] = not $SKIPL->[0];
             } elsif ($name eq 'x') {
@@ -177,10 +185,28 @@ sub start_loop {
                $SKIPL->[2] = not $SKIPL->[2];
             } elsif ($name eq '+') {
                $CARVE_OFFS += 0.02;
-               update_geometry ($SKIPV, $CARVE_OFFS);
+               update_geometry;
             } elsif ($name eq '-') {
                $CARVE_OFFS -= 0.02;
-               update_geometry ($SKIPV, $CARVE_OFFS);
+               update_geometry;
+            } elsif ($name eq 'j') {
+               $PARAMS[0] += 1;
+               recalc ();
+            } elsif ($name eq 'k') {
+               $PARAMS[0] -= 1;
+               recalc ();
+            } elsif ($name eq 'u') {
+               $PARAMS[1] += 0.02;
+               recalc ();
+            } elsif ($name eq 'i') {
+               $PARAMS[1] -= 0.02;
+               recalc ();
+            } elsif ($name eq 'n') {
+               $PARAMS[3] += 1; 
+               recalc ();
+            } elsif ($name eq 'm') {
+               $PARAMS[3] -= 1;
+               recalc ();
             }
 
          } elsif ($type == 3) { # key up
@@ -270,7 +296,7 @@ sub cell_noise_3d {
    if ($cache->{$id}) {
       return $cache->{$id};
    }
-   $cache->{$id} = rnd_xor_1 (map_coord2int ($x + 1, $y + 1, $z + 1, $seed))
+   $cache->{$id} = rnd_xor (map_coord2int ($x + 1, $y + 1, $z + 1, $seed))
 }
 
 sub lerp {
@@ -359,19 +385,45 @@ sub add_noise_3d {
    }
 }
 
+sub add_noise_3d_n {
+   my ($l, $noise, $freq, $ampl, $seed) = @_;
+
+   my $cache = {};
+
+   for my $x (0..($l - 1)) {
+      for my $y (0..($l - 1)) {
+         for my $z (0..($l - 1)) {
+            my $pt = sample_3d_noise_at ($noise, $x, $y, $z, $freq);
+            $pt /= (2**32 - 1);
+            add_model ($x, $y, $z, $pt * $ampl);
+         }
+      }
+   }
+}
+
+
 sub layer_3d_noise {
-   my ($cubelen, $octaves, $persistence, $seed) = @_;
+   my ($cubelen, $octaves, $persistence, $add, $seed) = @_;
+
+   my $n = mk_3d_noise ($cubelen, $seed);
+#   my $x = sample_3d_noise_at ($n, 0, 0, 0, 16);
+#   print "NOISE $x \n";
+#   my $x = sample_3d_noise_at ($n, 16, 0, 0, 16);
+#   print "NOISE $x \n";
 
    alloc_model ($cubelen);
 
    my $amp_correction;
    for (my $i = 0; $i <= $octaves; $i++) {
       my $freq = 2 ** ($octaves - $i);
-      my $amp = $persistence ** $i;
+      my $amp = ($persistence - ($i + 1) * $add) ** $i;
       $amp_correction += $amp;
       warn "freq $freq, amp $amp\n";
-      add_noise_3d ($cubelen, $freq, $amp, $seed);
+      #add_noise_3d ($cubelen, $freq, $amp, $seed);
+      add_noise_3d_n ($cubelen, $n, $freq, $amp, $seed);
    }
+
+   free_3d_noise ($n);
 
    warn "amp correct $amp_correction\n";
    div_model ($amp_correction);
@@ -379,24 +431,30 @@ sub layer_3d_noise {
 
 
 warn "making 3d noise\n";
-my $cube = 85;
-my $m = layer_3d_noise ($cube, 4, 0.36, $ARGV[0]);
+my $cube = $ARGV[1] || 30;
 
 renderer::setup;
 init_c_renderer ();
-renderer::set_model ($cube);
+renderer::set_recalc_cb (1, 0.5, 0.01, $cube, sub {
+   my ($oct, $pers, $add, $cube) = @_;
+   warn "calc noise cube size $cube with oct $oct, pers $pers and add $add...\n";
+   layer_3d_noise ($cube, $oct, $pers, $add, $ARGV[0]);
+   warn "done.\n";
+   $cube
+});
 renderer::start_loop;
 
 __END__
 __C__
 #include <SDL_opengl.h>
+#include <math.h>
 
-static int sidelen = 0;
-static double *model = 0;
-static GLdouble *vertexes = 0;
-static GLdouble *colors   = 0;
-static GLuint  *vertex_idx = 0;
-static int           vertex_idxs = 0;
+static int        sidelen     = 0;
+static double    *model       = 0;
+static GLdouble  *vertexes    = 0;
+static GLdouble  *colors      = 0;
+static GLuint    *vertex_idx  = 0;
+static int        vertex_idxs = 0;
 static GLuint dl;
 static dl_dirty = 1;
 #define OFFS(x,y,z) ((x) + (y) * sidelen + (z) * (sidelen * sidelen))
@@ -422,6 +480,7 @@ void alloc_model (int slen)
   vertexes   = malloc (sizeof (GLdouble) * (sidelen * sidelen * sidelen) * 6 * 4 * 3);
   vertex_idx = malloc (sizeof (GLuint) * (sidelen * sidelen * sidelen) * 6 * 4);
   colors     = malloc (sizeof (GLdouble) * (sidelen * sidelen * sidelen) * 6 * 4 * 3);
+  vertex_idxs = 0;
   //d// printf ("alloc %d %d\n", (sidelen * sidelen * sidelen) * 6 * 4 * 3, (sidelen * sidelen * sidelen) * 6 * 4);
 }
 
@@ -459,6 +518,14 @@ GLdouble quad_vert[8][3] = {
 
 GLdouble light[6] = { 0.08, 0.15, 0.2, 0.15, 0.1, 0.06, };
 
+unsigned int rnd_xor (unsigned int x)
+{
+   x ^= (x << 6);
+   x ^= (x >> 3);
+   x ^= (x << 17);
+   return x;
+}
+
 unsigned int hash32int (unsigned int i)
 {
   i = (i << 15) - i - 1;
@@ -489,8 +556,93 @@ unsigned long map_coord2int (unsigned int x, unsigned int y, unsigned int z, uns
   return hash32int (out + seed);
 }
 
+#define NOISE_ARR_OFFS(slen,x,y,z) (1 + (x) + (y) * slen + (z) * (slen * slen))
+
+void *mk_3d_noise (unsigned int slen, unsigned int seed)
+{
+   int x, y, z;
+
+   slen++; // sample one more at the edge
+
+   unsigned long *noise_arr =
+      malloc (sizeof (unsigned long) * (slen * slen * slen + 1));
+
+   noise_arr[0] = slen;
+
+   for (x = 0; x < slen; x++)
+     for (y = 0; y < slen; y++)
+       for (z = 0; z < slen; z++)
+         {
+            noise_arr[NOISE_ARR_OFFS(slen,x,y,z)] =
+               rnd_xor (map_coord2int (x, y, z, seed));
+         }
+   return noise_arr;
+}
+
+unsigned long cos_interp (unsigned int a, unsigned int b, double x)
+{
+   x *= M_PI;
+   double ratio = (1 - cos (x)) * 0.5;
+   return a * (1 - ratio) + b * ratio;
+}
+
+unsigned long sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, unsigned int z, unsigned int scale)
+{
+   unsigned long *noise_3d = noise;
+
+   // reduces the sampling scale, higher "scale" means less
+   // points from noise are looked at and more interpolation
+
+   double       x_rest = (double) (x % scale) / scale;
+   x /= scale;
+   double       y_rest = (double) (y % scale) / scale;
+   y /= scale;
+   double       z_rest = (double) (z % scale) / scale;
+   z /= scale;
+
+   //d// printf ("red %d %d %d, rest %g %g %g\n", x, y, z, x_rest, y_rest, z_rest);
+
+   unsigned int slen = noise_3d[0];
+
+   if ((z + 1) >= slen
+       || (y + 1) >= slen
+       || (x + 1) >= slen)
+     return 0;
+
+   unsigned int samples[8];
+   samples[0] = noise_3d[NOISE_ARR_OFFS(slen,x    , y,     z)];
+   samples[1] = noise_3d[NOISE_ARR_OFFS(slen,x + 1, y,     z)];
+
+   samples[2] = noise_3d[NOISE_ARR_OFFS(slen,x    , y + 1, z)];
+   samples[3] = noise_3d[NOISE_ARR_OFFS(slen,x + 1, y + 1, z)];
+
+   samples[4] = noise_3d[NOISE_ARR_OFFS(slen,x    , y,     z + 1)];
+   samples[5] = noise_3d[NOISE_ARR_OFFS(slen,x + 1, y,     z + 1)];
+
+   samples[6] = noise_3d[NOISE_ARR_OFFS(slen,x    , y + 1, z + 1)];
+   samples[7] = noise_3d[NOISE_ARR_OFFS(slen,x + 1, y + 1, z + 1)];
+
+   samples[0] = cos_interp (samples[0], samples[1], x_rest);
+   samples[1] = cos_interp (samples[2], samples[3], x_rest);
+   samples[2] = cos_interp (samples[4], samples[5], x_rest);
+   samples[3] = cos_interp (samples[6], samples[7], x_rest);
+
+   samples[0] = cos_interp (samples[0], samples[1], y_rest);
+   samples[1] = cos_interp (samples[2], samples[3], y_rest);
+
+   return cos_interp (samples[0], samples[1], z_rest);
+}
+
+void free_3d_noise (void *noise)
+{
+  free (noise);
+}
+
 void show_model ()
 {
+   if (!vertex_idxs)
+     return;
+
   if (dl_dirty)
      {
        glNewList (dl, GL_COMPILE);
