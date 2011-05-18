@@ -53,8 +53,8 @@ our $RECALC;
 our ($SKIPV, $CARVE_OFFS);
 
 sub set_recalc_cb {
-   my ($o, $p, $a, $slen, $cb) = @_;
-   (@PARAMS) = ($o, $p, $a, $slen);
+   my ($o, $p, $a, $slen, $sd, $cb) = @_;
+   (@PARAMS) = ($o, $p, $a, $slen, $sd);
    $RECALC = $cb;
    recalc ();
 }
@@ -202,10 +202,16 @@ sub start_loop {
                $PARAMS[1] -= 0.02;
                recalc ();
             } elsif ($name eq 'n') {
-               $PARAMS[3] += 1; 
+               $PARAMS[3] += 1;
                recalc ();
             } elsif ($name eq 'm') {
                $PARAMS[3] -= 1;
+               recalc ();
+            } elsif ($name eq 't') {
+               $PARAMS[4] += 1;
+               recalc ();
+            } elsif ($name eq 'g') {
+               $PARAMS[4] -= 1;
                recalc ();
             }
 
@@ -406,22 +412,16 @@ sub layer_3d_noise {
    my ($cubelen, $octaves, $persistence, $add, $seed) = @_;
 
    my $n = mk_3d_noise ($cubelen, $seed);
-#   my $x = sample_3d_noise_at ($n, 0, 0, 0, 16);
-#   print "NOISE $x \n";
-#   my $x = sample_3d_noise_at ($n, 16, 0, 0, 16);
-#   print "NOISE $x \n";
 
    alloc_model ($cubelen);
 
    my $amp_correction;
    for (my $i = 0; $i <= $octaves; $i++) {
       my $freq = 2 ** ($octaves - $i);
-      my $amp = ($persistence - ($i + 1) * $add) ** $i;
+      my $amp = $persistence ** $i;
       $amp_correction += $amp;
       warn "freq $freq, amp $amp\n";
-      #add_noise_3d ($cubelen, $freq, $amp, $seed);
       add_model_sample_layer ($n, $freq, $amp);
- #     add_noise_3d_n ($cubelen, $n, $freq, $amp, $seed);
    }
 
    free_3d_noise ($n);
@@ -436,10 +436,10 @@ my $cube = $ARGV[1] || 30;
 
 renderer::setup;
 init_c_renderer ();
-renderer::set_recalc_cb (1, 0.5, 0.01, $cube, sub {
-   my ($oct, $pers, $add, $cube) = @_;
-   warn "calc noise cube size $cube with oct $oct, pers $pers and add $add...\n";
-   layer_3d_noise ($cube, $oct, $pers, $add, $ARGV[0]);
+renderer::set_recalc_cb (1, 0.5, 0.03, $cube, $ARGV[0], sub {
+   my ($oct, $pers, $add, $cube, $seed) = @_;
+   warn "calc noise cube size $cube with oct $oct, pers $pers and add $add and seed $seed...\n";
+   layer_3d_noise ($cube, $oct, $pers, $add, $seed);
    warn "done.\n";
    $cube
 });
@@ -557,7 +557,7 @@ unsigned long map_coord2int (unsigned int x, unsigned int y, unsigned int z, uns
       y >>= 1;
       z >>= 1;
     }
-  return hash32int (out + seed);
+  return hash32int (hash32int (out) + seed);
 }
 
 #define NOISE_ARR_OFFS(slen,x,y,z) (1 + (x) + (y) * slen + (z) * (slen * slen))
