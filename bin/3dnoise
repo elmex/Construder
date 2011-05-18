@@ -53,8 +53,8 @@ our $RECALC;
 our ($SKIPV, $CARVE_OFFS);
 
 sub set_recalc_cb {
-   my ($o, $p, $a, $slen, $sd, $cb) = @_;
-   (@PARAMS) = ($o, $p, $a, $slen, $sd);
+   my ($o, $lac, $p,  $a, $slen, $sd, $cb) = @_;
+   (@PARAMS) = ($o, $lac, $p, $a, $slen, $sd);
    $RECALC = $cb;
    recalc ();
 }
@@ -189,6 +189,13 @@ sub start_loop {
             } elsif ($name eq '-') {
                $CARVE_OFFS -= 0.02;
                update_geometry;
+            } elsif ($name eq '#') {
+               if ($CARVE_OFFS < 0) {
+                  $CARVE_OFFS = (1 + $CARVE_OFFS);
+               } else {
+                  $CARVE_OFFS = -1 * (1 - $CARVE_OFFS);
+               }
+               update_geometry;
             } elsif ($name eq 'j') {
                $PARAMS[0] += 1;
                recalc ();
@@ -196,22 +203,28 @@ sub start_loop {
                $PARAMS[0] -= 1;
                recalc ();
             } elsif ($name eq 'u') {
-               $PARAMS[1] += 0.02;
+               $PARAMS[2] += 0.02;
                recalc ();
             } elsif ($name eq 'i') {
-               $PARAMS[1] -= 0.02;
+               $PARAMS[2] -= 0.02;
                recalc ();
             } elsif ($name eq 'n') {
-               $PARAMS[3] += 1;
-               recalc ();
-            } elsif ($name eq 'm') {
-               $PARAMS[3] -= 1;
-               recalc ();
-            } elsif ($name eq 't') {
                $PARAMS[4] += 1;
                recalc ();
-            } elsif ($name eq 'g') {
+            } elsif ($name eq 'm') {
                $PARAMS[4] -= 1;
+               recalc ();
+            } elsif ($name eq 't') {
+               $PARAMS[5] += 1;
+               recalc ();
+            } elsif ($name eq 'g') {
+               $PARAMS[5] -= 1;
+               recalc ();
+            } elsif ($name eq 'o') {
+               $PARAMS[1] += 0.05;
+               recalc ();
+            } elsif ($name eq 'p') {
+               $PARAMS[1] -= 0.05;
                recalc ();
             }
 
@@ -409,7 +422,7 @@ sub add_noise_3d_n {
 
 
 sub layer_3d_noise {
-   my ($cubelen, $octaves, $persistence, $add, $seed) = @_;
+   my ($cubelen, $octaves, $lac, $persistence, $add, $seed) = @_;
 
    my $n = mk_3d_noise ($cubelen, $seed);
 
@@ -417,7 +430,7 @@ sub layer_3d_noise {
 
    my $amp_correction;
    for (my $i = 0; $i <= $octaves; $i++) {
-      my $freq = 2 ** ($octaves - $i);
+      my $freq = ($lac) ** ($octaves - $i);
       my $amp = $persistence ** $i;
       $amp_correction += $amp;
       warn "freq $freq, amp $amp\n";
@@ -436,10 +449,13 @@ my $cube = $ARGV[1] || 30;
 
 renderer::setup;
 init_c_renderer ();
-renderer::set_recalc_cb (1, 0.5, 0.03, $cube, $ARGV[0], sub {
-   my ($oct, $pers, $add, $cube, $seed) = @_;
-   warn "calc noise cube size $cube with oct $oct, pers $pers and add $add and seed $seed...\n";
-   layer_3d_noise ($cube, $oct, $pers, $add, $seed);
+renderer::set_recalc_cb (1, 2.0, 0.5, 0.03, $cube, $ARGV[0], sub {
+   my ($oct, $lac, $pers, $add, $cube, $seed) = @_;
+   if (int ($lac) <= 0) {
+      $lac = 1;
+   }
+   warn "calc noise cube size $cube with oct $oct, lac $lac, pers $pers and add $add and seed $seed...\n";
+   layer_3d_noise ($cube, $oct, $lac, $pers, $add, $seed);
    warn "done.\n";
    $cube
 });
@@ -501,12 +517,12 @@ void div_model (double a)
 }
 
 unsigned int quad_vert_idx[6][4] = {
-  {0, 1, 2, 3},
-  {1, 5, 6, 2},
-  {7, 6, 5, 4},
-  {4, 5, 1, 0},
-  {3, 2, 6, 7},
-  {3, 7, 4, 0},
+  {0, 1, 2, 3}, // front
+  {1, 5, 6, 2}, // top
+  {7, 6, 5, 4}, // back
+  {4, 5, 1, 0}, // left
+  {3, 2, 6, 7}, // right
+  {3, 7, 4, 0}, // bottom
 };
 
 GLdouble quad_vert[8][3] = {
@@ -520,7 +536,7 @@ GLdouble quad_vert[8][3] = {
   { 1, 0, 1 },
 };
 
-GLdouble light[6] = { 0.08, 0.15, 0.2, 0.15, 0.1, 0.06, };
+GLdouble light[6] = { 0.0, 0.2, 0.25, 0.2, 0.1, 0.1, };
 
 unsigned int rnd_xor (unsigned int x)
 {
