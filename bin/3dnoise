@@ -460,6 +460,9 @@ static GLuint dl;
 static dl_dirty = 1;
 #define OFFS(x,y,z) ((x) + (y) * sidelen + (z) * (sidelen * sidelen))
 
+#define INTSCALE  (128ul)
+#define INTSCALE3 (INTSCALE * INTSCALE * INTSCALE)
+
 void init_c_renderer ()
 {
   dl = glGenLists (1);
@@ -598,15 +601,24 @@ unsigned long smoothstep(unsigned int a, unsigned int b, double x)
   return a * (1 - x) + b * x;
 }
 
-//float smootherstep(float edge0, float edge1, float x)
-//{
-//    // Scale, and clamp x to 0..1 range
-//    x = clamp((x - edge0)/(edge1 - edge0), 0, 1);
-//    // Evaluate polynomial
-//    return x*x*x*(x*(x*6 - 15) + 10);
-//}
+unsigned int linerp_int (unsigned int a, unsigned int b, unsigned int x)
+{
+   unsigned long i =
+        ((unsigned long) a * (INTSCALE - x)) + ((unsigned long) b * x);
+   i /= INTSCALE;
+   return i;
+}
 
-
+unsigned int smoothstep_int (unsigned int a, unsigned int b, unsigned int x)
+{
+   unsigned long xs = x;
+   xs = xs * xs * ((3 * INTSCALE) - 2 * xs);
+   unsigned long i =
+          ((unsigned long) a * (INTSCALE3 - xs))
+        + ((unsigned long) b * xs);
+   i /= INTSCALE3;
+   return i;
+}
 
 unsigned long sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, unsigned int z, unsigned int scale)
 {
@@ -615,15 +627,14 @@ unsigned long sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, u
    // reduces the sampling scale, higher "scale" means less
    // points from noise are looked at and more interpolation
 
-   double       x_rest = (double) (x % scale) / scale;
+   unsigned int x_rest = (INTSCALE * (x % scale)) / scale;
    x /= scale;
-   double       y_rest = (double) (y % scale) / scale;
+   unsigned int y_rest = (INTSCALE * (y % scale)) / scale;
    y /= scale;
-   double       z_rest = (double) (z % scale) / scale;
+   unsigned int z_rest = (INTSCALE * (z % scale)) / scale;
    z /= scale;
 
-   //d// printf ("red %d %d %d, rest %g %g %g\n", x, y, z, x_rest, y_rest, z_rest);
-
+   //d// printf ("red %d %d %d, rest %ud %ud %ud %ud\n", x, y, z, scale, x_rest, y_rest, z_rest);
    unsigned int slen = noise_3d[0];
 
    if ((z + 1) >= slen
@@ -646,6 +657,8 @@ unsigned long sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, u
 
 #define cos_interp linerp
 #define cos_interp smoothstep
+#define cos_interp linerp_int
+#define cos_interp smoothstep_int
 
    samples[0] = cos_interp (samples[0], samples[1], x_rest);
    samples[1] = cos_interp (samples[2], samples[3], x_rest);
@@ -668,6 +681,7 @@ void add_model_sample_layer (void *noise, unsigned int freq, double ampl)
         {
           unsigned long s = sample_3d_noise_at (noise, x, y, z, freq);
           double val = (double) s / (double) 0xFFFFFFFF;
+          // printf ("SAMPLE AT %d %d %d: %ud => %g\n", x, y, z, s, val);
           add_model (x, y, z, val * ampl);
         }
 }
