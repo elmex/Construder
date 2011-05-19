@@ -49,8 +49,13 @@ our $SIDELEN;
 
 our @PARAMS;
 our $RECALC;
+our $SAVE_CB;
 
 our ($SKIPV, $CARVE_OFFS);
+
+sub set_save_cb {
+   $SAVE_CB = shift;
+}
 
 sub set_recalc_cb {
    my ($o, $lac, $p,  $a, $slen, $sd, $cb) = @_;
@@ -124,13 +129,13 @@ sub start_loop {
    };
 
    my $skipanim;
-   $skipanim = AE::timer 0, 0.5, sub {
+   $skipanim = AE::timer 0, 0.25, sub {
       if ($SKIPL) {
          my $change = grep { $_ > 0 } @$SKIPL;
 
          for (0..2) {
             $SKIPV->[$_] += $SKIPL->[$_];
-            if ($SKIPV->[$_] > $SIDELEN) {
+            if ($SKIPV->[$_] >= $SIDELEN) {
                $SKIPV->[$_] = 0;
             }
          }
@@ -226,6 +231,8 @@ sub start_loop {
             } elsif ($name eq 'p') {
                $PARAMS[1] -= 0.05;
                recalc ();
+            } elsif ($name eq 'e') {
+               $SAVE_CB->($SIDELEN);
             }
 
          } elsif ($type == 3) { # key up
@@ -294,14 +301,63 @@ sub layer_3d_noise {
    div_model ($amp_correction);
 }
 
+sub save_model {
+   my $slen = shift;
+   my $file = "3dnoise.out";
+   open my $f, ">", $file
+      or die "Couldn't save to $file: $!\n";
+   my $str = "$slen\n";
+   for (my $x = 0; $x < $slen; $x++) {
+      for (my $y = 0; $y < $slen; $y++) {
+         for (my $z = 0; $z < $slen; $z++) {
+            $str .= sprintf "%.20f ", get_model ($x, $y, $z);
+         }
+         $str .= "\n";
+      }
+      $str .= "\n\n";
+   }
+   print $f $str;
+   close $f;
+   warn "wrote output to $file\n";
+}
+sub load_model {
+   my ($data) = @_;
+   my ($slen, @nums) = split /\s+/, $data;
+   alloc_model ($slen);
+   for (my $x = 0; $x < $slen; $x++) {
+      for (my $y = 0; $y < $slen; $y++) {
+         for (my $z = 0; $z < $slen; $z++) {
+            add_model ($x, $y, $z, shift @nums);
+         }
+      }
+   }
+   return $slen;
+}
 
 warn "making 3d noise\n";
 my $cube = $ARGV[1] || 30;
 
 renderer::setup;
 init_c_renderer ();
+renderer::set_save_cb (sub { save_model (@_); });
+
+my $MODEL_DATA;
+my $MODEL_DATA_SLEN;
+
+if ($ARGV[0] eq '-') {
+   my $in = do { local $/; <STDIN> };
+   $MODEL_DATA_SLEN = load_model ($in);
+   $MODEL_DATA = $in;
+   warn "loaded model from stdin.\n";
+}
+
 renderer::set_recalc_cb (1, 2.0, 0.5, 0.03, $cube, $ARGV[0], sub {
    my ($oct, $lac, $pers, $add, $cube, $seed) = @_;
+   if ($MODEL_DATA) {
+      warn "showing model.\n";
+      return $MODEL_DATA_SLEN;
+   }
+
    if (int ($lac) <= 0) {
       $lac = 1;
    }
@@ -360,6 +416,11 @@ void add_model (int x, int y, int z, double v)
   model[OFFS(x,y,z)] += v;
 }
 
+double get_model (int x, int y, int z)
+{
+   return model[OFFS(x,y,z)];
+}
+
 void div_model (double a)
 {
   int i = 0;
@@ -387,7 +448,7 @@ GLdouble quad_vert[8][3] = {
   { 1, 0, 1 },
 };
 
-GLdouble light[6] = { 0.0, 0.2, 0.25, 0.2, 0.1, 0.1, };
+GLdouble light[6] = { 0.0, 0.15, 0.25, 0.2, 0.1, 0.05, };
 
 unsigned int rnd_xor (unsigned int x)
 {
