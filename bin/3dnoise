@@ -273,38 +273,38 @@ sub start_loop {
 package main;
 use Inline C =>
        Config
-          => LIBS => `sdl-config --libs`
+          => LIBS => "-lm " . `sdl-config --libs`
           => INC => `sdl-config --cflags`;
 use Inline 'C';
 use common::sense;
 use GD;
 
-sub layer_3d_noise {
-   my ($cubelen, $octaves, $lac, $persistence, $add, $seed) = @_;
-
-   my $n = mk_3d_noise ($cubelen, $seed);
-
-   alloc_model ($cubelen);
-
-   my $amp_correction;
-   for (my $i = 0; $i <= $octaves; $i++) {
-      my $freq = ($lac) ** ($octaves - $i);
-      my $amp = $persistence ** $i;
-      $amp_correction += $amp;
-      warn "freq $freq, amp $amp\n";
-     add_model_sample_layer ($n, $freq, $amp);
-   }
-
-   #carve_model_menger_sponge_box (0, 0, 0, $cubelen, $cubelen, 3);
-#carve_model_cantor_dust_box (0, 0, 0, $cubelen, $cubelen, 3);
-#yydraw_model_menger_sponge_box (0, 0, 0, $cubelen, $cubelen, 3);
-draw_model_cantor_dust_box (0, 0, 0, $cubelen, $cubelen, 3);
-
-   free_3d_noise ($n);
-
-   warn "amp correct $amp_correction\n";
-   div_model ($amp_correction);
-}
+#sub layer_3d_noise {
+#   my ($cubelen, $octaves, $lac, $persistence, $add, $seed) = @_;
+#
+#   my $n = mk_3d_noise ($cubelen, $seed);
+#
+#   alloc_model ($cubelen);
+#
+#   my $amp_correction;
+#   for (my $i = 0; $i <= $octaves; $i++) {
+#      my $freq = ($lac) ** ($octaves - $i);
+#      my $amp = $persistence ** $i;
+#      $amp_correction += $amp;
+#      warn "freq $freq, amp $amp\n";
+#     add_model_sample_layer ($n, $freq, $amp);
+#   }
+#
+#   #carve_model_menger_sponge_box (0, 0, 0, $cubelen, $cubelen, 3);
+##carve_model_cantor_dust_box (0, 0, 0, $cubelen, $cubelen, 3);
+##yydraw_model_menger_sponge_box (0, 0, 0, $cubelen, $cubelen, 3);
+#draw_model_cantor_dust_box (0, 0, 0, $cubelen, $cubelen, 3);
+#
+#   free_3d_noise ($n);
+#
+#   warn "amp correct $amp_correction\n";
+#   div_model ($amp_correction);
+#}
 
 sub save_model {
    my $slen = shift;
@@ -342,6 +342,7 @@ sub load_model {
 warn "making 3d noise\n";
 my $cube = $ARGV[1] || 30;
 
+v_vol_draw_init ();
 renderer::setup;
 init_c_renderer ();
 renderer::set_save_cb (sub { save_model (@_); });
@@ -363,14 +364,25 @@ renderer::set_recalc_cb (1, 2.0, 0.5, 0.03, $cube, $ARGV[0], sub {
       return $MODEL_DATA_SLEN;
    }
 
-   if (int ($lac) <= 0) {
-      $lac = 1;
-   }
-   warn "calc noise cube size $cube with oct $oct, lac $lac, pers $pers and add $add and seed $seed...\n";
-   layer_3d_noise ($cube, $oct, $lac, $pers, $add, $seed);
-   warn "done.\n";
+   alloc_model ($cube);
+
+   v_vol_draw_alloc ($cube);
+
+   v_vol_draw_set_op (1);
+
+   v_vol_fill_simple_noise_octaves ($seed, $oct, $lac, $pers);
+
+   fill_model_draw_dst ();
+
+   #if (int ($lac) <= 0) {
+   #   $lac = 1;
+   #}
+   #warn "calc noise cube size $cube with oct $oct, lac $lac, pers $pers and add $add and seed $seed...\n";
+   #layer_3d_noise ($cube, $oct, $lac, $pers, $add, $seed);
+   #warn "done.\n";
    $cube
 });
+
 renderer::start_loop;
 
 __END__
@@ -388,8 +400,7 @@ static GLuint dl;
 static dl_dirty = 1;
 #define OFFS(x,y,z) ((x) + (y) * sidelen + (z) * (sidelen * sidelen))
 
-#define INTSCALE  (128ul)
-#define INTSCALE3 (INTSCALE * INTSCALE * INTSCALE)
+#include "volume_draw.c"
 
 void init_c_renderer ()
 {
@@ -416,21 +427,9 @@ void alloc_model (int slen)
   //d// printf ("alloc %d %d\n", (sidelen * sidelen * sidelen) * 6 * 4 * 3, (sidelen * sidelen * sidelen) * 6 * 4);
 }
 
-void add_model (int x, int y, int z, double v)
-{
-  model[OFFS(x,y,z)] += v;
-}
-
 double get_model (int x, int y, int z)
 {
    return model[OFFS(x,y,z)];
-}
-
-void div_model (double a)
-{
-  int i = 0;
-  for (i = 0; i <= (OFFS(sidelen - 1,sidelen - 1,sidelen - 1)); i++)
-    model[i] /= a;
 }
 
 unsigned int quad_vert_idx[6][4] = {
@@ -454,246 +453,6 @@ GLdouble quad_vert[8][3] = {
 };
 
 GLdouble light[6] = { 0.0, 0.15, 0.25, 0.2, 0.1, 0.05, };
-
-unsigned int rnd_xor (unsigned int x)
-{
-   x ^= (x << 6);
-   x ^= (x >> 3);
-   x ^= (x << 17);
-   return x;
-}
-
-unsigned int hash32int (unsigned int i)
-{
-  i = (i << 15) - i - 1;
-  i = i ^ (i >> 12);
-  i = i + (i << 2);
-  i = i ^ (i >> 4);
-  i = i * 2057;         // key = (key + (key << 3)) + (key << 11);
-  i = i ^ (i >> 16);
-  return i;
-}
-
-unsigned long map_coord2int (unsigned int x, unsigned int y, unsigned int z, unsigned int seed)
-{
-  unsigned long out = 0;
-  unsigned int i = 0;
-  while (x > 0 || y > 0 || z > 0)
-    {
-      out += (x & 0x1) ? (0x1 << i) : 0;
-      i++;
-      out += (y & 0x1) ? (0x1 << i) : 0;
-      i++;
-      out += (z & 0x1) ? (0x1 << i) : 0;
-      i++;
-      x >>= 1;
-      y >>= 1;
-      z >>= 1;
-    }
-  return hash32int (hash32int (out) + seed);
-}
-
-#define NOISE_ARR_OFFS(slen,x,y,z) (1 + (x) + (y) * slen + (z) * (slen * slen))
-
-void *mk_3d_noise (unsigned int slen, unsigned int seed)
-{
-   int x, y, z;
-
-   slen++; // sample one more at the edge
-
-   unsigned long *noise_arr =
-      malloc (sizeof (unsigned long) * (slen * slen * slen + 1));
-
-   noise_arr[0] = slen;
-
-   for (x = 0; x < slen; x++)
-     for (y = 0; y < slen; y++)
-       for (z = 0; z < slen; z++)
-         {
-            noise_arr[NOISE_ARR_OFFS(slen,x,y,z)] =
-               rnd_xor (map_coord2int (x, y, z, seed));
-         }
-   return noise_arr;
-}
-
-unsigned long cos_interp (unsigned int a, unsigned int b, double x)
-{
-   x *= M_PI;
-   double ratio = (1 - cos (x)) * 0.5;
-   return a * (1 - ratio) + b * ratio;
-}
-
-unsigned long linerp (unsigned int a, unsigned int b, double x)
-{
-   return a * (1 - x) + b * x;
-}
-
-unsigned long smoothstep(unsigned int a, unsigned int b, double x)
-{
-  x = x * x * (3 - 2 * x);
-  return a * (1 - x) + b * x;
-}
-
-unsigned int linerp_int (unsigned int a, unsigned int b, unsigned int x)
-{
-   unsigned long i =
-        ((unsigned long) a * (INTSCALE - x)) + ((unsigned long) b * x);
-   i /= INTSCALE;
-   return i;
-}
-
-unsigned int smoothstep_int (unsigned int a, unsigned int b, unsigned int x)
-{
-   unsigned long xs = x;
-   xs = xs * xs * ((3 * INTSCALE) - 2 * xs);
-   unsigned long i =
-          ((unsigned long) a * (INTSCALE3 - xs))
-        + ((unsigned long) b * xs);
-   i /= INTSCALE3;
-   return i;
-}
-
-unsigned long sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, unsigned int z, unsigned int scale)
-{
-   unsigned long *noise_3d = noise;
-
-   // reduces the sampling scale, higher "scale" means less
-   // points from noise are looked at and more interpolation
-
-   unsigned int x_rest = (INTSCALE * (x % scale)) / scale;
-   x /= scale;
-   unsigned int y_rest = (INTSCALE * (y % scale)) / scale;
-   y /= scale;
-   unsigned int z_rest = (INTSCALE * (z % scale)) / scale;
-   z /= scale;
-
-   //d// printf ("red %d %d %d, rest %ud %ud %ud %ud\n", x, y, z, scale, x_rest, y_rest, z_rest);
-   unsigned int slen = noise_3d[0];
-
-   if ((z + 1) >= slen
-       || (y + 1) >= slen
-       || (x + 1) >= slen)
-     return 0;
-
-   unsigned int samples[8];
-   samples[0] = noise_3d[NOISE_ARR_OFFS(slen,x    , y,     z)];
-   samples[1] = noise_3d[NOISE_ARR_OFFS(slen,x + 1, y,     z)];
-
-   samples[2] = noise_3d[NOISE_ARR_OFFS(slen,x    , y + 1, z)];
-   samples[3] = noise_3d[NOISE_ARR_OFFS(slen,x + 1, y + 1, z)];
-
-   samples[4] = noise_3d[NOISE_ARR_OFFS(slen,x    , y,     z + 1)];
-   samples[5] = noise_3d[NOISE_ARR_OFFS(slen,x + 1, y,     z + 1)];
-
-   samples[6] = noise_3d[NOISE_ARR_OFFS(slen,x    , y + 1, z + 1)];
-   samples[7] = noise_3d[NOISE_ARR_OFFS(slen,x + 1, y + 1, z + 1)];
-
-#define cos_interp linerp
-#define cos_interp smoothstep
-#define cos_interp linerp_int
-#define cos_interp smoothstep_int
-
-   samples[0] = cos_interp (samples[0], samples[1], x_rest);
-   samples[1] = cos_interp (samples[2], samples[3], x_rest);
-   samples[2] = cos_interp (samples[4], samples[5], x_rest);
-   samples[3] = cos_interp (samples[6], samples[7], x_rest);
-
-   samples[0] = cos_interp (samples[0], samples[1], y_rest);
-   samples[1] = cos_interp (samples[2], samples[3], y_rest);
-
-   return cos_interp (samples[0], samples[1], z_rest);
-}
-
-void add_model_sample_layer (void *noise, unsigned int freq, double ampl)
-{
-  int x, y, z;
-
-  for (x = 0; x < sidelen; x++)
-    for (y = 0; y < sidelen; y++)
-      for (z = 0; z < sidelen; z++)
-        {
-          unsigned long s = sample_3d_noise_at (noise, x, y, z, freq);
-          double val = (double) s / (double) 0xFFFFFFFF;
-          // printf ("SAMPLE AT %d %d %d: %ud => %g\n", x, y, z, s, val);
-          add_model (x, y, z, val * ampl);
-        }
-}
-
-void draw_model_menger_sponge_box (float x, float y, float z, float size, int max, int lvl)
-{
-  if (lvl == 0)
-    {
-        int j, k, l;
-     for (j = 0; j < size; j++)
-       for (k = 0; k < size; k++)
-         for (l = 0; l < size; l++)
-          model[OFFS((unsigned int) x + j, (unsigned int) y + k,(unsigned int)  z + l)] = 1;
-      return;
-    }
-
-   float j, k, l;
-   float s3 = size / 3;
-   for (j = 0; j < 3; j++)
-     for (k = 0; k < 3; k++)
-       for (l = 0; l < 3; l++)
-         {
-           int cnt_max = 0;
-           if (j == 0 || j == 2)
-             cnt_max++;
-           if (k == 0 || k == 2)
-             cnt_max++;
-           if (l == 0 || l == 2)
-             cnt_max++;
-
-           if (cnt_max < 2)
-             continue;
-
-           draw_model_menger_sponge_box (
-             x + j * s3, y + k * s3, z + l * s3, s3, max, lvl - 1);
-         }
-}
-
-
-void draw_model_cantor_dust_box (float x, float y, float z, float size, int max, int lvl)
-{
-  if (lvl == 0)
-    {
-        int j, k, l;
-     for (j = 0; j < size; j++)
-       for (k = 0; k < size; k++)
-         for (l = 0; l < size; l++)
-           {
-            int xi = x + j, yi = y + k, zi = z + l;
-             if (xi >= max || yi >= max || zi >= max)
-               return;
-            model[OFFS(xi, yi, zi)] = 1;
-           }
-      return;
-    }
-
-   float rad = (float) lvl / 1.3;
-   rad = rad < 1 ? 1 : rad;
-
-   size /= 2;
-   size -= rad;
-
-   float offs = size + 2 * rad;
-
-   draw_model_cantor_dust_box (x,        y,        z,        size, max, lvl - 1);
-   draw_model_cantor_dust_box (x + offs, y,        z,        size, max, lvl - 1);
-   draw_model_cantor_dust_box (x       , y,        z + offs, size, max, lvl - 1);
-   draw_model_cantor_dust_box (x + offs, y,        z + offs, size, max, lvl - 1);
-
-   draw_model_cantor_dust_box (x,        y + offs, z,        size, max, lvl - 1);
-   draw_model_cantor_dust_box (x + offs, y + offs, z,        size, max, lvl - 1);
-   draw_model_cantor_dust_box (x       , y + offs, z + offs, size, max, lvl - 1);
-   draw_model_cantor_dust_box (x + offs, y + offs, z + offs, size, max, lvl - 1);
-}
-
-void free_3d_noise (void *noise)
-{
-  free (noise);
-}
 
 void show_model ()
 {
@@ -808,3 +567,41 @@ void render_model (int skip_x, int skip_y, int skip_z, double carve)
 
   printf ("rendered %d vertexes\n", vertex_idxs);
 }
+
+void v_vol_draw_init ()
+{
+printf ("A\n");
+   vol_draw_init ();
+printf ("b\n");
+}
+
+void v_vol_draw_alloc (unsigned int size)
+{
+   vol_draw_alloc (size);
+}
+
+void v_vol_draw_set_op (unsigned int op)
+{
+   vol_draw_set_op (op);
+}
+
+void v_vol_draw_swap ()
+{
+   vol_draw_swap ();
+}
+
+void v_vol_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, double factor, double persistence)
+{
+   vol_fill_simple_noise_octaves (seed, octaves, factor, persistence);
+}
+
+void fill_model_draw_dst ()
+{
+  int x, y ,z;
+  for (x = 0; x < sidelen; x++)
+    for (y = 0; y < sidelen; y++)
+      for (z = 0; z < sidelen; z++)
+        model[OFFS(x,y,z)] = DRAW_DST(x,y,z);
+}
+
+
