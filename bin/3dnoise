@@ -373,9 +373,17 @@ renderer::set_recalc_cb (1, 2.0, 0.5, 0.03, $cube, $ARGV[0], sub {
    v_vol_draw_set_op (1);
 
    v_vol_fill_simple_noise_octaves ($seed, $oct, $lac, $pers);
-   v_vol_draw_set_op (4);
-   v_vol_draw_model_menger_sponge_box (0, 0, 0, $cube, 3);
    v_vol_draw_swap ();
+   v_vol_draw_set_op (4);
+   v_vol_draw_val (1);
+   v_vol_draw_sphere_subdiv (0, 0, 0, $cube, 0.3, 3);
+#  v_vol_draw_set_op (4);
+#   v_vol_draw_src ();
+#   v_vol_draw_set_op (4);
+#   v_vol_draw_model_cantor_dust_box (0, 0, 0, $cube, 3);
+#   v_vol_draw_swap ();
+#   v_vol_draw_val (0);
+#   v_vol_draw_model_menger_sponge_box (0, 0, 0, $cube, 3);
 
    fill_model_draw_dst ();
 
@@ -602,8 +610,30 @@ void v_vol_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, d
 
 void v_vol_draw_model_menger_sponge_box (float x, float y, float z, float size, int lvl)
 {
-   vol_draw_model_menger_sponge_box (x, y, z, size, DRAW_CTX.size, lvl);
+   vol_draw_model_menger_sponge_box (x, y, z, size, lvl);
 }
+
+void v_vol_draw_model_cantor_dust_box (float x, float y, float z, float size, int lvl)
+{
+   vol_draw_model_cantor_dust_box (x, y, z, size, lvl);
+}
+
+void v_vol_draw_sphere_subdiv (float x, float y, float z, float size, float filled, int lvl)
+{
+  vol_draw_sphere_subdiv (x, y, z, size, filled, lvl);
+}
+
+
+void v_vol_draw_val (double val)
+{
+  vol_draw_val (val);
+}
+
+void v_vol_draw_src ()
+{
+  vol_draw_src ();
+}
+
 void fill_model_draw_dst ()
 {
   int x, y ,z;

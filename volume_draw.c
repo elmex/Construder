@@ -1,4 +1,5 @@
 #include <math.h>
+#include "vectorlib.c"
 #include "noise_3d.c"
 
 typedef struct _vol_draw_ctx {
@@ -15,8 +16,8 @@ typedef struct _vol_draw_ctx {
 
 } vol_draw_ctx;
 
-#define DRAW_DST(x,y,z) DRAW_CTX.dst[(x) + (y) * DRAW_CTX.size + (z) * (DRAW_CTX.size * DRAW_CTX.size)]
-#define DRAW_SRC(x,y,z) DRAW_CTX.src[(x) + (y) * DRAW_CTX.size + (z) * (DRAW_CTX.size * DRAW_CTX.size)]
+#define DRAW_DST(x,y,z) DRAW_CTX.dst[((unsigned int) (x)) + ((unsigned int) (y)) * DRAW_CTX.size + ((unsigned int) (z)) * (DRAW_CTX.size * DRAW_CTX.size)]
+#define DRAW_SRC(x,y,z) DRAW_CTX.src[((unsigned int) (x)) + ((unsigned int) (y)) * DRAW_CTX.size + ((unsigned int) (z)) * (DRAW_CTX.size * DRAW_CTX.size)]
 
 // two buffers:
 //    source
@@ -95,22 +96,125 @@ void vol_draw_op (unsigned int x, unsigned int y, unsigned int z, double val)
     }
 }
 
-void vol_fill (double val)
+void vol_draw_src_range (double a, double b)
 {
   int x, y, z;
   for (z = 0; z < DRAW_CTX.size; z++)
     for (y = 0; y < DRAW_CTX.size; y++)
       for (x = 0; x < DRAW_CTX.size; x++)
-        DRAW_DST(x,y,z) = val;
+        {
+          if (DRAW_SRC(x, y, z) >= a && DRAW_SRC(x, y, z) < b)
+            vol_draw_op (x, y, z, DRAW_SRC (x, y, z));
+        }
+
 }
 
-void vol_draw_self ()
+void vol_draw_val (double val)
+{
+  int x, y, z;
+  for (z = 0; z < DRAW_CTX.size; z++)
+    for (y = 0; y < DRAW_CTX.size; y++)
+      for (x = 0; x < DRAW_CTX.size; x++)
+        vol_draw_op (x, y, z, val);
+}
+
+void vol_draw_src ()
 {
   int x, y, z;
   for (z = 0; z < DRAW_CTX.size; z++)
     for (y = 0; y < DRAW_CTX.size; y++)
       for (x = 0; x < DRAW_CTX.size; x++)
         vol_draw_op (x, y, z, DRAW_SRC (x, y, z));
+}
+
+// filled can blend between the sphere value (gradient to/from center) and the source
+// negative filled inverts the gradient
+void vol_draw_sphere_subdiv (float x, float y, float z, float size, float filled, int lvl)
+{
+  float cntr = size / 2;
+
+  vec3_init (center, x + cntr, y + cntr, z + cntr);
+
+  float j, k, l;
+  for (j = 0; j < size; j++)
+    for (k = 0; k < size; k++)
+      for (l = 0; l < size; l++)
+        {
+          vec3_init (cur, x + j, y + k, z + l);
+          vec3_sub (cur, center);
+          float vlen = vec3_len (cur);
+          float diff = vlen - (cntr - (size / 10));
+
+          if (diff < 0)
+            {
+              double sphere_val = (-diff / cntr);
+              double src_val    = DRAW_SRC (x + j, y + k, z + l);
+
+              if (filled < 0)
+                {
+                  vol_draw_op (x + j, y + k, z + l,
+                               sphere_val * (1 + filled) + src_val * -filled);
+                }
+              else
+                {
+                  sphere_val = 1 - sphere_val;
+                  vol_draw_op (x + j, y + k, z + l,
+                               sphere_val * (1 - filled) + src_val * filled);
+                }
+            }
+        }
+
+  if (lvl > 1)
+    {
+      vol_draw_sphere_subdiv (x,        y, z,               cntr, filled, lvl - 1);
+      vol_draw_sphere_subdiv (x,        y, z + cntr,        cntr, filled, lvl - 1);
+      vol_draw_sphere_subdiv (x + cntr, y, z,               cntr, filled, lvl - 1);
+      vol_draw_sphere_subdiv (x + cntr, y, z + cntr,        cntr, filled, lvl - 1);
+
+      vol_draw_sphere_subdiv (x,        y + cntr, z,        cntr, filled, lvl - 1);
+      vol_draw_sphere_subdiv (x,        y + cntr, z + cntr, cntr, filled, lvl - 1);
+      vol_draw_sphere_subdiv (x + cntr, y + cntr, z,        cntr, filled, lvl - 1);
+      vol_draw_sphere_subdiv (x + cntr, y + cntr, z + cntr, cntr, filled, lvl - 1);
+    }
+}
+
+void vol_draw_sphere_surface_subdiv (float x, float y, float z, float size, float thickness, int lvl)
+{
+  float cntr = size / 2;
+
+  vec3_init (center, x + cntr, y + cntr, z + cntr);
+
+  float j, k, l;
+  for (j = 0; j < size; j++)
+    for (k = 0; k < size; k++)
+      for (l = 0; l < size; l++)
+        {
+          vec3_init (cur, x + j, y + k, z + l);
+          vec3_sub (cur, center);
+          float vlen = vec3_len (cur);
+          float diff = vlen - (cntr - (size / 10));
+
+          if (diff > 0 && diff <= thickness)
+            {
+              vol_draw_op (x + j, y + k, z + l,
+                           DRAW_SRC ((unsigned int) (x + j),
+                                     (unsigned int) (y + k),
+                                     (unsigned int) (z + l)));
+            }
+        }
+
+  if (lvl > 1)
+    {
+      vol_draw_sphere_surface_subdiv (x,        y, z,               cntr, thickness, lvl - 1);
+      vol_draw_sphere_surface_subdiv (x,        y, z + cntr,        cntr, thickness, lvl - 1);
+      vol_draw_sphere_surface_subdiv (x + cntr, y, z,               cntr, thickness, lvl - 1);
+      vol_draw_sphere_surface_subdiv (x + cntr, y, z + cntr,        cntr, thickness, lvl - 1);
+
+      vol_draw_sphere_surface_subdiv (x,        y + cntr, z,        cntr, thickness, lvl - 1);
+      vol_draw_sphere_surface_subdiv (x,        y + cntr, z + cntr, cntr, thickness, lvl - 1);
+      vol_draw_sphere_surface_subdiv (x + cntr, y + cntr, z,        cntr, thickness, lvl - 1);
+      vol_draw_sphere_surface_subdiv (x + cntr, y + cntr, z + cntr, cntr, thickness, lvl - 1);
+    }
 }
 
 void vol_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, double factor, double persistence)
@@ -149,7 +253,7 @@ void vol_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, dou
         DRAW_DST(x,y,z) /= amp_correction;
 }
 
-void vol_draw_model_menger_sponge_box (float x, float y, float z, float size, int max, int lvl)
+void vol_draw_model_menger_sponge_box (float x, float y, float z, float size, int lvl)
 {
   if (lvl == 0)
     {
@@ -179,45 +283,46 @@ void vol_draw_model_menger_sponge_box (float x, float y, float z, float size, in
              continue;
 
            vol_draw_model_menger_sponge_box (
-             x + j * s3, y + k * s3, z + l * s3, s3, max, lvl - 1);
+             x + j * s3, y + k * s3, z + l * s3, s3, lvl - 1);
          }
 }
-//
-//
-//void draw_model_cantor_dust_box (float x, float y, float z, float size, int max, int lvl)
-//{
-//  if (lvl == 0)
-//    {
-//        int j, k, l;
-//     for (j = 0; j < size; j++)
-//       for (k = 0; k < size; k++)
-//         for (l = 0; l < size; l++)
-//           {
-//            int xi = x + j, yi = y + k, zi = z + l;
-//             if (xi >= max || yi >= max || zi >= max)
-//               return;
-//            model[OFFS(xi, yi, zi)] = 1;
-//           }
-//      return;
-//    }
-//
-//   float rad = (float) lvl / 1.3;
-//   rad = rad < 1 ? 1 : rad;
-//
-//   size /= 2;
-//   size -= rad;
-//
-//   float offs = size + 2 * rad;
-//
-//   draw_model_cantor_dust_box (x,        y,        z,        size, max, lvl - 1);
-//   draw_model_cantor_dust_box (x + offs, y,        z,        size, max, lvl - 1);
-//   draw_model_cantor_dust_box (x       , y,        z + offs, size, max, lvl - 1);
-//   draw_model_cantor_dust_box (x + offs, y,        z + offs, size, max, lvl - 1);
-//
-//   draw_model_cantor_dust_box (x,        y + offs, z,        size, max, lvl - 1);
-//   draw_model_cantor_dust_box (x + offs, y + offs, z,        size, max, lvl - 1);
-//   draw_model_cantor_dust_box (x       , y + offs, z + offs, size, max, lvl - 1);
-//   draw_model_cantor_dust_box (x + offs, y + offs, z + offs, size, max, lvl - 1);
-//}
-//
-//
+
+
+void vol_draw_model_cantor_dust_box (float x, float y, float z, float size, int lvl)
+{
+  if (lvl == 0)
+    {
+        int j, k, l;
+     for (j = 0; j < size; j++)
+       for (k = 0; k < size; k++)
+         for (l = 0; l < size; l++)
+           {
+             int xi = x + j, yi = y + k, zi = z + l;
+             if (xi >= DRAW_CTX.size || yi >= DRAW_CTX.size || zi >= DRAW_CTX.size)
+               return;
+
+             vol_draw_op (xi, yi, zi, DRAW_SRC(xi, yi, zi));
+           }
+      return;
+    }
+
+   float rad = (float) lvl;
+   rad = rad < 1 ? 1 : rad;
+
+   size /= 2;
+   size -= rad;
+
+   float offs = size + 2 * rad;
+
+   vol_draw_model_cantor_dust_box (x,        y,        z,        size, lvl - 1);
+   vol_draw_model_cantor_dust_box (x + offs, y,        z,        size, lvl - 1);
+   vol_draw_model_cantor_dust_box (x       , y,        z + offs, size, lvl - 1);
+   vol_draw_model_cantor_dust_box (x + offs, y,        z + offs, size, lvl - 1);
+
+   vol_draw_model_cantor_dust_box (x,        y + offs, z,        size, lvl - 1);
+   vol_draw_model_cantor_dust_box (x + offs, y + offs, z,        size, lvl - 1);
+   vol_draw_model_cantor_dust_box (x       , y + offs, z + offs, size, lvl - 1);
+   vol_draw_model_cantor_dust_box (x + offs, y + offs, z + offs, size, lvl - 1);
+}
+
+
