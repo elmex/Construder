@@ -16,6 +16,7 @@ typedef struct _vol_draw_ctx {
 } vol_draw_ctx;
 
 #define DRAW_DST(x,y,z) DRAW_CTX.dst[(x) + (y) * DRAW_CTX.size + (z) * (DRAW_CTX.size * DRAW_CTX.size)]
+#define DRAW_SRC(x,y,z) DRAW_CTX.src[(x) + (y) * DRAW_CTX.size + (z) * (DRAW_CTX.size * DRAW_CTX.size)]
 
 // two buffers:
 //    source
@@ -94,6 +95,24 @@ void vol_draw_op (unsigned int x, unsigned int y, unsigned int z, double val)
     }
 }
 
+void vol_fill (double val)
+{
+  int x, y, z;
+  for (z = 0; z < DRAW_CTX.size; z++)
+    for (y = 0; y < DRAW_CTX.size; y++)
+      for (x = 0; x < DRAW_CTX.size; x++)
+        DRAW_DST(x,y,z) = val;
+}
+
+void vol_draw_self ()
+{
+  int x, y, z;
+  for (z = 0; z < DRAW_CTX.size; z++)
+    for (y = 0; y < DRAW_CTX.size; y++)
+      for (x = 0; x < DRAW_CTX.size; x++)
+        vol_draw_op (x, y, z, DRAW_SRC (x, y, z));
+}
+
 void vol_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, double factor, double persistence)
 {
   double amp_correction = 0;
@@ -110,7 +129,6 @@ void vol_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, dou
       double amp   = pow (persistence , i);
       amp_correction += amp;
 
-      printf ("NOISE %d %g %g\n", i, scale, amp);
       int x, y, z;
       for (z = 0; z < DRAW_CTX.size; z++)
         for (y = 0; y < DRAW_CTX.size; y++)
@@ -131,39 +149,39 @@ void vol_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, dou
         DRAW_DST(x,y,z) /= amp_correction;
 }
 
-//void draw_model_menger_sponge_box (float x, float y, float z, float size, int max, int lvl)
-//{
-//  if (lvl == 0)
-//    {
-//        int j, k, l;
-//     for (j = 0; j < size; j++)
-//       for (k = 0; k < size; k++)
-//         for (l = 0; l < size; l++)
-//          model[OFFS((unsigned int) x + j, (unsigned int) y + k,(unsigned int)  z + l)] = 1;
-//      return;
-//    }
-//
-//   float j, k, l;
-//   float s3 = size / 3;
-//   for (j = 0; j < 3; j++)
-//     for (k = 0; k < 3; k++)
-//       for (l = 0; l < 3; l++)
-//         {
-//           int cnt_max = 0;
-//           if (j == 0 || j == 2)
-//             cnt_max++;
-//           if (k == 0 || k == 2)
-//             cnt_max++;
-//           if (l == 0 || l == 2)
-//             cnt_max++;
-//
-//           if (cnt_max < 2)
-//             continue;
-//
-//           draw_model_menger_sponge_box (
-//             x + j * s3, y + k * s3, z + l * s3, s3, max, lvl - 1);
-//         }
-//}
+void vol_draw_model_menger_sponge_box (float x, float y, float z, float size, int max, int lvl)
+{
+  if (lvl == 0)
+    {
+      int j, k, l;
+      for (j = 0; j < size; j++)
+        for (k = 0; k < size; k++)
+          for (l = 0; l < size; l++)
+            vol_draw_op (x + j, y + k, z + l, DRAW_SRC((unsigned int) x + j, (unsigned int) y + k, (unsigned int) z + l));
+      return;
+    }
+
+   float j, k, l;
+   float s3 = size / 3;
+   for (j = 0; j < 3; j++)
+     for (k = 0; k < 3; k++)
+       for (l = 0; l < 3; l++)
+         {
+           int cnt_max = 0;
+           if (j == 0 || j == 2)
+             cnt_max++;
+           if (k == 0 || k == 2)
+             cnt_max++;
+           if (l == 0 || l == 2)
+             cnt_max++;
+
+           if (cnt_max < 2)
+             continue;
+
+           vol_draw_model_menger_sponge_box (
+             x + j * s3, y + k * s3, z + l * s3, s3, max, lvl - 1);
+         }
+}
 //
 //
 //void draw_model_cantor_dust_box (float x, float y, float z, float size, int max, int lvl)

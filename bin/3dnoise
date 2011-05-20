@@ -364,6 +364,8 @@ renderer::set_recalc_cb (1, 2.0, 0.5, 0.03, $cube, $ARGV[0], sub {
       return $MODEL_DATA_SLEN;
    }
 
+   warn "VARS: oct $oct, fact $lac, pers $pers, size $cube, seed $seed\n";
+
    alloc_model ($cube);
 
    v_vol_draw_alloc ($cube);
@@ -371,6 +373,9 @@ renderer::set_recalc_cb (1, 2.0, 0.5, 0.03, $cube, $ARGV[0], sub {
    v_vol_draw_set_op (1);
 
    v_vol_fill_simple_noise_octaves ($seed, $oct, $lac, $pers);
+   v_vol_draw_set_op (4);
+   v_vol_draw_model_menger_sponge_box (0, 0, 0, $cube, 3);
+   v_vol_draw_swap ();
 
    fill_model_draw_dst ();
 
@@ -595,6 +600,10 @@ void v_vol_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, d
    vol_fill_simple_noise_octaves (seed, octaves, factor, persistence);
 }
 
+void v_vol_draw_model_menger_sponge_box (float x, float y, float z, float size, int lvl)
+{
+   vol_draw_model_menger_sponge_box (x, y, z, size, DRAW_CTX.size, lvl);
+}
 void fill_model_draw_dst ()
 {
   int x, y ,z;
