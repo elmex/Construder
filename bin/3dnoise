@@ -295,6 +295,8 @@ sub layer_3d_noise {
       add_model_sample_layer ($n, $freq, $amp);
    }
 
+   carve_model_menger_box (0, 0, 0, $cubelen, $cubelen, 3);
+
    free_3d_noise ($n);
 
    warn "amp correct $amp_correction\n";
@@ -612,6 +614,42 @@ void add_model_sample_layer (void *noise, unsigned int freq, double ampl)
           // printf ("SAMPLE AT %d %d %d: %ud => %g\n", x, y, z, s, val);
           add_model (x, y, z, val * ampl);
         }
+}
+
+void carve_in_bounds (unsigned int x, unsigned int y, unsigned int z, unsigned int max)
+{
+   if (x >= max || y >= max || z >= max)
+     return;
+   model[OFFS(x, y, z)] = 0;
+}
+
+void carve_model_menger_box (float x, float y, float z, float size, int max, int lvl)
+{
+  if (lvl <= 0)
+    return;
+
+   float s3 = size / 3;
+
+   float j,k,l;
+   for (j = 0; j < s3; j++)
+     for (k = 0; k < s3; k++)
+       for (l = 0; l < s3; l++)
+         {
+           carve_in_bounds (x + s3 + j, y + k,          z + s3 + l, max);
+           carve_in_bounds (x + s3 + j, y + s3 + k,     z + s3 + l, max);
+           carve_in_bounds (x + s3 + j, y + 2 * s3 + k, z + s3 + l, max);
+
+           carve_in_bounds (x + s3 + j, y + s3 + k,     z + 2 * s3 + l, max);
+           carve_in_bounds (x + s3 + j, y + s3 + k,     z + l, max);
+
+           carve_in_bounds (x + j,          y + s3 + k, z + s3 + l, max);
+           carve_in_bounds (x + 2 * s3 + j, y + s3 + k, z + s3 + l, max);
+         }
+
+   for (j = 0; j < 3; j++)
+     for (k = 0; k < 3; k++)
+       for (l = 0; l < 3; l++)
+         carve_model_menger_box (x + j * s3, y + k * s3, z + l * s3, s3, max, lvl - 1);
 }
 
 void free_3d_noise (void *noise)
