@@ -4,10 +4,13 @@
 
 typedef struct _vol_draw_ctx {
   unsigned int size;
+  double      *buffers[4];
   double      *src;
   double      *dst;
 
   unsigned int draw_op;
+  double  dst_range[2];
+  double  src_range[2];
 
 #define VOL_DRAW_ADD 1
 #define VOL_DRAW_SUB 2
@@ -45,24 +48,46 @@ static vol_draw_ctx DRAW_CTX;
 void vol_draw_init ()
 {
   DRAW_CTX.src  = 0;
+  DRAW_CTX.buffers[0] = 0;
+  DRAW_CTX.buffers[1] = 0;
+  DRAW_CTX.buffers[2] = 0;
+  DRAW_CTX.buffers[3] = 0;
   DRAW_CTX.dst  = 0;
   DRAW_CTX.size = 0;
   DRAW_CTX.draw_op = 0;
+  DRAW_CTX.dst_range[0] = 0;
+  DRAW_CTX.dst_range[1] = 1;
+  DRAW_CTX.src_range[0] = 0;
+  DRAW_CTX.src_range[1] = 1;
 }
 
-void vol_draw_alloc (unsigned int size)
+void vol_draw_set_dst_range (double a, double b)
 {
-  if (DRAW_CTX.src)
-    {
-      free (DRAW_CTX.src);
-      free (DRAW_CTX.dst);
-    }
+  DRAW_CTX.dst_range[0] = a;
+  DRAW_CTX.dst_range[1] = b;
+}
 
-  DRAW_CTX.src = malloc (sizeof (double) * size * size * size);
-  DRAW_CTX.dst = malloc (sizeof (double) * size * size * size);
-  memset (DRAW_CTX.src, 0, sizeof (double) * size * size * size);
-  memset (DRAW_CTX.dst, 0, sizeof (double) * size * size * size);
-  DRAW_CTX.size = size;
+void vol_draw_set_src_range (double a, double b)
+{
+  DRAW_CTX.src_range[0] = a;
+  DRAW_CTX.src_range[1] = b;
+}
+
+
+void vol_draw_set_dst (unsigned int i)
+{
+  if (i > 3)
+    i = 3;
+
+  DRAW_CTX.dst = DRAW_CTX.buffers[i];
+}
+
+void vol_draw_set_src (unsigned int i)
+{
+  if (i > 3)
+    i = 3;
+
+  DRAW_CTX.src = DRAW_CTX.buffers[i];
 }
 
 void vol_draw_set_op (unsigned int op)
@@ -70,15 +95,42 @@ void vol_draw_set_op (unsigned int op)
   DRAW_CTX.draw_op = op;
 }
 
-void vol_draw_swap ()
+void vol_draw_alloc (unsigned int size)
 {
-  double *s = DRAW_CTX.src;
-  DRAW_CTX.src = DRAW_CTX.dst;
-  DRAW_CTX.dst = s;
+  int i;
+  if (DRAW_CTX.src)
+    {
+      for (i = 0; i < 4; i++)
+        free (DRAW_CTX.buffers[i]);
+    }
+
+  for (i = 0; i < 4; i++)
+    {
+      DRAW_CTX.buffers[i] = malloc (sizeof (double) * size * size * size);
+      memset (DRAW_CTX.buffers[i], 0, sizeof (double) * size * size * size);
+    }
+
+  DRAW_CTX.size = size;
+
+  vol_draw_set_src (0);
+  vol_draw_set_dst (1);
+
+  vol_draw_set_dst_range (0, 1);
+  vol_draw_set_src_range (0, 1);
+
+  vol_draw_set_op (VOL_DRAW_SET);
 }
 
 void vol_draw_op (unsigned int x, unsigned int y, unsigned int z, double val)
 {
+  if (DRAW_DST(x,y,z) < DRAW_CTX.dst_range[0]
+      || DRAW_DST(x,y,z) > DRAW_CTX.dst_range[1])
+    return;
+
+  if (DRAW_SRC(x,y,z) < DRAW_CTX.src_range[0]
+      || DRAW_SRC(x,y,z) > DRAW_CTX.src_range[1])
+    return;
+
   switch (DRAW_CTX.draw_op)
     {
       case VOL_DRAW_ADD:
@@ -182,13 +234,13 @@ void vol_draw_sphere_subdiv (float x, float y, float z, float size, float filled
               if (filled < 0)
                 {
                   vol_draw_op (x + j, y + k, z + l,
-                               sphere_val * (1 + filled) + src_val * -filled);
+                               linerp (sphere_val, src_val, -filled));
                 }
               else
                 {
                   sphere_val = 1 - sphere_val;
                   vol_draw_op (x + j, y + k, z + l,
-                               sphere_val * (1 - filled) + src_val * filled);
+                               linerp (sphere_val, src_val, filled));
                 }
             }
         }
@@ -204,45 +256,6 @@ void vol_draw_sphere_subdiv (float x, float y, float z, float size, float filled
       vol_draw_sphere_subdiv (x,        y + cntr, z + cntr, cntr, filled, lvl - 1);
       vol_draw_sphere_subdiv (x + cntr, y + cntr, z,        cntr, filled, lvl - 1);
       vol_draw_sphere_subdiv (x + cntr, y + cntr, z + cntr, cntr, filled, lvl - 1);
-    }
-}
-
-void vol_draw_sphere_surface_subdiv (float x, float y, float z, float size, float thickness, int lvl)
-{
-  float cntr = size / 2;
-
-  vec3_init (center, x + cntr, y + cntr, z + cntr);
-
-  float j, k, l;
-  for (j = 0; j < size; j++)
-    for (k = 0; k < size; k++)
-      for (l = 0; l < size; l++)
-        {
-          vec3_init (cur, x + j, y + k, z + l);
-          vec3_sub (cur, center);
-          float vlen = vec3_len (cur);
-          float diff = vlen - (cntr - (size / 10));
-
-          if (diff > 0 && diff <= thickness)
-            {
-              vol_draw_op (x + j, y + k, z + l,
-                           DRAW_SRC ((unsigned int) (x + j),
-                                     (unsigned int) (y + k),
-                                     (unsigned int) (z + l)));
-            }
-        }
-
-  if (lvl > 1)
-    {
-      vol_draw_sphere_surface_subdiv (x,        y, z,               cntr, thickness, lvl - 1);
-      vol_draw_sphere_surface_subdiv (x,        y, z + cntr,        cntr, thickness, lvl - 1);
-      vol_draw_sphere_surface_subdiv (x + cntr, y, z,               cntr, thickness, lvl - 1);
-      vol_draw_sphere_surface_subdiv (x + cntr, y, z + cntr,        cntr, thickness, lvl - 1);
-
-      vol_draw_sphere_surface_subdiv (x,        y + cntr, z,        cntr, thickness, lvl - 1);
-      vol_draw_sphere_surface_subdiv (x,        y + cntr, z + cntr, cntr, thickness, lvl - 1);
-      vol_draw_sphere_surface_subdiv (x + cntr, y + cntr, z,        cntr, thickness, lvl - 1);
-      vol_draw_sphere_surface_subdiv (x + cntr, y + cntr, z + cntr, cntr, thickness, lvl - 1);
     }
 }
 

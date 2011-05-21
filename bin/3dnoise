@@ -58,8 +58,8 @@ sub set_save_cb {
 }
 
 sub set_recalc_cb {
-   my ($slen, $sd, $cb) = @_;
-   (@PARAMS) = ($slen, $sd);
+   my ($slen, $sd, $p, $cb) = @_;
+   (@PARAMS) = ($slen, $sd, $p);
    $RECALC = $cb;
    recalc ();
 }
@@ -210,6 +210,15 @@ sub start_loop {
             } elsif ($name eq 't') {
                $PARAMS[1] += 1;
                recalc ();
+            } elsif ($name eq 'g') {
+               $PARAMS[1] -= 1;
+               recalc ();
+            } elsif ($name eq 'u') {
+               $PARAMS[2] += 0.01;
+               recalc ();
+            } elsif ($name eq 'i') {
+               $PARAMS[2] -= 0.01;
+               recalc ();
             } elsif ($name eq 'e') {
                $SAVE_CB->($SIDELEN);
             }
@@ -328,37 +337,31 @@ $t = AE::timer 0, 0.5, sub {
     $ltime = $ntime;
 };
 
-renderer::set_recalc_cb ($cube, $ARGV[0], sub {
-   my ($cube, $seed) = @_;
+renderer::set_recalc_cb ($cube, $ARGV[0], 0, sub {
+   my ($cube, $seed, $param) = @_;
+
    if ($MODEL_DATA) {
       warn "showing model.\n";
       return $MODEL_DATA_SLEN;
    }
 
-   warn "VARS: size $cube, seed $seed\n";
+   warn "VARS: size $cube, seed $seed, param $param\n";
 
    alloc_model ($cube);
 
    Games::Blockminer3D::VolDraw::alloc ($cube);
 
    if (open my $f, "<", $edit_file) {
-     Games::Blockminer3D::VolDraw::draw_commands (do { local $/; <$f> },
-                                                  { size => $cube, seed => $seed }
-                                                  );
+     Games::Blockminer3D::VolDraw::draw_commands (
+       do { local $/; <$f> },
+       { size => $cube, seed => $seed, param => $param }
+     );
 
    } else {
      warn "Couldn't open file: $!\n";
    }
-#   v_vol_draw_set_op (1);
-#
-#   v_vol_fill_simple_noise_octaves ($seed, $oct, $lac, $pers);
-#   v_vol_draw_swap ();
-#   v_vol_draw_set_op (4);
-#   v_vol_draw_val (1);
-#   v_vol_draw_sphere_subdiv (0, 0, 0, $cube, 0.3, 3);
 
    my $m = get_model_ptr ();
-   print "NED\n";
    Games::Blockminer3D::VolDraw::copy ($m);
 
    $cube

@@ -392,17 +392,19 @@ void vol_draw_alloc (unsigned int size);
 
 void vol_draw_set_op (unsigned int op);
 
-void vol_draw_swap ();
+void vol_draw_set_dst (unsigned int i);
 
-void vol_draw_src_range (double a, double b);
+void vol_draw_set_src (unsigned int i);
+
+void vol_draw_set_dst_range (double a, double b);
+
+void vol_draw_set_src_range (double a, double b);
 
 void vol_draw_val (double val);
 
 void vol_draw_src ();
 
 void vol_draw_sphere_subdiv (float x, float y, float z, float size, float filled, int lvl);
-
-void vol_draw_sphere_surface_subdiv (float x, float y, float z, float size, float thickness, int lvl);
 
 void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, double factor, double persistence);
 
