@@ -93,12 +93,12 @@ sub draw_commands {
          fill_simple_noise_octaves ($env->{seed} + $arg[3], $arg[0], $arg[1], $arg[2]);
 
       } elsif ($cmd eq 'menger_sponge') {
-         # draw menger sponge
-         menger_sponge_box (0, 0, 0, $env->{size}, $arg[0]);
+         # draw menger sponge <level> <src blend & gradient direction>
+         menger_sponge_box (0, 0, 0, $env->{size}, $arg[1], $arg[0]);
 
       } elsif ($cmd eq 'cantor_dust') {
-         # draw cantor dust
-         cantor_dust_box (0, 0, 0, $env->{size}, $arg[0]);
+         # draw cantor dust <level> <src blend & gradient direction>
+         cantor_dust_box (0, 0, 0, $env->{size}, $arg[1], $arg[0]);
 
       } elsif ($cmd eq 'map_range') {
          # map range of destionation buffer

@@ -295,7 +295,7 @@ void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves
         DRAW_DST(x,y,z) /= amp_correction;
 }
 
-void vol_draw_fill_box (float x, float y, float z, float size)
+void vol_draw_fill_box (float x, float y, float z, float size, float filled)
 {
   int j, k, l;
   for (j = 0; j < size; j++)
@@ -325,15 +325,23 @@ void vol_draw_fill_box (float x, float y, float z, float size)
                      (unsigned int) dy,
                      (unsigned int) dz);
 
-          vol_draw_op (dx, dy, dz, linerp (val, src, 0.1));
+          if (filled < 0)
+            {
+              vol_draw_op (dx, dy, dz, linerp (val, src, -filled));
+            }
+          else
+            {
+              val = 1 - val;
+              vol_draw_op (dx, dy, dz, linerp (val, src, filled));
+            }
         }
 }
 
-void vol_draw_menger_sponge_box (float x, float y, float z, float size, int lvl)
+void vol_draw_menger_sponge_box (float x, float y, float z, float size, float filled, int lvl)
 {
   if (lvl == 0)
     {
-      vol_draw_fill_box (x, y, z, size);
+      vol_draw_fill_box (x, y, z, size, filled);
       return;
     }
 
@@ -355,16 +363,16 @@ void vol_draw_menger_sponge_box (float x, float y, float z, float size, int lvl)
              continue;
 
            vol_draw_menger_sponge_box (
-             x + j * s3, y + k * s3, z + l * s3, s3, lvl - 1);
+             x + j * s3, y + k * s3, z + l * s3, s3, filled, lvl - 1);
          }
 }
 
 
-void vol_draw_cantor_dust_box (float x, float y, float z, float size, int lvl)
+void vol_draw_cantor_dust_box (float x, float y, float z, float size, float filled, int lvl)
 {
   if (lvl == 0)
     {
-      vol_draw_fill_box (x, y, z, size);
+      vol_draw_fill_box (x, y, z, size, filled);
       return;
     }
 
@@ -376,15 +384,15 @@ void vol_draw_cantor_dust_box (float x, float y, float z, float size, int lvl)
 
    float offs = size + 2 * rad;
 
-   vol_draw_cantor_dust_box (x,        y,        z,        size, lvl - 1);
-   vol_draw_cantor_dust_box (x + offs, y,        z,        size, lvl - 1);
-   vol_draw_cantor_dust_box (x       , y,        z + offs, size, lvl - 1);
-   vol_draw_cantor_dust_box (x + offs, y,        z + offs, size, lvl - 1);
+   vol_draw_cantor_dust_box (x,        y,        z,        size, filled, lvl - 1);
+   vol_draw_cantor_dust_box (x + offs, y,        z,        size, filled, lvl - 1);
+   vol_draw_cantor_dust_box (x       , y,        z + offs, size, filled, lvl - 1);
+   vol_draw_cantor_dust_box (x + offs, y,        z + offs, size, filled, lvl - 1);
 
-   vol_draw_cantor_dust_box (x,        y + offs, z,        size, lvl - 1);
-   vol_draw_cantor_dust_box (x + offs, y + offs, z,        size, lvl - 1);
-   vol_draw_cantor_dust_box (x       , y + offs, z + offs, size, lvl - 1);
-   vol_draw_cantor_dust_box (x + offs, y + offs, z + offs, size, lvl - 1);
+   vol_draw_cantor_dust_box (x,        y + offs, z,        size, filled, lvl - 1);
+   vol_draw_cantor_dust_box (x + offs, y + offs, z,        size, filled, lvl - 1);
+   vol_draw_cantor_dust_box (x       , y + offs, z + offs, size, filled, lvl - 1);
+   vol_draw_cantor_dust_box (x + offs, y + offs, z + offs, size, filled, lvl - 1);
 }
 
 
