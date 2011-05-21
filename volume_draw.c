@@ -127,6 +127,35 @@ void vol_draw_src ()
         vol_draw_op (x, y, z, DRAW_SRC (x, y, z));
 }
 
+double linerp (double a, double b, double x)
+{
+   return a * (1 - x) + b * x;
+}
+
+
+void vol_draw_map_range (float a, float b, float j, float k)
+{
+  if (a > b)
+    {
+      double l = a;
+      a = b;
+      b = a;
+    }
+
+  int x, y, z;
+  for (z = 0; z < DRAW_CTX.size; z++)
+    for (y = 0; y < DRAW_CTX.size; y++)
+      for (x = 0; x < DRAW_CTX.size; x++)
+        {
+          double v = DRAW_DST(x, y, z);
+          if (v >= a && v <= b)
+            {
+              v = linerp (j, k, v - a);
+              DRAW_DST(x, y, z) = v;
+            }
+        }
+}
+
 // filled can blend between the sphere value (gradient to/from center) and the source
 // negative filled inverts the gradient
 void vol_draw_sphere_subdiv (float x, float y, float z, float size, float filled, int lvl)
@@ -217,7 +246,7 @@ void vol_draw_sphere_surface_subdiv (float x, float y, float z, float size, floa
     }
 }
 
-void vol_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, double factor, double persistence)
+void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, double factor, double persistence)
 {
   double amp_correction = 0;
 
@@ -253,7 +282,7 @@ void vol_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, dou
         DRAW_DST(x,y,z) /= amp_correction;
 }
 
-void vol_draw_model_menger_sponge_box (float x, float y, float z, float size, int lvl)
+void vol_draw_menger_sponge_box (float x, float y, float z, float size, int lvl)
 {
   if (lvl == 0)
     {
@@ -282,13 +311,13 @@ void vol_draw_model_menger_sponge_box (float x, float y, float z, float size, in
            if (cnt_max < 2)
              continue;
 
-           vol_draw_model_menger_sponge_box (
+           vol_draw_menger_sponge_box (
              x + j * s3, y + k * s3, z + l * s3, s3, lvl - 1);
          }
 }
 
 
-void vol_draw_model_cantor_dust_box (float x, float y, float z, float size, int lvl)
+void vol_draw_cantor_dust_box (float x, float y, float z, float size, int lvl)
 {
   if (lvl == 0)
     {
@@ -314,15 +343,15 @@ void vol_draw_model_cantor_dust_box (float x, float y, float z, float size, int 
 
    float offs = size + 2 * rad;
 
-   vol_draw_model_cantor_dust_box (x,        y,        z,        size, lvl - 1);
-   vol_draw_model_cantor_dust_box (x + offs, y,        z,        size, lvl - 1);
-   vol_draw_model_cantor_dust_box (x       , y,        z + offs, size, lvl - 1);
-   vol_draw_model_cantor_dust_box (x + offs, y,        z + offs, size, lvl - 1);
+   vol_draw_cantor_dust_box (x,        y,        z,        size, lvl - 1);
+   vol_draw_cantor_dust_box (x + offs, y,        z,        size, lvl - 1);
+   vol_draw_cantor_dust_box (x       , y,        z + offs, size, lvl - 1);
+   vol_draw_cantor_dust_box (x + offs, y,        z + offs, size, lvl - 1);
 
-   vol_draw_model_cantor_dust_box (x,        y + offs, z,        size, lvl - 1);
-   vol_draw_model_cantor_dust_box (x + offs, y + offs, z,        size, lvl - 1);
-   vol_draw_model_cantor_dust_box (x       , y + offs, z + offs, size, lvl - 1);
-   vol_draw_model_cantor_dust_box (x + offs, y + offs, z + offs, size, lvl - 1);
+   vol_draw_cantor_dust_box (x,        y + offs, z,        size, lvl - 1);
+   vol_draw_cantor_dust_box (x + offs, y + offs, z,        size, lvl - 1);
+   vol_draw_cantor_dust_box (x       , y + offs, z + offs, size, lvl - 1);
+   vol_draw_cantor_dust_box (x + offs, y + offs, z + offs, size, lvl - 1);
 }
 
 

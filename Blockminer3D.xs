@@ -9,6 +9,7 @@
 #include "world.c"
 #include "world_drawing.c"
 #include "render.c"
+#include "volume_draw.c"
 
 
 unsigned int b3d_cone_sphere_intersect (double cam_x, double cam_y, double cam_z, double cam_v_x, double cam_v_y, double cam_v_z, double cam_fov, double sphere_x, double sphere_y, double sphere_z, double sphere_rad)
@@ -382,3 +383,41 @@ void b3d_world_query_unallocated_chunks (AV *chnkposes);
 void b3d_world_query_setup (int x, int y, int z, int ex, int ey, int ez);
 
 void b3d_world_query_desetup ();
+
+MODULE = Games::Blockminer3D PACKAGE = Games::Blockminer3D::VolDraw PREFIX = vol_draw_
+
+void vol_draw_init ();
+
+void vol_draw_alloc (unsigned int size);
+
+void vol_draw_set_op (unsigned int op);
+
+void vol_draw_swap ();
+
+void vol_draw_src_range (double a, double b);
+
+void vol_draw_val (double val);
+
+void vol_draw_src ();
+
+void vol_draw_sphere_subdiv (float x, float y, float z, float size, float filled, int lvl);
+
+void vol_draw_sphere_surface_subdiv (float x, float y, float z, float size, float thickness, int lvl);
+
+void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, double factor, double persistence);
+
+void vol_draw_menger_sponge_box (float x, float y, float z, float size, int lvl);
+
+void vol_draw_cantor_dust_box (float x, float y, float z, float size, int lvl);
+
+void vol_draw_map_range (float a, float b, float x, float y);
+
+void vol_draw_copy (void *dst_arr)
+  CODE:
+    double *model = dst_arr;
+    int x, y ,z;
+    for (x = 0; x < DRAW_CTX.size; x++)
+      for (y = 0; y < DRAW_CTX.size; y++)
+        for (z = 0; z < DRAW_CTX.size; z++)
+          model[x + y * DRAW_CTX.size + z * DRAW_CTX.size * DRAW_CTX.size]
+             = DRAW_DST(x,y,z);

@@ -58,8 +58,8 @@ sub set_save_cb {
 }
 
 sub set_recalc_cb {
-   my ($o, $lac, $p,  $a, $slen, $sd, $cb) = @_;
-   (@PARAMS) = ($o, $lac, $p, $a, $slen, $sd);
+   my ($slen, $sd, $cb) = @_;
+   (@PARAMS) = ($slen, $sd);
    $RECALC = $cb;
    recalc ();
 }
@@ -201,35 +201,14 @@ sub start_loop {
                   $CARVE_OFFS = -1 * (1 - $CARVE_OFFS);
                }
                update_geometry;
-            } elsif ($name eq 'j') {
+            } elsif ($name eq 'n') {
                $PARAMS[0] += 1;
                recalc ();
-            } elsif ($name eq 'k') {
+            } elsif ($name eq 'm') {
                $PARAMS[0] -= 1;
                recalc ();
-            } elsif ($name eq 'u') {
-               $PARAMS[2] += 0.02;
-               recalc ();
-            } elsif ($name eq 'i') {
-               $PARAMS[2] -= 0.02;
-               recalc ();
-            } elsif ($name eq 'n') {
-               $PARAMS[4] += 1;
-               recalc ();
-            } elsif ($name eq 'm') {
-               $PARAMS[4] -= 1;
-               recalc ();
             } elsif ($name eq 't') {
-               $PARAMS[5] += 1;
-               recalc ();
-            } elsif ($name eq 'g') {
-               $PARAMS[5] -= 1;
-               recalc ();
-            } elsif ($name eq 'o') {
-               $PARAMS[1] += 0.05;
-               recalc ();
-            } elsif ($name eq 'p') {
-               $PARAMS[1] -= 0.05;
+               $PARAMS[1] += 1;
                recalc ();
             } elsif ($name eq 'e') {
                $SAVE_CB->($SIDELEN);
@@ -271,6 +250,7 @@ sub start_loop {
 }
 
 package main;
+use Games::Blockminer3D;
 use Inline C =>
        Config
           => LIBS => "-lm " . `sdl-config --libs`
@@ -278,33 +258,6 @@ use Inline C =>
 use Inline 'C';
 use common::sense;
 use GD;
-
-#sub layer_3d_noise {
-#   my ($cubelen, $octaves, $lac, $persistence, $add, $seed) = @_;
-#
-#   my $n = mk_3d_noise ($cubelen, $seed);
-#
-#   alloc_model ($cubelen);
-#
-#   my $amp_correction;
-#   for (my $i = 0; $i <= $octaves; $i++) {
-#      my $freq = ($lac) ** ($octaves - $i);
-#      my $amp = $persistence ** $i;
-#      $amp_correction += $amp;
-#      warn "freq $freq, amp $amp\n";
-#     add_model_sample_layer ($n, $freq, $amp);
-#   }
-#
-#   #carve_model_menger_sponge_box (0, 0, 0, $cubelen, $cubelen, 3);
-##carve_model_cantor_dust_box (0, 0, 0, $cubelen, $cubelen, 3);
-##yydraw_model_menger_sponge_box (0, 0, 0, $cubelen, $cubelen, 3);
-#draw_model_cantor_dust_box (0, 0, 0, $cubelen, $cubelen, 3);
-#
-#   free_3d_noise ($n);
-#
-#   warn "amp correct $amp_correction\n";
-#   div_model ($amp_correction);
-#}
 
 sub save_model {
    my $slen = shift;
@@ -325,6 +278,7 @@ sub save_model {
    close $f;
    warn "wrote output to $file\n";
 }
+
 sub load_model {
    my ($data) = @_;
    my ($slen, @nums) = split /\s+/, $data;
@@ -342,7 +296,7 @@ sub load_model {
 warn "making 3d noise\n";
 my $cube = $ARGV[1] || 30;
 
-v_vol_draw_init ();
+Games::Blockminer3D::VolDraw::init ();
 renderer::setup;
 init_c_renderer ();
 renderer::set_save_cb (sub { save_model (@_); });
@@ -357,42 +311,56 @@ if ($ARGV[0] eq '-') {
    warn "loaded model from stdin.\n";
 }
 
-renderer::set_recalc_cb (1, 2.0, 0.5, 0.03, $cube, $ARGV[0], sub {
-   my ($oct, $lac, $pers, $add, $cube, $seed) = @_;
+my $edit_file = $ARGV[0];
+
+my $ltime = -M $edit_file;
+
+my $t;
+$t = AE::timer 0, 0.5, sub {
+    my $ntime = -M $edit_file;
+    if ($ltime != $ntime) {
+      my $nt;
+      $nt = AE::timer 0.1, 0, sub {
+        renderer::recalc ();
+        undef $nt;
+      }
+    };
+    $ltime = $ntime;
+};
+
+renderer::set_recalc_cb ($cube, $ARGV[0], sub {
+   my ($cube, $seed) = @_;
    if ($MODEL_DATA) {
       warn "showing model.\n";
       return $MODEL_DATA_SLEN;
    }
 
-   warn "VARS: oct $oct, fact $lac, pers $pers, size $cube, seed $seed\n";
+   warn "VARS: size $cube, seed $seed\n";
 
    alloc_model ($cube);
 
-   v_vol_draw_alloc ($cube);
+   Games::Blockminer3D::VolDraw::alloc ($cube);
 
-   v_vol_draw_set_op (1);
+   if (open my $f, "<", $edit_file) {
+     Games::Blockminer3D::VolDraw::draw_commands (do { local $/; <$f> },
+                                                  { size => $cube, seed => $seed }
+                                                  );
 
-   v_vol_fill_simple_noise_octaves ($seed, $oct, $lac, $pers);
-   v_vol_draw_swap ();
-   v_vol_draw_set_op (4);
-   v_vol_draw_val (1);
-   v_vol_draw_sphere_subdiv (0, 0, 0, $cube, 0.3, 3);
-#  v_vol_draw_set_op (4);
-#   v_vol_draw_src ();
-#   v_vol_draw_set_op (4);
-#   v_vol_draw_model_cantor_dust_box (0, 0, 0, $cube, 3);
+   } else {
+     warn "Couldn't open file: $!\n";
+   }
+#   v_vol_draw_set_op (1);
+#
+#   v_vol_fill_simple_noise_octaves ($seed, $oct, $lac, $pers);
 #   v_vol_draw_swap ();
-#   v_vol_draw_val (0);
-#   v_vol_draw_model_menger_sponge_box (0, 0, 0, $cube, 3);
+#   v_vol_draw_set_op (4);
+#   v_vol_draw_val (1);
+#   v_vol_draw_sphere_subdiv (0, 0, 0, $cube, 0.3, 3);
 
-   fill_model_draw_dst ();
+   my $m = get_model_ptr ();
+   print "NED\n";
+   Games::Blockminer3D::VolDraw::copy ($m);
 
-   #if (int ($lac) <= 0) {
-   #   $lac = 1;
-   #}
-   #warn "calc noise cube size $cube with oct $oct, lac $lac, pers $pers and add $add and seed $seed...\n";
-   #layer_3d_noise ($cube, $oct, $lac, $pers, $add, $seed);
-   #warn "done.\n";
    $cube
 });
 
@@ -412,8 +380,6 @@ static int        vertex_idxs = 0;
 static GLuint dl;
 static dl_dirty = 1;
 #define OFFS(x,y,z) ((x) + (y) * sidelen + (z) * (sidelen * sidelen))
-
-#include "volume_draw.c"
 
 void init_c_renderer ()
 {
@@ -581,66 +547,7 @@ void render_model (int skip_x, int skip_y, int skip_z, double carve)
   printf ("rendered %d vertexes\n", vertex_idxs);
 }
 
-void v_vol_draw_init ()
+void *get_model_ptr ()
 {
-printf ("A\n");
-   vol_draw_init ();
-printf ("b\n");
+  return model;
 }
-
-void v_vol_draw_alloc (unsigned int size)
-{
-   vol_draw_alloc (size);
-}
-
-void v_vol_draw_set_op (unsigned int op)
-{
-   vol_draw_set_op (op);
-}
-
-void v_vol_draw_swap ()
-{
-   vol_draw_swap ();
-}
-
-void v_vol_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, double factor, double persistence)
-{
-   vol_fill_simple_noise_octaves (seed, octaves, factor, persistence);
-}
-
-void v_vol_draw_model_menger_sponge_box (float x, float y, float z, float size, int lvl)
-{
-   vol_draw_model_menger_sponge_box (x, y, z, size, lvl);
-}
-
-void v_vol_draw_model_cantor_dust_box (float x, float y, float z, float size, int lvl)
-{
-   vol_draw_model_cantor_dust_box (x, y, z, size, lvl);
-}
-
-void v_vol_draw_sphere_subdiv (float x, float y, float z, float size, float filled, int lvl)
-{
-  vol_draw_sphere_subdiv (x, y, z, size, filled, lvl);
-}
-
-
-void v_vol_draw_val (double val)
-{
-  vol_draw_val (val);
-}
-
-void v_vol_draw_src ()
-{
-  vol_draw_src ();
-}
-
-void fill_model_draw_dst ()
-{
-  int x, y ,z;
-  for (x = 0; x < sidelen; x++)
-    for (y = 0; y < sidelen; y++)
-      for (z = 0; z < sidelen; z++)
-        model[OFFS(x,y,z)] = DRAW_DST(x,y,z);
-}
-
-

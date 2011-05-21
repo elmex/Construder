@@ -21,7 +21,7 @@ WriteMakefile(
         'Math::Trig'    => 0,
     },
     depend => {
-       "Blockminer3D.c" => "vectorlib.c world.c world_data_struct.c render.c world_drawing.c"
+       "Blockminer3D.c" => "vectorlib.c world.c world_data_struct.c render.c world_drawing.c noise_3d.c volume_draw.c"
     },
     dist                => {
        COMPRESS => 'gzip -9f',
