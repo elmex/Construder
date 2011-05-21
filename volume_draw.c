@@ -295,15 +295,45 @@ void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves
         DRAW_DST(x,y,z) /= amp_correction;
 }
 
+void vol_draw_fill_box (float x, float y, float z, float size)
+{
+  int j, k, l;
+  for (j = 0; j < size; j++)
+    for (k = 0; k < size; k++)
+      for (l = 0; l < size; l++)
+        {
+          int m = 0;
+          int lm = abs (l - (size / 2));
+          int km = abs (k - (size / 2));
+          int jm = abs (j - (size / 2));
+          if (m < lm) m = lm;
+          if (m < km) m = km;
+          if (m < jm) m = jm;
+
+          int dx = x + j,
+              dy = y + k,
+              dz = z + l;
+
+          if (dx >= DRAW_CTX.size
+              || dy >= DRAW_CTX.size
+              || dz >= DRAW_CTX.size)
+            continue;
+
+          double val = (m / (size / 2));
+          double src =
+            DRAW_SRC((unsigned int) dx,
+                     (unsigned int) dy,
+                     (unsigned int) dz);
+
+          vol_draw_op (dx, dy, dz, linerp (val, src, 0.1));
+        }
+}
+
 void vol_draw_menger_sponge_box (float x, float y, float z, float size, int lvl)
 {
   if (lvl == 0)
     {
-      int j, k, l;
-      for (j = 0; j < size; j++)
-        for (k = 0; k < size; k++)
-          for (l = 0; l < size; l++)
-            vol_draw_op (x + j, y + k, z + l, DRAW_SRC((unsigned int) x + j, (unsigned int) y + k, (unsigned int) z + l));
+      vol_draw_fill_box (x, y, z, size);
       return;
     }
 
@@ -334,17 +364,7 @@ void vol_draw_cantor_dust_box (float x, float y, float z, float size, int lvl)
 {
   if (lvl == 0)
     {
-        int j, k, l;
-     for (j = 0; j < size; j++)
-       for (k = 0; k < size; k++)
-         for (l = 0; l < size; l++)
-           {
-             int xi = x + j, yi = y + k, zi = z + l;
-             if (xi >= DRAW_CTX.size || yi >= DRAW_CTX.size || zi >= DRAW_CTX.size)
-               return;
-
-             vol_draw_op (xi, yi, zi, DRAW_SRC(xi, yi, zi));
-           }
+      vol_draw_fill_box (x, y, z, size);
       return;
     }
 
