@@ -51,7 +51,7 @@ sub lerp {
 sub draw_commands {
    my ($str, $env) = @_;
 
-   my (@lines) = grep { not (/^\s*#/) } split /\r?\n/, $str;
+   my (@lines) = map { $_ =~ s/#.*$//; $_ } split /\r?\n/, $str;
    my (@stmts) = map { split /\s*;\s*/, $_ } @lines;
 
 
