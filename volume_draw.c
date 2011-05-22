@@ -124,7 +124,7 @@ void vol_draw_alloc (unsigned int size)
   vol_draw_set_dst_range (0, 1);
   vol_draw_set_src_range (0, 1);
 
-  vol_draw_set_src_blend (0);
+  vol_draw_set_src_blend (1);
 
   vol_draw_set_op (VOL_DRAW_SET);
 }
@@ -212,6 +212,10 @@ void vol_draw_map_range (float a, float b, float j, float k)
       b = a;
     }
 
+  double range = b - a;
+  if (range <= 0.00001)
+    range = 1;
+
   int x, y, z;
   for (z = 0; z < DRAW_CTX.size; z++)
     for (y = 0; y < DRAW_CTX.size; y++)
@@ -220,8 +224,9 @@ void vol_draw_map_range (float a, float b, float j, float k)
           double v = DRAW_DST(x, y, z);
           if (v >= a && v <= b)
             {
-              v = linerp (j, k, v - a);
-              DRAW_DST(x, y, z) = v;
+              v -= a;
+              v /= range;
+              DRAW_DST(x, y, z) = linerp (j, k, v);
             }
         }
 }

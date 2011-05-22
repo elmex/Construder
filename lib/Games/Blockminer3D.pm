@@ -59,7 +59,7 @@ sub draw_commands {
 # ; erlauben
 # zeichenpuffer direkt "selecten"
    for (@stmts) {
-      s/^\s+//;
+      s/^\s+(.*?)\s*$/$1/;
       next if $_ eq '';
 
       my ($cmd, @arg) = split /\s+/, $_;
@@ -73,11 +73,24 @@ sub draw_commands {
       if ($cmd eq 'mode') {
          set_op ($OPS{$arg[0]});
 
-      } elsif ($cmd eq 'dst') { # set destination buffer (0..3)
-         set_dst ($arg[0]);
+      } elsif ($cmd eq 'end') {
+         last;
 
-      } elsif ($cmd eq 'src') { # set source buffer (0..3)
+      } elsif ($cmd eq 'src_dst') { # set source and destination buffer (0..3)
          set_src ($arg[0]);
+         set_dst ($arg[1]);
+
+      } elsif ($cmd eq 'dst_range') {
+         # set modifiable range of destination buffer
+         $arg[0] = 0 unless $arg[0] ne '';
+         $arg[1] = 0 unless $arg[1] ne '';
+         set_dst_range ($arg[0], $arg[1]);
+
+      } elsif ($cmd eq 'src_range') {
+         # set range of source color to draw with
+         $arg[0] = 0 unless $arg[0] ne '';
+         $arg[1] = 0 unless $arg[1] ne '';
+         set_src_range ($arg[0], $arg[1]);
 
       } elsif ($cmd eq 'src_blend') {
          # amount with which source will be blended,
@@ -115,18 +128,6 @@ sub draw_commands {
       } elsif ($cmd eq 'map_range') {
          # map range of destionation buffer
          map_range ($arg[0], $arg[1], $arg[2], $arg[3]);
-
-      } elsif ($cmd eq 'dst_range') {
-         # set modifiable range of destination buffer
-         $arg[0] = 0 unless $arg[0] ne '';
-         $arg[1] = 0 unless $arg[1] ne '';
-         set_dst_range ($arg[0], $arg[1]);
-
-      } elsif ($cmd eq 'src_range') {
-         # set range of source color to draw with
-         $arg[0] = 0 unless $arg[0] ne '';
-         $arg[1] = 0 unless $arg[1] ne '';
-         set_src_range ($arg[0], $arg[1]);
 
       } else {
          warn "unknown draw command: $_\n";
