@@ -43,6 +43,11 @@ my %OPS = (
    set_if_1 => 6,
 );
 
+sub lerp {
+   my ($a, $b, $x) = @_;
+   $a * (1 - $x) + $b * $x
+}
+
 sub draw_commands {
    my ($str, $env) = @_;
 
@@ -60,8 +65,8 @@ sub draw_commands {
       my ($cmd, @arg) = split /\s+/, $_;
 
       (@arg) = map {
-            $_ =~ /P([+-]?\d+(?:\.\d+)?)/
-               ? $1 * $env->{param}
+            $_ =~ /P([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)/
+               ? lerp ($1, $2, $env->{param})
                : ($_ eq 'P' ?  $env->{param} : $_)
       } @arg;
 
@@ -71,34 +76,41 @@ sub draw_commands {
       } elsif ($cmd eq 'dst') { # set destination buffer (0..3)
          set_dst ($arg[0]);
 
-      } elsif ($cmd eq 'src') {
+      } elsif ($cmd eq 'src') { # set source buffer (0..3)
          set_src ($arg[0]);
 
+      } elsif ($cmd eq 'src_blend') {
+         # amount with which source will be blended,
+         # negative amount will invert the drawn colors
+         $arg[0] = 1 unless $arg[0] ne '';
+         set_src_blend ($arg[0]);
+
       } elsif ($cmd eq 'fill') {
-         # fill with either color or source buffer
+         # fill with either color or
+         # draw destination buffer over itself (allows blending with src_blend)
          if ($arg[0] ne '') {
             val ($arg[0]);
          } else {
-            src ();
+            dst_self ();
          }
-
-      } elsif ($cmd eq 'spheres') {
-         # draw spheres
-         # spheres <recursion-cnt> <src blend & gradient direction>
-         sphere_subdiv (0, 0, 0, $env->{size}, $arg[1], $arg[0]);
 
       } elsif ($cmd eq 'fill_noise') {
          # fill destination with noise
          # fill_noise <octaves> <scale factor> <persistence> <seed offset>
          fill_simple_noise_octaves ($env->{seed} + $arg[3], $arg[0], $arg[1], $arg[2]);
 
+      } elsif ($cmd eq 'spheres') {
+         # draw spheres
+         # spheres <recursion-cnt>
+         sphere_subdiv (0, 0, 0, $env->{size}, $arg[0]);
+
       } elsif ($cmd eq 'menger_sponge') {
          # draw menger sponge <level> <src blend & gradient direction>
-         menger_sponge_box (0, 0, 0, $env->{size}, $arg[1], $arg[0]);
+         menger_sponge_box (0, 0, 0, $env->{size}, $arg[0]);
 
       } elsif ($cmd eq 'cantor_dust') {
          # draw cantor dust <level> <src blend & gradient direction>
-         cantor_dust_box (0, 0, 0, $env->{size}, $arg[1], $arg[0]);
+         cantor_dust_box (0, 0, 0, $env->{size}, $arg[0]);
 
       } elsif ($cmd eq 'map_range') {
          # map range of destionation buffer
@@ -106,10 +118,14 @@ sub draw_commands {
 
       } elsif ($cmd eq 'dst_range') {
          # set modifiable range of destination buffer
+         $arg[0] = 0 unless $arg[0] ne '';
+         $arg[1] = 0 unless $arg[1] ne '';
          set_dst_range ($arg[0], $arg[1]);
 
       } elsif ($cmd eq 'src_range') {
          # set range of source color to draw with
+         $arg[0] = 0 unless $arg[0] ne '';
+         $arg[1] = 0 unless $arg[1] ne '';
          set_src_range ($arg[0], $arg[1]);
 
       } else {

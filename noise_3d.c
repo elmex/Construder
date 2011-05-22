@@ -83,6 +83,9 @@ unsigned long sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, u
 {
    unsigned long *noise_3d = noise;
 
+   if (scale <= 0)
+     return 0;
+
    // reduces the sampling scale, higher "scale" means less
    // points from noise are looked at and more interpolation
 

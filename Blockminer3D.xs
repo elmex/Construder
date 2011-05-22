@@ -400,17 +400,19 @@ void vol_draw_set_dst_range (double a, double b);
 
 void vol_draw_set_src_range (double a, double b);
 
+void vol_draw_set_src_blend (double r);
+
 void vol_draw_val (double val);
 
-void vol_draw_src ();
+void vol_draw_dst_self ();
 
-void vol_draw_sphere_subdiv (float x, float y, float z, float size, float filled, int lvl);
+void vol_draw_sphere_subdiv (float x, float y, float z, float size, int lvl);
 
 void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, double factor, double persistence);
 
-void vol_draw_menger_sponge_box (float x, float y, float z, float size, float filled, int lvl);
+void vol_draw_menger_sponge_box (float x, float y, float z, float size, int lvl);
 
-void vol_draw_cantor_dust_box (float x, float y, float z, float size, float filled, int lvl);
+void vol_draw_cantor_dust_box (float x, float y, float z, float size, int lvl);
 
 void vol_draw_map_range (float a, float b, float x, float y);
 

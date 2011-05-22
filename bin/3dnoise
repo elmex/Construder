@@ -214,10 +214,12 @@ sub start_loop {
                $PARAMS[1] -= 1;
                recalc ();
             } elsif ($name eq 'u') {
-               $PARAMS[2] += 0.01;
+               $PARAMS[2] += 0.05;
+               $PARAMS[2] = 1 if $PARAMS[2] > 1;
                recalc ();
             } elsif ($name eq 'i') {
-               $PARAMS[2] -= 0.01;
+               $PARAMS[2] -= 0.05;
+               $PARAMS[2] = 0 if $PARAMS[2] < 0;
                recalc ();
             } elsif ($name eq 'e') {
                $SAVE_CB->($SIDELEN);
