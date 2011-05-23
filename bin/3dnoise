@@ -262,10 +262,11 @@ sub start_loop {
 
 package main;
 use Games::Blockminer3D;
+use Alien::SDL;
 use Inline C =>
        Config
-          => LIBS => "-lm " . `sdl-config --libs`
-          => INC => `sdl-config --cflags`;
+          => LIBS => Alien::SDL->config ('libs') . ' -lm', #"-lm " . `sdl-config --libs`
+          => INC  => Alien::SDL->config ('cflags');#`sdl-config --cflags`;
 use Inline 'C';
 use common::sense;
 use GD;

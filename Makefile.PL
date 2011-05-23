@@ -19,6 +19,7 @@ WriteMakefile(
         'OpenGL::List'  => 0,
         'SDL'           => 0,
         'Math::Trig'    => 0,
+        'Compress::LZF' => 0,
     },
     depend => {
        "Blockminer3D.c" => "vectorlib.c world.c world_data_struct.c render.c world_drawing.c noise_3d.c volume_draw.c"
