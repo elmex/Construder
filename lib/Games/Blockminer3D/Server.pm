@@ -50,7 +50,6 @@ sub init {
 
    $RES = Games::Blockminer3D::Server::Resources->new;
    $RES->init_directories;
-   $RES->load_objects;
 
    $CHNK = Games::Blockminer3D::Server::ChunkManager->new;
    $CHNK->init;
@@ -76,13 +75,15 @@ sub init {
       my ($x, $y, $z, $action, $offsetid) = @_;
       # $action   => remove (-1), add (1), undefined (0/undef)
       # $offsetid => id des objekts
-      warn "CHUNK CHANGED (@_)\n";
+#d# warn "CHUNK CHANGED (@_)\n";
       $CHNK->chunk_changed (@_);
       my $chnk = [@_];
       for (values %{$self->{players}}) {
          $_->chunk_updated ($chnk);
       }
    });
+
+   $RES->load_objects;
 }
 
 sub listen {
@@ -119,7 +120,9 @@ sub handle_protocol {
 sub send_client {
    my ($self, $cid, $hdr, $body) = @_;
    $self->{clients}->{$cid}->push_write (packstring => "N", packet2data ($hdr, $body));
-   warn "srv($cid)> $hdr->{cmd}\n";
+   if (!grep { $hdr->{cmd} eq $_ } qw/chunk activate_ui/) {
+      warn "srv($cid)> $hdr->{cmd}\n";
+   }
 }
 
 sub transfer_res2client {
@@ -199,7 +202,9 @@ sub handle_player_packet : event_cb {
 sub handle_packet : event_cb {
    my ($self, $cid, $hdr, $body) = @_;
 
-   warn "srv($cid)< $hdr->{cmd}\n";
+   if ($hdr->{cmd} ne 'player_pos') {
+      warn "srv($cid)< $hdr->{cmd}\n";
+   }
 
    if ($hdr->{cmd} eq 'hello') {
       $self->send_client ($cid,

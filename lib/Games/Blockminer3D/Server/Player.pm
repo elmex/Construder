@@ -241,10 +241,23 @@ sub update_hud_1 {
          {
             type => "text", extents => ["left", 0.02, 0.03, "font_height"],
             font => "small", color => "#ffffff",
-            text => "Pos:" . sprintf ("%3.2f/%3.2f/%3.2f", @{$self->{pos}})
+            text => "Pos    " . sprintf ("%3.2f,%3.2f,%3.2f", @{vfloor ($self->{pos})})
          },
          {
-            type => "text", extents => ["left", "bottom_of 0", 0.03, 1],
+            type => "text", extents => ["left", "bottom_of 0", 0.03, "font_height"],
+            font => "small", color => "#ffffff",
+            text => "Chunk  " . sprintf ("%3d,%3d,%3d",
+                                      @{world_pos2chnkpos ($self->{pos})})
+         },
+         {
+            type => "text", extents => ["left", "bottom_of 1", 0.03, "font_height"],
+            font => "small", color => "#ffffff",
+            text => "Sector " . sprintf ("%3d,%3d,%3d",
+                                      @{world_chnkpos2secpos (
+                                           world_pos2chnkpos ($self->{pos}))})
+         },
+         {
+            type => "text", extents => ["left", "bottom_of 2", 0.03, 1],
             font => "small", color => "#ff0000",
             text => "(Press F1 for Help)"
          },
@@ -381,7 +394,7 @@ sub start_materialize {
    $tmr = AE::timer 1, 0, sub {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
-         $data->[0] = 2;
+         $data->[0] = 40;
          delete $self->{materializings}->{$id};
          undef $tmr;
          return 1;

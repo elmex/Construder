@@ -3,7 +3,8 @@
 #include "vectorlib.c"
 #include <assert.h>
 
-#define CHUNK_SIZE 12
+#define CHUNK_SIZE      12
+#define CHUNKS_P_SECTOR  5
 #define CHUNK_ALEN (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE)
 #define POSSIBLE_OBJECTS 4096 // this is the max number of different object types!
 #define MAX_MODEL_DIM   4
@@ -35,6 +36,7 @@ typedef struct _b3d_cell {
 typedef struct _b3d_chunk {
     int x, y, z;
     b3d_cell cells[CHUNK_ALEN];
+    int dirty;
 } b3d_chunk;
 
 typedef struct _b3d_world {

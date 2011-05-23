@@ -200,6 +200,14 @@ b3d_render_model (unsigned int type, double light, unsigned int xo, unsigned int
         }
 }
 
+double b3d_cell_light (b3d_cell *c)
+{
+  double light = (double) c->light / 15;
+  if (light < 0.1)
+    light = 0.1;
+  return light;
+}
+
 void
 b3d_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
 {
@@ -224,8 +232,10 @@ b3d_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
           b3d_obj_attr *oa = b3d_world_get_attr (cur->type);
           if (oa->model)
             {
+
+
               b3d_render_model (
-                cur->type, (double) cur->light / 15, ix, iy, iz,
+                cur->type, b3d_cell_light (cur), ix, iy, iz,
                 vertex, color, tex);
               continue;
             }
@@ -234,27 +244,27 @@ b3d_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
 
           if (b3d_world_cell_transparent (front))
             b3d_render_add_face (
-              0, cur->type, (double) front->light / 15, ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+              0, cur->type, b3d_cell_light (front), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
 
           if (b3d_world_cell_transparent (top))
             b3d_render_add_face (
-              1, cur->type, (double) top->light / 15, ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+              1, cur->type, b3d_cell_light (top), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
 
           if (b3d_world_cell_transparent (back))
             b3d_render_add_face (
-              2, cur->type, (double) back->light / 15, ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+              2, cur->type, b3d_cell_light (back), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
 
           if (b3d_world_cell_transparent (left))
             b3d_render_add_face (
-              3, cur->type, (double) left->light / 15, ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+              3, cur->type, b3d_cell_light (left), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
 
           if (b3d_world_cell_transparent (right))
             b3d_render_add_face (
-              4, cur->type, (double) right->light / 15, ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+              4, cur->type, b3d_cell_light (right), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
 
           if (b3d_world_cell_transparent (bot))
             b3d_render_add_face (
-              5, cur->type, (double) bot->light / 15, ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+              5, cur->type, b3d_cell_light (bot), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
         }
 
   return;

@@ -5,6 +5,7 @@ use Games::Blockminer3D::Vector;
 use JSON;
 use AnyEvent::Util;
 use Time::HiRes qw/time/;
+use Carp qw/confess/;
 
 =head1 NAME
 
@@ -22,6 +23,7 @@ Games::Blockminer3D::Server::ChunkManager - desc
 
 =cut
 
+our $CHUNK_SIZE = 12;
 our $CHUNKS_P_SECTOR = 5;
 
 sub new {
@@ -71,51 +73,34 @@ sub check_adjacent_sectors_at {
 sub make_sector {
    my ($self, $sec) = @_;
 
-   my $chnk = world_secpos2chnkpos ($sec);
-   Games::Blockminer3D::World::query_setup (
-      $chnk->[0],
-      $chnk->[1],
-      $chnk->[2],
-      $chnk->[0] + ($CHUNKS_P_SECTOR - 1),
-      $chnk->[1] + ($CHUNKS_P_SECTOR - 1),
-      $chnk->[2] + ($CHUNKS_P_SECTOR - 1)
+   warn "Create sector @$sec\n";
+
+   my $cube = $CHUNKS_P_SECTOR * $CHUNK_SIZE;
+   Games::Blockminer3D::VolDraw::alloc ($cube);
+
+   Games::Blockminer3D::VolDraw::draw_commands (
+      q{
+        fill_noise 4 2 0.3
+        map_range 0.6 1 0 0.2
+      },
+     { size => $cube, seed => 1, param => 1 }
    );
-   Games::Blockminer3D::World::query_load_chunks ();
 
-   my $center = [12 * 2, 12 * 2, 12 * 2];
-
-   my @types = (2..8);
-   for my $x (0..(12 * 5 - 1)) {
-      for my $y (0..(12 * 5 - 1)) {
-         for my $z (0..(12 * 5 - 1)) {
-
-            my $cur = [$x, $y, $z];
-            my $l = vlength (vsub ($cur, $center));
-            if ($x == 36 || $y == 36 || $z == 36 || ($l > 20 && $l < 21)) {
-               my $t = [13, int rand (16)];
-               Games::Blockminer3D::World::query_set_at (
-                  $x, $y, $z, $t
-               );
-            } else {
-               Games::Blockminer3D::World::query_set_at (
-                  $x, $y, $z,
-                  [(rand (1000) > 990 ? 90 : 0),int rand (16)]
-               );
-            }
-         }
-      }
-   }
-
-   Games::Blockminer3D::World::query_desetup ();
+   Games::Blockminer3D::VolDraw::dst_to_world (@$sec);
 
    $self->{sector}->{world_pos2id ($sec)} = { created => time };
    $self->save_sector ($sec);
+
+   Games::Blockminer3D::World::query_desetup ();
 }
 
 sub chunk_changed {
    my ($self, $x, $y, $z) = @_;
    my $sec = world_chnkpos2secpos ([$x, $y, $z]);
    my $id  = world_pos2id ($sec);
+   unless (exists $self->{sector}->{$id}) {
+      confess "Sector which is not loaded was updated! (chunk $x,$y,$z [@$sec]) $id\n";
+   }
    $self->{sector}->{$id}->{dirty} = 1;
    push @{$self->{save_sectors}}, [$id, $sec];
 }

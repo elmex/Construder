@@ -2,6 +2,7 @@ package Games::Blockminer3D::Server::World;
 use common::sense;
 use Games::Blockminer3D::Vector;
 use Games::Blockminer3D;
+use Time::HiRes qw/time/;
 
 require Exporter;
 our @ISA = qw/Exporter/;
@@ -47,15 +48,16 @@ sub world_pos2chnkpos {
 }
 
 sub world_chnkpos2secpos {
-   my $unadj_sec = vfloor (vsdiv ($_[0], $CHNKS_P_SEC));
-   my $offs = ($unadj_sec->[1] % 3);
-   my $nchnk = vaddd ($_[0], $offs, 0, $offs);
-   vfloor (vsdiv ($nchnk, $CHNKS_P_SEC))
+#  my $unadj_sec = vfloor (vsdiv ($_[0], $CHNKS_P_SEC));
+#  my $offs = ($unadj_sec->[1] % 3);
+#  my $nchnk = vaddd ($_[0], $offs, 0, $offs);
+   vfloor (vsdiv ($_[0], $CHNKS_P_SEC))
 }
 
 sub world_secpos2chnkpos {
    my $chnk = vsmul ($_[0], $CHNKS_P_SEC);
-   vsubd ($chnk, $_[0]->[1] % 3, 0, $_[0]->[1] % 3)
+#  vsubd ($chnk, $_[0]->[1] % 3, 0, $_[0]->[1] % 3)
+   $chnk
 }
 
 
@@ -83,6 +85,11 @@ sub world_mutate_at {
       Games::Blockminer3D::World::query_set_at (@$relpos, $b);
    }
 
+   Games::Blockminer3D::World::query_desetup ();
+
+   my $t1 = time;
+   Games::Blockminer3D::World::update_light_at (@{vfloor ($pos)}, 12);
+   printf "light calc took: %f\n", time - $t1;
    Games::Blockminer3D::World::query_desetup ();
 }
 

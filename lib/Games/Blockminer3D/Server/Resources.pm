@@ -124,6 +124,14 @@ sub load_object {
       }
    });
 
+   print "Set object type $obj->{type}\n";
+   Games::Blockminer3D::World::set_object_type (
+      $obj->{type},
+      ($obj->{type} == 0 || defined $obj->{model} ? 1 : 0),
+      $obj->{type} != 0,
+      0,0,0,0 # uv coors dont care!
+   );
+
    $self->{object_res}->{$obj->{type}} = $obj;
 }
 
@@ -179,6 +187,12 @@ sub get_resources_by_id {
 
 sub loaded_objects : event_cb {
    my ($self) = @_;
+
+   Games::Blockminer3D::World::set_object_type (
+      0, 1, 0, 0,
+      0, 0, 0
+   );
+
    print "loadded objects:\n" . JSON->new->pretty->encode ($self->{objects}) . "\n";
 }
 

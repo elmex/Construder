@@ -13,19 +13,31 @@ typedef struct _b3d_world_query {
 
 static b3d_world_query QUERY_CONTEXT;
 
-void b3d_world_query_desetup ()
+void b3d_world_query_desetup (int no_update)
 {
-  int x, y, z;
-  for (z = 0; z < QUERY_CONTEXT.x_w; z++)
-    for (y = 0; y < QUERY_CONTEXT.y_w; y++)
-      for (x = 0; x < QUERY_CONTEXT.z_w; x++)
-        {
-          // tODO: optimize by dirty flag!
-          b3d_world_emit_chunk_change (
-            x + QUERY_CONTEXT.chnk_x,
-            y + QUERY_CONTEXT.chnk_y,
-            z + QUERY_CONTEXT.chnk_z);
-        }
+  if (!no_update)
+    {
+      int cnt = 0;
+      int x, y, z;
+      for (z = 0; z < QUERY_CONTEXT.x_w; z++)
+        for (y = 0; y < QUERY_CONTEXT.y_w; y++)
+          for (x = 0; x < QUERY_CONTEXT.z_w; x++)
+            {
+              b3d_chunk *chnk = QUERY_CHUNK(x, y, z);
+              if (!chnk->dirty)
+                continue;
+
+              chnk->dirty = 0;
+              cnt++;
+
+              // tODO: optimize by dirty flag!
+              b3d_world_emit_chunk_change (
+                x + QUERY_CONTEXT.chnk_x,
+                y + QUERY_CONTEXT.chnk_y,
+                z + QUERY_CONTEXT.chnk_z);
+            }
+      printf ("%d chunk DIRTY at desetup.\n", cnt);
+    }
   QUERY_CONTEXT.loaded = 0;
 }
 
@@ -57,6 +69,7 @@ void b3d_world_query_unallocated_chunks (AV *chnkposes)
       for (x = QUERY_CONTEXT.chnk_x; x <= QUERY_CONTEXT.end_chnk_x; x++)
         {
           b3d_chunk *chnk = b3d_world_chunk (x, y, z, 0);
+
           if (!chnk)
             {
               av_push (chnkposes, newSViv (x));
@@ -76,12 +89,13 @@ void b3d_world_query_load_chunks ()
           int ox = x - QUERY_CONTEXT.chnk_x;
           int oy = y - QUERY_CONTEXT.chnk_y;
           int oz = z - QUERY_CONTEXT.chnk_z;
-          QUERY_CHUNK(ox, oy, oz) = b3d_world_chunk (x, y, z, 1);
+          b3d_chunk *c = QUERY_CHUNK(ox, oy, oz) = b3d_world_chunk (x, y, z, 1);
+          c->dirty = 0;
         }
   QUERY_CONTEXT.loaded = 1;
 }
 
-void b3d_world_query_set_at (unsigned int rel_x, unsigned int rel_y, unsigned int rel_z, AV *cell)
+b3d_cell *b3d_world_query_cell_at (unsigned int rel_x, unsigned int rel_y, unsigned int rel_z, int modify)
 {
   int chnk_x = rel_x / CHUNK_SIZE,
       chnk_y = rel_y / CHUNK_SIZE,
@@ -93,12 +107,22 @@ void b3d_world_query_set_at (unsigned int rel_x, unsigned int rel_y, unsigned in
   assert (chnk_z < QUERY_CONTEXT.z_w);
 
   b3d_chunk *chnk = QUERY_CHUNK(chnk_x, chnk_y, chnk_z);
+  if (modify)
+    chnk->dirty = 1;
+
   b3d_cell *c =
     b3d_chunk_cell_at_rel (
       chnk,
       rel_x - chnk_x * CHUNK_SIZE,
       rel_y - chnk_y * CHUNK_SIZE,
       rel_z - chnk_z * CHUNK_SIZE);
+
+  return c;
+}
+
+void b3d_world_query_set_at_pl (unsigned int rel_x, unsigned int rel_y, unsigned int rel_z, AV *cell)
+{
+  b3d_cell *c = b3d_world_query_cell_at (rel_x, rel_y, rel_z, 1);
 
   SV **t = av_fetch (cell, 0, 0);
   if (t) c->type = SvIV (*t);

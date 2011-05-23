@@ -202,7 +202,6 @@ void b3d_world_set_chunk_data (int x, int y, int z, unsigned char *data, unsigne
     b3d_chunk *chnk = b3d_world_chunk (x, y, z, 1);
     assert (chnk);
     b3d_world_set_chunk_from_data (chnk, data, len);
-    printf ("SET CHUNK FROM DATA %d %d %d\n", x, y, z);
     int lenc = (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) * 4;
     if (lenc != len)
       {
@@ -376,13 +375,93 @@ b3d_world_test_binsearch ()
 
 void b3d_world_query_load_chunks ();
 
-void b3d_world_query_set_at (unsigned int rel_x, unsigned int rel_y, unsigned int rel_z, AV *cell);
+void b3d_world_query_set_at (unsigned int rel_x, unsigned int rel_y, unsigned int rel_z, AV *cell)
+  CODE:
+    b3d_world_query_set_at_pl (rel_x, rel_y, rel_z, cell);
 
 void b3d_world_query_unallocated_chunks (AV *chnkposes);
 
 void b3d_world_query_setup (int x, int y, int z, int ex, int ey, int ez);
 
-void b3d_world_query_desetup ();
+void b3d_world_query_desetup (int no_update = 0);
+
+void b3d_world_update_light_at (int rx, int ry, int rz, int r)
+  CODE:
+    vec3_init (pos, rx, ry, rz);
+    vec3_s_div (pos, CHUNK_SIZE);
+    vec3_floor (pos);
+    int chnk_x = pos[0],
+        chnk_y = pos[1],
+        chnk_z = pos[2];
+
+    printf ("UPDATE LIGHT %d %d %d +- 2\n", chnk_x, chnk_y, chnk_z);
+
+    b3d_world_query_setup (
+      chnk_x - 1, chnk_y - 1, chnk_z - 1,
+      chnk_x + 1, chnk_y + 1, chnk_z + 1
+    );
+
+    b3d_world_query_load_chunks ();
+
+    // no concentration: do simple approach here and benchmark!
+    // alternative to date is only per-light-radius update once
+    // (which might not work properly either)
+    int c = (CHUNK_SIZE * 3) / 2;
+    int cx = (rx - chnk_x * CHUNK_SIZE) + CHUNK_SIZE;
+    int cy = (ry - chnk_y * CHUNK_SIZE) + CHUNK_SIZE;
+    int cz = (rz - chnk_z * CHUNK_SIZE) + CHUNK_SIZE;
+    int i;
+    r -= 1;
+    for (i = 0; i <= r; i++)
+      {
+        int x, y, z;
+        for (x = cx - r; x <= cx + r; x++)
+          for (y = cy - r; y <= cy + r; y++)
+            for (z = cz - r; z <= cz + r; z++)
+              {
+                b3d_cell *cur = b3d_world_query_cell_at (x, y, z, 1);
+
+                if (i == 0)
+                  {
+                    if (cur->type == 40) // flood light
+                      cur->light = r + 1;
+                    else
+                      cur->light = 0;
+                  }
+                else
+                  {
+                    if (!b3d_world_cell_transparent (cur))
+                      continue;
+
+                    b3d_cell *above = b3d_world_query_cell_at (x, y + 1, z, 0);
+                    b3d_cell *below = b3d_world_query_cell_at (x, y - 1, z, 0);
+                    b3d_cell *left  = b3d_world_query_cell_at (x - 1, y, z, 0);
+                    b3d_cell *right = b3d_world_query_cell_at (x + 1, y, z, 0);
+                    b3d_cell *front = b3d_world_query_cell_at (x, y, z - 1, 0);
+                    b3d_cell *back  = b3d_world_query_cell_at (x, y, z + 1, 0);
+
+                    int ml = above->light;
+                    if (below->light > ml)
+                      ml = below->light;
+                    if (left->light > ml)
+                      ml = left->light;
+                    if (right->light > ml)
+                      ml = right->light;
+                    if (front->light > ml)
+                      ml = front->light;
+                    if (back->light > ml)
+                      ml = back->light;
+
+                    if (ml <= 0)
+                      continue;
+
+                    if (cur->light < ml)
+                      cur->light = ml - 1;
+                  }
+              }
+      }
+
+ //   b3d_world_query_desetup ();
 
 MODULE = Games::Blockminer3D PACKAGE = Games::Blockminer3D::VolDraw PREFIX = vol_draw_
 
@@ -425,3 +504,28 @@ void vol_draw_copy (void *dst_arr)
         for (z = 0; z < DRAW_CTX.size; z++)
           model[x + y * DRAW_CTX.size + z * DRAW_CTX.size * DRAW_CTX.size]
              = DRAW_DST(x,y,z);
+
+void vol_draw_dst_to_world (int sector_x, int sector_y, int sector_z)
+  CODE:
+    int cx = sector_x * CHUNKS_P_SECTOR,
+        cy = sector_y * CHUNKS_P_SECTOR,
+        cz = sector_z * CHUNKS_P_SECTOR;
+
+    b3d_world_query_setup (
+      cx, cy, cz,
+      cx + (CHUNKS_P_SECTOR - 1),
+      cy + (CHUNKS_P_SECTOR - 1),
+      cz + (CHUNKS_P_SECTOR - 1)
+    );
+
+    b3d_world_query_load_chunks ();
+    int x, y, z;
+    for (x = 0; x < DRAW_CTX.size; x++)
+      for (y = 0; y < DRAW_CTX.size; y++)
+        for (z = 0; z < DRAW_CTX.size; z++)
+          {
+            b3d_cell *cur = b3d_world_query_cell_at (x, y, z, 1);
+            double v = DRAW_DST(x, y, z);
+            if (v > 0.5)
+              cur->type = 2;
+          }
