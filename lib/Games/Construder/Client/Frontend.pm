@@ -115,13 +115,13 @@ sub init_app {
    glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
    glEnable (GL_TEXTURE_2D);
    glEnable (GL_FOG);
-   glClearColor (0.5,0.5,0.5,1);
+   glClearColor (0.15,0.15,0.15,1);
    glClearDepth (1.0);
    glShadeModel (GL_FLAT);
 
    glFogi (GL_FOG_MODE, GL_LINEAR);
-   glFogfv_p (GL_FOG_COLOR, 0.5, 0.5, 0.5, 1);
-   glFogf (GL_FOG_DENSITY, 0.35);
+   glFogfv_p (GL_FOG_COLOR, 0.15, 0.15, 0.15, 1);
+   glFogf (GL_FOG_DENSITY, 0.45);
    glHint (GL_FOG_HINT, GL_FASTEST);
    glFogf (GL_FOG_START, 10);
    glFogf (GL_FOG_END,   29);

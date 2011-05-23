@@ -203,8 +203,8 @@ ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int
 double ctr_cell_light (ctr_cell *c)
 {
   double light = (double) c->light / 15;
-  if (light < 0.15)
-    light = 0.15;
+  if (light < 0.1)
+    light = 0.1;
   return light;
 }
 
