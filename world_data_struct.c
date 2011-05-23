@@ -32,7 +32,7 @@ void b3d_axis_array_grow (b3d_axis_array *arr, unsigned int min_size)
   b3d_axis_node *newnodes = malloc (sizeof (b3d_axis_node) * arr->alloc);
   assert (newnodes);
   memset (newnodes, 0, sizeof (b3d_axis_node) * arr->alloc);
-  memcpy (newnodes, arr->nodes, sizeof (b3d_axis_node) * arr->alloc);
+  memcpy (newnodes, arr->nodes, sizeof (b3d_axis_node) * oa);
   free (arr->nodes);
   arr->nodes = newnodes;
 }
@@ -40,6 +40,8 @@ void b3d_axis_array_grow (b3d_axis_array *arr, unsigned int min_size)
 b3d_axis_array *b3d_axis_array_new ()
 {
   b3d_axis_array *na = malloc (sizeof (b3d_axis_array));
+  memset (na, 0, sizeof (b3d_axis_array));
+  na->len = 0;
   na->alloc = 0;
   b3d_axis_array_grow (na, 1);
   return na;
@@ -56,8 +58,10 @@ void b3d_axis_array_dump (b3d_axis_array *arr)
 
 void b3d_axis_array_insert_at (b3d_axis_array *arr, unsigned int idx, int coord, void *ptr)
 {
-  if (idx >= arr->alloc)
-    b3d_axis_array_grow (arr, idx + 1);
+  if ((arr->len + 1) >= arr->alloc)
+    b3d_axis_array_grow (arr, arr->len + 1);
+
+  assert (arr->alloc >= arr->len + 1);
 
   b3d_axis_node *an = 0;
   if (arr->len > idx)
@@ -71,6 +75,7 @@ void b3d_axis_array_insert_at (b3d_axis_array *arr, unsigned int idx, int coord,
       // 5      1, 2, 10     tl:?, tl:?, tl:5
       // 10     1, 2, 10
 
+      printf ("insert_at %d %d %d %d\n", arr->alloc, arr->len, idx, tail_len);
       memmove (arr->nodes + idx + 1, arr->nodes + idx,
                sizeof (b3d_axis_node) * tail_len);
     }
