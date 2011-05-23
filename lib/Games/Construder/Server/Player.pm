@@ -1,15 +1,15 @@
-package Games::Blockminer3D::Server::Player;
+package Games::Construder::Server::Player;
 use common::sense;
 use AnyEvent;
-use Games::Blockminer3D::Server::World;
-use Games::Blockminer3D::Vector;
+use Games::Construder::Server::World;
+use Games::Construder::Vector;
 use base qw/Object::Event/;
 use Scalar::Util qw/weaken/;
 use Compress::LZF;
 
 =head1 NAME
 
-Games::Blockminer3D::Server::Player - desc
+Games::Construder::Server::Player - desc
 
 =head1 SYNOPSIS
 
@@ -19,7 +19,7 @@ Games::Blockminer3D::Server::Player - desc
 
 =over 4
 
-=item my $obj = Games::Blockminer3D::Server::Player->new (%args)
+=item my $obj = Games::Construder::Server::Player->new (%args)
 
 =cut
 
@@ -39,7 +39,7 @@ sub new {
 
 sub _check_file {
    my ($self) = @_;
-   my $pld = $Games::Blockminer3D::Server::Resources::PLAYERDIR;
+   my $pld = $Games::Construder::Server::Resources::PLAYERDIR;
    my $file = "$pld/$self->{name}.json";
    return unless -e "$file";
 
@@ -87,7 +87,7 @@ sub load {
 sub save {
    my ($self) = @_;
    my $cont = JSON->new->pretty->utf8->encode ($self->{data});
-   my $pld = $Games::Blockminer3D::Server::Resources::PLAYERDIR;
+   my $pld = $Games::Construder::Server::Resources::PLAYERDIR;
    my $file = "$pld/$self->{name}.json";
 
    if (open my $plf, ">", "$file~") {
@@ -223,7 +223,7 @@ sub send_chunk {
    # only send chunk when allcoated, in all other cases the chunk will
    # be sent by the chunk_changed-callback by the server (when it checks
    # whether any player might be interested in that chunk).
-   my $data = Games::Blockminer3D::World::get_chunk_data (@$chnk);
+   my $data = Games::Construder::World::get_chunk_data (@$chnk);
    return unless defined $data;
    $self->send_client ({ cmd => "chunk", pos => $chnk }, compress ($data));
 }
@@ -278,7 +278,7 @@ sub show_inventory {
    my ($self) = @_;
 
    my @listing;
-   my $res = $Games::Blockminer3D::Server::RES;
+   my $res = $Games::Construder::Server::RES;
    for (keys %{$self->{inventory}->{material}}) {
       my $m = $self->{inventory}->{material}->{$_};
       my $o = $res->get_object_by_type ($_);
@@ -419,7 +419,7 @@ sub start_dematerialize {
    $tmr = AE::timer 1.5, 0, sub {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
-         my $obj = $Games::Blockminer3D::Server::RES->get_object_by_type ($data->[0]);
+         my $obj = $Games::Construder::Server::RES->get_object_by_type ($data->[0]);
          my $succ = 0;
          unless ($obj->{untransformable}) {
             $self->{data}->{inventory}->{material}->{$data->[0]}++;

@@ -1,16 +1,16 @@
-typedef struct _b3d_axis_node {
+typedef struct _ctr_axis_node {
     int coord;
     void *ptr;
-} b3d_axis_node;
+} ctr_axis_node;
 
-typedef struct _b3d_axis_array {
-   b3d_axis_node *nodes;
+typedef struct _ctr_axis_array {
+   ctr_axis_node *nodes;
    unsigned int len;
    unsigned int alloc;
-} b3d_axis_array;
+} ctr_axis_array;
 
 
-void b3d_axis_array_grow (b3d_axis_array *arr, unsigned int min_size)
+void ctr_axis_array_grow (ctr_axis_array *arr, unsigned int min_size)
 {
   if (arr->alloc > min_size)
     return;
@@ -18,8 +18,8 @@ void b3d_axis_array_grow (b3d_axis_array *arr, unsigned int min_size)
   if (arr->alloc == 0)
     {
       arr->alloc = 64;
-      arr->nodes = malloc (sizeof (b3d_axis_node) * arr->alloc);
-      memset (arr->nodes, 0, sizeof (b3d_axis_node) * arr->alloc);
+      arr->nodes = malloc (sizeof (ctr_axis_node) * arr->alloc);
+      memset (arr->nodes, 0, sizeof (ctr_axis_node) * arr->alloc);
       arr->len = 0;
       return;
     }
@@ -29,25 +29,25 @@ void b3d_axis_array_grow (b3d_axis_array *arr, unsigned int min_size)
   while (arr->alloc < min_size)
     arr->alloc *= 2;
 
-  b3d_axis_node *newnodes = malloc (sizeof (b3d_axis_node) * arr->alloc);
+  ctr_axis_node *newnodes = malloc (sizeof (ctr_axis_node) * arr->alloc);
   assert (newnodes);
-  memset (newnodes, 0, sizeof (b3d_axis_node) * arr->alloc);
-  memcpy (newnodes, arr->nodes, sizeof (b3d_axis_node) * oa);
+  memset (newnodes, 0, sizeof (ctr_axis_node) * arr->alloc);
+  memcpy (newnodes, arr->nodes, sizeof (ctr_axis_node) * oa);
   free (arr->nodes);
   arr->nodes = newnodes;
 }
 
-b3d_axis_array *b3d_axis_array_new ()
+ctr_axis_array *ctr_axis_array_new ()
 {
-  b3d_axis_array *na = malloc (sizeof (b3d_axis_array));
-  memset (na, 0, sizeof (b3d_axis_array));
+  ctr_axis_array *na = malloc (sizeof (ctr_axis_array));
+  memset (na, 0, sizeof (ctr_axis_array));
   na->len = 0;
   na->alloc = 0;
-  b3d_axis_array_grow (na, 1);
+  ctr_axis_array_grow (na, 1);
   return na;
 }
 
-void b3d_axis_array_dump (b3d_axis_array *arr)
+void ctr_axis_array_dump (ctr_axis_array *arr)
 {
   int i;
   printf ("alloc: %d\n", arr->alloc);
@@ -56,14 +56,14 @@ void b3d_axis_array_dump (b3d_axis_array *arr)
 }
 
 
-void b3d_axis_array_insert_at (b3d_axis_array *arr, unsigned int idx, int coord, void *ptr)
+void ctr_axis_array_insert_at (ctr_axis_array *arr, unsigned int idx, int coord, void *ptr)
 {
   if ((arr->len + 1) >= arr->alloc)
-    b3d_axis_array_grow (arr, arr->len + 1);
+    ctr_axis_array_grow (arr, arr->len + 1);
 
   assert (arr->alloc >= arr->len + 1);
 
-  b3d_axis_node *an = 0;
+  ctr_axis_node *an = 0;
   if (arr->len > idx)
     {
       unsigned int tail_len = arr->len - idx;
@@ -77,7 +77,7 @@ void b3d_axis_array_insert_at (b3d_axis_array *arr, unsigned int idx, int coord,
 
       printf ("insert_at %d %d %d %d\n", arr->alloc, arr->len, idx, tail_len);
       memmove (arr->nodes + idx + 1, arr->nodes + idx,
-               sizeof (b3d_axis_node) * tail_len);
+               sizeof (ctr_axis_node) * tail_len);
     }
 
   an = &(arr->nodes[idx]);
@@ -87,7 +87,7 @@ void b3d_axis_array_insert_at (b3d_axis_array *arr, unsigned int idx, int coord,
   arr->len++;
 }
 
-void *b3d_axis_array_remove_at (b3d_axis_array *arr, unsigned int idx)
+void *ctr_axis_array_remove_at (ctr_axis_array *arr, unsigned int idx)
 {
   assert (idx < arr->len);
   void *ptr = arr->nodes[idx].ptr;
@@ -96,14 +96,14 @@ void *b3d_axis_array_remove_at (b3d_axis_array *arr, unsigned int idx)
     {
       unsigned int tail_len = arr->len - (idx + 1);
       memmove (arr->nodes + idx, arr->nodes + idx + 1,
-                sizeof (b3d_axis_node) * tail_len);
+                sizeof (ctr_axis_node) * tail_len);
     }
 
   arr->len--;
   return ptr;
 }
 
-unsigned int b3d_axis_array_find (b3d_axis_array *arr, int coord, b3d_axis_node **node)
+unsigned int ctr_axis_array_find (ctr_axis_array *arr, int coord, ctr_axis_node **node)
 {
   *node = 0;
   if (arr->len == 0)
@@ -128,17 +128,17 @@ unsigned int b3d_axis_array_find (b3d_axis_array *arr, int coord, b3d_axis_node 
   return min;
 }
 
-void *b3d_axis_get (b3d_axis_array *arr, int coord)
+void *ctr_axis_get (ctr_axis_array *arr, int coord)
 {
-  b3d_axis_node *node = 0;
-  b3d_axis_array_find (arr, coord, &node);
+  ctr_axis_node *node = 0;
+  ctr_axis_array_find (arr, coord, &node);
   return node ? node->ptr : 0;
 }
 
-void *b3d_axis_add (b3d_axis_array *arr, int coord, void *ptr)
+void *ctr_axis_add (ctr_axis_array *arr, int coord, void *ptr)
 {
-  b3d_axis_node *node = 0;
-  unsigned int idx = b3d_axis_array_find (arr, coord, &node);
+  ctr_axis_node *node = 0;
+  unsigned int idx = ctr_axis_array_find (arr, coord, &node);
   if (node)
     {
       void *oldptr = node->ptr;
@@ -147,16 +147,16 @@ void *b3d_axis_add (b3d_axis_array *arr, int coord, void *ptr)
       return oldptr;
     }
   else
-    b3d_axis_array_insert_at (arr, idx, coord, ptr);
+    ctr_axis_array_insert_at (arr, idx, coord, ptr);
 
   return 0;
 }
 
-void *b3d_axis_remove (b3d_axis_array *arr, int coord)
+void *ctr_axis_remove (ctr_axis_array *arr, int coord)
 {
-  b3d_axis_node *node = 0;
-  unsigned int idx = b3d_axis_array_find (arr, coord, &node);
+  ctr_axis_node *node = 0;
+  unsigned int idx = ctr_axis_array_find (arr, coord, &node);
   if (node)
-    return b3d_axis_array_remove_at (arr, idx);
+    return ctr_axis_array_remove_at (arr, idx);
   return 0;
 }

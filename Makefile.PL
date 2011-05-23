@@ -3,11 +3,11 @@ use warnings;
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
-    NAME                => 'Games::Blockminer3D',
+    NAME                => 'Games::Construder',
     AUTHOR              => 'Robin Redeker <elmex@ta-sa.org>',
     LICENSE             => 'perl',
-    VERSION_FROM        => 'lib/Games/Blockminer3D.pm',
-    ABSTRACT_FROM       => 'lib/Games/Blockminer3D.pm',
+    VERSION_FROM        => 'lib/Games/Construder.pm',
+    ABSTRACT_FROM       => 'lib/Games/Construder.pm',
     PL_FILES            => {},
     test                => { TESTS => "t/*.t t/methds/*.t" },
     PREREQ_PM => {
@@ -22,12 +22,12 @@ WriteMakefile(
         'Compress::LZF' => 0,
     },
     depend => {
-       "Blockminer3D.c" => "vectorlib.c world.c world_data_struct.c render.c world_drawing.c noise_3d.c volume_draw.c"
+       "Construder.c" => "vectorlib.c world.c world_data_struct.c render.c world_drawing.c noise_3d.c volume_draw.c"
     },
     dist                => {
        COMPRESS => 'gzip -9f',
        SUFFIX   => 'gz',
-       PREOP => 'pod2text lib/Games/Blockminer3D.pm | tee README >$(DISTVNAME)/README; chmod -R u=rwX,go=rX . ;',
+       PREOP => 'pod2text lib/Games/Construder.pm | tee README >$(DISTVNAME)/README; chmod -R u=rwX,go=rX . ;',
     },
-    clean               => { FILES => 'Games-Blockminer3D' },
+    clean               => { FILES => 'Games-Construder' },
 );

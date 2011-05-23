@@ -1,12 +1,12 @@
-package Games::Blockminer3D::Client;
+package Games::Construder::Client;
 use common::sense;
 use Compress::LZF;
-use Games::Blockminer3D::Client::Frontend;
-use Games::Blockminer3D::Client::MapChunk;
-use Games::Blockminer3D::Client::Renderer;
-use Games::Blockminer3D::Client::World;
-use Games::Blockminer3D::Protocol;
-use Games::Blockminer3D;
+use Games::Construder::Client::Frontend;
+use Games::Construder::Client::MapChunk;
+use Games::Construder::Client::Renderer;
+use Games::Construder::Client::World;
+use Games::Construder::Protocol;
+use Games::Construder;
 use AnyEvent;
 use AnyEvent::Socket;
 use AnyEvent::Handle;
@@ -17,7 +17,7 @@ use base qw/Object::Event/;
 
 =head1 NAME
 
-Games::Blockminer3D::Client - desc
+Games::Construder::Client - desc
 
 =head1 SYNOPSIS
 
@@ -27,7 +27,7 @@ Games::Blockminer3D::Client - desc
 
 =over 4
 
-=item my $obj = Games::Blockminer3D::Client->new (%args)
+=item my $obj = Games::Construder::Client->new (%args)
 
 =cut
 
@@ -39,15 +39,15 @@ sub new {
 
    $self->init_object_events;
 
-   Games::Blockminer3D::World::init (sub {
+   Games::Construder::World::init (sub {
       warn "chunk changed: @_\n";
    });
 
-   $self->{res} = Games::Blockminer3D::Client::Resources->new;
-   $Games::Blockminer3D::Client::Renderer::RES = $self->{res};
+   $self->{res} = Games::Construder::Client::Resources->new;
+   $Games::Construder::Client::Renderer::RES = $self->{res};
 
    $self->{front} =
-      Games::Blockminer3D::Client::Frontend->new (res => $self->{res});
+      Games::Construder::Client::Frontend->new (res => $self->{res});
 
    $self->{front}->reg_cb (
       update_player_pos => sub {
@@ -153,7 +153,7 @@ sub send_server {
 sub connected : event_cb {
    my ($self) = @_;
    $self->msgbox ("Connected to Server!");
-   $self->send_server ({ cmd => 'hello', version => "Games::Blockminer3D::Client 0.1" });
+   $self->send_server ({ cmd => 'hello', version => "Games::Construder::Client 0.1" });
 }
 
 sub handle_packet : event_cb {
@@ -213,7 +213,7 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'chunk') {
       $body = decompress ($body);
-      Games::Blockminer3D::World::set_chunk_data (@{$hdr->{pos}}, $body, length $body);
+      Games::Construder::World::set_chunk_data (@{$hdr->{pos}}, $body, length $body);
       if (!$self->{in_chunk_upd}) {
          $self->{front}->update_chunk (@{$hdr->{pos}});
       } else {

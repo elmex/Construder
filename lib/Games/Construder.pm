@@ -1,14 +1,14 @@
-package Games::Blockminer3D;
+package Games::Construder;
 use common::sense;
 
 our $VERSION = '0.01';
 
 use XSLoader;
-XSLoader::load "Games::Blockminer3D", $Games::Blockminer3D::VERSION;
+XSLoader::load "Games::Construder", $Games::Construder::VERSION;
 
 =head1 NAME
 
-Games::Blockminer3D - 3D block building game written in Perl
+Games::Construder - 3D block building game written in Perl
 
 =head1 SYNOPSIS
 
@@ -18,7 +18,7 @@ Games::Blockminer3D - 3D block building game written in Perl
 
 =over 4
 
-=item my $obj = Games::Blockminer3D->new (%args)
+=item my $obj = Games::Construder->new (%args)
 
 =cut
 
@@ -32,7 +32,7 @@ sub new {
 }
 
 
-package Games::Blockminer3D::VolDraw;
+package Games::Construder::VolDraw;
 
 my %OPS = (
    add  => 1,

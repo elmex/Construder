@@ -1,4 +1,4 @@
-package Games::Blockminer3D::Client::UI;
+package Games::Construder::Client::UI;
 use common::sense;
 use SDL;
 use SDL::Surface;
@@ -6,14 +6,14 @@ use SDL::Video;
 use SDL::TTF;
 use OpenGL qw(:all);
 use JSON;
-use Games::Blockminer3D::Client::Renderer;
-use Games::Blockminer3D::Vector;
+use Games::Construder::Client::Renderer;
+use Games::Construder::Vector;
 
 use base qw/Object::Event/;
 
 =head1 NAME
 
-Games::Blockminer3D::Client::UI - A simple and small GUI library for the game
+Games::Construder::Client::UI - A simple and small GUI library for the game
 
 =head1 SYNOPSIS
 
@@ -23,7 +23,7 @@ Games::Blockminer3D::Client::UI - A simple and small GUI library for the game
 
 =over 4
 
-=item my $obj = Games::Blockminer3D::Client::UI->new (%args)
+=item my $obj = Games::Construder::Client::UI->new (%args)
 
 =cut
 

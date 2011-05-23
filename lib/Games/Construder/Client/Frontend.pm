@@ -1,4 +1,4 @@
-package Games::Blockminer3D::Client::Frontend;
+package Games::Construder::Client::Frontend;
 use common::sense;
 use Carp;
 use SDL;
@@ -14,19 +14,19 @@ use AnyEvent;
 use Math::Trig qw/deg2rad rad2deg pi tan atan/;
 use Time::HiRes qw/time/;
 use POSIX qw/floor/;
-use Games::Blockminer3D;
-use Games::Blockminer3D::Vector;
+use Games::Construder;
+use Games::Construder::Vector;
 
-use Games::Blockminer3D::Client::World;
-use Games::Blockminer3D::Client::Resources;
-use Games::Blockminer3D::Client::UI;
-use Games::Blockminer3D::Client::Renderer;
+use Games::Construder::Client::World;
+use Games::Construder::Client::Resources;
+use Games::Construder::Client::UI;
+use Games::Construder::Client::Renderer;
 
 use base qw/Object::Event/;
 
 =head1 NAME
 
-Games::Blockminer3D::Client::Frontend - desc
+Games::Construder::Client::Frontend - desc
 
 =head1 SYNOPSIS
 
@@ -36,7 +36,7 @@ Games::Blockminer3D::Client::Frontend - desc
 
 =over 4
 
-=item my $obj = Games::Blockminer3D::Client::Frontend->new (%args)
+=item my $obj = Games::Construder::Client::Frontend->new (%args)
 
 =cut
 
@@ -55,7 +55,7 @@ sub new {
 
    $self->init_object_events;
    $self->init_app;
-   Games::Blockminer3D::Client::UI::init_ui;
+   Games::Construder::Client::UI::init_ui;
    world_init;
 
 #   world ()->reg_cb (chunk_changed => sub {
@@ -77,7 +77,7 @@ sub new {
 sub init_test {
    my ($self) = @_;
    $self->{active_uis}->{debug_hud} =
-      Games::Blockminer3D::Client::UI->new (
+      Games::Construder::Client::UI->new (
          W => $WIDTH, H => $HEIGHT, res => $self->{res});
 }
 
@@ -97,7 +97,7 @@ sub init_physics {
 sub init_app {
    my ($self) = @_;
    $self->{app} = SDLx::App->new (
-      title => "Blockminer3D 0.01alpha", width => $WIDTH, height => $HEIGHT, gl => 1);
+      title => "Construder 0.01alpha", width => $WIDTH, height => $HEIGHT, gl => 1);
    SDL::Events::enable_unicode (1);
    $self->{sdl_event} = SDL::Event->new;
    SDL::Video::GL_set_attribute (SDL::Constants::SDL_GL_SWAP_CONTROL, 1);
@@ -115,12 +115,12 @@ sub init_app {
    glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
    glEnable (GL_TEXTURE_2D);
    glEnable (GL_FOG);
-   glClearColor (0,0,0,1);
+   glClearColor (0.5,0.5,0.5,1);
    glClearDepth (1.0);
    glShadeModel (GL_FLAT);
 
    glFogi (GL_FOG_MODE, GL_LINEAR);
-   glFogfv_p (GL_FOG_COLOR, 0, 0, 0, 1);
+   glFogfv_p (GL_FOG_COLOR, 0.5, 0.5, 0.5, 1);
    glFogf (GL_FOG_DENSITY, 0.35);
    glHint (GL_FOG_HINT, GL_FASTEST);
    glFogf (GL_FOG_START, 10);
@@ -206,9 +206,9 @@ sub build_chunk_arrays {
    my ($self) = @_;
    my @verts;
 
-   for my $dx (0..$Games::Blockminer3D::Client::MapChunk::SIZE) {
-      for my $dy (0..$Games::Blockminer3D::Client::MapChunk::SIZE) {
-         for my $dz (0..$Games::Blockminer3D::Client::MapChunk::SIZE) {
+   for my $dx (0..$Games::Construder::Client::MapChunk::SIZE) {
+      for my $dy (0..$Games::Construder::Client::MapChunk::SIZE) {
+         for my $dz (0..$Games::Construder::Client::MapChunk::SIZE) {
             push @verts, [$dx, $dy, $dz];
          }
       }
@@ -233,7 +233,7 @@ sub compile_chunk {
    $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} = OpenGL::List::glpList {
          my $compl;
       my (@vert, @color, @tex);
-      Games::Blockminer3D::Renderer::chunk ($cx, $cy, $cz, \@vert, \@color, \@tex);
+      Games::Construder::Renderer::chunk ($cx, $cy, $cz, \@vert, \@color, \@tex);
 #d#     warn "VERTEXES: " . scalar (@vert) . " TEX: " . scalar (@tex) . "\n";
       $compl = [
          OpenGL::Array->new_list (GL_FLOAT, @vert),
@@ -245,9 +245,9 @@ sub compile_chunk {
       glPushMatrix;
 
       glTranslatef (
-         $cx * $Games::Blockminer3D::Client::MapChunk::SIZE,
-         $cy * $Games::Blockminer3D::Client::MapChunk::SIZE,
-         $cz * $Games::Blockminer3D::Client::MapChunk::SIZE
+         $cx * $Games::Construder::Client::MapChunk::SIZE,
+         $cy * $Games::Construder::Client::MapChunk::SIZE,
+         $cz * $Games::Construder::Client::MapChunk::SIZE
       );
 
       render_quads ($compl);
@@ -287,7 +287,7 @@ sub get_visible_chunks {
    my ($self) = @_;
 
    my $chnks =
-      Games::Blockminer3D::Math::calc_visible_chunks_at (
+      Games::Construder::Math::calc_visible_chunks_at (
          @{$self->{phys_obj}->{player}->{pos}}, $PL_VIS_RAD);
    my @o;
    for (my $i = 0; $i < @$chnks; $i += 3) {
@@ -388,10 +388,10 @@ sub render_scene {
    my $t3 = time;
 
    my $vis_chunks =
-      Games::Blockminer3D::Math::calc_visible_chunks_at_in_cone (
+      Games::Construder::Math::calc_visible_chunks_at_in_cone (
          @$pp, $PL_VIS_RAD,
          @{$fcone[0]}, @{$fcone[1]}, $fcone[2],
-         $Games::Blockminer3D::Client::MapChunk::BSPHERE);
+         $Games::Construder::Client::MapChunk::BSPHERE);
 
    while (@$vis_chunks) {
       my ($cx, $cy, $cz) = (shift @$vis_chunks, shift @$vis_chunks, shift @$vis_chunks);
@@ -537,12 +537,11 @@ sub setup_event_poller {
          }
       }
 
-      my $cnt = 1;
       while (@{$self->{chunk_update}}) {
          my $c = shift @{$self->{chunk_update}};
          next unless $self->can_see_chunk (@$c);
          $self->compile_chunk (@$c);
-         return if $cnt-- <= 0;
+         return;
       }
    };
 
@@ -679,7 +678,7 @@ sub get_selected_box_pos {
                     && grep { $cur_box->[1] == $_ }
                           $foot_box->[1]..$head_box->[1];
 
-            if (Games::Blockminer3D::World::is_solid_at (@$cur_box)) {
+            if (Games::Construder::World::is_solid_at (@$cur_box)) {
                my ($dist, $q) =
                   world_intersect_ray_box (
                      $player_head, $rayd, $cur_box);
@@ -751,7 +750,7 @@ sub physics_tick : event_cb {
 
    my $player = $self->{phys_obj}->{player};
 
-   my $bx = Games::Blockminer3D::World::at (@{vaddd ($player->{pos}, 0, -1, 0)});
+   my $bx = Games::Construder::World::at (@{vaddd ($player->{pos}, 0, -1, 0)});
 
    my $gforce = [0, -9.5, 0];
    if ($bx->[0] == 15) {
@@ -860,7 +859,7 @@ sub activate_ui {
    my $obj = delete $self->{inactive_uis}->{$ui};
 
    $obj ||=
-      Games::Blockminer3D::Client::UI->new (
+      Games::Construder::Client::UI->new (
          W => $WIDTH, H => $HEIGHT, res => $self->{res});
    $obj->update ($desc);
    $self->{active_uis}->{$ui} = $obj;

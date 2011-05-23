@@ -1,9 +1,9 @@
 #!/opt/perl/bin/perl
 use EV;
 use common::sense;
-use Games::Blockminer3D::Server;
+use Games::Construder::Server;
 my $server;
-$server = Games::Blockminer3D::Server->new;
+$server = Games::Construder::Server->new;
 $server->init;
 $server->listen;
 

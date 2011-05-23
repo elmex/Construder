@@ -1,4 +1,4 @@
-package Games::Blockminer3D::Vector;
+package Games::Construder::Vector;
 use common::sense;
 require Exporter;
 use POSIX qw/floor/;
@@ -28,7 +28,7 @@ our @EXPORT = qw/
 
 =head1 NAME
 
-Games::Blockminer3D::Vector - Vector Math Utilities
+Games::Construder::Vector - Vector Math Utilities
 
 =head1 SYNOPSIS
 

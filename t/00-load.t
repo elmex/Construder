@@ -3,7 +3,7 @@
 use Test::More tests => 1;
 
 BEGIN {
-	use_ok( 'Games::Blockminer3D' );
+	use_ok( 'Games::Construder' );
 }
 
-diag( "Testing Games::Blockminer3D $Games::Blockminer3D::VERSION, Perl $], $^X" );
+diag( "Testing Games::Construder $Games::Construder::VERSION, Perl $], $^X" );

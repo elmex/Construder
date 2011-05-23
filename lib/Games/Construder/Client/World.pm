@@ -1,7 +1,7 @@
-package Games::Blockminer3D::Client::World;
+package Games::Construder::Client::World;
 use common::sense;
-use Games::Blockminer3D::Vector;
-use Games::Blockminer3D;
+use Games::Construder::Vector;
+use Games::Construder;
 use POSIX qw/floor/;
 use Object::Event;
 
@@ -26,7 +26,7 @@ our @EXPORT = qw/
 
 =head1 NAME
 
-Games::Blockminer3D::Client::World - desc
+Games::Construder::Client::World - desc
 
 =head1 SYNOPSIS
 
@@ -44,7 +44,7 @@ sub world_init {
 }
 
 sub world_pos2chunk {
-   @{vfloor (vsdiv ($_[0], $Games::Blockminer3D::Client::MapChunk::SIZE))};
+   @{vfloor (vsdiv ($_[0], $Games::Construder::Client::MapChunk::SIZE))};
 }
 
 sub world_intersect_ray_box {
@@ -87,7 +87,7 @@ sub _collide_sphere_box {
    my ($sphere_pos, $sphere_rad, $box) = @_;
 
    my $abpt =
-      Games::Blockminer3D::Math::point_aabb_distance (
+      Games::Construder::Math::point_aabb_distance (
          @$sphere_pos, @$box, @{vaddd ($box, 1, 1, 1)});
    my $dv   = vsub ($sphere_pos, $abpt);
 
@@ -194,7 +194,7 @@ sub world_collide {
                my $cur_box = vaddd ($my_box, $x, $y, $z);
 #              my $bx = world_get_box_at ($cur_box);
 #              next unless world_is_solid_box ($bx);
-               next unless Games::Blockminer3D::World::is_solid_at (@$cur_box);
+               next unless Games::Construder::World::is_solid_at (@$cur_box);
 
                my ($col_dir, $pos_adj) = _collide_sphere_box ($spos, $srad, $cur_box);
                if ($col_dir && vdot ([0, $coll_y, 0], $col_dir) <= 0) { # collided!

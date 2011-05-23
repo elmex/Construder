@@ -1,5 +1,5 @@
 use common::sense;
-use Games::Blockminer3D::Vector;
+use Games::Construder::Vector;
 use Math::VectorReal;
 use Test::More tests => 7;
 

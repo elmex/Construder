@@ -1,6 +1,6 @@
-package Games::Blockminer3D::Client::Renderer;
+package Games::Construder::Client::Renderer;
 use common::sense;
-use Games::Blockminer3D::Client::MapChunk;
+use Games::Construder::Client::MapChunk;
 use OpenGL qw/:all/;
 
 require Exporter;
@@ -12,7 +12,7 @@ our @EXPORT = qw/
 
 =head1 NAME
 
-Games::Blockminer3D::Client::Renderer - Rendering utility
+Games::Construder::Client::Renderer - Rendering utility
 
 =head1 SYNOPSIS
 
@@ -25,13 +25,13 @@ Games::Blockminer3D::Client::Renderer - Rendering utility
 =cut
 
 our $RES;
-our $CHNK_SIZE = $Games::Blockminer3D::Client::MapChunk::SIZE;
+our $CHNK_SIZE = $Games::Construder::Client::MapChunk::SIZE;
 
 sub render_object_type_sample {
    my ($type) = @_;
 
    my (@vert, @color, @txt);
-   Games::Blockminer3D::Renderer::model (
+   Games::Construder::Renderer::model (
       $type, 1, 0, 0, 0, \@vert, \@color, \@txt
    );
 

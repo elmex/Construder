@@ -1,7 +1,7 @@
-package Games::Blockminer3D::Server::World;
+package Games::Construder::Server::World;
 use common::sense;
-use Games::Blockminer3D::Vector;
-use Games::Blockminer3D;
+use Games::Construder::Vector;
+use Games::Construder;
 use Time::HiRes qw/time/;
 
 require Exporter;
@@ -18,7 +18,7 @@ our @EXPORT = qw/
 
 =head1 NAME
 
-Games::Blockminer3D::Server::World - desc
+Games::Construder::Server::World - desc
 
 =head1 SYNOPSIS
 
@@ -37,8 +37,8 @@ our $REGION_SIZE = 100; # 100x100x100 sections
 our $REGION;
 
 sub world_init {
-   Games::Blockminer3D::World::init ($_[0]);
-   Games::Blockminer3D::VolDraw::init ();
+   Games::Construder::World::init ($_[0]);
+   Games::Construder::VolDraw::init ();
 
    region_init ($_[1]);
 }
@@ -49,14 +49,14 @@ sub region_init {
    my $t1 = time;
 
    warn "calculating region, with seed $REGION_SEED.\n";
-   Games::Blockminer3D::VolDraw::alloc ($REGION_SIZE);
+   Games::Construder::VolDraw::alloc ($REGION_SIZE);
 
-   Games::Blockminer3D::VolDraw::draw_commands (
+   Games::Construder::VolDraw::draw_commands (
      $cmds,
      { size => $REGION_SIZE, seed => $REGION_SEED, param => 1 }
    );
 
-   $REGION = Games::Blockminer3D::Region::new_from_vol_draw_dst ();
+   $REGION = Games::Construder::Region::new_from_vol_draw_dst ();
    warn "done, took " . (time - $t1) . " seconds.\n";
 }
 
@@ -87,7 +87,7 @@ sub world_mutate_at {
    my ($pos, $cb) = @_;
    my ($chnk) = world_pos2chnkpos ($pos);
 
-   Games::Blockminer3D::World::query_setup (
+   Games::Construder::World::query_setup (
       $chnk->[0],
       $chnk->[1],
       $chnk->[2],
@@ -95,24 +95,24 @@ sub world_mutate_at {
       $chnk->[1],
       $chnk->[2]
    );
-   Games::Blockminer3D::World::query_load_chunks ();
+   Games::Construder::World::query_load_chunks ();
 
-   my $b = Games::Blockminer3D::World::at (@$pos);
+   my $b = Games::Construder::World::at (@$pos);
    if ($cb->($b)) {
       my $relpos = vfloor (vsubd ($pos,
          $chnk->[0] * $CHNKSIZE,
          $chnk->[1] * $CHNKSIZE,
          $chnk->[2] * $CHNKSIZE));
 
-      Games::Blockminer3D::World::query_set_at (@$relpos, $b);
+      Games::Construder::World::query_set_at (@$relpos, $b);
    }
 
-   Games::Blockminer3D::World::query_desetup ();
+   Games::Construder::World::query_desetup ();
 
    my $t1 = time;
-   Games::Blockminer3D::World::update_light_at (@{vfloor ($pos)}, 12);
+   Games::Construder::World::update_light_at (@{vfloor ($pos)}, 12);
    printf "light calc took: %f\n", time - $t1;
-   Games::Blockminer3D::World::query_desetup ();
+   Games::Construder::World::query_desetup ();
 }
 
 =back

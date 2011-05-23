@@ -1,4 +1,4 @@
-package Games::Blockminer3D::Protocol;
+package Games::Construder::Protocol;
 use common::sense;
 use JSON;
 
@@ -12,7 +12,7 @@ our @EXPORT = qw/
 
 =head1 NAME
 
-Games::Blockminer3D::Protocol - desc
+Games::Construder::Protocol - desc
 
 =head1 SYNOPSIS
 

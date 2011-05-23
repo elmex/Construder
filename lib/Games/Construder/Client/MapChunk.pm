@@ -1,26 +1,26 @@
-package Games::Blockminer3D::Client::MapChunk;
+package Games::Construder::Client::MapChunk;
 use common::sense;
 use Time::HiRes qw/time/;
 use OpenGL qw/:all/;
-use Games::Blockminer3D::Vector;
+use Games::Construder::Vector;
 
 use base qw/Object::Event/;
 
 =head1 NAME
 
-Games::Blockminer3D::Client::MapChunk - desc
+Games::Construder::Client::MapChunk - desc
 
 =head1 SYNOPSIS
 
 =head1 DESCRIPTION
 
-A chunk of the Blockminer3D world.
+A chunk of the Construder world.
 
 =head1 METHODS
 
 =over 4
 
-=item my $obj = Games::Blockminer3D::Client::MapChunk->new (%args)
+=item my $obj = Games::Construder::Client::MapChunk->new (%args)
 
 =cut
 

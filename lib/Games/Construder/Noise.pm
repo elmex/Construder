@@ -1,9 +1,9 @@
-package Games::Blockminer3D::Noise;
+package Games::Construder::Noise;
 use common::sense;
 
 =head1 NAME
 
-Games::Blockminer3D::Noise - desc
+Games::Construder::Noise - desc
 
 =head1 SYNOPSIS
 

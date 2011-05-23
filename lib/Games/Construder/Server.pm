@@ -1,21 +1,21 @@
-package Games::Blockminer3D::Server;
+package Games::Construder::Server;
 use common::sense;
 use AnyEvent;
 use AnyEvent::Handle;
 use AnyEvent::Socket;
 use JSON;
 
-use Games::Blockminer3D::Protocol;
-use Games::Blockminer3D::Server::Resources;
-use Games::Blockminer3D::Server::Player;
-use Games::Blockminer3D::Server::World;
-use Games::Blockminer3D::Server::ChunkManager;
+use Games::Construder::Protocol;
+use Games::Construder::Server::Resources;
+use Games::Construder::Server::Player;
+use Games::Construder::Server::World;
+use Games::Construder::Server::ChunkManager;
 
 use base qw/Object::Event/;
 
 =head1 NAME
 
-Games::Blockminer3D::Server - desc
+Games::Construder::Server - desc
 
 =head1 SYNOPSIS
 
@@ -25,7 +25,7 @@ Games::Blockminer3D::Server - desc
 
 =over 4
 
-=item my $obj = Games::Blockminer3D::Server->new (%args)
+=item my $obj = Games::Construder::Server->new (%args)
 
 =cut
 
@@ -48,11 +48,11 @@ sub new {
 sub init {
    my ($self) = @_;
 
-   $RES = Games::Blockminer3D::Server::Resources->new;
+   $RES = Games::Construder::Server::Resources->new;
    $RES->init_directories;
    $RES->load_region_file;
 
-   $CHNK = Games::Blockminer3D::Server::ChunkManager->new;
+   $CHNK = Games::Construder::Server::ChunkManager->new;
    $CHNK->init;
 
    # active objects verwaltung
@@ -209,7 +209,7 @@ sub handle_packet : event_cb {
 
    if ($hdr->{cmd} eq 'hello') {
       $self->send_client ($cid,
-         { cmd => "hello", version => "Games::Blockminer3D::Server 0.1" });
+         { cmd => "hello", version => "Games::Construder::Server 0.1" });
 
    } elsif ($hdr->{cmd} eq 'ui_response' && $hdr->{ui} eq 'login') {
       $self->send_client ($cid, { cmd => deactivate_ui => ui => "login" });
@@ -217,7 +217,7 @@ sub handle_packet : event_cb {
       if ($hdr->{ui_command} eq 'login') {
 
          my $pl = $self->{players}->{$cid}
-            = Games::Blockminer3D::Server::Player->new (cid => $cid, name => $hdr->{arg}->[0]);
+            = Games::Construder::Server::Player->new (cid => $cid, name => $hdr->{arg}->[0]);
 
          $self->{player_guards}->{$cid} = $pl->reg_cb (send_client => sub {
             my ($pl, $hdr, $body) = @_;

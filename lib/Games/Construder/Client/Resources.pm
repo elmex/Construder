@@ -1,14 +1,14 @@
-package Games::Blockminer3D::Client::Resources;
+package Games::Construder::Client::Resources;
 use common::sense;
 use File::Temp qw/tempfile/;
 use SDL::Image;
 use SDL::Video;
 use OpenGL qw(:all);
-use Games::Blockminer3D;
+use Games::Construder;
 
 =head1 NAME
 
-Games::Blockminer3D::Client::Resources - Manage textures for the Client
+Games::Construder::Client::Resources - Manage textures for the Client
 
 =head1 SYNOPSIS
 
@@ -18,7 +18,7 @@ Games::Blockminer3D::Client::Resources - Manage textures for the Client
 
 =over 4
 
-=item my $obj = Games::Blockminer3D::Client::Resources->new (%args)
+=item my $obj = Games::Construder::Client::Resources->new (%args)
 
 =cut
 
@@ -46,7 +46,7 @@ sub set_resources {
 sub post_proc {
    my ($self) = @_;
 
-   Games::Blockminer3D::World::set_object_type (
+   Games::Construder::World::set_object_type (
       0, 1, 0, 0,
       0, 0, 0
    );
@@ -86,7 +86,7 @@ sub post_proc {
          $objtype2texture->[$typeid] = [
             $txt->[0], $txt->[1], $uv, $model
          ];
-         Games::Blockminer3D::World::set_object_type (
+         Games::Construder::World::set_object_type (
             $typeid,
             ($typeid == 0 || defined $model ? 1 : 0),
             $typeid != 0,
@@ -103,7 +103,7 @@ sub post_proc {
                   push @constr, 0;
                }
             }
-            Games::Blockminer3D::World::set_object_model (
+            Games::Construder::World::set_object_model (
                $typeid, $dim, \@constr,
             );
          }

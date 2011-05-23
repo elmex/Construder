@@ -1,4 +1,4 @@
-package Games::Blockminer3D::Server::Resources;
+package Games::Construder::Server::Resources;
 use common::sense;
 use AnyEvent;
 use JSON;
@@ -7,7 +7,7 @@ use base qw/Object::Event/;
 
 =head1 NAME
 
-Games::Blockminer3D::Server::Resources - desc
+Games::Construder::Server::Resources - desc
 
 =head1 SYNOPSIS
 
@@ -17,7 +17,7 @@ Games::Blockminer3D::Server::Resources - desc
 
 =over 4
 
-=item my $obj = Games::Blockminer3D::Server::Resources->new (%args)
+=item my $obj = Games::Construder::Server::Resources->new (%args)
 
 =cut
 
@@ -130,7 +130,7 @@ sub load_object {
    });
 
    print "Set object type $obj->{type}\n";
-   Games::Blockminer3D::World::set_object_type (
+   Games::Construder::World::set_object_type (
       $obj->{type},
       ($obj->{type} == 0 || defined $obj->{model} ? 1 : 0),
       $obj->{type} != 0,
@@ -193,7 +193,7 @@ sub get_resources_by_id {
 sub loaded_objects : event_cb {
    my ($self) = @_;
 
-   Games::Blockminer3D::World::set_object_type (
+   Games::Construder::World::set_object_type (
       0, 1, 0, 0,
       0, 0, 0
    );

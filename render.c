@@ -121,12 +121,12 @@ double quad_vert[8][3] = {
 
 */
 
-void b3d_render_init ()
+void ctr_render_init ()
 {
 }
 
 void
-b3d_render_add_face (unsigned int face, unsigned int type, double light,
+ctr_render_add_face (unsigned int face, unsigned int type, double light,
                      double xoffs, double yoffs, double zoffs,
                      double scale,
                      double xsoffs, double ysoffs, double zsoffs,
@@ -145,7 +145,7 @@ b3d_render_add_face (unsigned int face, unsigned int type, double light,
   for (h = 0; h < 12; h++) // FIXME: is this really 12??? or just 4 (for each vertex)
     av_push (color, newSVnv (light));
 
-  b3d_obj_attr *oa = b3d_world_get_attr (type);
+  ctr_obj_attr *oa = ctr_world_get_attr (type);
   double *uv = &(oa->uv[0]);
 
   av_push (tex, newSVnv (uv[2]));
@@ -162,9 +162,9 @@ b3d_render_add_face (unsigned int face, unsigned int type, double light,
 }
 
 void
-b3d_render_model (unsigned int type, double light, unsigned int xo, unsigned int yo, unsigned int zo, AV *vertex, AV *color, AV *tex)
+ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int yo, unsigned int zo, AV *vertex, AV *color, AV *tex)
 {
-  b3d_obj_attr *oa = b3d_world_get_attr (type);
+  ctr_obj_attr *oa = ctr_world_get_attr (type);
   unsigned int dim = oa->model_dim;
   unsigned int *blocks = &(oa->model_blocks[0]);
 
@@ -183,7 +183,7 @@ b3d_render_model (unsigned int type, double light, unsigned int xo, unsigned int
       for (x = 0; x < dim; x++)
         {
           unsigned int blktype = blocks[blk_offs];
-          b3d_obj_attr *oa = b3d_world_get_attr (blktype);
+          ctr_obj_attr *oa = ctr_world_get_attr (blktype);
 
           if (oa->transparent)
             continue;
@@ -191,7 +191,7 @@ b3d_render_model (unsigned int type, double light, unsigned int xo, unsigned int
 
           int face;
           for (face = 0; face < 6; face++)
-            b3d_render_add_face (
+            ctr_render_add_face (
               face, blktype, light,
               x, y, z, scale,
               xo, yo, zo,
@@ -200,7 +200,7 @@ b3d_render_model (unsigned int type, double light, unsigned int xo, unsigned int
         }
 }
 
-double b3d_cell_light (b3d_cell *c)
+double ctr_cell_light (ctr_cell *c)
 {
   double light = (double) c->light / 15;
   if (light < 0.15)
@@ -209,15 +209,15 @@ double b3d_cell_light (b3d_cell *c)
 }
 
 void
-b3d_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
+ctr_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
 {
-  b3d_chunk *c = b3d_world_chunk (x, y, z, 0);
+  ctr_chunk *c = ctr_world_chunk (x, y, z, 0);
   if (!c)
     return;
 
   LOAD_NEIGHBOUR_CHUNKS(x,y,z);
 
-  //d// b3d_world_chunk_calc_visibility (c);
+  //d// ctr_world_chunk_calc_visibility (c);
 
   int ix, iy, iz;
   for (iz = 0; iz < CHUNK_SIZE; iz++)
@@ -225,46 +225,46 @@ b3d_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
       for (ix = 0; ix < CHUNK_SIZE; ix++)
         {
 //         printf ("OFFS %d %d %d \n", ix, iy, iz);
-          b3d_cell *cur = b3d_world_chunk_neighbour_cell (c, ix, iy, iz, 0);
-          if (!cur->visible)// || b3d_world_cell_transparent (cur))
+          ctr_cell *cur = ctr_world_chunk_neighbour_cell (c, ix, iy, iz, 0);
+          if (!cur->visible)// || ctr_world_cell_transparent (cur))
             continue;
 
-          b3d_obj_attr *oa = b3d_world_get_attr (cur->type);
+          ctr_obj_attr *oa = ctr_world_get_attr (cur->type);
           if (oa->model)
             {
 
 
-              b3d_render_model (
-                cur->type, b3d_cell_light (cur), ix, iy, iz,
+              ctr_render_model (
+                cur->type, ctr_cell_light (cur), ix, iy, iz,
                 vertex, color, tex);
               continue;
             }
 
           GET_NEIGHBOURS(c, ix, iy, iz);
 
-          if (b3d_world_cell_transparent (front))
-            b3d_render_add_face (
-              0, cur->type, b3d_cell_light (front), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+          if (ctr_world_cell_transparent (front))
+            ctr_render_add_face (
+              0, cur->type, ctr_cell_light (front), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
 
-          if (b3d_world_cell_transparent (top))
-            b3d_render_add_face (
-              1, cur->type, b3d_cell_light (top), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+          if (ctr_world_cell_transparent (top))
+            ctr_render_add_face (
+              1, cur->type, ctr_cell_light (top), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
 
-          if (b3d_world_cell_transparent (back))
-            b3d_render_add_face (
-              2, cur->type, b3d_cell_light (back), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+          if (ctr_world_cell_transparent (back))
+            ctr_render_add_face (
+              2, cur->type, ctr_cell_light (back), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
 
-          if (b3d_world_cell_transparent (left))
-            b3d_render_add_face (
-              3, cur->type, b3d_cell_light (left), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+          if (ctr_world_cell_transparent (left))
+            ctr_render_add_face (
+              3, cur->type, ctr_cell_light (left), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
 
-          if (b3d_world_cell_transparent (right))
-            b3d_render_add_face (
-              4, cur->type, b3d_cell_light (right), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+          if (ctr_world_cell_transparent (right))
+            ctr_render_add_face (
+              4, cur->type, ctr_cell_light (right), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
 
-          if (b3d_world_cell_transparent (bot))
-            b3d_render_add_face (
-              5, cur->type, b3d_cell_light (bot), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+          if (ctr_world_cell_transparent (bot))
+            ctr_render_add_face (
+              5, cur->type, ctr_cell_light (bot), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
         }
 
   return;

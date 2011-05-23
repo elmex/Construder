@@ -1,7 +1,7 @@
-package Games::Blockminer3D::Server::ChunkManager;
+package Games::Construder::Server::ChunkManager;
 use common::sense;
-use Games::Blockminer3D::Server::World;
-use Games::Blockminer3D::Vector;
+use Games::Construder::Server::World;
+use Games::Construder::Vector;
 use Compress::LZF;
 use JSON;
 use AnyEvent::Util;
@@ -10,7 +10,7 @@ use Carp qw/confess/;
 
 =head1 NAME
 
-Games::Blockminer3D::Server::ChunkManager - desc
+Games::Construder::Server::ChunkManager - desc
 
 =head1 SYNOPSIS
 
@@ -20,7 +20,7 @@ Games::Blockminer3D::Server::ChunkManager - desc
 
 =over 4
 
-=item my $obj = Games::Blockminer3D::Server::ChunkManager->new (%args)
+=item my $obj = Games::Construder::Server::ChunkManager->new (%args)
 
 =cut
 
@@ -74,8 +74,8 @@ sub check_adjacent_sectors_at {
 sub make_sector {
    my ($self, $sec) = @_;
 
-   my $seed = Games::Blockminer3D::Region::get_sector_value (
-      $Games::Blockminer3D::Server::World::REGION,
+   my $seed = Games::Construder::Region::get_sector_value (
+      $Games::Construder::Server::World::REGION,
       @$sec
    );
 
@@ -86,9 +86,9 @@ sub make_sector {
 
 
    my $cube = $CHUNKS_P_SECTOR * $CHUNK_SIZE;
-   Games::Blockminer3D::VolDraw::alloc ($cube);
+   Games::Construder::VolDraw::alloc ($cube);
 
-   Games::Blockminer3D::VolDraw::draw_commands (
+   Games::Construder::VolDraw::draw_commands (
       q{
         fill_noise 4 2 0.3
         map_range 0.6 1 0 0.2
@@ -96,12 +96,12 @@ sub make_sector {
      { size => $cube, seed => $seed, param => 1 }
    );
 
-   Games::Blockminer3D::VolDraw::dst_to_world (@$sec);
+   Games::Construder::VolDraw::dst_to_world (@$sec);
 
    $self->{sector}->{world_pos2id ($sec)} = { created => time };
    $self->save_sector ($sec);
 
-   Games::Blockminer3D::World::query_desetup ();
+   Games::Construder::World::query_desetup ();
 }
 
 sub chunk_changed {
@@ -121,7 +121,7 @@ sub load_sector {
    my $t1 = time;
 
    my $id   = world_pos2id ($sec);
-   my $mpd  = $Games::Blockminer3D::Server::Resources::MAPDIR;
+   my $mpd  = $Games::Construder::Server::Resources::MAPDIR;
    my $file = "$mpd/$id.sec";
 
    return 1 if ($self->{sector}->{$id}
@@ -171,7 +171,7 @@ sub load_sector {
 
                   my $len = shift @lens;
                   my $chunk = substr $data, $offs, $len;
-                  Games::Blockminer3D::World::set_chunk_data (
+                  Games::Construder::World::set_chunk_data (
                      @$chnk, $chunk, length ($chunk));
                   $offs += $len;
                }
@@ -216,7 +216,7 @@ sub save_sector {
          for my $dz (0..($CHUNKS_P_SECTOR - 1)) {
             my $chnk = vaddd ($first_chnk, $dx, $dy, $dz);
             push @chunks,
-               Games::Blockminer3D::World::get_chunk_data (@$chnk);
+               Games::Construder::World::get_chunk_data (@$chnk);
          }
       }
    }
@@ -230,7 +230,7 @@ sub save_sector {
       . "\n\n" . $data
    );
 
-   my $mpd = $Games::Blockminer3D::Server::Resources::MAPDIR;
+   my $mpd = $Games::Construder::Server::Resources::MAPDIR;
    my $file = "$mpd/$id.sec";
 
    if (open my $mf, ">", "$file~") {
