@@ -495,15 +495,7 @@ void vol_draw_cantor_dust_box (float x, float y, float z, float size, int lvl);
 
 void vol_draw_map_range (float a, float b, float x, float y);
 
-void vol_draw_copy (void *dst_arr)
-  CODE:
-    double *model = dst_arr;
-    int x, y ,z;
-    for (x = 0; x < DRAW_CTX.size; x++)
-      for (y = 0; y < DRAW_CTX.size; y++)
-        for (z = 0; z < DRAW_CTX.size; z++)
-          model[x + y * DRAW_CTX.size + z * DRAW_CTX.size * DRAW_CTX.size]
-             = DRAW_DST(x,y,z);
+void vol_draw_copy (void *dst_arr);
 
 void vol_draw_dst_to_world (int sector_x, int sector_y, int sector_z)
   CODE:
@@ -529,3 +521,47 @@ void vol_draw_dst_to_world (int sector_x, int sector_y, int sector_z)
             if (v > 0.5)
               cur->type = 2;
           }
+
+MODULE = Games::Blockminer3D PACKAGE = Games::Blockminer3D::Region PREFIX = region_
+
+void *region_new_from_vol_draw_dst ()
+  CODE:
+    double *region =
+       malloc ((sizeof (double) * DRAW_CTX.size * DRAW_CTX.size * DRAW_CTX.size) + 1);
+    RETVAL = region;
+
+    printf ("REG %p %d\n", region, DRAW_CTX.size);
+    region[0] = DRAW_CTX.size;
+    region++;
+    vol_draw_copy (region);
+    printf ("REGVALUES: %f\n", region[0]);
+    printf ("REGVALUES: %f\n", region[1]);
+    printf ("REGVALUES: %f\n", region[99]);
+    printf ("REGVALUES: %f\n", region[99 * 100]);
+    printf ("REGVALUES: %f\n", region[100]);
+
+  OUTPUT:
+    RETVAL
+
+double region_get_sector_value (void *reg, int x, int y, int z)
+  CODE:
+    if (!reg)
+      XSRETURN_UNDEF;
+
+    double *region = reg;
+    int reg_size = region[0];
+    region++;
+    unsigned xp = x % reg_size;
+    if (x < 0) x = -x;
+    if (y < 0) y = -y;
+    if (z < 0) z = -z;
+    x %= reg_size;
+    y %= reg_size;
+    z %= reg_size;
+
+    double xv = region[x + y * reg_size + z * reg_size * reg_size];
+    printf ("REGGET %p %d %d %d %d => %f\n", reg, reg_size, x, y, z, xv);
+    RETVAL = xv;
+
+  OUTPUT:
+    RETVAL

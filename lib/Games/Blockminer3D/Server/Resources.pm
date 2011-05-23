@@ -66,6 +66,11 @@ sub _get_file {
    do { local $/; <$f> }
 }
 
+sub load_region_file {
+   my ($self) = @_;
+   $self->{region_cmds} = _get_file ("res/region_noise.cmds");
+}
+
 sub load_objects {
    my ($self) = @_;
    my $objects = JSON->new->relaxed->decode (_get_file ("res/objects/types.json"));

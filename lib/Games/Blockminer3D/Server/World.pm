@@ -32,10 +32,32 @@ Games::Blockminer3D::Server::World - desc
 
 our $CHNKSIZE = 12;
 our $CHNKS_P_SEC = 5;
+our $REGION_SEED = 42;
+our $REGION_SIZE = 100; # 100x100x100 sections
+our $REGION;
 
 sub world_init {
    Games::Blockminer3D::World::init ($_[0]);
+   Games::Blockminer3D::VolDraw::init ();
 
+   region_init ($_[1]);
+}
+
+sub region_init {
+   my ($cmds) = @_;
+
+   my $t1 = time;
+
+   warn "calculating region, with seed $REGION_SEED.\n";
+   Games::Blockminer3D::VolDraw::alloc ($REGION_SIZE);
+
+   Games::Blockminer3D::VolDraw::draw_commands (
+     $cmds,
+     { size => $REGION_SIZE, seed => $REGION_SEED, param => 1 }
+   );
+
+   $REGION = Games::Blockminer3D::Region::new_from_vol_draw_dst ();
+   warn "done, took " . (time - $t1) . " seconds.\n";
 }
 
 sub world_pos2id {

@@ -50,6 +50,7 @@ sub init {
 
    $RES = Games::Blockminer3D::Server::Resources->new;
    $RES->init_directories;
+   $RES->load_region_file;
 
    $CHNK = Games::Blockminer3D::Server::ChunkManager->new;
    $CHNK->init;
@@ -81,7 +82,7 @@ sub init {
       for (values %{$self->{players}}) {
          $_->chunk_updated ($chnk);
       }
-   });
+   }, $RES->{region_cmds});
 
    $RES->load_objects;
 }

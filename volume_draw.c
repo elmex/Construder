@@ -273,7 +273,7 @@ void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves
   double amp_correction = 0;
 
   if (seed == 0) seed = 1;
-
+  printf ("SEED NOISE %d\n", seed);
 
   void *noise = mk_3d_noise (DRAW_CTX.size, seed);
 
@@ -396,4 +396,14 @@ void vol_draw_cantor_dust_box (float x, float y, float z, float size, unsigned s
    vol_draw_cantor_dust_box (x + offs, y + offs, z + offs, size, lvl - 1);
 }
 
+void vol_draw_copy (void *dst_arr)
+{
+  double *model = dst_arr;
+  int x, y ,z;
+  for (x = 0; x < DRAW_CTX.size; x++)
+    for (y = 0; y < DRAW_CTX.size; y++)
+      for (z = 0; z < DRAW_CTX.size; z++)
+        model[x + y * DRAW_CTX.size + z * DRAW_CTX.size * DRAW_CTX.size]
+           = DRAW_DST(x,y,z);
+}
 

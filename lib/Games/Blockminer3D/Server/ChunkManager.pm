@@ -74,7 +74,16 @@ sub check_adjacent_sectors_at {
 sub make_sector {
    my ($self, $sec) = @_;
 
-   warn "Create sector @$sec\n";
+   my $seed = Games::Blockminer3D::Region::get_sector_value (
+      $Games::Blockminer3D::Server::World::REGION,
+      @$sec
+   );
+
+   my $seedf = $seed;
+   $seed *= 100 ** 3;
+   $seed = int ($seed);
+   warn "Create sector @$sec, with seed $seed (".sprintf ("%0.5f", $seedf).")\n";
+
 
    my $cube = $CHUNKS_P_SECTOR * $CHUNK_SIZE;
    Games::Blockminer3D::VolDraw::alloc ($cube);
@@ -84,7 +93,7 @@ sub make_sector {
         fill_noise 4 2 0.3
         map_range 0.6 1 0 0.2
       },
-     { size => $cube, seed => 1, param => 1 }
+     { size => $cube, seed => $seed, param => 1 }
    );
 
    Games::Blockminer3D::VolDraw::dst_to_world (@$sec);

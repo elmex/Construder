@@ -203,8 +203,8 @@ b3d_render_model (unsigned int type, double light, unsigned int xo, unsigned int
 double b3d_cell_light (b3d_cell *c)
 {
   double light = (double) c->light / 15;
-  if (light < 0.1)
-    light = 0.1;
+  if (light < 0.15)
+    light = 0.15;
   return light;
 }
 
