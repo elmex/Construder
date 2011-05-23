@@ -2,6 +2,7 @@ package Games::Blockminer3D::Server::ChunkManager;
 use common::sense;
 use Games::Blockminer3D::Server::World;
 use Games::Blockminer3D::Vector;
+use Compress::LZF;
 use JSON;
 use AnyEvent::Util;
 use Time::HiRes qw/time/;
@@ -123,7 +124,12 @@ sub load_sector {
 
    if (open my $mf, "<", "$file") {
       binmode $mf, ":raw";
-      my $cont = do { local $/; <$mf> };
+      my $cont = eval { decompress (do { local $/; <$mf> }) };
+      if ($@) {
+         warn "map sector data corrupted '$file': $@\n";
+         return -1;
+      }
+
       warn "read " . length ($cont) . " bytes\n";
 
       if ($cont =~ /^(.+?)\n\nMAPDATA\s*([^\n]+)\n\n(.+)$/s) {
@@ -209,10 +215,11 @@ sub save_sector {
    my $meta_data = JSON->new->utf8->pretty->encode ($meta || {});
 
    my $data = join "", @chunks;
-   my $filedata =
+   my $filedata = compress (
       $meta_data . "\n\nMAPDATA "
       . join (' ', map { length $_ } ($data, @chunks))
-      . "\n\n" . $data;
+      . "\n\n" . $data
+   );
 
    my $mpd = $Games::Blockminer3D::Server::Resources::MAPDIR;
    my $file = "$mpd/$id.sec";

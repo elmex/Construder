@@ -5,6 +5,7 @@ use Games::Blockminer3D::Server::World;
 use Games::Blockminer3D::Vector;
 use base qw/Object::Event/;
 use Scalar::Util qw/weaken/;
+use Compress::LZF;
 
 =head1 NAME
 
@@ -224,7 +225,7 @@ sub send_chunk {
    # whether any player might be interested in that chunk).
    my $data = Games::Blockminer3D::World::get_chunk_data (@$chnk);
    return unless defined $data;
-   $self->send_client ({ cmd => "chunk", pos => $chnk }, $data);
+   $self->send_client ({ cmd => "chunk", pos => $chnk }, compress ($data));
 }
 
 sub update_hud_1 {

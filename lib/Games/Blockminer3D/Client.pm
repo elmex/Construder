@@ -1,5 +1,6 @@
 package Games::Blockminer3D::Client;
 use common::sense;
+use Compress::LZF;
 use Games::Blockminer3D::Client::Frontend;
 use Games::Blockminer3D::Client::MapChunk;
 use Games::Blockminer3D::Client::Renderer;
@@ -211,6 +212,7 @@ sub handle_packet : event_cb {
       $self->{front}->add_highlight ($hdr->{pos}, $hdr->{color}, $hdr->{fade}, $hdr->{solid});
 
    } elsif ($hdr->{cmd} eq 'chunk') {
+      $body = decompress ($body);
       Games::Blockminer3D::World::set_chunk_data (@{$hdr->{pos}}, $body, length $body);
       if (!$self->{in_chunk_upd}) {
          $self->{front}->update_chunk (@{$hdr->{pos}});
