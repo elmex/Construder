@@ -1,24 +1,4 @@
-// my @indices  = (
-//    qw/ 0 1 2 3 /, # 0 front
-//    qw/ 1 5 6 2 /, # 1 top
-//    qw/ 7 6 5 4 /, # 2 back
-//    qw/ 4 5 1 0 /, # 3 left
-//    qw/ 3 2 6 7 /, # 4 right
-//    qw/ 3 7 4 0 /, # 5 bottom
-// );
-// 
-// my @vertices = (
-//    [ 0,  0,  0 ],
-//    [ 0,  1,  0 ],
-//    [ 1,  1,  0 ],
-//    [ 1,  0,  0 ],
-// 
-//    [ 0,  0,  1 ],
-//    [ 0,  1,  1 ],
-//    [ 1,  1,  1 ],
-//    [ 1,  0,  1 ],
-// );
-
+#include <SDL_opengl.h>
 
 unsigned int quad_vert_idx[6][4] = {
   {0, 1, 2, 3},
@@ -41,88 +21,93 @@ double quad_vert[8][3] = {
   { 1, 0, 1 },
 };
 
-/*
-   my $quad_cnt;
-   FACES:
-   for (my $z = 0; $z < $CHNK_SIZE; $z++) {
-      for (my $y = 0; $y < $CHNK_SIZE; $y++) {
-         for (my $x = 0; $x < $CHNK_SIZE; $x++) {
-            my ($cur, $top, $bot, $left, $right, $front, $back)
-               = Games::Blockminer3D::Client::MapChunk::_neighbours ($map, $x, $y, $z);
-            next unless $cur->[2];
-            if ($cur->[0] != 0) {
-               my @faces;
-               my ($txtid, $surf, $uv, $model) = $RES->obj2texture ($cur->[0]);
-
-               if ($model) {
-                  unless ($model_cache{$cur->[0]}) {
-                     $model_cache{$cur->[0]} = _render_model (@$model);
-                  }
-                  my ($verts, $txtcoords) = @{$model_cache{$cur->[0]}};
-
-                  my $color = $cur->[1] / 15;
-                  for (@$verts) {
-                     push @vertexes, (
-                        $_->[0] + $x, $_->[1] + $y, $_->[2] + $z
-                     );
-                     push @colors, (
-                        $color, $color, $color,
-                     );
-                  }
-                  $quad_cnt += scalar (@$verts) / 4;
-                  push @texcoords, @$txtcoords;
-                  next;
-               }
-
-               push @faces, [0, $front->[1] / 15] if $front->[4];
-               push @faces, [1, $top->[1] / 15]   if $top->[4];
-               push @faces, [2, $back->[1] / 15]  if $back->[4];
-               push @faces, [3, $left->[1] / 15]  if $left->[4];
-               push @faces, [4, $right->[1] / 15] if $right->[4];
-               push @faces, [5, $bot->[1] / 15]   if $bot->[4];
-
-               for (@faces) {
-                  my ($faceidx, $color) = @$_;
-                  $quad_cnt++;
-                  push @vertexes, map {
-                     my $v = $vertices[$indices[$faceidx * 4 + $_]];
-                     (
-                        $v->[0] + $x,
-                        $v->[1] + $y,
-                        $v->[2] + $z,
-                     )
-                  } 0..3;
-                  push @colors, (
-                     $color, $color, $color,
-                     $color, $color, $color,
-                     $color, $color, $color,
-                     $color, $color, $color,
-                  );
-                  push @texcoords, (
-                     $uv->[2], $uv->[3],
-                     $uv->[2], $uv->[1],
-                     $uv->[0], $uv->[1],
-                     $uv->[0], $uv->[3],
-                  );
-               }
-            }
-         }
-      }
-   }
-   warn "GOT: " . scalar (@vertexes) . " verts, " . scalar (@colors) . " colors and " . scalar (@texcoords) . " texcoords and $quad_cnt quads\n";
- #d#  warn "LIST[@vertexes | @colors | @texcoords]\n";
-
-   [
-      OpenGL::Array->new_list (GL_FLOAT, @vertexes),
-      OpenGL::Array->new_list (GL_FLOAT, @colors),
-      OpenGL::Array->new_list (GL_FLOAT, @texcoords),
-      $quad_cnt
-   ]
-
-*/
-
 void ctr_render_init ()
 {
+}
+
+typedef struct _ctr_render_geom {
+  GLdouble  vertexes  [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 3];
+  GLdouble  colors    [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 3];
+  GLdouble  uvs       [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 2];
+  GLuint    vertex_idx[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4];
+  int       vertex_idxs;
+
+  int       vertexes_len;
+  int       colors_len;
+  int       uvs_len;
+
+  GLuint dl;
+  int    dl_dirty;
+
+  int    xoff, yoff, zoff;
+} ctr_render_geom;
+
+void ctr_render_clear_geom (void *c)
+{
+  ctr_render_geom *geom = c;
+  geom->dl_dirty = 1;
+  geom->vertex_idxs = 0;
+  geom->vertexes_len = 0;
+  geom->colors_len = 0;
+  geom->uvs_len = 0;
+  geom->xoff = 0;
+  geom->yoff = 0;
+  geom->zoff = 0;
+}
+
+static int cgeom = 0;
+
+void *
+ctr_render_new_geom ()
+{
+  ctr_render_geom *c = malloc (sizeof (ctr_render_geom));
+  memset (c, 0, sizeof (ctr_render_geom));
+  c->dl = glGenLists (1);
+  ctr_render_clear_geom (c);
+  cgeom++;
+  printf ("NEW %d\n", sizeof(ctr_render_geom));
+  return c;
+}
+
+void ctr_render_draw_geom (void *c)
+{
+  ctr_render_geom *geom = c;
+
+  if (geom->dl_dirty)
+     {
+       printf ("FFE %d %d%d\n", geom->xoff, geom->yoff, geom->zoff);
+       glNewList (geom->dl, GL_COMPILE);
+       glPushMatrix ();
+       glTranslatef (geom->xoff, geom->yoff, geom->zoff);
+       glEnableClientState(GL_VERTEX_ARRAY);
+       glEnableClientState(GL_COLOR_ARRAY);
+       glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+       glVertexPointer   (3, GL_DOUBLE, 0, geom->vertexes);
+       glColorPointer    (3, GL_DOUBLE, 0, geom->colors);
+       glTexCoordPointer (2, GL_DOUBLE, 0, geom->uvs);
+
+       printf ("COMPILE %d vertexes %d\n", geom->vertex_idxs, cgeom);
+       glDrawElements (GL_QUADS, geom->vertex_idxs, GL_UNSIGNED_INT, geom->vertex_idx);
+
+       glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+       glDisableClientState(GL_COLOR_ARRAY);
+       glDisableClientState(GL_VERTEX_ARRAY);
+
+       glPopMatrix ();
+       glEndList ();
+       geom->dl_dirty = 0;
+     }
+
+  glCallList (geom->dl);
+}
+
+void ctr_render_free_geom (void *c)
+{
+  ctr_render_geom *geom = c;
+  glDeleteLists (geom->dl, 1);
+  cgeom--;
+  free (geom);
 }
 
 void
@@ -130,39 +115,41 @@ ctr_render_add_face (unsigned int face, unsigned int type, double light,
                      double xoffs, double yoffs, double zoffs,
                      double scale,
                      double xsoffs, double ysoffs, double zsoffs,
-                     AV *vertex, AV *color, AV *tex)
+                     ctr_render_geom *geom)
 {
- // printf ("RENDER FACE %d: %g %g %g %g\n", cur->type, xoffs, yoffs, zoffs);
+  //d// printf ("RENDER FACE %d: %g %g %g %g\n", type, xoffs, yoffs, zoffs);
   int h, j, k;
   for (h = 0; h < 4; h++)
     {
       double *vert = &(quad_vert[quad_vert_idx[face][h]][0]);
-      av_push (vertex, newSVnv (((vert[0] + xoffs) * scale) + xsoffs));
-      av_push (vertex, newSVnv (((vert[1] + yoffs) * scale) + ysoffs));
-      av_push (vertex, newSVnv (((vert[2] + zoffs) * scale) + zsoffs));
+      geom->vertexes[geom->vertexes_len++] = ((vert[0] + xoffs) * scale) + xsoffs;
+      geom->vertexes[geom->vertexes_len++] = ((vert[1] + yoffs) * scale) + ysoffs;
+      geom->vertexes[geom->vertexes_len++] = ((vert[2] + zoffs) * scale) + zsoffs;
+      geom->vertex_idx[geom->vertex_idxs]  = geom->vertex_idxs;
+      geom->vertex_idxs++;
     }
 
-  for (h = 0; h < 12; h++) // FIXME: is this really 12??? or just 4 (for each vertex)
-    av_push (color, newSVnv (light));
+  for (h = 0; h < 12; h++)
+    geom->colors[geom->colors_len++] = light;
 
   ctr_obj_attr *oa = ctr_world_get_attr (type);
   double *uv = &(oa->uv[0]);
 
-  av_push (tex, newSVnv (uv[2]));
-  av_push (tex, newSVnv (uv[3]));
+  geom->uvs[geom->uvs_len++] = uv[2];
+  geom->uvs[geom->uvs_len++] = uv[3];
 
-  av_push (tex, newSVnv (uv[2]));
-  av_push (tex, newSVnv (uv[1]));
+  geom->uvs[geom->uvs_len++] = uv[2];
+  geom->uvs[geom->uvs_len++] = uv[1];
 
-  av_push (tex, newSVnv (uv[0]));
-  av_push (tex, newSVnv (uv[1]));
+  geom->uvs[geom->uvs_len++] = uv[0];
+  geom->uvs[geom->uvs_len++] = uv[1];
 
-  av_push (tex, newSVnv (uv[0]));
-  av_push (tex, newSVnv (uv[3]));
+  geom->uvs[geom->uvs_len++] = uv[0];
+  geom->uvs[geom->uvs_len++] = uv[3];
 }
 
 void
-ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int yo, unsigned int zo, AV *vertex, AV *color, AV *tex)
+ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int yo, unsigned int zo, void *chnk)
 {
   ctr_obj_attr *oa = ctr_world_get_attr (type);
   unsigned int dim = oa->model_dim;
@@ -195,7 +182,7 @@ ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int
               face, blktype, light,
               x, y, z, scale,
               xo, yo, zo,
-              vertex, color, tex);
+              chnk);
           blk_offs++;
         }
 }
@@ -209,7 +196,7 @@ double ctr_cell_light (ctr_cell *c)
 }
 
 void
-ctr_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
+ctr_render_chunk (int x, int y, int z, void *geom)
 {
   ctr_chunk *c = ctr_world_chunk (x, y, z, 0);
   if (!c)
@@ -217,6 +204,10 @@ ctr_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
 
   LOAD_NEIGHBOUR_CHUNKS(x,y,z);
 
+  ctr_render_geom *g = geom;
+  g->xoff = x * CHUNK_SIZE;
+  g->yoff = y * CHUNK_SIZE;
+  g->zoff = z * CHUNK_SIZE;
   //d// ctr_world_chunk_calc_visibility (c);
 
   int ix, iy, iz;
@@ -232,11 +223,8 @@ ctr_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
           ctr_obj_attr *oa = ctr_world_get_attr (cur->type);
           if (oa->model)
             {
-
-
               ctr_render_model (
-                cur->type, ctr_cell_light (cur), ix, iy, iz,
-                vertex, color, tex);
+                cur->type, ctr_cell_light (cur), ix, iy, iz, geom);
               continue;
             }
 
@@ -244,27 +232,27 @@ ctr_render_chunk (int x, int y, int z, AV *vertex, AV *color, AV *tex)
 
           if (ctr_world_cell_transparent (front))
             ctr_render_add_face (
-              0, cur->type, ctr_cell_light (front), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+              0, cur->type, ctr_cell_light (front), ix, iy, iz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (top))
             ctr_render_add_face (
-              1, cur->type, ctr_cell_light (top), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+              1, cur->type, ctr_cell_light (top), ix, iy, iz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (back))
             ctr_render_add_face (
-              2, cur->type, ctr_cell_light (back), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+              2, cur->type, ctr_cell_light (back), ix, iy, iz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (left))
             ctr_render_add_face (
-              3, cur->type, ctr_cell_light (left), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+              3, cur->type, ctr_cell_light (left), ix, iy, iz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (right))
             ctr_render_add_face (
-              4, cur->type, ctr_cell_light (right), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+              4, cur->type, ctr_cell_light (right), ix, iy, iz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (bot))
             ctr_render_add_face (
-              5, cur->type, ctr_cell_light (bot), ix, iy, iz, 1, 0, 0, 0, vertex, color, tex);
+              5, cur->type, ctr_cell_light (bot), ix, iy, iz, 1, 0, 0, 0, geom);
         }
 
   return;

@@ -162,13 +162,24 @@ ctr_calc_visible_chunks_at (double pt_x, double pt_y, double pt_z, double rad)
 
 MODULE = Games::Construder PACKAGE = Games::Construder::Renderer PREFIX = ctr_render_
 
+void *ctr_render_new_geom ();
 
-void ctr_render_chunk (int x, int y, int z, AV *a, AV *b, AV *c)
+void ctr_render_clear_geom (void *c);
+
+void ctr_render_draw_geom (void *c);
+
+void ctr_render_free_geom (void *c);
+
+void ctr_render_chunk (int x, int y, int z, void *geom)
   CODE:
-    ctr_render_chunk (x, y, z, a, b, c);
+    ctr_render_clear_geom (geom);
+    ctr_render_chunk (x, y, z, geom);
 
 void
-ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int yo, unsigned int zo, AV *vertex, AV *color, AV *tex);
+ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int yo, unsigned int zo, void *geom)
+  CODE:
+     ctr_render_clear_geom (geom);
+     ctr_render_model (type, light, xo, yo, zo, geom);
 
 MODULE = Games::Construder PACKAGE = Games::Construder::World PREFIX = ctr_world_
 
@@ -394,7 +405,7 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int r)
         chnk_y = pos[1],
         chnk_z = pos[2];
 
-    printf ("UPDATE LIGHT %d %d %d +- 2\n", chnk_x, chnk_y, chnk_z);
+    //d// printf ("UPDATE LIGHT %d %d %d +- 2 %d\n", chnk_x, chnk_y, chnk_z, r);
 
     ctr_world_query_setup (
       chnk_x - 1, chnk_y - 1, chnk_z - 1,

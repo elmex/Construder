@@ -1,4 +1,5 @@
 package Games::Construder::Server::ChunkManager;
+use Devel::Peek;
 use common::sense;
 use Games::Construder::Server::World;
 use Games::Construder::Vector;
@@ -139,59 +140,58 @@ sub load_sector {
          return -1;
       }
 
-      warn "read " . length ($cont) . " bytes\n";
+      warn "read " . length ($cont) . "bytes\n";
 
-      if ($cont =~ /^(.+?)\n\nMAPDATA\s*([^\n]+)\n\n(.+)$/s) {
-         my ($metadata, $data) = ($1, $3);
-         warn "LENS[$2]\n";
-         my ($datalen, @lens) = split /\s+/, $2;
-
-         unless (length ($data) == $datalen) {
-            warn "map sector file '$file' corrupted, sector data truncated, "
-                 . "expected $datalen bytes, but only got ".length ($data)."!\n";
-            return -1;
-         }
-
-         my $meta = eval { JSON->new->relaxed->utf8->decode ($metadata) };
-         if ($@) {
-            warn "map sector meta data corrupted '$file': $@\n";
-            return -1;
-         }
-
-         $self->{sector}->{$id} = $meta;
-         $meta->{load_time} = time;
-
-         my $offs;
-         my $first_chnk = world_secpos2chnkpos ($sec);
-         my @chunks;
-         for my $dx (0..($CHUNKS_P_SECTOR - 1)) {
-            for my $dy (0..($CHUNKS_P_SECTOR - 1)) {
-               for my $dz (0..($CHUNKS_P_SECTOR - 1)) {
-                  my $chnk = vaddd ($first_chnk, $dx, $dy, $dz);
-
-                  my $len = shift @lens;
-                  my $chunk = substr $data, $offs, $len;
-                  Games::Construder::World::set_chunk_data (
-                     @$chnk, $chunk, length ($chunk));
-                  $offs += $len;
-               }
-            }
-         }
-
-         delete $self->{sector}->{$id}->{dirty}; # saved with the sector
-         warn "loaded sector $id from '$file', took "
-              . sprintf ("%.3f seconds", time - $t1)
-              . ".\n";
-
-      } else {
-         warn "map sector file '$file' corrupted! Please delete or move it away!\n";
+      my ($metadata, $mapdata, $data) = split /\n\n\n*/, $cont, 3;
+      unless ($mapdata =~ /MAPDATA/) {
+         warn "map sector file '$file' corrupted! Can't find 'MAPDATA'. "
+              . "Please delete or move it away!\n";
          return -1;
       }
+
+      my ($md, $datalen, @lens) = split /\s+/, $mapdata;
+      warn "F $md, $datalen, @lens\n";
+      unless (length ($data) == $datalen) {
+         warn "map sector file '$file' corrupted, sector data truncated, "
+              . "expected $datalen bytes, but only got ".length ($data)."!\n";
+         return -1;
+      }
+
+      my $meta = eval { JSON->new->relaxed->utf8->decode ($metadata) };
+      if ($@) {
+         warn "map sector meta data corrupted '$file': $@\n";
+         return -1;
+      }
+
+      $self->{sector}->{$id} = $meta;
+      $meta->{load_time} = time;
+
+      my $offs;
+      my $first_chnk = world_secpos2chnkpos ($sec);
+      my @chunks;
+      for my $dx (0..($CHUNKS_P_SECTOR - 1)) {
+         for my $dy (0..($CHUNKS_P_SECTOR - 1)) {
+            for my $dz (0..($CHUNKS_P_SECTOR - 1)) {
+               my $chnk = vaddd ($first_chnk, $dx, $dy, $dz);
+
+               my $len = shift @lens;
+               my $chunk = substr $data, $offs, $len;
+               Games::Construder::World::set_chunk_data (
+                  @$chnk, $chunk, length ($chunk));
+               $offs += $len;
+            }
+         }
+      }
+
+      delete $self->{sector}->{$id}->{dirty}; # saved with the sector
+      warn "loaded sector $id from '$file', took "
+           . sprintf ("%.3f seconds", time - $t1)
+           . ".\n";
+
    } else {
       warn "couldn't open map sector '$file': $!\n";
       return -1;
    }
-
 }
 
 sub save_sector {

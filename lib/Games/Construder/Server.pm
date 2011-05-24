@@ -76,7 +76,7 @@ sub init {
       my ($x, $y, $z, $action, $offsetid) = @_;
       # $action   => remove (-1), add (1), undefined (0/undef)
       # $offsetid => id des objekts
-#d# warn "CHUNK CHANGED (@_)\n";
+      warn "CHUNK CHANGED (@_)\n";
       $CHNK->chunk_changed (@_);
       my $chnk = [@_];
       for (values %{$self->{players}}) {

@@ -218,42 +218,21 @@ sub build_chunk_arrays {
 sub free_compiled_chunk {
    my ($self, $cx, $cy, $cz) = @_;
    my $l = delete $self->{compiled_chunks}->{$cx}->{$cy}->{$cz};
-   if ($l) {
-      glDeleteLists ($l, 1) if $l;
-      warn "deleted chunk $cx, $cy, $cz\n";
-   }
+   Games::Construder::Renderer::free_geom ($l) if $l;
 }
 
 sub compile_chunk {
    my ($self, $cx, $cy, $cz) = @_;
 
    warn "compiling... $cx, $cy, $cz.\n";
+   my $geom = $self->{compiled_chunks}->{$cx}->{$cy}->{$cz};
 
-   $self->free_compiled_chunk ($cx, $cy, $cz);
-   $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} = OpenGL::List::glpList {
-         my $compl;
-      my (@vert, @color, @tex);
-      Games::Construder::Renderer::chunk ($cx, $cy, $cz, \@vert, \@color, \@tex);
-#d#     warn "VERTEXES: " . scalar (@vert) . " TEX: " . scalar (@tex) . "\n";
-      $compl = [
-         OpenGL::Array->new_list (GL_FLOAT, @vert),
-         OpenGL::Array->new_list (GL_FLOAT, @color),
-         OpenGL::Array->new_list (GL_FLOAT, @tex),
-         scalar (@vert) / 12
-      ];
+   unless ($geom) {
+      $geom = $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} =
+         Games::Construder::Renderer::new_geom ();
+   }
 
-      glPushMatrix;
-
-      glTranslatef (
-         $cx * $Games::Construder::Client::MapChunk::SIZE,
-         $cy * $Games::Construder::Client::MapChunk::SIZE,
-         $cz * $Games::Construder::Client::MapChunk::SIZE
-      );
-
-      render_quads ($compl);
-
-      glPopMatrix;
-   };
+   Games::Construder::Renderer::chunk ($cx, $cy, $cz, $geom);
 }
 
 sub step_animations {
@@ -393,11 +372,14 @@ sub render_scene {
          @{$fcone[0]}, @{$fcone[1]}, $fcone[2],
          $Games::Construder::Client::MapChunk::BSPHERE);
 
+   my ($txtid) = $self->{res}->obj2texture (1);
+   glBindTexture (GL_TEXTURE_2D, $txtid);
+
    while (@$vis_chunks) {
       my ($cx, $cy, $cz) = (shift @$vis_chunks, shift @$vis_chunks, shift @$vis_chunks);
       my $compl = $cc->{$cx}->{$cy}->{$cz}
          or next;
-      glCallList ($compl);
+      Games::Construder::Renderer::draw_geom ($compl);
    }
 
    for (@{$self->{box_highlights}}) {
@@ -406,8 +388,8 @@ sub render_scene {
 
    my $qp = $self->{selected_box};
    _render_highlight ($qp, [1, 0, 0, 0.2], 0.04) if $qp;
-   my $qpb = $self->{selected_build_box};
-   _render_highlight ($qpb, [0, 0, 1, 0.05], 0.05) if $qp;
+   #my $qpb = $self->{selected_build_box};
+   #_render_highlight ($qpb, [0, 0, 1, 0.05], 0.05) if $qp;
 
    glPopMatrix;
 
@@ -520,7 +502,7 @@ sub setup_event_poller {
       for my $kx (keys %{$self->{compiled_chunks}}) {
          for my $ky (keys %{$self->{compiled_chunks}->{$kx}}) {
             for my $kz (keys %{$self->{compiled_chunks}->{$kx}->{$ky}}) {
-               unless ($self->can_see_chunk ($kx, $ky, $kz, 2)) {
+               unless ($self->can_see_chunk ($kx, $ky, $kz, 1)) {
                   $self->free_compiled_chunk ($kx, $ky, $kz);
                   warn "freeed compiled chunk $kx, $ky, $kz\n";
                }
@@ -541,7 +523,7 @@ sub setup_event_poller {
          my $c = shift @{$self->{chunk_update}};
          next unless $self->can_see_chunk (@$c);
          $self->compile_chunk (@$c);
-         return;
+         #return;
       }
    };
 
@@ -669,7 +651,7 @@ sub get_selected_box_pos {
 
    my $min_dist = 9999;
    for my $dx (-3..3) {
-      for my $dy (-3..2) { # floor and above head?!
+      for my $dy (-3..3) { # floor and above head?!
          for my $dz (-3..3) {
             # now skip the player boxes
             my $cur_box = vaddd ($head_box, $dx, $dy, $dz);

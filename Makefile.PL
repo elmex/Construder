@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use ExtUtils::MakeMaker;
+use Alien::SDL;
 
 WriteMakefile(
     NAME                => 'Games::Construder',
@@ -9,6 +10,8 @@ WriteMakefile(
     VERSION_FROM        => 'lib/Games/Construder.pm',
     ABSTRACT_FROM       => 'lib/Games/Construder.pm',
     PL_FILES            => {},
+    LIBS         => Alien::SDL->config('libs'),
+    INC          => Alien::SDL->config('cflags'),
     test                => { TESTS => "t/*.t t/methds/*.t" },
     PREREQ_PM => {
         'Test::More'    => 0,

@@ -389,7 +389,7 @@ sub start_materialize {
       my ($data) = @_;
       $data->[0] = 1;
       return 1;
-   });
+   }, no_light => 1);
 
    my $tmr;
    $tmr = AE::timer 1, 0, sub {
@@ -417,6 +417,7 @@ sub start_dematerialize {
 
    my $tmr;
    $tmr = AE::timer 1.5, 0, sub {
+      warn "DEMATERIALIZE\n!";
       world_mutate_at ($pos, sub {
          my ($data) = @_;
          my $obj = $Games::Construder::Server::RES->get_object_by_type ($data->[0]);
@@ -429,6 +430,7 @@ sub start_dematerialize {
          delete $self->{dematerializings}->{$id};
          undef $tmr;
          return $succ;
+         warn "DONE DEMAT\n";
       });
    };
 }
