@@ -239,13 +239,13 @@ sub handle_packet : event_cb {
          },
          elements => [
             {
-               type => "text", extents => [0, 0.02, 1, "font_height"],
+               type => "text", extents => [0, 0.02, 1, "font_height", 5],
                align => "center",
                font => "normal", color => "#ffffff",
                text => "Login"
             },
             {
-               type => "text", extents => [0.02, "bottom_of 0", "text_width", "font_height"],
+               type => "text", extents => [0.02, "bottom_of 0", "text_width", "font_height", 5, 0],
                font => "normal", color => "#ffffff",
                text => "Player name:",
                bg_color => "#000000",

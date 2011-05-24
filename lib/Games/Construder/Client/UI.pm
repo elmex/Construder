@@ -86,7 +86,10 @@ sub _clr2color {
 
 sub _calc_extents {
    my ($ext, $relext, $txt_w, $font_h, $base_w, $base_h, $pad_x, $pad_y) = @_;
-   my ($pos, $size) = ([$ext->[0], $ext->[1]], [$ext->[2], $ext->[3]]);
+   my ($pos, $size, $margin) = ([$ext->[0], $ext->[1]], [$ext->[2], $ext->[3]], [$ext->[4], $ext->[5]]);
+   unless (defined $margin->[1]) {
+      $margin->[1] = $margin->[0];
+   }
 
    if ($size->[0] =~ /^text_width(?:\s*(\S+):(.*))?$/) {
       if ($1 ne '') {
@@ -150,9 +153,12 @@ sub _calc_extents {
       $pos->[1] = $base_h * $pos->[1];
    }
 
+   $size->[0] += $margin->[0] * 2;
+   $size->[1] += $margin->[1] * 2;
+
    $pos = [int $pos->[0], int $pos->[1]];
-   $pos->[0] += $pad_x;
-   $pos->[1] += $pad_y;
+   $pos->[0] += $pad_x + $margin->[0];
+   $pos->[1] += $pad_y + $margin->[1];
 
    ($pos, $size)
 }
@@ -243,6 +249,7 @@ sub place_text {
 
       my $woffs = 0;
       if ($align eq 'center') {
+      warn "CENTER [$line]: @$size . " . $tsurf->w . " |\n";
          $woffs = int (($size->[0] - $tsurf->w) / 2)
             if $tsurf->w < $size->[0];
 
@@ -353,6 +360,8 @@ sub prepare_sdl_surface {
       SDL::Rect->new (0, 0, $self->{sdl_surf}->w, $self->{sdl_surf}->h),
       $clr
    );
+
+   $self->{window_size_inside} = $self->{window_size};
 
    if (my $b = $self->{desc}->{window}->{border}) {
       my $clr = SDL::Video::map_RGB (
