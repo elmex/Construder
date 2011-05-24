@@ -498,7 +498,7 @@ sub setup_event_poller {
          },
          elements => [
             {
-               type => 'text', extents => [0, 0, 1, 0.5],
+               type => 'text', extents => [0, 0, 0.9, 0.5],
                text => sprintf ("%.1f FPS\n", $fps / $fps_intv),
                color => "#ffff00",
                font => 'small'

@@ -85,7 +85,7 @@ sub _clr2color {
 }
 
 sub _calc_extents {
-   my ($ext, $relext, $txt_w, $font_h, $base_w, $base_h) = @_;
+   my ($ext, $relext, $txt_w, $font_h, $base_w, $base_h, $pad_x, $pad_y) = @_;
    my ($pos, $size) = ([$ext->[0], $ext->[1]], [$ext->[2], $ext->[3]]);
 
    if ($size->[0] =~ /^text_width(?:\s*(\S+):(.*))?$/) {
@@ -151,6 +151,8 @@ sub _calc_extents {
    }
 
    $pos = [int $pos->[0], int $pos->[1]];
+   $pos->[0] += $pad_x;
+   $pos->[1] += $pad_y;
 
    ($pos, $size)
 }
@@ -183,7 +185,7 @@ sub place_text {
 
    my ($pos, $size) =
       _calc_extents ($ext, $self->{relative_extents}, $text_width,
-                     $font_height, @{$self->{window_size}});
+                     $font_height, @{$self->{window_size_inside}}, @{$self->{window_padding}});
    $self->{relative_extents}->[$self->{element_offset}++] = [$pos, $size];
 
    my $surf = $self->{sdl_surf};
@@ -273,6 +275,7 @@ sub update {
    ($self->{window_pos}, $self->{window_size}) =
       _calc_extents ($win->{extents}, $self->{relative_extents}, 0, 0, $self->{W}, $self->{H});
 
+   # window_size_inside is initialized here, and window_padding too
    $self->prepare_sdl_surface; # creates a new sdl surface for this window
 
    $self->{commands}   = $gui_desc->{commands};
@@ -310,7 +313,7 @@ sub update {
       } elsif ($el->{type} eq 'model') {
          my ($pos, $size) =
             _calc_extents ($el->{extents}, $self->{relative_extents},
-                           0, 0, @{$self->{window_size}});
+                           0, 0, @{$self->{window_size}}, @{$self->{window_padding}});
          $size->[1] = $size->[0];
          push @{$self->{models}}, [$pos, $size, $el->{object_type}];
       }
@@ -350,6 +353,44 @@ sub prepare_sdl_surface {
       SDL::Rect->new (0, 0, $self->{sdl_surf}->w, $self->{sdl_surf}->h),
       $clr
    );
+
+   if (my $b = $self->{desc}->{window}->{border}) {
+      my $clr = SDL::Video::map_RGB (
+         $self->{sdl_surf}->format,
+         _clr2color ($b->{color}),
+      );
+
+      my $bp = defined $b->{padding} ? $b->{padding} : 1;
+      my $bw = $b->{width} || 1;
+
+      my ($ww, $wh) = @{$self->{window_size}};
+
+      my $btop   = $bp;
+      my $bleft  = $bp;
+      my $bright = $ww - ($bp + $bw);
+      my $bbot   = $wh - ($bp + $bw);
+      my $b_w_h  = $wh - 2 * $bp;
+      my $b_w_w  = $ww - 2 * $bp;
+
+      $self->{window_size_inside} = [
+         $wh - 2 * ($bp + $bw),
+         $ww - 2 * ($bp + $bw),
+      ];
+      $self->{window_padding} = [$bp + $bw, $bp + $bw];
+
+      SDL::Video::fill_rect (
+         $self->{sdl_surf}, SDL::Rect->new ($bleft, $btop, $bw, $b_w_h), $clr
+      );
+      SDL::Video::fill_rect (
+         $self->{sdl_surf}, SDL::Rect->new ($bright, $btop, $bw, $b_w_h), $clr
+      );
+      SDL::Video::fill_rect (
+         $self->{sdl_surf}, SDL::Rect->new ($bleft, $btop, $b_w_w, $bw), $clr
+      );
+      SDL::Video::fill_rect (
+         $self->{sdl_surf}, SDL::Rect->new ($bleft, $bbot, $b_w_w, $bw), $clr
+      );
+   }
 }
 
 sub _get_texfmt {
