@@ -32,7 +32,6 @@ sub new {
    bless $self, $class;
 
    $self->init_object_events;
-   $self->{data}->{pos} = [0, 0, 0];
 
    return $self
 }
@@ -64,10 +63,10 @@ sub _initialize_player {
    my ($self) = @_;
    my $data = {
       name      => $self->{name},
-      health    => 100,
-      bio_e     => 100,
       happyness => 100,
+      bio       => 100,
       score     => 0,
+      pos       => [0, 0, 0],
    };
 
    $data
@@ -105,7 +104,7 @@ sub save {
          return;
       }
 
-      warn "saved player $self->{name}.\n";
+      warn "saved player $self->{name} to $file.\n";
 
    } else {
       warn "Couldn't open player file $file~ for writing: $!\n";
@@ -126,14 +125,85 @@ sub init {
       $wself->add_score (100);
       $wself->save;
    };
+   my $tick_time = time;
+   $self->{tick_timer} = AE::timer 0, 0.25, sub {
+      my $cur = time;
+      $wself->player_tick ($cur - $tick_time);
+      $tick_time = $cur;
+   };
+
+   $self->{logic}->{unhappy_rate} = 5; # 0.25% per second
+
+   $self->show_bio_warning (1);
    $self->update_score;
    $self->send_visible_chunks;
    $self->teleport ();
 }
 
+sub player_tick {
+   my ($self, $dt) = @_;
+
+   my $logic = $self->{logic};
+
+   $self->{data}->{happyness} -= $dt * $logic->{unhappy_rate};
+   if ($self->{data}->{happyness} < 0) {
+      $self->{data}->{happyness} = 0;
+      $self->{logic}->{bio_rate} = 10;
+
+   } elsif ($self->{data}->{happyness} > 0) {
+      $self->{logic}->{bio_rate} = 0;
+   }
+
+   $self->{data}->{bio} -= $dt * $logic->{bio_rate};
+   if ($self->{data}->{bio} <= 0) {
+      $self->{data}->{bio} = 0;
+
+      unless ($self->{death_timer}) {
+         $self->show_bio_warning (1);
+         $self->{death_timer} = AE::timer 30, 0, sub {
+            $self->kill_player;
+         };
+      }
+   } else {
+      if (delete $self->{death_timer}) {
+         $self->show_bio_warning (0);
+      }
+   }
+}
+
+sub kill_player {
+   my ($self) = @_;
+   $self->teleport ([0, 0, 0]);
+   $self->{data}->{happyness} = 100;
+   $self->{data}->{bio}       = 100;
+   $self->{data}->{score}    -=
+      int ($self->{data}->{score} * (20 / 100)); # 20% score loss
+}
+
+sub show_bio_warning {
+   my ($self, $enable) = @_;
+   unless ($enable) {
+      $self->display_ui ('player_bio_warning');
+      return;
+   }
+
+   $self->display_ui (player_bio_warning => {
+      window => {
+         sticky => 1,
+         pos => [center => 'center', 0, -0.25],
+         alpha => 0.3,
+      },
+      layout => [
+         text => { font => "big", color => "#ff0000", wrap => 30 },
+          "Warning: Bio energy level low.\nDeath imminent, please eat something!",
+      ]
+   });
+}
+
 sub logout {
    my ($self) = @_;
    $self->save;
+   warn "player $self->{name} logged out\n";
 }
 
 my $world_c = 0;
@@ -282,23 +352,36 @@ sub update_hud_1 {
    $self->display_ui (player_hud_1 => {
       window => {
          sticky => 1,
-         pos => [right => 'down'],
+         pos => [right => 'up'],
          alpha => 0.8,
       },
       layout => [
-        box => { dir => "hor" },
-        [box => { dir => "vert" },
-           [text => { color => "#888888", font => "small" }, "Pos"],
-           [text => { color => "#888888", font => "small" }, "Chunk"],
-           [text => { color => "#888888", font => "small" }, "Sector"],
+        box => { dir => "vert" },
+        [box => { },
+           [text => { align => "right", font => "big", color => "#ffff55", max_chars => 4 },
+              sprintf ("%d%%", $self->{data}->{happyness})],
+           [text => { align => "center", color => "#888888" }, "happy"],
         ],
-        [box => { dir => "vert" },
-           [text => { color => "#ffffff", font => "small" },
-              sprintf ("%3d,%3d,%3d", @$rel_pos)],
-           [text => { color => "#ffffff", font => "small" },
-              sprintf ("%3d,%3d,%3d", @$chnk_pos)],
-           [text => { color => "#ffffff", font => "small" },
-              sprintf ("%3d,%3d,%3d", @$sec_pos)],
+        [box => { },
+           [text => { align => "right", font => "big", color => "#55ff55", max_chars => 4 },
+              sprintf ("%d%%", $self->{data}->{bio})],
+           [text => { align => "center", color => "#888888" }, "bio"],
+        ],
+        [
+           box => { dir => "hor" },
+           [box => { dir => "vert" },
+              [text => { color => "#888888", font => "small" }, "Pos"],
+              [text => { color => "#888888", font => "small" }, "Chunk"],
+              [text => { color => "#888888", font => "small" }, "Sector"],
+           ],
+           [box => { dir => "vert" },
+              [text => { color => "#ffffff", font => "small" },
+                 sprintf ("%3d,%3d,%3d", @$rel_pos)],
+              [text => { color => "#ffffff", font => "small" },
+                 sprintf ("%3d,%3d,%3d", @$chnk_pos)],
+              [text => { color => "#ffffff", font => "small" },
+                 sprintf ("%3d,%3d,%3d", @$sec_pos)],
+           ]
         ]
       ],
       commands => {
@@ -497,7 +580,14 @@ sub teleport {
 
 sub display_ui {
    my ($self, $id, $dest, $cb) = @_;
-   $self->{displayed_uis}->{$id} = $cb;
+
+   unless ($dest) {
+      delete $self->{displayed_uis}->{$id};
+      $self->send_client ({ cmd => deactivate_ui => ui => $id });
+      return;
+   }
+
+   $self->{displayed_uis}->{$id} = $cb if $cb;
    $self->send_client ({ cmd => activate_ui => ui => $id, desc => $dest });
 }
 
