@@ -321,6 +321,31 @@ sub update_chunk {
    }
 }
 
+sub compile_some_chunks {
+   my $self = shift;
+
+   my $comp = 0;
+   my $cc = $self->{compiled_chunks};
+   for ($self->get_visible_chunks) {
+      unless ($cc->{$_->[0]}->{$_->[1]}->{$_->[2]}) {
+         $self->compile_chunk (@$_);
+         $comp++;
+         return $comp if $comp > 5;
+      }
+   }
+
+   while (@{$self->{chunk_update}}) {
+      my $c = shift @{$self->{chunk_update}};
+      next unless $self->can_see_chunk (@$c);
+      $self->compile_chunk (@$c);
+      $comp++;
+      return $comp if $comp > 5;
+      #return;
+   }
+
+   $comp
+}
+
 sub add_highlight {
    my ($self, $pos, $color, $fade, $solid) = @_;
 
@@ -504,26 +529,10 @@ sub setup_event_poller {
             for my $kz (keys %{$self->{compiled_chunks}->{$kx}->{$ky}}) {
                unless ($self->can_see_chunk ($kx, $ky, $kz, 1)) {
                   $self->free_compiled_chunk ($kx, $ky, $kz);
-                  warn "freeed compiled chunk $kx, $ky, $kz\n";
+                  #d# warn "freeed compiled chunk $kx, $ky, $kz\n";
                }
             }
          }
-      }
-   };
-
-   $self->{compile_w} = AE::timer 0, 0.015, sub {
-      my $cc = $self->{compiled_chunks};
-      for ($self->get_visible_chunks) {
-         unless ($cc->{$_->[0]}->{$_->[1]}->{$_->[2]}) {
-            $self->compile_chunk (@$_);
-         }
-      }
-
-      while (@{$self->{chunk_update}}) {
-         my $c = shift @{$self->{chunk_update}};
-         next unless $self->can_see_chunk (@$c);
-         $self->compile_chunk (@$c);
-         #return;
       }
    };
 
@@ -600,6 +609,11 @@ sub setup_event_poller {
 
       $self->render_scene;
       $fps++;
+
+      my $t1 = time;
+      if ($self->compile_some_chunks) {
+         warn "compiling chunks took " . (time - $t1) . " seconds\n";
+      }
       #}
    };
 }

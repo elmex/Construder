@@ -109,9 +109,10 @@ sub world_mutate_at {
    }
 
    if ($arg{no_light}) {
-      Games::Construder::World::query_desetup (1);
+      Games::Construder::World::query_desetup ();
 
    } else {
+      Games::Construder::World::query_desetup (1);
       my $t1 = time;
       Games::Construder::World::update_light_at (@{vfloor ($pos)}, 12);
       printf "light calc took: %f\n", time - $t1;

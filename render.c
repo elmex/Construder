@@ -26,9 +26,9 @@ void ctr_render_init ()
 }
 
 typedef struct _ctr_render_geom {
-  GLdouble  vertexes  [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 3];
-  GLdouble  colors    [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 3];
-  GLdouble  uvs       [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 2];
+  GLfloat  vertexes  [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 3];
+  GLfloat  colors    [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 3];
+  GLfloat  uvs       [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 2];
   GLuint    vertex_idx[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4];
   int       vertex_idxs;
 
@@ -65,7 +65,6 @@ ctr_render_new_geom ()
   c->dl = glGenLists (1);
   ctr_render_clear_geom (c);
   cgeom++;
-  printf ("NEW %d\n", sizeof(ctr_render_geom));
   return c;
 }
 
@@ -75,7 +74,6 @@ void ctr_render_draw_geom (void *c)
 
   if (geom->dl_dirty)
      {
-       printf ("FFE %d %d%d\n", geom->xoff, geom->yoff, geom->zoff);
        glNewList (geom->dl, GL_COMPILE);
        glPushMatrix ();
        glTranslatef (geom->xoff, geom->yoff, geom->zoff);
@@ -83,11 +81,10 @@ void ctr_render_draw_geom (void *c)
        glEnableClientState(GL_COLOR_ARRAY);
        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-       glVertexPointer   (3, GL_DOUBLE, 0, geom->vertexes);
-       glColorPointer    (3, GL_DOUBLE, 0, geom->colors);
-       glTexCoordPointer (2, GL_DOUBLE, 0, geom->uvs);
+       glVertexPointer   (3, GL_FLOAT, 0, geom->vertexes);
+       glColorPointer    (3, GL_FLOAT, 0, geom->colors);
+       glTexCoordPointer (2, GL_FLOAT, 0, geom->uvs);
 
-       printf ("COMPILE %d vertexes %d\n", geom->vertex_idxs, cgeom);
        glDrawElements (GL_QUADS, geom->vertex_idxs, GL_UNSIGNED_INT, geom->vertex_idx);
 
        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
