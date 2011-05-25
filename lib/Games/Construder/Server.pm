@@ -239,7 +239,7 @@ sub handle_packet : event_cb {
             [box => {  dir => "hor" },
                [text => { font => 'normal', color => "#00ff00" }, "Name:"],
                [entry => { font => 'normal', color => "#00ff00",
-                           active_color => "#ff0000", max_chars => 9 },
+                           highlight => ["#111111", "#333333"], max_chars => 9 },
                 ""],
             ]
          ],

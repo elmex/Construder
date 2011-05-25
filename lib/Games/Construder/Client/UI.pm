@@ -182,6 +182,7 @@ sub layout_text {
    if (defined $min_chars) {
       my ($w) = @{ SDL::TTF::size_utf8 ($font, "m" x $min_chars) };
       $txt_w = $w if $txt_w < $w;
+      $txt_h = $line_skip if $txt_h < $line_skip;
    }
 
    $layout->{size} = [$txt_w, $txt_h];
@@ -346,11 +347,12 @@ sub draw_element {
       $self->draw_text ($offs, $attr->{layout}, $attr->{color});
 
    } elsif ($type eq 'entry') {
-      $self->draw_text (
-         $offs, $attr->{layout},
-         ($self->{active_element} eq $el && $self->{anim_state}
-            ? $attr->{active_color}
-            : $attr->{color}));
+      if ($self->{active_element} eq $el) {
+         $self->draw_box (
+            $offs, $attr->{size},
+            ($self->{anim_state} ? $attr->{highlight}->[0] : $attr->{highlight}->[1]));
+      }
+      $self->draw_text ($offs, $attr->{layout}, $attr->{color});
    }
 }
 
