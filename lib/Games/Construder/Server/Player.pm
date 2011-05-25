@@ -67,6 +67,17 @@ sub _initialize_player {
       bio       => 100,
       score     => 0,
       pos       => [0, 0, 0],
+      inv       => {
+         2  => 30, # 30 stones
+         16 => 50, # 50 brickwalls
+         15 => 20, # 20 concretes
+         40 => 10, # 10 flood lights
+         60 => 20, # 20 proteins
+      },
+      slots => {
+         selection => [2, 16, 40],
+         selected  => 0
+      },
    };
 
    $data
@@ -126,7 +137,7 @@ sub init {
       $wself->save;
    };
    my $tick_time = time;
-   $self->{tick_timer} = AE::timer 0, 0.25, sub {
+   $self->{tick_timer} = AE::timer 0.25, 0.25, sub {
       my $cur = time;
       $wself->player_tick ($cur - $tick_time);
       $tick_time = $cur;
@@ -134,8 +145,8 @@ sub init {
 
    $self->{logic}->{unhappy_rate} = 5; # 0.25% per second
 
-   $self->show_bio_warning (1);
    $self->update_score;
+   $self->update_slots;
    $self->send_visible_chunks;
    $self->teleport ();
 }
@@ -213,6 +224,8 @@ sub show_bio_warning {
 sub logout {
    my ($self) = @_;
    $self->save;
+   delete $self->{displayed_uis};
+   delete $self->{upd_score_hl_tmout};
    warn "player $self->{name} logged out\n";
 }
 
@@ -348,8 +361,61 @@ sub update_score {
    if ($hl) {
       $self->{upd_score_hl_tmout} = AE::timer 1, 0, sub {
          $self->update_score;
+         delete $self->{upd_score_hl_tmout};
       };
    }
+}
+
+sub update_slots {
+   my ($self) = @_;
+
+   my $slots = $self->{data}->{slots};
+   my $inv   = $self->{data}->{inv};
+
+   my @slots;
+   for (my $i = 0; $i < 10; $i++) {
+      my $cur = $slots->{selection}->[$i];
+
+      my $border = "#0000ff";
+      if ($i == $slots->{selected}) {
+         $border = "#ff0000";
+      }
+
+      push @slots,
+      [box => { dir => "vert", padding => 3 },
+         [box => { padding => 2, border => { color => $border } },
+           [text => { color => "#00ff00" }, "[$cur]"]],
+         [text => { font => "small", color => "#999999" },
+          $cur . ": " . $inv->{$cur}]
+      ];
+   }
+
+   $self->display_ui (player_slots => {
+      window => {
+         sticky => 1,
+         pos    => [left => "down"],
+      },
+      layout => [
+         box => { }, @slots
+      ],
+      commands => {
+         default_keys => {
+            (map { ("$_" => "slot_$_") } 0..9)
+         },
+      },
+
+   }, sub {
+      if ($_[1] =~ /slot_(\d+)/) {
+         my $i = 0;
+         if ($1 eq '0') {
+            $i = 9;
+         } else {
+            $i = $1 - 1;
+         }
+         $self->{data}->{slots}->{selected} = $i;
+         $self->update_slots;
+      }
+   });
 }
 
 sub update_hud_1 {
@@ -426,8 +492,6 @@ sub show_inventory {
       my $o = $res->get_object_by_type ($_);
       push @listing, [$o->{name}, $m];
    }
-
-   warn "INVEN\n";
 
    $self->send_client ({ cmd => activate_ui => ui => "player_inventory", desc => {
       window => {
@@ -537,7 +601,9 @@ sub start_materialize {
    $tmr = AE::timer 1, 0, sub {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
-         $data->[0] = 40;
+         my $t = $self->{data}->{slots}->{selection}->[$self->{data}->{slots}->{selected}];
+         $data->[0] = $t;
+
          delete $self->{materializings}->{$id};
          undef $tmr;
          return 1;
@@ -559,7 +625,6 @@ sub start_dematerialize {
 
    my $tmr;
    $tmr = AE::timer 1.5, 0, sub {
-      warn "DEMATERIALIZE\n!";
       world_mutate_at ($pos, sub {
          my ($data) = @_;
          my $obj = $Games::Construder::Server::RES->get_object_by_type ($data->[0]);
@@ -572,7 +637,6 @@ sub start_dematerialize {
          delete $self->{dematerializings}->{$id};
          undef $tmr;
          return $succ;
-         warn "DONE DEMAT\n";
       });
    };
 }
@@ -609,6 +673,11 @@ sub ui_res : event_cb {
       return;
    }
 
+}
+
+sub DESTROY {
+   my ($self) = @_;
+   warn "player $self->{name} [$self] destroyed!\n";
 }
 
 =back

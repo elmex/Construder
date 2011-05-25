@@ -802,8 +802,6 @@ sub physics_tick : event_cb {
 sub change_look_lock : event_cb {
    my ($self, $enabled) = @_;
 
-   $self->{xrotate} = 0;
-   $self->{yrotate} = 0;
    $self->{look_lock} = $enabled;
    delete $self->{cached_look_vec};
 

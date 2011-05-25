@@ -602,9 +602,8 @@ sub input_key_press : event_cb {
 
    if ($cmd ne '') {
       my $arg;
-      if (@{$self->{entries}}) {
-         $arg = [map { $_->{text} } @{$self->{entries}}];
-         warn "ARG @$arg\n";
+      if (@{$self->{active_elements}}) {
+         $arg = [map { $_->[2] } @{$self->{active_elements}}];
       }
       $self->{command_cb}->($cmd, $arg) if $self->{command_cb};
       $$rhandled = $cmd eq 'cancel' ? 2 : 1;

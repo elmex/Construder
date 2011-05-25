@@ -261,7 +261,7 @@ sub start_loop {
 }
 
 package main;
-use Games::Blockminer3D;
+use Games::Construder;
 use Alien::SDL;
 use Inline C =>
        Config
@@ -308,7 +308,7 @@ sub load_model {
 warn "making 3d noise\n";
 my $cube = $ARGV[1] || 30;
 
-Games::Blockminer3D::VolDraw::init ();
+Games::Construder::VolDraw::init ();
 renderer::setup;
 init_c_renderer ();
 renderer::set_save_cb (sub { save_model (@_); });
@@ -352,10 +352,10 @@ renderer::set_recalc_cb ($cube, $ARGV[0], 0, sub {
 
    alloc_model ($cube);
 
-   Games::Blockminer3D::VolDraw::alloc ($cube);
+   Games::Construder::VolDraw::alloc ($cube);
 
    if (open my $f, "<", $edit_file) {
-     Games::Blockminer3D::VolDraw::draw_commands (
+     Games::Construder::VolDraw::draw_commands (
        do { local $/; <$f> },
        { size => $cube, seed => $seed, param => $param }
      );
@@ -365,7 +365,7 @@ renderer::set_recalc_cb ($cube, $ARGV[0], 0, sub {
    }
 
    my $m = get_model_ptr ();
-   Games::Blockminer3D::VolDraw::copy ($m);
+   Games::Construder::VolDraw::copy ($m);
 
    $cube
 });
