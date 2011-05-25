@@ -175,6 +175,7 @@ sub player_tick {
          $self->{death_timer} = AE::timer 30, 0, sub {
             $self->kill_player;
             delete $self->{death_timer};
+            $self->show_bio_warning (0);
          };
       }
    } else {
@@ -489,41 +490,34 @@ sub update_hud_1 {
 sub show_inventory {
    my ($self) = @_;
 
-   my @listing;
-   my $res = $Games::Construder::Server::RES;
-   for (keys %{$self->{inventory}->{material}}) {
-      my $m = $self->{inventory}->{material}->{$_};
-      my $o = $res->get_object_by_type ($_);
-      push @listing, [$o->{name}, $m];
-   }
+   my $inv = $self->{data}->{inv};
+   warn "SHOW INV\n";
 
-   $self->send_client ({ cmd => activate_ui => ui => "player_inventory", desc => {
+   $self->display_ui (player_inv => {
       window => {
-         extents => [center => center => 0.8, 0.9],
-         alpha => 1,
-         color => "#000000",
-         prio => 100,
+         pos => [center => 'center'],
       },
-      elements => [
-         {
-            type => "text", extents => ["center", 0.01, 0.9, "font_height"],
-            font => "big", color => "#ffffff",
-            align => "center",
-            text => "Material:"
-         },
-         {
-            type => "text", extents => ["left", "bottom_of 0", 0.4, 0.9],
-            font => "normal", color => "#ffffff",
-            align => "right",
-            text => join ("\n", map { $_->[0] } @listing)
-         },
-         {
-            type => "text", extents => ["right", "bottom_of 0", 0.5, 0.9],
-            font => "normal", color => "#ff00ff",
-            text => join ("\n", map { $_->[1] } @listing)
-         }
-      ]
-   } });
+      layout => [
+         box => { dir => "vert" },
+         [text => { color => "#FFFFFF" }, "TEST"],
+         (map {
+            warn "MODEL $_ >>\n";
+            my $obj = $Games::Construder::Server::RES->get_object_by_type ($_);
+            [select_box => {
+               dir => "vert", align => "center", arg => "item", tag => $_,
+               padding => 2,
+               select_border => { color => "#ffffff", width => 2 },
+             },
+               [box => { align => "center" },
+                  [text => { align => "center", color => "#ffffff" }, $inv->{$_} . " x"],
+                  [model => { align => "center", width => 80 }, $_]
+               ],
+               [text  => { font => "normal", align => "center", color => "#ffffff" },
+                $obj->{name}]
+            ]
+         } keys %$inv)
+      ],
+   });
 }
 
 sub show_help {

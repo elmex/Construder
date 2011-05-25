@@ -217,7 +217,8 @@ sub handle_packet : event_cb {
       if ($hdr->{ui_command} eq 'login') {
 
          my $pl = $self->{players}->{$cid}
-            = Games::Construder::Server::Player->new (cid => $cid, name => $hdr->{arg}->[0]);
+            = Games::Construder::Server::Player->new (
+                 cid => $cid, name => $hdr->{arg}->{name});
 
          $self->{player_guards}->{$cid} = $pl->reg_cb (send_client => sub {
             my ($pl, $hdr, $body) = @_;
@@ -238,7 +239,7 @@ sub handle_packet : event_cb {
             [text => { align => 'center', font => 'big', color => "#00ff00" }, "Login"],
             [box => {  dir => "hor" },
                [text => { font => 'normal', color => "#00ff00" }, "Name:"],
-               [entry => { font => 'normal', color => "#00ff00",
+               [entry => { font => 'normal', color => "#00ff00", arg => "name",
                            highlight => ["#111111", "#333333"], max_chars => 9 },
                 ""],
             ]

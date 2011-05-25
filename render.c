@@ -21,10 +21,6 @@ double quad_vert[8][3] = {
   { 1, 0, 1 },
 };
 
-void ctr_render_init ()
-{
-}
-
 typedef struct _ctr_render_geom {
   GLfloat  vertexes  [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 3];
   GLfloat  colors    [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 3];
@@ -57,15 +53,79 @@ void ctr_render_clear_geom (void *c)
 
 static int cgeom = 0;
 
-void *
-ctr_render_new_geom ()
+#define GEOM_PRE_ALLOC 200
+static ctr_render_geom *geom_pre_alloc[GEOM_PRE_ALLOC];
+static int              geom_last_free = 0;
+
+void *ctr_render_new_geom ()
 {
-  ctr_render_geom *c = malloc (sizeof (ctr_render_geom));
-  memset (c, 0, sizeof (ctr_render_geom));
-  c->dl = glGenLists (1);
-  ctr_render_clear_geom (c);
+  ctr_render_geom *c = 0;
+
+  if (geom_last_free > 0)
+    {
+      c = geom_pre_alloc[geom_last_free - 1];
+      geom_last_free--;
+    }
+  else
+    {
+      c = malloc (sizeof (ctr_render_geom));
+      memset (c, 0, sizeof (ctr_render_geom));
+      c->dl = glGenLists (1);
+      ctr_render_clear_geom (c);
+    }
+
   cgeom++;
   return c;
+}
+
+void ctr_render_free_geom (void *c)
+{
+  if (geom_last_free < GEOM_PRE_ALLOC)
+    geom_pre_alloc[geom_last_free++] = c;
+  else
+    {
+      ctr_render_geom *geom = c;
+      glDeleteLists (geom->dl, 1);
+      free (geom);
+    }
+
+  cgeom--;
+}
+
+void ctr_render_init ()
+{
+  geom_last_free = 0;
+
+  int i;
+  for (i = 0; i < GEOM_PRE_ALLOC; i++)
+    geom_pre_alloc[i] = ctr_render_new_geom ();
+
+  geom_last_free = GEOM_PRE_ALLOC;
+}
+
+void ctr_render_compile_geom (void *c)
+{
+  ctr_render_geom *geom = c;
+  glNewList (geom->dl, GL_COMPILE);
+  glPushMatrix ();
+  glTranslatef (geom->xoff, geom->yoff, geom->zoff);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glEnableClientState(GL_COLOR_ARRAY);
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+  glVertexPointer   (3, GL_FLOAT, 0, geom->vertexes);
+  glColorPointer    (3, GL_FLOAT, 0, geom->colors);
+  glTexCoordPointer (2, GL_FLOAT, 0, geom->uvs);
+
+  glDrawElements (GL_QUADS, geom->vertex_idxs, GL_UNSIGNED_INT, geom->vertex_idx);
+
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableClientState(GL_COLOR_ARRAY);
+  glDisableClientState(GL_VERTEX_ARRAY);
+
+  glPopMatrix ();
+  glEndList ();
+  geom->dl_dirty = 0;
 }
 
 void ctr_render_draw_geom (void *c)
@@ -73,38 +133,9 @@ void ctr_render_draw_geom (void *c)
   ctr_render_geom *geom = c;
 
   if (geom->dl_dirty)
-     {
-       glNewList (geom->dl, GL_COMPILE);
-       glPushMatrix ();
-       glTranslatef (geom->xoff, geom->yoff, geom->zoff);
-       glEnableClientState(GL_VERTEX_ARRAY);
-       glEnableClientState(GL_COLOR_ARRAY);
-       glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
-       glVertexPointer   (3, GL_FLOAT, 0, geom->vertexes);
-       glColorPointer    (3, GL_FLOAT, 0, geom->colors);
-       glTexCoordPointer (2, GL_FLOAT, 0, geom->uvs);
-
-       glDrawElements (GL_QUADS, geom->vertex_idxs, GL_UNSIGNED_INT, geom->vertex_idx);
-
-       glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-       glDisableClientState(GL_COLOR_ARRAY);
-       glDisableClientState(GL_VERTEX_ARRAY);
-
-       glPopMatrix ();
-       glEndList ();
-       geom->dl_dirty = 0;
-     }
+    ctr_render_compile_geom (geom);
 
   glCallList (geom->dl);
-}
-
-void ctr_render_free_geom (void *c)
-{
-  ctr_render_geom *geom = c;
-  glDeleteLists (geom->dl, 1);
-  cgeom--;
-  free (geom);
 }
 
 void
@@ -252,5 +283,6 @@ ctr_render_chunk (int x, int y, int z, void *geom)
               5, cur->type, ctr_cell_light (bot), ix, iy, iz, 1, 0, 0, 0, geom);
         }
 
+  ctr_render_compile_geom (geom);
   return;
 }

@@ -190,8 +190,9 @@ sub layout_text {
    $layout
 }
 
-sub add_entry {
+sub add_active {
    my ($self, $el) = @_;
+   warn "ACTIVE $el->[0]\n";
    push @{$self->{active_elements}}, $el;
 }
 
@@ -199,7 +200,11 @@ sub setup_sizes {
    my ($self, $el) = @_;
    my ($type, $attr, @childs) = @$el;
 
-   if ($type eq 'box') {
+   if ($type eq 'box' || $type eq 'select_box') {
+      if ($type eq 'select_box') {
+         $self->add_active ($el);
+      }
+
       my ($mw, $mh);
 
       for (@childs) {
@@ -222,7 +227,7 @@ sub setup_sizes {
 
    } elsif ($type eq 'text' || $type eq 'entry') {
       if ($type eq 'entry') {
-         $self->add_entry ($el);
+         $self->add_active ($el);
       }
 
       my ($fnt) = element_font ($el);
@@ -306,8 +311,18 @@ sub draw_element {
    my ($self, $el, $offs) = @_;
    my ($type, $attr, @childs) = @$el;
 
-   if ($type eq 'box') {
-      $self->draw_box ($offs, $attr->{size}, $attr->{bgcolor}, $attr->{border});
+   if ($type eq 'box' || $type eq 'select_box') {
+      my ($bgcolor, $border) = ($attr->{bgcolor}, $attr->{border});
+      if ($type eq 'select_box'
+          && $self->{active_element} eq $el
+      ) {
+         $bgcolor = $attr->{select_bgcolor}
+            if $attr->{select_bgcolor};
+         $border = $attr->{select_border}
+            if $attr->{select_border};
+      }
+
+      $self->draw_box ($offs, $attr->{size}, $bgcolor, $border);
 
       my $loffs = [$offs->[0] + $attr->{padding}, $offs->[1] + $attr->{padding_y}];
       my $isize = $attr->{inner_size};
@@ -425,6 +440,7 @@ sub switch_active {
       for (@{$self->{active_elements}}) {
          if ($_ eq $self->{active_element}) {
             $self->{active_element} = $last;
+            last;
          }
          $last = $_;
       }
@@ -433,6 +449,7 @@ sub switch_active {
       for (reverse @{$self->{active_elements}}) {
          if ($_ eq $self->{active_element}) {
             $self->{active_element} = $next;
+            last;
          }
          $next = $_;
       }
@@ -522,6 +539,7 @@ sub display {
 
    glPushMatrix;
    my $z = -8;
+   $z-- if $self->{sticky};
    glTranslatef (@$pos, $z);
    my $a = $self->{desc}->{window}->{alpha};
    $a = 1 unless defined $a;
@@ -610,7 +628,19 @@ sub input_key_press : event_cb {
    if ($cmd ne '') {
       my $arg;
       if (@{$self->{active_elements}}) {
-         $arg = [map { $_->[2] } @{$self->{active_elements}}];
+         $arg = {
+            map {
+               my @a;
+               if ($_->[0] eq 'entry') {
+                  (@a) = ($_->[1]->{arg} => $_->[2]);
+               }
+            } @{$self->{active_elements}}
+         };
+
+         if ($self->{active_element}->[0] eq 'select_box') {
+            $arg->{$self->{active_element}->[0]->{arg}} =
+               $self->{active_element}->[0]->{tag};
+         }
       }
       $self->{command_cb}->($cmd, $arg) if $self->{command_cb};
       $$rhandled = $cmd eq 'cancel' ? 2 : 1;

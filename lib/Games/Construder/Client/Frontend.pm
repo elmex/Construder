@@ -55,11 +55,13 @@ sub new {
 
    $self->init_object_events;
    $self->init_app;
+   Games::Construder::Renderer::init ();
    Games::Construder::Client::UI::init_ui;
    world_init;
 
    $self->init_physics;
    $self->setup_event_poller;
+
 
    return $self
 }
@@ -313,7 +315,7 @@ sub compile_some_chunks {
       unless ($cc->{$_->[0]}->{$_->[1]}->{$_->[2]}) {
          $self->compile_chunk (@$_);
          $comp++;
-         return $comp if $comp > 3;
+         # return $comp if $comp > 30;
       }
    }
 
@@ -322,7 +324,7 @@ sub compile_some_chunks {
       next unless $self->can_see_chunk (@$c);
       $self->compile_chunk (@$c);
       $comp++;
-      return $comp if $comp > 3;
+      # return $comp if $comp > 30; # splitting it over frames doesnt help at all!
       #return;
    }
 

@@ -181,6 +181,8 @@ ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int
      ctr_render_clear_geom (geom);
      ctr_render_model (type, light, xo, yo, zo, geom);
 
+void ctr_render_init ();
+
 MODULE = Games::Construder PACKAGE = Games::Construder::World PREFIX = ctr_world_
 
 void ctr_world_init (SV *change_cb)
@@ -188,7 +190,6 @@ void ctr_world_init (SV *change_cb)
      ctr_world_init ();
      SvREFCNT_inc (change_cb);
      WORLD.chunk_change_cb = change_cb;
-     ctr_render_init ();
 
 SV *
 ctr_world_get_chunk_data (int x, int y, int z)
