@@ -45,7 +45,7 @@ my ($WIDTH, $HEIGHT) = (800, 600);#600, 400);
 
 my $PL_HEIGHT = 1;
 my $PL_RAD    = 0.3;
-my $PL_VIS_RAD = 2.6;
+my $PL_VIS_RAD = 3;
 
 sub new {
    my $this  = shift;
@@ -57,15 +57,6 @@ sub new {
    $self->init_app;
    Games::Construder::Client::UI::init_ui;
    world_init;
-
-#   world ()->reg_cb (chunk_changed => sub {
-#      my ($w, $x, $y, $z, $force_render) = @_;
-#      warn "killed chunk at $x $y $z\n";
-#      if ($force_render)
-#         {
-#            $self->compile_chunk ($x, $y, $z);
-#         }
-#   });
 
    $self->init_physics;
    $self->setup_event_poller;
@@ -224,7 +215,7 @@ sub free_compiled_chunk {
 sub compile_chunk {
    my ($self, $cx, $cy, $cz) = @_;
 
-   warn "compiling... $cx, $cy, $cz.\n";
+   #d# warn "compiling... $cx, $cy, $cz.\n";
    my $geom = $self->{compiled_chunks}->{$cx}->{$cy}->{$cz};
 
    unless ($geom) {
@@ -651,6 +642,7 @@ sub get_look_vector {
    return $self->{cached_look_vec};
 }
 
+# TODO: move this to XS
 sub get_selected_box_pos {
    my ($self) = @_;
    my $t1 = time;

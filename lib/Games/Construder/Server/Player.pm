@@ -23,7 +23,7 @@ Games::Construder::Server::Player - desc
 
 =cut
 
-my $PL_VIS_RAD = 2.6;
+my $PL_VIS_RAD = 3;
 
 sub new {
    my $this  = shift;
@@ -32,7 +32,7 @@ sub new {
    bless $self, $class;
 
    $self->init_object_events;
-   $self->{pos} = [0, 0, 0];
+   $self->{data}->{pos} = [0, 0, 0];
 
    return $self
 }
@@ -126,7 +126,7 @@ sub init {
       $wself->save;
    };
    $self->send_visible_chunks;
-   #$self->teleport ([30, 2, 30]);
+   $self->teleport ();
 }
 
 sub logout {
@@ -159,8 +159,8 @@ sub _visible_chunks {
 sub update_pos {
    my ($self, $pos) = @_;
 
-   my $opos = $self->{pos};
-   $self->{pos} = $pos;
+   my $opos = $self->{data}->{pos};
+   $self->{data}->{pos} = $pos;
 
    my $oblk = vfloor ($opos);
    my $nblk = vfloor ($pos);
@@ -198,7 +198,7 @@ sub update_pos {
 sub chunk_updated {
    my ($self, $chnk) = @_;
 
-   my $plchnk = world_pos2chnkpos ($self->{pos});
+   my $plchnk = world_pos2chnkpos ($self->{data}->{pos});
    my $divvec = vsub ($chnk, $plchnk);
    return if vlength ($divvec) >= $PL_VIS_RAD;
 
@@ -210,7 +210,7 @@ sub send_visible_chunks {
 
    $self->send_client ({ cmd => "chunk_upd_start" });
 
-   my @chnks = _visible_chunks ($self->{pos});
+   my @chnks = _visible_chunks ($self->{data}->{pos});
    $self->send_chunk ($_) for @chnks;
 
    warn "done sending " . scalar (@chnks) . " visible chunks.\n";
@@ -242,20 +242,20 @@ sub update_hud_1 {
          {
             type => "text", extents => ["left", 0.02, 0.03, "font_height"],
             font => "small", color => "#ffffff",
-            text => "Pos    " . sprintf ("%3.2f,%3.2f,%3.2f", @{vfloor ($self->{pos})})
+            text => "Pos    " . sprintf ("%3.2f,%3.2f,%3.2f", @{vfloor ($self->{data}->{pos})})
          },
          {
             type => "text", extents => ["left", "bottom_of 0", 0.03, "font_height"],
             font => "small", color => "#ffffff",
             text => "Chunk  " . sprintf ("%3d,%3d,%3d",
-                                      @{world_pos2chnkpos ($self->{pos})})
+                                      @{world_pos2chnkpos ($self->{data}->{pos})})
          },
          {
             type => "text", extents => ["left", "bottom_of 1", 0.03, "font_height"],
             font => "small", color => "#ffffff",
             text => "Sector " . sprintf ("%3d,%3d,%3d",
                                       @{world_chnkpos2secpos (
-                                           world_pos2chnkpos ($self->{pos}))})
+                                           world_pos2chnkpos ($self->{data}->{pos}))})
          },
          {
             type => "text", extents => ["left", "bottom_of 2", 0.03, 1],
@@ -442,6 +442,7 @@ sub send_client : event_cb {
 sub teleport {
    my ($self, $pos) = @_;
 
+   $pos ||= $self->{data}->{pos};
    $self->send_client ({ cmd => "place_player", pos => $pos });
 }
 
