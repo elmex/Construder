@@ -313,7 +313,7 @@ sub compile_some_chunks {
       unless ($cc->{$_->[0]}->{$_->[1]}->{$_->[2]}) {
          $self->compile_chunk (@$_);
          $comp++;
-         return $comp if $comp > 5;
+         return $comp if $comp > 3;
       }
    }
 
@@ -322,7 +322,7 @@ sub compile_some_chunks {
       next unless $self->can_see_chunk (@$c);
       $self->compile_chunk (@$c);
       $comp++;
-      return $comp if $comp > 5;
+      return $comp if $comp > 3;
       #return;
    }
 
@@ -356,7 +356,7 @@ sub render_scene {
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity;
-   gluPerspective (60, $WIDTH / $HEIGHT, 0.1, 30);
+   gluPerspective (70, $WIDTH / $HEIGHT, 0.1, 30);
 
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity;
@@ -611,7 +611,7 @@ sub cam_cone {
    my ($self) = @_;
    return @{$self->{cached_cam_cone}} if $self->{cached_cam_cone};
    $self->{cached_cam_cone} = [
-      calc_cam_cone (0.1, 30, 60, $WIDTH, $HEIGHT, $self->get_look_vector)
+      calc_cam_cone (0.1, 30, 70, $WIDTH, $HEIGHT, $self->get_look_vector)
    ];
    @{$self->{cached_cam_cone}}
 }
