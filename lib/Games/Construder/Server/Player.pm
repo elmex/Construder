@@ -384,7 +384,7 @@ sub update_slots {
       push @slots,
       [box => { dir => "vert", padding => 3 },
          [box => { padding => 2, border => { color => $border } },
-           [text => { color => "#00ff00" }, "[$cur]"]],
+           [model => { color => "#00ff00", width => 50 }, $cur]],
          [text => { font => "small", color => "#999999" },
           $cur . ": " . $inv->{$cur}]
       ];

@@ -234,6 +234,9 @@ sub setup_sizes {
       $attr->{size}   = $lyout->{size};
       $attr->{layout} = $lyout;
       return $attr->{size}
+
+   } elsif ($type eq 'model') {
+      return $attr->{size} = [$attr->{width}, $attr->{width}];
    }
 }
 
@@ -353,6 +356,9 @@ sub draw_element {
             ($self->{anim_state} ? $attr->{highlight}->[0] : $attr->{highlight}->[1]));
       }
       $self->draw_text ($offs, $attr->{layout}, $attr->{color});
+
+   } elsif ($type eq 'model') {
+      push @{$self->{models}}, [$offs, $attr->{size}, $childs[0]];
    }
 }
 
@@ -536,21 +542,22 @@ sub display {
    glVertex3f (0, 0, 0);
 
    glEnd ();
-   glPopMatrix;
 
    for (@{$self->{models}}) {
       my ($pos, $size, $model) = @$_;
       glPushMatrix;
-      my ($w, $h) = ($size->[0] * 0.3, $size->[1] * 0.3);
-      glTranslatef ($pos->[0], $pos->[1] + ($h * 1.25), -1);
+      my ($w, $h) = ($size->[0] * 0.65, $size->[1] * 0.65);
+      glTranslatef ($pos->[0] + ($h * 0.05), $pos->[1] + ($h * 1.2), 1);
       glScalef ($w, $h, 0.01);
       glScalef (1, -1, 1);
-      glRotatef (45, 1, 0, 0);
+      glRotatef (25, 1, 0, 0);
       glRotatef (45, 0, 1, 0);
 
       render_object_type_sample ($_->[2]);
       glPopMatrix;
    }
+
+   glPopMatrix;
 }
 
 sub input_key_press : event_cb {

@@ -25,24 +25,37 @@ Games::Construder::Client::Renderer - Rendering utility
 =cut
 
 our $RES;
-our $CHNK_SIZE = $Games::Construder::Client::MapChunk::SIZE;
+
+our %MODEL_CACHE;
 
 sub render_object_type_sample {
    my ($type) = @_;
 
-   my (@vert, @color, @txt);
-   Games::Construder::Renderer::model (
-      $type, 1, 0, 0, 0, \@vert, \@color, \@txt
-   );
+   my ($txtid) = $RES->obj2texture (1);
+   glBindTexture (GL_TEXTURE_2D, $txtid);
 
-   my $quads = [
-      OpenGL::Array->new_list (GL_FLOAT, @vert),
-      OpenGL::Array->new_list (GL_FLOAT, @color),
-      OpenGL::Array->new_list (GL_FLOAT, @txt),
-      @vert / 12 # 3 * 4 vertices
-   ];
+   if (my $g = $MODEL_CACHE{$type}) {
+      Games::Construder::Renderer::draw_geom ($g);
 
-   render_quads ($quads)
+   } else {
+      my $geom = $MODEL_CACHE{$type} = Games::Construder::Renderer::new_geom ();
+      Games::Construder::Renderer::model ($type, 1, 0, 0, 0, $geom);
+      Games::Construder::Renderer::draw_geom ($geom);
+   }
+
+#my (@vert, @color, @txt);
+#   Games::Construder::Renderer::model (
+#      $type, 1, 0, 0, 0, \@vert, \@color, \@txt
+#   );
+#
+#   my $quads = [
+#      OpenGL::Array->new_list (GL_FLOAT, @vert),
+#      OpenGL::Array->new_list (GL_FLOAT, @color),
+#      OpenGL::Array->new_list (GL_FLOAT, @txt),
+#      @vert / 12 # 3 * 4 vertices
+#   ];
+#
+#   render_quads ($quads)
 }
 
 sub render_quads {
