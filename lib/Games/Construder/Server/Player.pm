@@ -171,6 +171,16 @@ sub player_tick {
    }
 }
 
+sub refill_bio {
+   my ($self, $amount) = @_;
+
+   $self->{data}->{bio} += $amount;
+   $self->{data}->{bio} = 100
+      if $self->{data}->{bio} > 100;
+
+   $self->player_tick (0); # no change, just cleanup state
+}
+
 sub kill_player {
    my ($self) = @_;
    $self->teleport ([0, 0, 0]);
