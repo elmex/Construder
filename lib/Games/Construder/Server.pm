@@ -232,33 +232,16 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'login') {
       $self->send_client ($cid, { cmd => activate_ui => ui => "login", desc => {
-         window => {
-            extents => [center => center => 0.4, 0.2],
-            alpha => 1,
-            color => "#000000",
-         },
-         elements => [
-            {
-               type => "text", extents => [0, 0.02, 1, "font_height", 5],
-               align => "center",
-               font => "normal", color => "#ffffff",
-               text => "Login"
-            },
-            {
-               type => "text", extents => [0.02, "bottom_of 0", "text_width", "font_height", 5, 0],
-               font => "normal", color => "#ffffff",
-               text => "Player name:",
-               bg_color => "#000000",
-            },
-            {
-               type => "entry",
-               extents => ["right_of 1", "bottom_of 0", "text_width normal:mmmmmmm", "font_height"],
-               font => "normal", color => "#ffffff",
-               bg_color => "#000000",
-               hl_color => "#333333",
-               max_chars => 7,
-               text => ""
-            },
+         window => { pos => [center => 'center'], },
+         layout => [
+            box => { dir => "vert", padding => 25 },
+            [text => { align => 'center', font => 'big', color => "#00ff00" }, "Login"],
+            [box => {  dir => "hor" },
+               [text => { font => 'normal', color => "#00ff00" }, "Name:"],
+               [entry => { font => 'normal', color => "#00ff00",
+                           active_color => "#ff0000", max_chars => 9 },
+                ""],
+            ]
          ],
          commands => {
             default_keys => {

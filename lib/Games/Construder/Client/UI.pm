@@ -67,6 +67,14 @@ sub new {
    return $self
 }
 
+sub animation_step {
+   my ($self) = @_;
+   $self->{anim_state} = not $self->{anim_state};
+   if (@{$self->{active_elements}}) {
+      $self->update;
+   }
+}
+
 sub _fnt2font {
    my $fnt = shift;
    $fnt eq 'big' ? $BIG_FONT : $fnt eq 'small' ? $SMALL_FONT : $NORM_FONT;
@@ -84,189 +92,272 @@ sub _clr2color {
    return (0, 0, 0);
 }
 
-sub _calc_extents {
-   my ($ext, $relext, $txt_w, $font_h, $base_w, $base_h, $pad_x, $pad_y) = @_;
-   my ($pos, $size, $margin) = ([$ext->[0], $ext->[1]], [$ext->[2], $ext->[3]], [$ext->[4], $ext->[5]]);
-   unless (defined $margin->[1]) {
-      $margin->[1] = $margin->[0];
+sub window_position {
+   my ($self, $pos, $size) = @_;
+
+   my ($sw, $sh) = ($self->{W}, $self->{H});
+   my ($x, $y, $ro_x, $ro_y) = @$pos;
+
+   if ($x eq 'right') {
+      $x = $sw - $size->[0];
+   } elsif ($x eq 'center') {
+      $x = ($sw - $size->[0]) / 2;
+   } else {
+      $x = 0;
    }
 
-   if ($size->[0] =~ /^text_width(?:\s*(\S+):(.*))?$/) {
-      if ($1 ne '') {
-         my $font = _fnt2font ($1);
-         if ($font) {
-            $size->[0] = text_width ($font, $2);
-         } else {
-            $size->[0] = $txt_w;
-         }
-      } else {
-         $size->[0] = $txt_w;
-      }
+   if ($y eq 'down') {
+      $y = $sh - $size->[1];
+   } elsif ($y eq 'center') {
+      $y = ($sh - $size->[1]) / 2;
+   } else {
+      $y = 0;
    }
 
-   if ($size->[1] =~ /^font_height(?:\s*(\d+(?:\.\d+)?))?/) {
-      $size->[1] = $1 ne '' ? $font_h * $1 : $font_h;
-   } elsif ($size->[1] eq 'w') {
-      $size->[1] = $size->[0];
-   }
-   #d# warn "RELATIVE: " . JSON->new->pretty->encode ($relext) . "\n";
+   $x += $ro_x * $sw;
+   $y += $ro_y * $sh;
 
-   $size = [$size->[0] * $base_w, $size->[1]] if $size->[0] <= 1;
-   $size = [$size->[0], $size->[1] * $base_h] if $size->[1] <= 1;
-   $size = [int $size->[0], int $size->[1]];
-
-   if ($pos->[0] eq 'left') {
-      $pos->[0] = 0;
-   } elsif ($pos->[0] eq 'right') {
-      $pos->[0] = ($base_w - $size->[0]);
-   } elsif ($pos->[0] eq 'center') {
-      $pos->[0] = int (($base_w - $size->[0]) / 2);
-
-   } elsif ($pos->[0] =~ /^x_of\s*(\d+)/) {
-      my $ext = $relext->[$1];
-      $pos->[0] = $ext->[0]->[0] if $ext;
-
-   } elsif ($pos->[0] =~ /^right_of\s*(\d+)/) {
-      my $ext = $relext->[$1];
-      $pos->[0] = $ext->[0]->[0] + $ext->[1]->[0] if $ext;
-
-   } elsif ($pos->[0] <= 1) {
-      $pos->[0] = $base_w * $pos->[0];
-   }
-
-   if ($pos->[1] eq 'up') {
-      $pos->[1] = 0;
-   } elsif ($pos->[1] eq 'down') {
-      $pos->[1] = ($base_h - $size->[1]);
-   } elsif ($pos->[1] eq 'center') {
-      $pos->[1] = int (($base_h - $size->[1]) / 2);
-
-   } elsif ($pos->[1] =~ /^y_of\s*(\d+)/) {
-      my $ext = $relext->[$1];
-      $pos->[1] = $ext->[0]->[1] if $ext;
-
-   } elsif ($pos->[1] =~ /^bottom_of\s*(\d+)/) {
-      my $ext = $relext->[$1];
-      $pos->[1] = $ext->[0]->[1] + $ext->[1]->[1] if $ext;
-
-   } elsif ($pos->[1] <= 1) {
-      $pos->[1] = $base_h * $pos->[1];
-   }
-
-   $size->[0] += $margin->[0] * 2;
-   $size->[1] += $margin->[1] * 2;
-
-   $pos = [int $pos->[0], int $pos->[1]];
-   $pos->[0] += $pad_x + $margin->[0];
-   $pos->[1] += $pad_y + $margin->[1];
-
-   ($pos, $size)
+   [int ($x), int ($y)]
 }
 
-sub window_e {
-   my ($self) = @_;
-}
+sub layout_text {
+   my ($font, $text, $wrap, $txtalign, $line_range, $min_chars) = @_;
+   my $layout = {
+      font => $font
+   };
 
-sub render_text {
-   my ($self, $text, $wrap, $font, $color) = @_;
-}
+   my @lines     = split /\n/, $text;
+   my $line_skip = SDL::TTF::font_line_skip ($font);
 
-sub text_width {
-   my ($fnt, $txt) = @_;
-   my $w = 0;
-   for (split /\n/, $txt) {
-      my ($line_width) = @{ SDL::TTF::size_utf8 ($fnt, $_) };
-      $w = $line_width if $w < $line_width;
-   }
-   $w
-}
+   my $txt_w;
 
-sub place_text {
-   my ($self, $ext, $align, $wrap, $text, $font, $color, $bgcolor) = @_;
-
-   my $fnt = $font eq 'big' ? $BIG_FONT : $font eq 'small' ? $SMALL_FONT : $NORM_FONT;
-   my $line_skip   = SDL::TTF::font_line_skip ($fnt);
-   my $font_height = SDL::TTF::font_height ($fnt);
-   my $text_width  = text_width ($fnt, $text);
-
-   my ($pos, $size) =
-      _calc_extents ($ext, $self->{relative_extents}, $text_width,
-                     $font_height, @{$self->{window_size_inside}}, @{$self->{window_padding}});
-   $self->{relative_extents}->[$self->{element_offset}++] = [$pos, $size];
-
-   my $surf = $self->{sdl_surf};
-   my $avail_h = $size->[1];
-
-   my @lines = split /\n/, $text;
    if ($wrap) {
-      my ($min_w) = @{ SDL::TTF::size_utf8 ($fnt, "mmmmm") };
+      my ($max_w) = @{ SDL::TTF::size_utf8 ($font, "m" x $wrap) };
+      $txt_w = $max_w;
+
       my @ilines = @lines;
       (@lines) = ();
+
       while (@ilines) {
          my $l = shift @ilines;
-         my ($w, $h) = @{ SDL::TTF::size_utf8 ($fnt, $l) };
-         while ($w > $size->[0] && $w > $min_w) {
+         my ($w, $h) = @{ SDL::TTF::size_utf8 ($font, $l) };
+
+         while ($w > $max_w) {
             # FIXME: this substr works on utf encoded strings, not unicode strings
             #        it WILL destroy multibyte encoded characters!
             $ilines[0] = (substr $l, -1, 1, '') . $ilines[0];
-            ($w) = @{ SDL::TTF::size_utf8 ($fnt, $l) };
+            ($w) = @{ SDL::TTF::size_utf8 ($font, $l) };
          }
          push @lines, $l;
       }
+   } else {
+      for my $l (@lines) {
+         my ($w, $h) = @{ SDL::TTF::size_utf8 ($font, $l) };
+         $txt_w = $w if $txt_w < $w;
+      }
    }
 
-   if (defined $bgcolor) {
-      my $clr = SDL::Video::map_RGB ($surf->format, _clr2color ($bgcolor));
+   if ($line_range) {
+      splice @lines, 0, $line_range->[0];
+      splice @lines, ($line_range->[1] - $line_range->[0]) + 1;
+   }
+
+   my $txt_h;
+   for my $l (@lines) {
+      my ($w, $h) = @{ SDL::TTF::size_utf8 ($font, $l) };
+
+      if ($txtalign eq 'center') {
+         push @{$layout->{lines}}, [($txt_w - $w) / 2, $txt_h, $l];
+
+      } elsif ($txtalign eq 'right') {
+         push @{$layout->{lines}}, [$txt_w - $w, $txt_h, $l];
+
+      } else {
+         push @{$layout->{lines}}, [0, $txt_h, $l];
+      }
+
+      $txt_h += $line_skip;
+   }
+
+   if (defined $min_chars) {
+      my ($w) = @{ SDL::TTF::size_utf8 ($font, "m" x $min_chars) };
+      $txt_w = $w if $txt_w < $w;
+   }
+
+   $layout->{size} = [$txt_w, $txt_h];
+
+   $layout
+}
+
+sub add_entry {
+   my ($self, $el) = @_;
+   push @{$self->{active_elements}}, $el;
+}
+
+sub setup_sizes {
+   my ($self, $el) = @_;
+   my ($type, $attr, @childs) = @$el;
+
+   if ($type eq 'box') {
+      my ($mw, $mh);
+
+      for (@childs) {
+         my $size = $self->setup_sizes ($_);
+         if ($attr->{dir} eq 'vert') {
+            $mw = $size->[0] if $mw < $size->[0];
+            $mh += $size->[1];
+         } else {
+            $mw += $size->[0];
+            $mh = $size->[1] if $mh < $size->[1];
+         }
+      }
+
+      $attr->{padding_y} = $attr->{padding} unless defined $attr->{padding_y};
+
+      $attr->{size} = [$mw + $attr->{padding} * 2,
+                       $mh + $attr->{padding_y} * 2];
+      $attr->{inner_size} = [$mw, $mh];
+      return $attr->{size};
+
+   } elsif ($type eq 'text' || $type eq 'entry') {
+      if ($type eq 'entry') {
+         $self->add_entry ($el);
+      }
+
+      my ($fnt) = element_font ($el);
+      my $lyout =
+         layout_text ($fnt, $childs[0], $attr->{wrap},
+                      $attr->{align}, $attr->{line_range},
+                      $attr->{max_chars});
+
+      $attr->{size}   = $lyout->{size};
+      $attr->{layout} = $lyout;
+      return $attr->{size}
+   }
+}
+
+sub draw_text {
+   my ($self, $pos, $layout, $color) = @_;
+
+   my $font = $layout->{font};
+   my $surf = $self->{sdl_surf};
+
+   my $curp = [@$pos];
+   for my $line (@{$layout->{lines}}) {
+      my ($x, $y, $txt) = @$line;
+
+      my $tsurf = SDL::TTF::render_utf8_blended (
+         $layout->{font}, $txt, SDL::Color->new (_clr2color ($color)));
+
+      unless ($tsurf) {
+         warn "SDL::TTF::render_utf8_blended could not render \"$line\": "
+              . SDL::get_error . "\n";
+         next;
+      }
+
+      SDL::Video::blit_surface (
+         $tsurf, SDL::Rect->new (0, 0, $tsurf->w, $tsurf->h),
+         $surf,  SDL::Rect->new ($pos->[0] + $x, $pos->[1] + $y, $tsurf->w, $tsurf->h));
+   }
+}
+
+sub draw_box {
+   my ($self, $pos, $size, $bgcolor, $border) = @_;
+
+   if ($bgcolor) {
+      my $clr = SDL::Video::map_RGB (
+         $self->{sdl_surf}->format, _clr2color ($bgcolor)
+      );
       SDL::Video::fill_rect (
-         $surf,
+         $self->{sdl_surf},
          SDL::Rect->new (@$pos, @$size),
          $clr
       );
    }
 
-   my $curp = [@$pos];
-   for my $line (@lines) {
-      if ($line eq '') {
-         $avail_h   -= $line_skip;
-         $curp->[1] += $line_skip;
-         next;
-      }
+   if ($border) {
+      my $clr = SDL::Video::map_RGB (
+         $self->{sdl_surf}->format, _clr2color ($border->{color}),
+      );
 
-      my $tsurf = SDL::TTF::render_utf8_blended (
-         $fnt, $line, SDL::Color->new (_clr2color ($color)));
+      my $w = $border->{width} || 1;
+      my ($x, $y, $bw, $bh) = (@$pos, @$size);
 
-      unless ($tsurf) {
-         warn "SDL::TTF::render_utf8_blended could not render \"$line\": "
-              . SDL::get_error . "\n";
-         $avail_h   -= $line_skip;
-         $curp->[1] += $line_skip;
-         next;
-      }
-
-      my $h = $tsurf->h < $avail_h
-                 ? $tsurf->h
-                 : $avail_h;
-
-      my $woffs = 0;
-      if ($align eq 'center') {
-      warn "CENTER [$line]: @$size . " . $tsurf->w . " |\n";
-         $woffs = int (($size->[0] - $tsurf->w) / 2)
-            if $tsurf->w < $size->[0];
-
-      } elsif ($align eq 'right') {
-         $woffs = $size->[0] - $tsurf->w
-            if $tsurf->w < $size->[0];
-      }
-
-      #d# warn "PLACE $line: $avail_h : $line_skip : $h\n";
-      SDL::Video::blit_surface (
-         $tsurf, SDL::Rect->new (0, 0, $tsurf->w, $h),
-         $surf,  SDL::Rect->new ($curp->[0] + $woffs, $curp->[1], $size->[0], $h));
-
-      $avail_h -= $line_skip;
-      $curp->[1] += $line_skip;
-      last if $avail_h < 0;
+      SDL::Video::fill_rect (
+         $self->{sdl_surf}, SDL::Rect->new ($x, $y, $w, $bh), $clr
+      );
+      SDL::Video::fill_rect (
+         $self->{sdl_surf}, SDL::Rect->new ($x + ($bw - $w), $y, $w, $bh), $clr
+      );
+      SDL::Video::fill_rect (
+         $self->{sdl_surf}, SDL::Rect->new ($x, $y, $bw, $w), $clr
+      );
+      SDL::Video::fill_rect (
+         $self->{sdl_surf}, SDL::Rect->new ($x, $y + ($bh - $w), $bw, $w), $clr
+      );
    }
+}
+
+sub draw_element {
+   my ($self, $el, $offs) = @_;
+   my ($type, $attr, @childs) = @$el;
+
+   if ($type eq 'box') {
+      $self->draw_box ($offs, $attr->{size}, $attr->{bgcolor}, $attr->{border});
+
+      my $loffs = [$offs->[0] + $attr->{padding}, $offs->[1] + $attr->{padding_y}];
+      my $isize = $attr->{inner_size};
+
+      my $x = $loffs->[0];
+      my $y = $loffs->[1];
+
+      if ($attr->{dir} eq 'vert') {
+         for (@childs) {
+            my $size = $_->[1]->{size};
+            my $pos  = [$x, $y];
+
+            if ($_->[1]->{align} eq 'center') {
+               $pos->[0] += ($isize->[0] - $size->[0]) / 2;
+            } elsif ($_->[1]->{align} eq 'right') {
+               $pos->[0] += $isize->[0] - $size->[0];
+            }
+
+            $self->draw_element ($_, $pos);
+            $y += $size->[1];
+         }
+
+      } else {
+         for (@childs) {
+            my $size = $_->[1]->{size};
+            my $pos  = [$x, $y];
+
+            if ($_->[1]->{align} eq 'center') {
+               $pos->[1] += ($isize->[1] - $size->[1]) / 2;
+            } elsif ($_->[1]->{align} eq 'right') {
+               $pos->[1] += $isize->[1] - $size->[1];
+            }
+
+            $self->draw_element ($_, $pos);
+            $x += $size->[0];
+         }
+      }
+
+   } elsif ($type eq 'text') {
+      $self->draw_text ($offs, $attr->{layout}, $attr->{color});
+
+   } elsif ($type eq 'entry') {
+      $self->draw_text (
+         $offs, $attr->{layout},
+         ($self->{active_element} eq $el && $self->{anim_state}
+            ? $attr->{active_color}
+            : $attr->{color}));
+   }
+}
+
+sub element_font {
+   my ($el) = @_;
+   my $font = $el->[1]->{font};
+   $font eq 'big' ? $BIG_FONT : $font eq 'small' ? $SMALL_FONT : $NORM_FONT;
 }
 
 sub update {
@@ -279,58 +370,67 @@ sub update {
    $self->{element_offset} = 0;
    $self->{relative_extents} = [];
 
-   ($self->{window_pos}, $self->{window_size}) =
-      _calc_extents ($win->{extents}, $self->{relative_extents}, 0, 0, $self->{W}, $self->{H});
-
-   # window_size_inside is initialized here, and window_padding too
-   $self->prepare_sdl_surface; # creates a new sdl surface for this window
-
    $self->{commands}   = $gui_desc->{commands};
    $self->{command_cb} = $gui_desc->{command_cb};
    $self->{sticky}     = $win->{sticky};
-   $self->{prio}       = $win->{prio};
    $self->{models}     = [];
 
    $self->{entries}    = [];
 
-   my $entry_idx = 0;
-   for my $el (@{$gui_desc->{elements}}) {
+   unless ($gui_desc->{layout}) {
+      warn "Warning: Got GUI Windows without layout!";
+      return;
+   }
 
-      if ($el->{type} eq 'text') {
-         $self->place_text (
-            $el->{extents}, $el->{align}, $el->{wrap}, $el->{text},
-            $el->{font}, $el->{color}, $el->{bg_color});
-         # render text
+   unless ($self->{layout}) {
+      $self->{layout} = decode_json (encode_json ($gui_desc->{layout}));
+   }
+   my $layout = $self->{layout};
 
-      } elsif ($el->{type} eq 'entry') {
-         my $bgcolor = $self->{bg_color};
-         if ($self->{active_entry} == $entry_idx) {
-            $bgcolor = $el->{hl_color};
+   $self->{active_elements} = [];
+   my $size = $self->setup_sizes ($layout);
+   $self->{layout} = $layout;
+   $self->{window_size} = $size;
+   $self->{window_pos}  = $self->window_position ($win->{pos}, $size);
+
+   unless (grep {
+             $self->{active_element} eq $_
+           } @{$self->{active_elements}}
+   ) {
+      $self->{active_element} = $self->{active_elements}->[0];
+   }
+
+   # window_size_inside is initialized here, and window_padding too
+   $self->prepare_sdl_surface; # creates a new sdl surface for this window
+
+   $self->draw_element ($layout, [0, 0]);
+
+   $self->render_view; # refresh rendering to opengl texture
+}
+
+sub switch_active {
+   my ($self, $dir) = @_;
+   return unless @{$self->{active_elements}};
+
+   if ($dir < 0) {
+      my $last = $self->{active_elements}->[-1];
+      for (@{$self->{active_elements}}) {
+         if ($_ eq $self->{active_element}) {
+            $self->{active_element} = $last;
          }
-         $self->place_text (
-            $el->{extents}, $el->{align}, $el->{wrap},
-            $el->{text}, $el->{font}, $el->{color}, $bgcolor);
-         $self->{entries}->[$entry_idx++] = $el;
-
-      } elsif ($el->{type} eq 'image') {
-         $self->place_gauge (
-            $el->{pos}, $el->{size}, $el->{label}, $el->{fill}, $el->{color}
-         );
-
-      } elsif ($el->{type} eq 'model') {
-         my ($pos, $size) =
-            _calc_extents ($el->{extents}, $self->{relative_extents},
-                           0, 0, @{$self->{window_size}}, @{$self->{window_padding}});
-         $size->[1] = $size->[0];
-         push @{$self->{models}}, [$pos, $size, $el->{object_type}];
+         $last = $_;
+      }
+   } else {
+      my $next = $self->{active_elements}->[0];
+      for (reverse @{$self->{active_elements}}) {
+         if ($_ eq $self->{active_element}) {
+            $self->{active_element} = $next;
+         }
+         $next = $_;
       }
    }
 
-   if (not (defined $self->{active_entry}) && @{$self->{entries}}) {
-      $self->{active_entry} = 0;
-   }
-
-   $self->render_view; # refresh rendering to opengl texture
+   $self->update;
 }
 
 sub prepare_opengl_texture {
@@ -343,17 +443,17 @@ sub prepare_opengl_texture {
 }
 
 sub prepare_sdl_surface {
-   my ($self) = @_;
+   my ($self, $clear_color) = @_;
+
+   $clear_color = "#000000" unless defined $clear_color;
 
    my $size = $self->{opengl_texture_size};
    unless ($self->{sdl_surf}) {
       $self->{sdl_surf} = SDL::Surface->new (
          SDL_SWSURFACE, $size, $size, 24, 0, 0, 0);
    }
-
    my $clr = SDL::Video::map_RGB (
-      $self->{sdl_surf}->format,
-      _clr2color ($self->{desc}->{window}->{color}),
+      $self->{sdl_surf}->format, _clr2color ($clear_color),
    );
    SDL::Video::fill_rect (
       $self->{sdl_surf},
@@ -361,45 +461,6 @@ sub prepare_sdl_surface {
       $clr
    );
 
-   $self->{window_size_inside} = $self->{window_size};
-
-   if (my $b = $self->{desc}->{window}->{border}) {
-      my $clr = SDL::Video::map_RGB (
-         $self->{sdl_surf}->format,
-         _clr2color ($b->{color}),
-      );
-
-      my $bp = defined $b->{padding} ? $b->{padding} : 1;
-      my $bw = $b->{width} || 1;
-
-      my ($ww, $wh) = @{$self->{window_size}};
-
-      my $btop   = $bp;
-      my $bleft  = $bp;
-      my $bright = $ww - ($bp + $bw);
-      my $bbot   = $wh - ($bp + $bw);
-      my $b_w_h  = $wh - 2 * $bp;
-      my $b_w_w  = $ww - 2 * $bp;
-
-      $self->{window_size_inside} = [
-         $ww - 2 * ($bp + $bw),
-         $wh - 2 * ($bp + $bw),
-      ];
-      $self->{window_padding} = [$bp + $bw, $bp + $bw];
-
-      SDL::Video::fill_rect (
-         $self->{sdl_surf}, SDL::Rect->new ($bleft, $btop, $bw, $b_w_h), $clr
-      );
-      SDL::Video::fill_rect (
-         $self->{sdl_surf}, SDL::Rect->new ($bright, $btop, $bw, $b_w_h), $clr
-      );
-      SDL::Video::fill_rect (
-         $self->{sdl_surf}, SDL::Rect->new ($bleft, $btop, $b_w_w, $bw), $clr
-      );
-      SDL::Video::fill_rect (
-         $self->{sdl_surf}, SDL::Rect->new ($bleft, $bbot, $b_w_w, $bw), $clr
-      );
-   }
 }
 
 sub _get_texfmt {
@@ -452,9 +513,11 @@ sub display {
    );
 
    glPushMatrix;
-   my $z = -8 + -(1 - $self->{desc}->{window}->{prio} / 1000);
+   my $z = -8;
    glTranslatef (@$pos, $z);
-   glColor4f (1, 1, 1, $self->{desc}->{window}->{alpha});
+   my $a = $self->{desc}->{window}->{alpha};
+   $a = 1 unless defined $a;
+   glColor4f (1, 1, 1, $a);
    glBindTexture (GL_TEXTURE_2D, $self->{gl_id});
    glBegin (GL_QUADS);
 
@@ -495,27 +558,25 @@ sub input_key_press : event_cb {
    if ($name eq 'escape') {
       $cmd = "cancel" unless $self->{sticky};
 
-   } elsif (defined $self->{active_entry}) {
-      my $ent = $self->{entries}->[$self->{active_entry}];
+   } elsif (defined $self->{active_element}) {
+      my $el = $self->{active_element};
+
       warn "UNICO $name: [$unicode]\n";
+
       if ($name eq 'backspace' || $name eq 'delete') {
-         chop $ent->{text};
+         chop $el->[2];
+         warn "CHOP $el->[2]\n",
          $self->update;
          $$rhandled = 1;
          return;
 
       } elsif ($name eq 'down') {
-         $self->{active_entry}++;
-         my $max = @{$self->{entries}} - 1;
-         $self->{active_entry} = $max if $self->{active_entry} > $max;
-         $self->update;
+         $self->switch_active (1);
          $$rhandled = 1;
          return;
 
       } elsif ($name eq 'up') {
-         $self->{active_entry}--;
-         $self->{active_entry} = 0 if $self->{active_entry} < 0;
-         $self->update;
+         $self->switch_active (-1);
          $$rhandled = 1;
          return;
 
@@ -524,10 +585,10 @@ sub input_key_press : event_cb {
 
       } elsif ($unicode ne '') {
          if (
-            not ($ent->{max_chars} && length ($ent->{text}) >= $ent->{max_chars})
+            not ($el->[1]->{max_chars} && length ($el->[2]) >= $el->[1]->{max_chars})
             && $unicode =~ /^([A-Za-z0-9]+)$/
          ) {
-            $ent->{text} .= $unicode;
+            $el->[2] .= $unicode;
          }
          $self->update;
          $$rhandled = 1;

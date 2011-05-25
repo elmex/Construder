@@ -119,7 +119,7 @@ sub init {
    $self->save;
    my $wself = $self;
    weaken $wself;
-   $self->{hud1_tmr} = AE::timer 0, 0.5, sub {
+   $self->{hud1_tmr} = AE::timer 0, 1, sub {
       $wself->update_hud_1;
    };
    $self->{save_timer} = AE::timer 0, 15, sub {
@@ -244,19 +244,25 @@ sub update_score {
    $self->display_ui (player_score => {
       window => {
          sticky  => 1,
-         extents => [center => up => "text_width big:$s", $hl ? 0.1 : 0.08],
+         pos     => [center => "up"],
          alpha   => $hl ? 1 : 0.6,
-         color   => "#000000",
-         border  => { color => $hl ? "#ff0000" : "#777700" },
       },
-      elements => [
-         {
-            type => "text",
-            extents => ["center", "center", "text_width", "font_height"],
-            color => $hl ? "#ff0000" : "#aa8800",
-            font => "big",
-            text => $s,
-         }
+      layout => [
+         box => {
+            border => { color => $hl ? "#ff0000" : "#777700" },
+            padding => ($hl ? 10 : 2),
+            align => "hor",
+         },
+         [text => {
+            font => "normal",
+            color => "#aa8800",
+            align => "center"
+          }, "Score:"],
+         [text => {
+             font => "big",
+             color => $hl ? "#ff0000" : "#aa8800",
+          },
+          $s]
       ]
    });
    if ($hl) {
@@ -269,37 +275,31 @@ sub update_score {
 sub update_hud_1 {
    my ($self) = @_;
 
+   my $chnk_pos = world_pos2chnkpos ($self->{data}->{pos});
+   my $rel_pos  = world_pos2relchnkpos ($self->{data}->{pos});
+   my $sec_pos  = world_chnkpos2secpos ($chnk_pos);
+
    $self->display_ui (player_hud_1 => {
       window => {
          sticky => 1,
-         extents => [right => down => 0.3, 0.3],
+         pos => [right => 'down'],
          alpha => 0.8,
-         color => "#000000",
       },
-      elements => [
-         {
-            type => "text", extents => ["left", 0.02, 0.03, "font_height"],
-            font => "small", color => "#ffffff",
-            text => "Pos    " . sprintf ("%3.2f,%3.2f,%3.2f", @{vfloor ($self->{data}->{pos})})
-         },
-         {
-            type => "text", extents => ["left", "bottom_of 0", 0.03, "font_height"],
-            font => "small", color => "#ffffff",
-            text => "Chunk  " . sprintf ("%3d,%3d,%3d",
-                                      @{world_pos2chnkpos ($self->{data}->{pos})})
-         },
-         {
-            type => "text", extents => ["left", "bottom_of 1", 0.03, "font_height"],
-            font => "small", color => "#ffffff",
-            text => "Sector " . sprintf ("%3d,%3d,%3d",
-                                      @{world_chnkpos2secpos (
-                                           world_pos2chnkpos ($self->{data}->{pos}))})
-         },
-         {
-            type => "text", extents => ["left", "bottom_of 2", 0.03, 1],
-            font => "small", color => "#ff0000",
-            text => "(Press F1 for Help)"
-         },
+      layout => [
+        box => { dir => "hor" },
+        [box => { dir => "vert" },
+           [text => { color => "#888888", font => "small" }, "Pos"],
+           [text => { color => "#888888", font => "small" }, "Chunk"],
+           [text => { color => "#888888", font => "small" }, "Sector"],
+        ],
+        [box => { dir => "vert" },
+           [text => { color => "#ffffff", font => "small" },
+              sprintf ("%3d,%3d,%3d", @$rel_pos)],
+           [text => { color => "#ffffff", font => "small" },
+              sprintf ("%3d,%3d,%3d", @$chnk_pos)],
+           [text => { color => "#ffffff", font => "small" },
+              sprintf ("%3d,%3d,%3d", @$sec_pos)],
+        ]
       ],
       commands => {
          default_keys => {

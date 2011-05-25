@@ -40,7 +40,6 @@ sub new {
    $self->init_object_events;
 
    Games::Construder::World::init (sub {
-      warn "chunk changed: @_\n";
    });
 
    $self->{res} = Games::Construder::Client::Resources->new;
@@ -84,28 +83,12 @@ sub msgbox {
    }
 
    $self->{front}->activate_ui (cl_msgbox => {
-      window => {
-         extents => [ 'center', 'center', 0.9, 0.1 ],
-         color => "#000000",
-         alpha => 1,
-      },
-      elements => [
-         {
-            type => "text",
-            extents => [0, 0, 1, 0.6],
-            align => "center",
-            font => 'normal',
-            color => "#ffffff",
-            text => $msg
-         },
-         {
-            type => "text",
-            extents => [0, 0.6, 1, 0.4],
-            align => "center",
-            font => 'small',
-            color => "#888888",
-            text => "press ESC to hide",
-         }
+      window => { pos => [ 'center', 'center' ] },
+      layout => [box => { dir => "vert", padding => 10, border => { color => "#888888" } },
+         [text => { align => "center", font => 'normal', color => "#ffffff", wrap => 30 },
+          $msg],
+         [text => { align => "center", font => 'small', color => "#888888" },
+          "(Press Escape-Key to hide)"],
       ]
    });
 }
@@ -114,8 +97,11 @@ sub connect {
    my ($self, $host, $port) = @_;
 
    tcp_connect $host, $port, sub {
-      my ($fh) = @_
-         or die "connect failed: $!\n";
+      my ($fh) = @_;
+      unless ($fh) {
+         $self->msgbox ("Couldn't connect to server: $!");
+         return;
+      }
 
       my $hdl = AnyEvent::Handle->new (
          fh => $fh,

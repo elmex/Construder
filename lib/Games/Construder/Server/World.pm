@@ -12,6 +12,7 @@ our @EXPORT = qw/
    world_pos2chnkpos
    world_chnkpos2secpos
    world_secpos2chnkpos
+   world_pos2relchnkpos
    world_mutate_at
 /;
 
@@ -80,6 +81,12 @@ sub world_secpos2chnkpos {
    my $chnk = vsmul ($_[0], $CHNKS_P_SEC);
 #  vsubd ($chnk, $_[0]->[1] % 3, 0, $_[0]->[1] % 3)
    $chnk
+}
+
+sub world_pos2relchnkpos {
+   my ($pos) = @_;
+   my $chnk = world_pos2chnkpos ($pos);
+   vsub ($pos, vsmul ($chnk, $CHNKSIZE))
 }
 
 

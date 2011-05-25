@@ -60,16 +60,8 @@ sub new {
 
    $self->init_physics;
    $self->setup_event_poller;
-   $self->init_test;
 
    return $self
-}
-
-sub init_test {
-   my ($self) = @_;
-   $self->{active_uis}->{debug_hud} =
-      Games::Construder::Client::UI->new (
-         W => $WIDTH, H => $HEIGHT, res => $self->{res});
 }
 
 sub init_physics {
@@ -456,9 +448,13 @@ sub render_hud {
 
    #d# warn "ACTIVE UIS: " . join (', ', keys %{$self->{active_uis} || {}}) . "\n";
 
-   $_->display for
-      sort { $b->{prio} <=> $a->{prio} }
-         values %{$self->{active_uis} || {}};
+   for (values %{$self->{active_uis}}) {
+      next unless $_->{sticky};
+      $_->display;
+   }
+   if (@{$self->{active_ui_stack}}) {
+      $self->{active_ui_stack}->[-1]->[1]->display;
+   }
 
    glPopMatrix;
    glMatrixMode (GL_PROJECTION);
@@ -487,27 +483,16 @@ sub setup_event_poller {
       #printf "%.5f FPS\n", $fps / $fps_intv;
       printf "%.5f secsPcoll\n", $collide_time / $collide_cnt if $collide_cnt;
       printf "%.5f secsPrender\n", $render_time / $render_cnt if $render_cnt;
-      $self->{active_uis}->{debug_hud}->update ({
+      $self->activate_ui (hud_fps => {
          window => {
-            sticky => 1,
-            extents => [left => up => 0.15, 0.05],
-            color => "#000000",
-            alpha => 0.8,
+            sticky => 1, pos => [left => 'up'], alpha => 0.5,
          },
-         elements => [
-            {
-               type => 'text', extents => [0, 0, 0.9, 0.5],
-               text => sprintf ("%.1f FPS\n", $fps / $fps_intv),
-               color => "#ffff00",
-               font => 'small'
-            },
-#            {
-#               type => "model",
-#               extents => [0, 0, 1, 1],
-#               object_type => 13,
-#               animated => 1
-#            }
-         ]
+         layout => [
+            box => { padding => 5, bgcolor => "#222222" },
+            [text => {
+               color => "#ff0000", align => "center", font => "small"
+            }, sprintf ("%.1f FPS\n", $fps / $fps_intv)],
+         ],
       });
       $collide_cnt = $collide_time = 0;
       $render_cnt = $render_time = 0;
@@ -576,6 +561,11 @@ sub setup_event_poller {
          $anim_accum_time -= $anim_dt;
       }
 
+   };
+   $self->{ui_timer} = AE::timer 0, 1, sub {
+      for ($self->active_uis) {
+         $self->{active_uis}->{$_}->animation_step;
+      }
    };
 
    my $ltime;
@@ -851,19 +841,38 @@ sub activate_ui {
          W => $WIDTH, H => $HEIGHT, res => $self->{res});
    $obj->update ($desc);
    $self->{active_uis}->{$ui} = $obj;
+   unless ($obj->{sticky}) {
+      push @{$self->{active_ui_stack}}, [$ui, $obj]
+   }
 }
 
 sub deactivate_ui {
    my ($self, $ui) = @_;
+   @{$self->{active_ui_stack}} = grep {
+      $_->[0] ne $ui
+   } @{$self->{active_ui_stack}};
+
    $self->{inactive_uis}->{$ui} =
       delete $self->{active_uis}->{$ui};
+}
+
+sub active_uis {
+   my ($self) = @_;
+   my (@active_uis) = grep {
+      $self->{active_uis}->{$_}->{sticky}
+   } (keys %{$self->{active_uis}});
+   if (@{$self->{active_ui_stack}}) {
+      unshift @active_uis, $self->{active_ui_stack}->[-1]->[0];
+   }
+   @active_uis
 }
 
 sub input_key_down : event_cb {
    my ($self, $key, $name, $unicode) = @_;
 
    my $handled = 0;
-   for (keys %{$self->{active_uis}}) {
+
+   for ($self->active_uis) {
       $self->{active_uis}->{$_}->input_key_press (
          $key, $name, chr ($unicode), \$handled);
       $self->deactivate_ui ($_) if $handled == 2;

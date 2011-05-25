@@ -75,7 +75,6 @@ void ctr_axis_array_insert_at (ctr_axis_array *arr, unsigned int idx, int coord,
       // 5      1, 2, 10     tl:?, tl:?, tl:5
       // 10     1, 2, 10
 
-      printf ("insert_at %d %d %d %d\n", arr->alloc, arr->len, idx, tail_len);
       memmove (arr->nodes + idx + 1, arr->nodes + idx,
                sizeof (ctr_axis_node) * tail_len);
     }
