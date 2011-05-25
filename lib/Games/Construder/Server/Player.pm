@@ -122,9 +122,11 @@ sub init {
    $self->{hud1_tmr} = AE::timer 0, 0.5, sub {
       $wself->update_hud_1;
    };
-   $self->{save_timer} = AE::timer 0, 30, sub {
+   $self->{save_timer} = AE::timer 0, 15, sub {
+      $wself->add_score (100);
       $wself->save;
    };
+   $self->update_score;
    $self->send_visible_chunks;
    $self->teleport ();
 }
@@ -228,10 +230,46 @@ sub send_chunk {
    $self->send_client ({ cmd => "chunk", pos => $chnk }, compress ($data));
 }
 
+sub add_score {
+   my ($self, $score) = @_;
+   $self->{data}->{score} += $score;
+   $self->update_score (1);
+}
+
+sub update_score {
+   my ($self, $hl) = @_;
+
+   my $s = $self->{data}->{score};
+
+   $self->display_ui (player_score => {
+      window => {
+         sticky  => 1,
+         extents => [center => up => "text_width big:$s", $hl ? 0.1 : 0.08],
+         alpha   => $hl ? 1 : 0.6,
+         color   => "#000000",
+         border  => { color => $hl ? "#ff0000" : "#777700" },
+      },
+      elements => [
+         {
+            type => "text",
+            extents => ["center", "center", "text_width", "font_height"],
+            color => $hl ? "#ff0000" : "#aa8800",
+            font => "big",
+            text => $s,
+         }
+      ]
+   });
+   if ($hl) {
+      $self->{upd_score_hl_tmout} = AE::timer 1, 0, sub {
+         $self->update_score;
+      };
+   }
+}
+
 sub update_hud_1 {
    my ($self) = @_;
 
-   $self->send_client ({ cmd => activate_ui => ui => "player_hud_1", desc => {
+   $self->display_ui (player_hud_1 => {
       window => {
          sticky => 1,
          extents => [right => down => 0.3, 0.3],
@@ -271,7 +309,18 @@ sub update_hud_1 {
             f12 => "exit_server",
          },
       },
-   } });
+   }, sub {
+      my $cmd = $_[1];
+      if ($cmd eq 'inventory') {
+         $self->show_inventory;
+      } elsif ($cmd eq 'help') {
+         $self->show_help;
+      } elsif ($cmd eq 'teleport_home') {
+         $self->teleport ([0, 0, 0]);
+      } elsif ($cmd eq 'exit_server') {
+         exit;
+      }
+   });
 }
 
 sub show_inventory {
@@ -446,19 +495,20 @@ sub teleport {
    $self->send_client ({ cmd => "place_player", pos => $pos });
 }
 
+sub display_ui {
+   my ($self, $id, $dest, $cb) = @_;
+   $self->{displayed_uis}->{$id} = $cb;
+   $self->send_client ({ cmd => activate_ui => ui => $id, desc => $dest });
+}
+
 sub ui_res : event_cb {
    my ($self, $ui, $cmd, $arg) = @_;
-   if ($ui eq 'player_hud_1') {
-      if ($cmd eq 'inventory') {
-         $self->show_inventory;
-      } elsif ($cmd eq 'help') {
-         $self->show_help;
-      } elsif ($cmd eq 'teleport_home') {
-         $self->teleport ([0, 0, 0]);
-      } elsif ($cmd eq 'exit_server') {
-         exit;
-      }
+   warn "ui response $ui: $cmd ($arg)\n";
+   if (my $u = $self->{displayed_uis}->{$ui}) {
+      $u->($ui, $cmd, $arg);
+      return;
    }
+
 }
 
 =back

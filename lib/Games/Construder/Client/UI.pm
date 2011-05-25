@@ -382,8 +382,8 @@ sub prepare_sdl_surface {
       my $b_w_w  = $ww - 2 * $bp;
 
       $self->{window_size_inside} = [
-         $wh - 2 * ($bp + $bw),
          $ww - 2 * ($bp + $bw),
+         $wh - 2 * ($bp + $bw),
       ];
       $self->{window_padding} = [$bp + $bw, $bp + $bw];
 
