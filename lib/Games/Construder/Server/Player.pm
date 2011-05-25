@@ -1,4 +1,5 @@
 package Games::Construder::Server::Player;
+use Devel::FindRef;
 use common::sense;
 use AnyEvent;
 use Games::Construder::Server::World;
@@ -173,6 +174,7 @@ sub player_tick {
          $self->show_bio_warning (1);
          $self->{death_timer} = AE::timer 30, 0, sub {
             $self->kill_player;
+            delete $self->{death_timer};
          };
       }
    } else {
@@ -226,7 +228,9 @@ sub logout {
    $self->save;
    delete $self->{displayed_uis};
    delete $self->{upd_score_hl_tmout};
+   delete $self->{death_timer};
    warn "player $self->{name} logged out\n";
+#d#  print Devel::FindRef::track $self;
 }
 
 my $world_c = 0;
