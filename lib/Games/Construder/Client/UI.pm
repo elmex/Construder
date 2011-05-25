@@ -588,11 +588,8 @@ sub input_key_press : event_cb {
    } elsif (defined $self->{active_element}) {
       my $el = $self->{active_element};
 
-      warn "UNICO $name: [$unicode]\n";
-
-      if ($name eq 'backspace' || $name eq 'delete') {
+      if ($el->[0] eq 'entry' && ($name eq 'backspace' || $name eq 'delete')) {
          chop $el->[2];
-         warn "CHOP $el->[2]\n",
          $self->update;
          $$rhandled = 1;
          return;
@@ -610,7 +607,7 @@ sub input_key_press : event_cb {
       } elsif ($self->{commands} && $self->{commands}->{default_keys}->{$name}) {
          $cmd = $self->{commands}->{default_keys}->{$name}
 
-      } elsif ($unicode ne '') {
+      } elsif ($el->[0] eq 'entry' && $unicode ne '') {
          if (
             not ($el->[1]->{max_chars} && length ($el->[2]) >= $el->[1]->{max_chars})
             && $unicode =~ /^([A-Za-z0-9]+)$/
@@ -634,12 +631,14 @@ sub input_key_press : event_cb {
                if ($_->[0] eq 'entry') {
                   (@a) = ($_->[1]->{arg} => $_->[2]);
                }
+               @a
             } @{$self->{active_elements}}
          };
 
          if ($self->{active_element}->[0] eq 'select_box') {
-            $arg->{$self->{active_element}->[0]->{arg}} =
-               $self->{active_element}->[0]->{tag};
+               warn "SELE $self->{active_element}->[1]->{arg} ||\n";
+            $arg->{$self->{active_element}->[1]->{arg}} =
+               $self->{active_element}->[1]->{tag};
          }
       }
       $self->{command_cb}->($cmd, $arg) if $self->{command_cb};

@@ -517,6 +517,13 @@ sub show_inventory {
             ]
          } keys %$inv)
       ],
+      commands => {
+         default_keys => {
+            return => "select",
+         }
+      }
+   }, sub {
+      warn "ARG: $_[2]->{item}|" . join (',', keys %{$_[2]}) . "\n";
    });
 }
 
