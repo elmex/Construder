@@ -3,9 +3,8 @@ use Math::VectorReal;
 $Math::VectorReal::FORMAT = "[ %9.4f, %9.4f, %9.4f ]";
 use common::sense;
 use Games::Construder::Client;
-srand ($ARGV[0] || 10);
 
-my $game = Games::Construder::Client->new;
+my $game = Games::Construder::Client->new (auto_login => $ARGV[0]);
 
 my $scene = "XXX XXX\nXXX XXX\nX X X X\n";
 

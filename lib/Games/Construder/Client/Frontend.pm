@@ -740,9 +740,9 @@ sub physics_tick : event_cb {
    my $bx = Games::Construder::World::at (@{vaddd ($player->{pos}, 0, -1, 0)});
 
    my $gforce = [0, -9.5, 0];
-   if ($bx->[0] == 15) {
-      $gforce = [0, 9.5, 0];
-   }
+   #d#if ($bx->[0] == 15) {
+   #d#   $gforce = [0, 9.5, 0];
+   #d#}
    $gforce = [0,0,0] if $self->{ghost_mode};
 
    if ($self->{ghost_mode}) {
@@ -970,37 +970,11 @@ sub position_action : event_cb {
 
 sub input_mouse_button : event_cb {
    my ($self, $btn, $down) = @_;
-   warn "MASK $btn $down\n";
    return unless $down;
 
    my $sbp = $self->{selected_box};
    my $sbbp = $self->{selected_build_box};
    $self->position_action ($sbp, $sbbp, $btn);
-
-   #d#if ($btn == 1) {
-   #d#   my $sp = $self->{selected_build_box};
-   #d#   return unless $sp;
-
-   #d#   my $bx = world_get_box_at ($sp);
-   #d#   $bx->[0] = 1;
-   #d#   world_change_chunk_at ($sp);
-
-   #d#} elsif ($btn == 3) {
-   #d#   my $sp = $self->{selected_box};
-   #d#   return unless $sp;
-
-   #d#   my $bx = world_get_box_at ($sp);
-   #d#   my $pt = $bx->[0];
-   #d#   $bx->[0] = 0;
-   #d#   world_change_chunk_at ($sp);
-   #d#   warn "REMOVED OBJ $pt\n";
-
-   #d#} elsif ($btn == 2) {
-   #d#   my $sp = $self->{selected_box};
-   #d#   return unless $sp;
-   #d#   push @{$self->{box_highlights}},
-   #d#      [[@$sp], [0, 1, 0, 0], { fading => 0.3 }];
-   #d#}
 }
 
 sub update_player_pos : event_cb {

@@ -220,16 +220,13 @@ sub try_eat_something {
       $b->[1] <=> $a->[1]
    } grep { $_->[1] } map {
       my $obj = $Games::Construder::Server::RES->get_object_by_type ($_);
-      warn "MAP$_ $obj->{bio_energy}\n";
       [$_, $obj->{bio_energy}]
    } keys %{$self->{data}->{inv}};
 
    while (@max_e) {
       my $res = shift @max_e;
-      warn "EAT CHECK @$res\n";
       if ($self->decrease_inventory ($res->[0])) {
          $self->refill_bio ($res->[1]);
-         warn "Ate $res->[0]\n";
          return 1;
       }
    }
@@ -544,11 +541,66 @@ sub update_hud_1 {
    });
 }
 
+sub show_inventory_selection {
+   my ($self, $type) = @_;
+
+   warn "SHOW INV SEL $type\n";
+   my $o = $Games::Construder::Server::RES->get_object_by_type ($type);
+
+   $self->display_ui (player_inv_sel => {
+      window => {
+         pos => [center => 'center'],
+      },
+      layout => [
+         box => { dir => "vert" },
+          [text => { color => "#ffffff", font => "big" }, "Selected: " . $o->{name}],
+          [text => { color => "#ffffff", font => "normal", wrap => 50 },
+             "* You can put it into a slot by pressing one of the number keys 0 to 9" ],
+      ],
+      commands => {
+         default_keys => {
+            (map { ("$_" => "slot_$_") } 0..9)
+         }
+      }
+   }, sub {
+      if ($_[1] =~ /slot_(\d+)/) {
+         my $i = 0;
+         if ($1 eq '0') {
+            $i = 9;
+         } else {
+            $i = $1 - 1;
+         }
+         $self->{data}->{slots}->{selection}->[$i] = $type;
+         $self->update_slots;
+         $self->display_ui ('player_inv_sel');
+      }
+   });
+}
+
 sub show_inventory {
    my ($self) = @_;
 
    my $inv = $self->{data}->{inv};
    warn "SHOW INV $self->{shown_uis}->{player_inv}|\n";
+
+   my @grid;
+
+   my @keys = sort { $a <=> $b } keys %$inv;
+   my @shortcuts = qw/
+      1 q a y 2 w s x
+      3 e d c 4 r f v
+      5 t g b 6 z h n
+   /;
+
+   for (0..4) {
+      my @row;
+      for (0..3) {
+         my $i = (shift @keys) || 1;
+         my $o = $Games::Construder::Server::RES->get_object_by_type ($i);
+         push @row, [$i, $inv->{$i}, $o, shift @shortcuts];
+      }
+      push @grid, \@row;
+   }
 
    $self->display_ui (player_inv => {
       window => {
@@ -556,31 +608,54 @@ sub show_inventory {
       },
       layout => [
          box => { dir => "vert" },
-         [text => { color => "#FFFFFF" }, "TEST"],
+         [text => { font => "big", color => "#FFFFFF" }, "Inventory"],
+         [text => { font => "small", color => "#888888" },
+          "(Select a resource by shortcut key or up/down and hit return.)"],
+         [box => { },
          (map {
-            warn "MODEL $_ >>\n";
-            my $obj = $Games::Construder::Server::RES->get_object_by_type ($_);
-            [select_box => {
-               dir => "vert", align => "center", arg => "item", tag => $_,
-               padding => 2,
-               select_border => { color => "#ffffff", width => 2 },
-             },
-               [box => { align => "center" },
-                  [text => { align => "center", color => "#ffffff" }, $inv->{$_} . " x"],
-                  [model => { align => "center", width => 80 }, $_]
-               ],
-               [text  => { font => "normal", align => "center", color => "#ffffff" },
-                $obj->{name}]
+            [box => { dir => "vert", padding => 4 },
+               map {
+                  [select_box => {
+                     dir => "vert", align => "center", arg => "item", tag => $_,
+                     padding => 2,
+                     bgcolor => "#333333",
+                     border => { color => "#555555", width => 2 },
+                     select_border => { color => "#ffffff", width => 2 },
+                     aspect => 1
+                   },
+                     [text => { align => "center", color => "#ffffff" },
+                      $_->[1] ? $_->[1] . "x " : ""],
+                     [model => { align => "center", width => 60 }, $_->[0]],
+                     [text  => { font => "small", align => "center",
+                                 color => "#ffffff" },
+                      $_->[0] == 1 ? "<empty>" : "[$_->[3]] $_->[2]->{name}"]
+                  ]
+
+               } @$_
             ]
-         } keys %$inv)
+         } @grid)
+         ]
       ],
       commands => {
          default_keys => {
             return => "select",
+            (map { map { $_->[3] => "short_$_->[0]" } @$_ } @grid)
          }
       }
    }, sub {
       warn "ARG: $_[2]->{item}|" . join (',', keys %{$_[2]}) . "\n";
+
+      my $cmd = $_[1];
+      warn "CMD $cmd\n";
+      if ($cmd eq 'select') {
+         my $item = $_[2]->{item};
+         $self->display_ui ("player_inv");
+         $self->show_inventory_selection ($item->[0]);
+
+      } elsif ($cmd =~ /short_(\d+)/) {
+         $self->display_ui ("player_inv");
+         $self->show_inventory_selection ($1);
+      }
    });
 }
 

@@ -218,6 +218,12 @@ sub setup_sizes {
          }
       }
 
+      if ($attr->{aspect}) {
+         my $max = $mh;
+         $max = $mw if $max < $mw;
+         ($mw, $mh) = ($max, $max);
+      }
+
       $attr->{padding_y} = $attr->{padding} unless defined $attr->{padding_y};
 
       $attr->{size} = [$mw + $attr->{padding} * 2,
@@ -386,31 +392,29 @@ sub element_font {
 sub update {
    my ($self, $gui_desc) = @_;
 
-   $self->{desc} = $gui_desc if defined $gui_desc;
-   $gui_desc = $self->{desc};
-   my $win = $gui_desc->{window};
+   $self->{desc} = $gui_desc
+      if defined $gui_desc;
+
+   my $win = $self->{desc}->{window};
 
    $self->{element_offset} = 0;
    $self->{relative_extents} = [];
 
-   $self->{commands}   = $gui_desc->{commands};
-   $self->{command_cb} = $gui_desc->{command_cb};
+   $self->{commands}   = $self->{desc}->{commands};
+   $self->{command_cb} = $self->{desc}->{command_cb};
    $self->{sticky}     = $win->{sticky};
    $self->{models}     = [];
 
    $self->{entries}    = [];
 
-   unless ($gui_desc->{layout}) {
-      warn "Warning: Got GUI Windows without layout!";
-      return;
-   }
-
-   unless ($self->{layout}) {
+   if ($gui_desc && $gui_desc->{layout}) {
       $self->{layout} = decode_json (encode_json ($gui_desc->{layout}));
    }
+
    my $layout = $self->{layout};
 
    $self->{active_elements} = [];
+
    my $size = $self->setup_sizes ($layout);
    $self->{layout} = $layout;
    $self->{window_size} = $size;

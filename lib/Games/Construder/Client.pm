@@ -175,7 +175,9 @@ sub handle_packet : event_cb {
       #print JSON->new->pretty->encode ($self->{front}->{res}->{resource});
       $self->{res}->post_proc;
       $self->{res}->dump_resources;
-      $self->send_server ({ cmd => 'login' });
+      $self->send_server (
+         { cmd => 'login',
+           ($self->{auto_login} ? (name => $self->{auto_login}) : ()) });
 
    } elsif ($hdr->{cmd} eq 'place_player') {
       $self->{front}->set_player_pos ($hdr->{pos});

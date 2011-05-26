@@ -200,6 +200,25 @@ sub handle_player_packet : event_cb {
 
 }
 
+sub login {
+   my ($self, $cid, $name) = @_;
+
+   my $pl = $self->{players}->{$cid}
+      = Games::Construder::Server::Player->new (
+           cid => $cid, name => $name);
+
+   $self->{player_guards}->{$cid} = $pl->reg_cb (send_client => sub {
+      my ($pl, $hdr, $body) = @_;
+      $self->send_client ($cid, $hdr, $body);
+   });
+
+   $pl->init;
+
+   $self->send_client ($cid,
+      { cmd => "login" });
+
+}
+
 sub handle_packet : event_cb {
    my ($self, $cid, $hdr, $body) = @_;
 
@@ -215,41 +234,33 @@ sub handle_packet : event_cb {
       $self->send_client ($cid, { cmd => deactivate_ui => ui => "login" });
 
       if ($hdr->{ui_command} eq 'login') {
-
-         my $pl = $self->{players}->{$cid}
-            = Games::Construder::Server::Player->new (
-                 cid => $cid, name => $hdr->{arg}->{name});
-
-         $self->{player_guards}->{$cid} = $pl->reg_cb (send_client => sub {
-            my ($pl, $hdr, $body) = @_;
-            $self->send_client ($cid, $hdr, $body);
-         });
-
-         $pl->init;
-
-         $self->send_client ($cid,
-            { cmd => "login" });
+         $self->login ($cid, $hdr->{arg}->{name})
       }
 
    } elsif ($hdr->{cmd} eq 'login') {
-      $self->send_client ($cid, { cmd => activate_ui => ui => "login", desc => {
-         window => { pos => [center => 'center'], },
-         layout => [
-            box => { dir => "vert", padding => 25 },
-            [text => { align => 'center', font => 'big', color => "#00ff00" }, "Login"],
-            [box => {  dir => "hor" },
-               [text => { font => 'normal', color => "#00ff00" }, "Name:"],
-               [entry => { font => 'normal', color => "#00ff00", arg => "name",
-                           highlight => ["#111111", "#333333"], max_chars => 9 },
-                ""],
-            ]
-         ],
-         commands => {
-            default_keys => {
-               return => "login",
+      if ($hdr->{name} ne '') {
+         $self->login ($cid, $hdr->{name})
+
+      } else {
+         $self->send_client ($cid, { cmd => activate_ui => ui => "login", desc => {
+            window => { pos => [center => 'center'], },
+            layout => [
+               box => { dir => "vert", padding => 25 },
+               [text => { align => 'center', font => 'big', color => "#00ff00" }, "Login"],
+               [box => {  dir => "hor" },
+                  [text => { font => 'normal', color => "#00ff00" }, "Name:"],
+                  [entry => { font => 'normal', color => "#00ff00", arg => "name",
+                              highlight => ["#111111", "#333333"], max_chars => 9 },
+                   ""],
+               ]
+            ],
+            commands => {
+               default_keys => {
+                  return => "login",
+               },
             },
-         },
-      } });
+         } });
+      }
 
    } elsif ($hdr->{cmd} eq 'transfer_poll') { # a bit crude :->
       $self->push_transfer ($cid);
