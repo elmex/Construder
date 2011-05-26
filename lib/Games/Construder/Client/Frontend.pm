@@ -405,6 +405,8 @@ sub render_scene {
 
    $self->render_hud;
 
+   #glFinish; # what for?
+
    $self->{app}->sync;
 
    $render_time += time - $t1;
@@ -472,12 +474,47 @@ sub render_hud {
    }
 }
 
+
+sub handle_sdl_events {
+   my ($self) = @_;
+   my $sdle = $self->{sdl_event};
+
+   SDL::Events::pump_events();
+
+   while (SDL::Events::poll_event($sdle)) {
+      my $type = $sdle->type;
+      my $key  = ($type == 2 || $type == 3) ? $sdle->key_sym : "";
+
+      if ($type == 4) {
+         $self->input_mouse_motion ($sdle->motion_x, $sdle->motion_y,
+                                    $sdle->motion_xrel, $sdle->motion_yrel);
+
+      } elsif ($type == 2) {
+         $self->input_key_down ($key, SDL::Events::get_key_name ($key), $sdle->key_unicode);
+
+      } elsif ($type == 3) {
+         $self->input_key_up ($key, SDL::Events::get_key_name ($key));
+
+      } elsif ($type == SDL_MOUSEBUTTONUP) {
+         $self->input_mouse_button ($sdle->button_button, 0);
+
+      } elsif ($type == SDL_MOUSEBUTTONDOWN) {
+         $self->input_mouse_button ($sdle->button_button, 1);
+
+      } elsif ($type == 12) {
+         warn "Exit event!\n";
+         exit;
+      } else {
+         warn "unknown sdl type: $type\n";
+      }
+   }
+
+}
+
 my $collide_cnt;
 my $collide_time;
 sub setup_event_poller {
    my ($self) = @_;
-
-   my $sdle = $self->{sdl_event};
 
    my $fps;
    my $fps_intv = 0.4;
@@ -514,38 +551,6 @@ sub setup_event_poller {
       }
    };
 
-   $self->{poll_input_w} = AE::timer 0, 0.019, sub {
-      SDL::Events::pump_events();
-
-      while (SDL::Events::poll_event($sdle)) {
-         my $type = $sdle->type;
-         my $key  = ($type == 2 || $type == 3) ? $sdle->key_sym : "";
-
-         if ($type == 4) {
-            $self->input_mouse_motion ($sdle->motion_x, $sdle->motion_y,
-                                       $sdle->motion_xrel, $sdle->motion_yrel);
-
-         } elsif ($type == 2) {
-            $self->input_key_down ($key, SDL::Events::get_key_name ($key), $sdle->key_unicode);
-
-         } elsif ($type == 3) {
-            $self->input_key_up ($key, SDL::Events::get_key_name ($key));
-
-         } elsif ($type == SDL_MOUSEBUTTONUP) {
-            $self->input_mouse_button ($sdle->button_button, 0);
-
-         } elsif ($type == SDL_MOUSEBUTTONDOWN) {
-            $self->input_mouse_button ($sdle->button_button, 1);
-
-         } elsif ($type == 12) {
-            warn "Exit event!\n";
-            exit;
-         } else {
-            warn "unknown sdl type: $type\n";
-         }
-      }
-   };
-
    my $anim_ltime;
    my $anim_dt = 1 / 25;
    my $anim_accum_time = 0;
@@ -575,6 +580,8 @@ sub setup_event_poller {
    my $dt = 1 / 40;
    my $upd_pos = 0;
    $self->{poll_w} = AE::timer 0, 0.02, sub { # 50fps!?
+      $self->handle_sdl_events;
+
       $ltime = time - 0.02 if not defined $ltime;
       my $ctime = time;
       $accum_time += time - $ltime;
