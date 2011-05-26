@@ -63,7 +63,8 @@
    "Dirt" : {
       "type" : 19,
       "texture" : ["cat2.png", 448, 128, 64, 64],
-      "lore" : "It's just dirt."
+      "lore" : "It's just dirt.",
+      "bio_energy" : 1,
    },
    "Granite" : {
       "type" : 20,
@@ -192,12 +193,14 @@
    "Proteins" : {
       "type" : 60,
       "texture" : ["cat2.png", 320, 128, 64, 64],
-      "lore" : "Your only source for nutrition. Lucky you have a generator handy that generates it for you."
+      "lore" : "Your only source for nutrition. Lucky you have a generator handy that generates it for you.",
+      "bio_energy" : 30,
    },
    "Moss" : {
       "type" : 61,
       "texture" : ["cat2.png", 384, 128, 64, 64],
-      "lore" : "Moss, the main problem of this century. Much stuff is overgrown by moss. You can convert it to proteins."
+      "lore" : "Moss, the main problem of this century. Much stuff is overgrown by moss. You can convert it to proteins.",
+      "bio_energy" : 10,
    },
 
    "gravity_pusher" : {

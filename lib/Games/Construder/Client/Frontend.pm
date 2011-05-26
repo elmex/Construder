@@ -834,13 +834,21 @@ sub input_key_up : event_cb {
 sub activate_ui {
    my ($self, $ui, $desc) = @_;
 
+   if (my $obj = $self->{activate_ui}->{$ui}) {
+      $obj->update ($desc);
+      return;
+   }
+
    my $obj = delete $self->{inactive_uis}->{$ui};
 
    $obj ||=
       Games::Construder::Client::UI->new (
          W => $WIDTH, H => $HEIGHT, res => $self->{res});
+
    $obj->update ($desc);
+
    $self->{active_uis}->{$ui} = $obj;
+
    unless ($obj->{sticky}) {
       push @{$self->{active_ui_stack}}, [$ui, $obj]
    }
@@ -852,18 +860,21 @@ sub deactivate_ui {
       $_->[0] ne $ui
    } @{$self->{active_ui_stack}};
 
-   $self->{inactive_uis}->{$ui} =
-      delete $self->{active_uis}->{$ui};
+   my $obj = delete $self->{active_uis}->{$ui};
+   $self->{inactive_uis}->{$ui} = $obj if $obj;
 }
 
 sub active_uis {
    my ($self) = @_;
+
    my (@active_uis) = grep {
       $self->{active_uis}->{$_}->{sticky}
    } (keys %{$self->{active_uis}});
+
    if (@{$self->{active_ui_stack}}) {
       unshift @active_uis, $self->{active_ui_stack}->[-1]->[0];
    }
+
    @active_uis
 }
 

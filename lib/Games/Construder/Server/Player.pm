@@ -170,6 +170,18 @@ sub player_tick {
    if ($self->{data}->{bio} <= 0) {
       $self->{data}->{bio} = 0;
 
+      if (!$self->try_eat_something) { # danger: this maybe recurses into player_tick :)
+         $self->starvation (1);
+      }
+   } else {
+      $self->starvation (0);
+   }
+}
+
+sub starvation {
+   my ($self, $starves) = @_;
+
+   if ($starves) {
       unless ($self->{death_timer}) {
          $self->show_bio_warning (1);
          $self->{death_timer} = AE::timer 30, 0, sub {
@@ -178,11 +190,51 @@ sub player_tick {
             $self->show_bio_warning (0);
          };
       }
+
    } else {
       if (delete $self->{death_timer}) {
          $self->show_bio_warning (0);
       }
    }
+}
+
+sub decrease_inventory {
+   my ($self, $type) = @_;
+
+   my $cnt = $self->{data}->{inv}->{$type}--;
+   if ($self->{data}->{inv}->{$type} <= 0) {
+      delete $self->{data}->{inv}->{$type};
+   }
+
+   if ($self->{shown_uis}->{player_inv}) {
+      $self->show_inventory; # update if neccesary
+   }
+
+   $cnt > 0
+}
+
+sub try_eat_something {
+   my ($self) = @_;
+
+   my (@max_e) = sort {
+      $b->[1] <=> $a->[1]
+   } grep { $_->[1] } map {
+      my $obj = $Games::Construder::Server::RES->get_object_by_type ($_);
+      warn "MAP$_ $obj->{bio_energy}\n";
+      [$_, $obj->{bio_energy}]
+   } keys %{$self->{data}->{inv}};
+
+   while (@max_e) {
+      my $res = shift @max_e;
+      warn "EAT CHECK @$res\n";
+      if ($self->decrease_inventory ($res->[0])) {
+         $self->refill_bio ($res->[1]);
+         warn "Ate $res->[0]\n";
+         return 1;
+      }
+   }
+
+   return 0;
 }
 
 sub refill_bio {
@@ -192,7 +244,12 @@ sub refill_bio {
    $self->{data}->{bio} = 100
       if $self->{data}->{bio} > 100;
 
-   $self->player_tick (0); # no change, just cleanup state
+   if ($self->{data}->{bio} > 0) {
+      $self->starvation (0); # make sure we don't starve anymore
+   }
+
+   # no refresh now. wait for next tick.
+   # $self->player_tick (0); # no change, just cleanup state
 }
 
 sub kill_player {
@@ -491,7 +548,7 @@ sub show_inventory {
    my ($self) = @_;
 
    my $inv = $self->{data}->{inv};
-   warn "SHOW INV\n";
+   warn "SHOW INV $self->{shown_uis}->{player_inv}|\n";
 
    $self->display_ui (player_inv => {
       window => {
@@ -661,23 +718,29 @@ sub display_ui {
    my ($self, $id, $dest, $cb) = @_;
 
    unless ($dest) {
-      delete $self->{displayed_uis}->{$id};
       $self->send_client ({ cmd => deactivate_ui => ui => $id });
+      delete $self->{displayed_uis}->{$id};
+      delete $self->{shown_uis}->{$id};
       return;
    }
 
    $self->{displayed_uis}->{$id} = $cb if $cb;
    $self->send_client ({ cmd => activate_ui => ui => $id, desc => $dest });
+   $self->{shown_uis}->{$id}++;
 }
 
 sub ui_res : event_cb {
    my ($self, $ui, $cmd, $arg) = @_;
    warn "ui response $ui: $cmd ($arg)\n";
+
    if (my $u = $self->{displayed_uis}->{$ui}) {
       $u->($ui, $cmd, $arg);
-      return;
    }
 
+   if ($cmd eq 'cancel') {
+      delete $self->{shown_uis}->{$ui};
+      delete $self->{displayed_uis}->{$ui};
+   }
 }
 
 sub DESTROY {
