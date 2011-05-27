@@ -10,8 +10,9 @@ WriteMakefile(
     VERSION_FROM        => 'lib/Games/Construder.pm',
     ABSTRACT_FROM       => 'lib/Games/Construder.pm',
     PL_FILES            => {},
-    LIBS         => Alien::SDL->config('libs'),
-    INC          => Alien::SDL->config('cflags'),
+    EXE_FILES           => [qw(bin/construder_server bin/construder_client)],
+    LIBS                => [Alien::SDL->config('libs')],
+    INC                 => Alien::SDL->config('cflags'),
     test                => { TESTS => "t/*.t t/methds/*.t" },
     PREREQ_PM => {
         'Test::More'    => 0,
