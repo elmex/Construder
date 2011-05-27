@@ -509,7 +509,7 @@ void vol_draw_map_range (float a, float b, float x, float y);
 
 void vol_draw_copy (void *dst_arr);
 
-void vol_draw_dst_to_world (int sector_x, int sector_y, int sector_z)
+void vol_draw_dst_to_world (int sector_x, int sector_y, int sector_z, AV *range_map)
   CODE:
     int cx = sector_x * CHUNKS_P_SECTOR,
         cy = sector_y * CHUNKS_P_SECTOR,
@@ -530,8 +530,22 @@ void vol_draw_dst_to_world (int sector_x, int sector_y, int sector_z)
           {
             ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 1);
             double v = DRAW_DST(x, y, z);
-            if (v > 0.5)
-              cur->type = 2;
+
+            int al = av_len (range_map);
+            int i;
+            for (i = 0; i <= al; i += 3)
+              {
+                SV **a = av_fetch (range_map, i, 0);
+                SV **b = av_fetch (range_map, i + 1, 0);
+                SV **t = av_fetch (range_map, i + 2, 0);
+                if (!a || !b || !v)
+                  continue;
+
+                double av = SvNV (*a),
+                       bv = SvNV (*b);
+                if (v >= av && v < bv)
+                  cur->type = SvIV (*t);
+              }
           }
 
 MODULE = Games::Construder PACKAGE = Games::Construder::Region PREFIX = region_

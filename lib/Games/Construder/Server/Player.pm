@@ -144,7 +144,7 @@ sub init {
       $tick_time = $cur;
    };
 
-   $self->{logic}->{unhappy_rate} = 5; # 0.25% per second
+   $self->{logic}->{unhappy_rate} = 0.25; # 0.25% per second
 
    $self->update_score;
    $self->update_slots;
@@ -160,7 +160,7 @@ sub player_tick {
    $self->{data}->{happyness} -= $dt * $logic->{unhappy_rate};
    if ($self->{data}->{happyness} < 0) {
       $self->{data}->{happyness} = 0;
-      $self->{logic}->{bio_rate} = 10;
+      $self->{logic}->{bio_rate} = 5;
 
    } elsif ($self->{data}->{happyness} > 0) {
       $self->{logic}->{bio_rate} = 0;

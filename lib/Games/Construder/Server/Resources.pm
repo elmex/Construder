@@ -66,6 +66,18 @@ sub _get_file {
    do { local $/; <$f> }
 }
 
+sub load_world_gen_file {
+   my ($self) = @_;
+   $self->{world_gen} = JSON->new->relaxed->decode (my $f = _get_file ("res/world_gen.json"));
+
+   my $stypes = $self->{world_gen}->{sector_types}
+     or die "No sector types defined in world_gen.json!\n";
+   for (keys %$stypes) {
+      $stypes->{$_}->{type} = $_;
+      $stypes->{$_}->{cmds} = _get_file ("res/$stypes->{$_}->{file}");
+   }
+}
+
 sub load_region_file {
    my ($self) = @_;
    $self->{region_cmds} = _get_file ("res/region_noise.cmds");
@@ -199,6 +211,22 @@ sub loaded_objects : event_cb {
    );
 
    print "loadded objects:\n" . JSON->new->pretty->encode ($self->{objects}) . "\n";
+}
+
+sub get_sector_desc_for_region_value {
+   my ($self, $val) = @_;
+   my $stypes = $self->{world_gen}->{sector_types};
+   for (keys %$stypes) {
+      my $s = $stypes->{$_};
+      my ($a, $b) = @{$s->{region_range}};
+
+      if ($val >= $a && $val < $b) {
+         my $r = $b - $a;
+         return ($s, ($r > 0 ? ($val - $a) / $r : 1));
+      }
+   }
+
+   return ();
 }
 
 =back

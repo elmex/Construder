@@ -316,13 +316,15 @@ void vol_draw_fill_box (float x, float y, float z, float size)
     for (k = 0; k < size; k++)
       for (l = 0; l < size; l++)
         {
-          int m = 0;
           int lm = abs (l - (size / 2));
           int km = abs (k - (size / 2));
           int jm = abs (j - (size / 2));
+
+          int m = 0;
           if (m < lm) m = lm;
           if (m < km) m = km;
           if (m < jm) m = jm;
+          double val = linerp (0.1, 0.9, (m / (size / 2)));
 
           int dx = x + j,
               dy = y + k,
@@ -333,7 +335,6 @@ void vol_draw_fill_box (float x, float y, float z, float size)
               || dz >= DRAW_CTX.size)
             continue;
 
-          double val = (m / (size / 2));
           vol_draw_op (dx, dy, dz, val);
         }
 }

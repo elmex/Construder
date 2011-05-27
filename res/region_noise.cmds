@@ -17,6 +17,8 @@ src_blend 1
    src_dst 2 0
       src_range 0.5 1; fill
 
+   end
+
 src_dst 0 4
    src_range 0 0.16    # cluster 1 0 center
    #src_range 0 0.169999    # cluster 1 0 center

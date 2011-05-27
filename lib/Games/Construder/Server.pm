@@ -51,6 +51,7 @@ sub init {
    $RES = Games::Construder::Server::Resources->new;
    $RES->init_directories;
    $RES->load_region_file;
+   $RES->load_world_gen_file;
 
    $CHNK = Games::Construder::Server::ChunkManager->new;
    $CHNK->init;

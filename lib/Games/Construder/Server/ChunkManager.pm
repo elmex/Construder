@@ -75,29 +75,31 @@ sub check_adjacent_sectors_at {
 sub make_sector {
    my ($self, $sec) = @_;
 
-   my $seed = Games::Construder::Region::get_sector_value (
+   my $val = Games::Construder::Region::get_sector_value (
       $Games::Construder::Server::World::REGION,
       @$sec
    );
 
-   my $seedf = $seed;
-   $seed *= 100 ** 3;
-   $seed = int ($seed);
-   warn "Create sector @$sec, with seed $seed (".sprintf ("%0.5f", $seedf).")\n";
+   my ($stype, $param) =
+      $Games::Construder::Server::RES->get_sector_desc_for_region_value ($val);
 
+   my $seedf = $val;
+   my $seed = $val * 100 ** 3;
+   $seed = int ($seed);
+   # FIXME: $seed should depend on sector position!
+
+   warn "Create sector @$sec, with seed $seed (".sprintf ("%0.5f", $seedf).") value $val and type $stype->{type}\n";
 
    my $cube = $CHUNKS_P_SECTOR * $CHUNK_SIZE;
    Games::Construder::VolDraw::alloc ($cube);
 
+   warn "CMDS $stype->{cmds}\n";
    Games::Construder::VolDraw::draw_commands (
-      q{
-        fill_noise 4 2 0.3
-        map_range 0.6 1 0 0.2
-      },
-     { size => $cube, seed => $seed, param => 1 }
+     $stype->{cmds},
+     { size => $cube, seed => $seed, param => $param }
    );
 
-   Games::Construder::VolDraw::dst_to_world (@$sec);
+   Games::Construder::VolDraw::dst_to_world (@$sec, $stype->{ranges});
 
    $self->{sector}->{world_pos2id ($sec)} = { created => time };
    $self->save_sector ($sec);

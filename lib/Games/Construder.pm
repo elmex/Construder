@@ -118,11 +118,11 @@ sub draw_commands {
          sphere_subdiv (0, 0, 0, $env->{size}, $arg[0]);
 
       } elsif ($cmd eq 'menger_sponge') {
-         # draw menger sponge <level> <src blend & gradient direction>
+         # draw menger sponge <level>
          menger_sponge_box (0, 0, 0, $env->{size}, $arg[0]);
 
       } elsif ($cmd eq 'cantor_dust') {
-         # draw cantor dust <level> <src blend & gradient direction>
+         # draw cantor dust <level>
          cantor_dust_box (0, 0, 0, $env->{size}, $arg[0]);
 
       } elsif ($cmd eq 'map_range') {
