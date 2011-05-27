@@ -1,0 +1,17 @@
+src_dst 1 1
+   src_blend 0
+   mode set
+   menger_sponge 2
+
+src_dst 1 2
+   src_blend 1
+   menger_sponge 3
+
+src_dst 0 0
+   fill_noise 3 P2.1,2.9 0.2
+   map_range 0 0.4  0 0
+
+src_dst 0 2
+   src_blend 1
+   src_range 0 0
+   fill

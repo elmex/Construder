@@ -83,12 +83,9 @@ sub make_sector {
    my ($stype, $param) =
       $Games::Construder::Server::RES->get_sector_desc_for_region_value ($val);
 
-   my $seedf = $val;
-   my $seed = $val * 100 ** 3;
-   $seed = int ($seed);
-   # FIXME: $seed should depend on sector position!
+   my $seed = Games::Construder::Region::get_sector_seed (@$sec);
 
-   warn "Create sector @$sec, with seed $seed (".sprintf ("%0.5f", $seedf).") value $val and type $stype->{type}\n";
+   warn "Create sector @$sec, with seed $seed value $val and type $stype->{type} and param $param\n";
 
    my $cube = $CHUNKS_P_SECTOR * $CHUNK_SIZE;
    Games::Construder::VolDraw::alloc ($cube);
@@ -101,7 +98,14 @@ sub make_sector {
 
    Games::Construder::VolDraw::dst_to_world (@$sec, $stype->{ranges});
 
-   $self->{sector}->{world_pos2id ($sec)} = { created => time };
+   $self->{sector}->{world_pos2id ($sec)} = {
+      created    => time,
+      pos        => [@$sec],
+      region_val => $val,
+      seed       => $seed,
+      param      => $param,
+      type       => $stype->{type},
+   };
    $self->save_sector ($sec);
 
    Games::Construder::World::query_desetup ();
