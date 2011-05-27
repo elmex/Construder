@@ -1,0 +1,25 @@
+#!/opt/perl/bin/perl
+use Devel::Peek;
+use Digest::MD5 qw/md5_hex/;
+use common::sense;
+use Compress::LZF;
+
+my $f = $ARGV[0];
+
+open my $fh, "<", $f
+   or die "no: $!\n";
+
+binmode $fh, ":raw";
+my $c;
+if ($ARGV[1]) {
+   $c = (do { local $/; <$fh> });
+} else {
+   $c = eval { decompress (do { local $/; <$fh> }) };
+}
+warn "UTF: " . 1 * utf8::is_utf8 ($c) . "\n";
+warn "L: " . length ($c) . " : " . md5_hex ($c) . " bytes\n";
+if ($c =~ /^(.+?)\n\nMAPDATA\s*([^\n]+)\n\n(.+)$/s) {
+   warn "C $1 | $2\n";
+} else {
+   warn "ERROR " . pos ($c) . "\n";
+}

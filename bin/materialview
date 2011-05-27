@@ -1,0 +1,24 @@
+#!/opt/perl/bin/perl
+use sort qw/stable/;
+use common::sense;
+use JSON;
+my $data = JSON->new->utf8->relaxed->decode (do { local $/; <STDIN> });
+
+my $flag = $ARGV[0];
+
+my @keys =
+   sort {
+      $data->{$b}->{complexity} <=> $data->{$a}->{complexity}
+   } sort {
+      $data->{$b}->{density} <=> $data->{$a}->{density}
+   } keys %$data;
+
+if ($flag) {
+   (@keys) = grep { $data->{$_}->{$flag} } @keys;
+}
+
+for my $name (@keys) {
+   my $o = $data->{$name};
+   printf "%-20s (%2d): %2d %2d\n",
+      $name, $o->{type}, $o->{complexity}, $o->{density};
+}

@@ -1,37 +1,41 @@
 {
    "Materialization" : {
-      "type" : 1,
-      "texture" : ["cat2.png", 128, 64, 64, 64],
-      "lore" : "This is the whirl of materialization",
-      "untransformable" : true,
+     "type"            : 1,
+     "texture"         : ["cat2.png", 128, 64, 64, 64],
+     "lore"            : "This is the whirl of materialization",
+     "untransformable" : true,
    },
    "Stones" : {
-     "type" : 2,
-     "texture" : ["cat2.png", 192, 0, 64, 64],
-     "lore" : "Stones are the most basic block",
+     "type"       : 2,
+     "texture"    : ["cat2.png", 192, 0, 64, 64],
+     "lore"       : "Stones are the most basic block",
      "complexity" : 15,
-     "density" : 30,
+     "density"    : 30,
+     "natural"    : 1,
    },
    "Iron" : {
-     "type" : 10,
-     "texture" : ["cat2.png", 0, 0, 64, 64],
-     "lore" : "Iron is probably the most basic metal you will find.",
+     "type"       : 10,
+     "texture"    : ["cat2.png", 0, 0, 64, 64],
+     "lore"       : "Iron is probably the most basic metal you will find.",
      "complexity" : 5,
-     "density" : 40,
+     "density"    : 40,
+     "natural"    : 1,
    },
    "Steel" : {
-     "type" : 11,
+     "type"    : 11,
      "texture" : ["cat2.png", 64, 0, 64, 64],
-     "lore" : "Steel is a very sturdy build material.",
+     "lore"    : "Steel is a very sturdy build material.",
      "complexity" : 10,
      "density" : 45,
+     "natural" : 1,
    },
    "Rubber" : {
-     "type" : 12,
+     "type"    : 12,
      "texture" : ["cat2.png", 128, 0, 64, 64],
-     "lore" : "Rubber can be used for a lot of things.",
+     "lore"    : "Rubber can be used for a lot of things.",
      "complexity" : 7,
      "density" : 20,
+     "natural" : 1,
    },
    "Aluminum" : {
      "type" : 13,
@@ -39,6 +43,7 @@
      "lore" : "Not that sturdy metal, but quite light on the other hand.",
      "complexity" : 15,
      "density" : 25,
+     "natural" : 1,
    },
    "Titan" : {
      "type" : 14,
@@ -53,6 +58,7 @@
      "lore" : "Much sturdier than the stones and used a lot for building.",
      "complexity" : 17,
      "density" : 40,
+     "natural" : 1,
    },
    "Brickwall" : {
      "type" : 16,
@@ -60,20 +66,22 @@
      "lore" : "Very anachronistic build material. But still used these days.",
      "complexity" : 20,
      "density" : 27,
+     "natural" : 1,
    },
    "Asphalt" : {
-      "type" : 17,
-      "texture" : ["cat2.png", 128, 128, 64, 64],
-      "lore" : "Brought to you straight from the 20th and 21st century. Back in those days it was used as ground for automobile routes. These days it still serves well as ground material.",
-      "complexity" : 20,
-      "density" : 20,
+     "type" : 17,
+     "texture" : ["cat2.png", 128, 128, 64, 64],
+     "lore" : "Brought to you straight from the 20th and 21st century. Back in those days it was used as ground for automobile routes. These days it still serves well as ground material.",
+     "complexity" : 20,
+     "density" : 20,
+     "natural" : 1,
    },
    "Marble" : {
-      "type" : 18,
-      "texture" : ["cat2.png", 192, 128, 64, 64],
-      "lore" : "Very dense and hard material. Very nice for building.",
-      "complexity" : 15,
-      "density" : 75,
+     "type" : 18,
+     "texture" : ["cat2.png", 192, 128, 64, 64],
+     "lore" : "Very dense and hard material. Very nice for building.",
+     "complexity" : 15,
+     "density" : 75,
    },
    "Copper" : {
       "type" : 18,
@@ -81,6 +89,7 @@
       "lore" : "This metal is commonly used for connections of electronic devices, but they don't help the power source much with distributing the energy.",
       "complexity" : 5,
       "density" : 35,
+      "natural" : 1,
    },
    "Dirt" : {
       "type" : 19,
@@ -89,13 +98,15 @@
       "bio_energy" : 1,
       "complexity" : 10,
       "density" : 10,
+      "natural" : 1,
    },
    "Granite" : {
       "type" : 20,
       "texture" : ["cat2.png", 0, 192, 64, 64],
       "lore" : "You'll almost bite your teeth out on granite. But never the less, it's great stuff for building.",
       "complexity" : 15,
-      "density" : 85
+      "density" : 85,
+      "natural" : 1,
    },
    "Sand" : {
       "type" : 21,
@@ -103,13 +114,15 @@
       "lore" : "Sand is not great if your electronic stuff is covered in it. But you might get some silicon from it.",
       "complexity" : 10,
       "density" : 5,
+      "natural" : 1,
    },
    "Silver" : {
       "type" : 22,
       "texture" : ["cat2.png", 128, 192, 64, 64],
       "lore" : "Silver is a useful raw material for lots of things.",
       "complexity" : 30,
-      "density" : 38
+      "density" : 38,
+      "natural" : 1,
    },
    "Gold" : {
       "type" : 23,
@@ -117,6 +130,7 @@
       "lore" : "Gold, as precious as it is, it's required for almost any electronic circuit.",
       "complexity" : 40,
       "density" : 33,
+      "natural" : 1,
    },
    "Silicon" : {
       "type" : 23,
@@ -124,6 +138,7 @@
       "lore" : "Similiar to gold, it's required for any CPU.",
       "complexity" : 12,
       "density" : 20,
+      "natural" : 1,
    },
    "Superconductor" : {
       "type" : 24,
@@ -138,6 +153,7 @@
       "lore" : "Uran, a powerful energy source. But be careful of the radiation!",
       "complexity" : 40,
       "density" : 50,
+      "natural" : 1,
    },
    "Plutonium" : {
       "type" : 26,
@@ -145,6 +161,7 @@
       "lore" : "Plutonium, a very powerful energy source. But be very careful of the radiation!",
       "complexity" : 45,
       "density" : 50,
+      "natural" : 1,
    },
    "Diamond" : {
       "type" : 27,
@@ -152,6 +169,7 @@
       "lore" : "The hardest material you will find.",
       "complexity" : 25,
       "density" : 90,
+      "natural" : 1,
    },
    "Oilsmear" : {
       "type" : 28,
@@ -159,6 +177,7 @@
       "lore" : "Oil is a very useful chemical resource. You can make lots of stuff from it.",
       "complexity" : 30,
       "density" : 15,
+      "natural" : 1,
    },
 
    "Minicell" : {
@@ -252,6 +271,15 @@
      "complexity" : 50,
      "density" : 5,
    },
+   "EPM" : {
+      "type" : 43,
+      "model" : [2, [1, 10], [5, 10]],
+      "complexity" : 35,
+      "density" : 17,
+      "lore" : "This is an EPM Device, which lets you destroy any drones within 6 blocks.",
+      "destroy_timeout" : 4, # 4 seconds until it destroys itself
+      "destroy_action" : "epm", # on destroy trigger epm routine
+   },
 
    "Drone" : {
      "type" : 50,
@@ -275,6 +303,7 @@
       "bio_energy" : 10,
       "complexity" : 15,
       "density" : 6,
+      "natural" : 1,
    },
 
    "gravity_pusher" : {
