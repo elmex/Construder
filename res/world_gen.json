@@ -2,7 +2,7 @@
    "sector_types" : {
       "A1" : {
          "file" : "sector_A1.cmds",
-         "region_range" : [0, 0.5], # range it appears in the region
+         "region_range" : [0, 0], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
             0.6,      1.01,      2, # base walls stones
@@ -13,13 +13,37 @@
       },
       "A2" : {
          "file" : "sector_A2.cmds",
-         "region_range" : [0.5, 1], # range it appears in the region
+         "region_range" : [0, 0], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
             0.6,      1.01,      2, # base walls stones
             0.35,     0.6,      16, # inner walls brickwall
             0.15,     0.35,     23, # most inner silicon
             0.05,     0.15,     18, # rest copper
+         ]
+      },
+      "A3" : {
+         "file" : "sector_A3.cmds",
+         "region_range" : [0, 0], # range it appears in the region
+         # start inkl., end excl., type
+         "ranges" : [
+            0.05,     0.2,      10, # cube middles are iron
+            0.2,      0.4,      12, # cube shell is rubber
+            0.4,      0.85,     20, # most of the map is of granite
+            0.85,     1.01,      2, # rest stone
+         ]
+      },
+      "A4" : {
+         "file" : "sector_A4.cmds",
+         "region_range" : [0, 1], # range it appears in the region
+         # start inkl., end excl., type
+         "ranges" : [
+            0.05,     0.18,     12, # small part of noise is rubber
+            0.18,     0.24,     10, # most part noise is iron
+            0.24,     0.4,      18, # small part of the noise is copper
+
+            0.4,      0.74,     20, # walls of the map is of granite
+            0.74,     1.01,     17, # most asphalt
          ]
       },
    }
