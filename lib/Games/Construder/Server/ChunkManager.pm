@@ -122,6 +122,16 @@ sub chunk_changed {
    push @{$self->{save_sectors}}, [$id, $sec];
 }
 
+sub sector_info {
+   my ($self, $x, $y, $z) = @_;
+   my $sec = world_chnkpos2secpos ([$x, $y, $z]);
+   my $id  = world_pos2id ($sec);
+   unless (exists $self->{sector}->{$id}) {
+      return undef;
+   }
+   $self->{sector}->{$id}
+}
+
 sub load_sector {
    my ($self, $sec) = @_;
 

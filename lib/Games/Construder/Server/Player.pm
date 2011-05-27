@@ -480,9 +480,11 @@ sub update_slots {
 sub update_hud_1 {
    my ($self) = @_;
 
+   my $abs_pos  = vfloor ($self->{data}->{pos});
    my $chnk_pos = world_pos2chnkpos ($self->{data}->{pos});
-   my $rel_pos  = world_pos2relchnkpos ($self->{data}->{pos});
    my $sec_pos  = world_chnkpos2secpos ($chnk_pos);
+
+   my $sinfo = $Games::Construder::Server::CHNK->sector_info (@$chnk_pos);
 
    $self->display_ui (player_hud_1 => {
       window => {
@@ -492,6 +494,25 @@ sub update_hud_1 {
       },
       layout => [
         box => { dir => "vert" },
+        [
+           box => { dir => "hor" },
+           [box => { dir => "vert", padding => 2 },
+              [text => { color => "#888888", font => "small" }, "Pos"],
+              [text => { color => "#888888", font => "small" }, "Chunk"],
+              [text => { color => "#888888", font => "small" }, "Sector"],
+              [text => { color => "#888888", font => "small" }, "Type"],
+           ],
+           [box => { dir => "vert", padding => 2 },
+              [text => { color => "#ffffff", font => "small" },
+                 sprintf ("%3d,%3d,%3d", @$abs_pos)],
+              [text => { color => "#ffffff", font => "small" },
+                 sprintf ("%3d,%3d,%3d", @$chnk_pos)],
+              [text => { color => "#ffffff", font => "small" },
+                 sprintf ("%3d,%3d,%3d", @$sec_pos)],
+              [text => { color => "#ffffff", font => "small" },
+                 sprintf ("%s, %0.5f", $sinfo->{type}, $sinfo->{param})],
+           ]
+        ],
         [box => { },
            [text => { align => "right", font => "big", color => "#ffff55", max_chars => 4 },
               sprintf ("%d%%", $self->{data}->{happyness})],
@@ -502,22 +523,6 @@ sub update_hud_1 {
               sprintf ("%d%%", $self->{data}->{bio})],
            [text => { align => "center", color => "#888888" }, "bio"],
         ],
-        [
-           box => { dir => "hor" },
-           [box => { dir => "vert" },
-              [text => { color => "#888888", font => "small" }, "Pos"],
-              [text => { color => "#888888", font => "small" }, "Chunk"],
-              [text => { color => "#888888", font => "small" }, "Sector"],
-           ],
-           [box => { dir => "vert" },
-              [text => { color => "#ffffff", font => "small" },
-                 sprintf ("%3d,%3d,%3d", @$rel_pos)],
-              [text => { color => "#ffffff", font => "small" },
-                 sprintf ("%3d,%3d,%3d", @$chnk_pos)],
-              [text => { color => "#ffffff", font => "small" },
-                 sprintf ("%3d,%3d,%3d", @$sec_pos)],
-           ]
-        ]
       ],
       commands => {
          default_keys => {
