@@ -35,7 +35,7 @@
       },
       "A4" : {
          "file" : "sector_A4.cmds",
-         "region_range" : [0, 1], # range it appears in the region
+         "region_range" : [0, 0], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
             0.05,     0.18,     12, # small part of noise is rubber
@@ -44,6 +44,16 @@
 
             0.4,      0.74,     20, # walls of the map is of granite
             0.74,     1.01,     17, # most asphalt
+         ]
+      },
+      "B1" : {
+         "file" : "sector_B1.cmds",
+         "region_range" : [0, 1], # range it appears in the region
+         # start inkl., end excl., type
+         "ranges" : [
+            0.05,     0.27,     27, # the least part is diamond
+            0.27,     0.4,      28, # embeddede in oilsmear
+            0.4,      0.6,      17, # and finally in asphalt
          ]
       },
    }
