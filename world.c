@@ -3,8 +3,8 @@
 #include "vectorlib.c"
 #include <assert.h>
 
-#define CHUNK_SIZE      12
-#define CHUNKS_P_SECTOR  5
+#define CHUNK_SIZE      16
+#define CHUNKS_P_SECTOR  4
 #define CHUNK_ALEN (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE)
 #define POSSIBLE_OBJECTS 4096 // this is the max number of different object types!
 #define MAX_MODEL_DIM   4

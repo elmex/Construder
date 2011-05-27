@@ -24,7 +24,7 @@ A chunk of the Construder world.
 
 =cut
 
-our $SIZE = 12;
+our $SIZE = 16;
 our $BSPHERE = sqrt (3 * (($SIZE/2) ** 2));
 
 sub new {

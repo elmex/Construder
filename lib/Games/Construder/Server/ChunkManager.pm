@@ -25,8 +25,8 @@ Games::Construder::Server::ChunkManager - desc
 
 =cut
 
-our $CHUNK_SIZE = 12;
-our $CHUNKS_P_SECTOR = 5;
+our $CHUNK_SIZE = 16;
+our $CHUNKS_P_SECTOR = 4;
 
 sub new {
    my $this  = shift;

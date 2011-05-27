@@ -31,8 +31,8 @@ Games::Construder::Server::World - desc
 
 =cut
 
-our $CHNKSIZE = 12;
-our $CHNKS_P_SEC = 5;
+our $CHNKSIZE = 16;
+our $CHNKS_P_SEC = 4;
 our $REGION_SEED = 42;
 our $REGION_SIZE = 100; # 100x100x100 sections
 our $REGION;
@@ -121,7 +121,7 @@ sub world_mutate_at {
    } else {
       Games::Construder::World::query_desetup (1);
       my $t1 = time;
-      Games::Construder::World::update_light_at (@{vfloor ($pos)}, 12);
+      Games::Construder::World::update_light_at (@{vfloor ($pos)}, 16);
       printf "light calc took: %f\n", time - $t1;
       Games::Construder::World::query_desetup ();
    }
