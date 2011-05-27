@@ -191,9 +191,9 @@ sub build_chunk_arrays {
    my ($self) = @_;
    my @verts;
 
-   for my $dx (0..$Games::Construder::Client::MapChunk::SIZE) {
-      for my $dy (0..$Games::Construder::Client::MapChunk::SIZE) {
-         for my $dz (0..$Games::Construder::Client::MapChunk::SIZE) {
+   for my $dx (0..$Games::Construder::Client::World::CHNK_SIZE) {
+      for my $dy (0..$Games::Construder::Client::World::CHNK_SIZE) {
+         for my $dz (0..$Games::Construder::Client::World::CHNK_SIZE) {
             push @verts, [$dx, $dy, $dz];
          }
       }
@@ -380,7 +380,7 @@ sub render_scene {
       Games::Construder::Math::calc_visible_chunks_at_in_cone (
          @$pp, $PL_VIS_RAD,
          @{$fcone[0]}, @{$fcone[1]}, $fcone[2],
-         $Games::Construder::Client::MapChunk::BSPHERE);
+         $Games::Construder::Client::World::BSPHERE);
 
    my ($txtid) = $self->{res}->obj2texture (1);
    glBindTexture (GL_TEXTURE_2D, $txtid);

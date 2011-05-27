@@ -43,7 +43,7 @@ sub new {
    });
 
    $self->{res} = Games::Construder::Client::Resources->new;
-   $Games::Construder::Client::Renderer::RES = $self->{res};
+   $Games::Construder::Client::UI::RES = $self->{res};
 
    $self->{front} =
       Games::Construder::Client::Frontend->new (res => $self->{res});

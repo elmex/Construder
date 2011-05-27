@@ -27,6 +27,8 @@ Games::Construder::Client::UI - A simple and small GUI library for the game
 
 =cut
 
+our $RES; # set by Games::Construder::Client
+
 my $BIG_FONT; # should be around 35 pixel
 my $NORM_FONT; # should be around 20 pixel
 my $SMALL_FONT; # should be around 12 pixel
@@ -500,6 +502,25 @@ sub _get_texfmt {
    ($ncol == 4 ? ($rmsk == 0x000000ff ? GL_RGBA : GL_BGRA)
                : ($rmsk == 0x000000ff ? GL_RGB  : GL_BGR))
 }
+
+our %MODEL_CACHE;
+
+sub render_object_type_sample {
+   my ($type) = @_;
+
+   my ($txtid) = $RES->obj2texture (1);
+   glBindTexture (GL_TEXTURE_2D, $txtid);
+
+   if (my $g = $MODEL_CACHE{$type}) {
+      Games::Construder::Renderer::draw_geom ($g);
+
+   } else {
+      my $geom = $MODEL_CACHE{$type} = Games::Construder::Renderer::new_geom ();
+      Games::Construder::Renderer::model ($type, 1, 0, 0, 0, $geom);
+      Games::Construder::Renderer::draw_geom ($geom);
+   }
+}
+
 
 sub render_view {
    my ($self) = @_;

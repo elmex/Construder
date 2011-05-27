@@ -54,32 +54,11 @@ void ctr_world_init ()
   WORLD.y = ctr_axis_array_new ();
   memset (OBJ_ATTR_MAP, 0, sizeof (OBJ_ATTR_MAP));
   neighbour_cell.type    = 0;
-  neighbour_cell.light   = 15;
+  neighbour_cell.light   = 0;
   neighbour_cell.add     = 0;
   neighbour_cell.meta    = 0;
   neighbour_cell.visible = 1;
 }
-
-//void ctr_world_emit_chunk_change_obj (int x, int y, int z, int act, unsigned int id)
-//{
-//  if (WORLD.chunk_change_cb)
-//    {
-//      dSP;
-//      ENTER;
-//      SAVETMPS;
-//      PUSHMARK(SP);
-//      XPUSHs(sv_2mortal(newSViv (x)));
-//      XPUSHs(sv_2mortal(newSViv (y)));
-//      XPUSHs(sv_2mortal(newSViv (z)));
-//      XPUSHs(sv_2mortal(newSViv (act)));
-//      XPUSHs(sv_2mortal(newSViv (id)));
-//      PUTBACK;
-//      call_sv (WORLD.chunk_change_cb, G_DISCARD | G_VOID);
-//      SPAGAIN;
-//      FREETMPS;
-//      LEAVE;
-//    }
-//}
 
 void ctr_world_emit_chunk_change (int x, int y, int z)
 {

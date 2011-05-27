@@ -38,13 +38,15 @@ Games::Construder::Client::World - desc
 
 =cut
 
+our $CHNK_SIZE = 12;
+our $BSPHERE   = sqrt (3 * (($CHNK_SIZE/2) ** 2));
 my @CHUNKS;
 
 sub world_init {
 }
 
 sub world_pos2chunk {
-   @{vfloor (vsdiv ($_[0], $Games::Construder::Client::MapChunk::SIZE))};
+   @{vfloor (vsdiv ($_[0], $CHNK_SIZE))};
 }
 
 sub world_intersect_ray_box {
