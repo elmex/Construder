@@ -5,10 +5,10 @@
          "region_range" : [0, 0], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
-            0.8,      1.01,      2, # base walls stones
-            0.5,      0.8,      16, # inner walls brickwall
-            0.15,     0.35,     23, # most inner silicon
-            0.05,     0.15,     10, # rest iron
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
          ]
       },
       "A2" : {
@@ -16,10 +16,10 @@
          "region_range" : [0, 0], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
-            0.6,      1.01,      2, # base walls stones
-            0.35,     0.6,      16, # inner walls brickwall
-            0.15,     0.35,     23, # most inner silicon
-            0.05,     0.15,     18, # rest copper
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,       0.8,      2, # inner walls stone
+            0.40,      0.5,     23, # most inner silicon
+            0.05,     0.40,     18, # rest copper
          ]
       },
       "A3" : {
@@ -27,10 +27,10 @@
          "region_range" : [0, 0], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
-            0.05,     0.2,      10, # cube middles are iron
+            0.85,     1.01,      2, # base walls are brickwall
+            0.7,      0.85,     20, # inner walls of granite
             0.2,      0.4,      12, # cube shell is rubber
-            0.4,      0.85,     20, # most of the map is of granite
-            0.85,     1.01,      2, # rest stone
+            0.05,     0.2,      10, # cube middles are iron
          ]
       },
       "A4" : {
@@ -38,12 +38,12 @@
          "region_range" : [0, 0], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
-            0.05,     0.18,     12, # small part of noise is rubber
-            0.18,     0.24,     10, # most part noise is iron
-            0.24,     0.4,      18, # small part of the noise is copper
+            0.74,     1.01,     17, # base walls asphalt
+            0.4,      0.74,     20, # inner walls of granite
 
-            0.4,      0.74,     20, # walls of the map is of granite
-            0.74,     1.01,     17, # most asphalt
+            0.24,     0.4,      18, # small part of the noise is copper
+            0.18,     0.24,     10, # most part noise is iron
+            0.05,     0.18,     12, # small part of noise is rubber
          ]
       },
       "B1" : {
@@ -51,9 +51,9 @@
          "region_range" : [0, 1], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
-            0.05,     0.27,     27, # the least part is diamond
-            0.27,     0.4,      28, # embeddede in oilsmear
-            0.4,      0.6,      17, # and finally in asphalt
+            0.4,      0.6,      17, # most is asphalt
+            0.27,     0.4,      28, # most of treasure is oilsmear
+            0.05,     0.27,     27, # the least part is diamond inside oilsmear
          ]
       },
    }

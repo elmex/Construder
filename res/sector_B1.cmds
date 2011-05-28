@@ -4,11 +4,6 @@ src_dst 0 0
 src_dst 0 1
    src_blend 0.5
    cantor_dust 2
-   end
+   map_range 0.6 1 0 0
 
-src_dst 1 0
-   src_blend 0
-   fill 0
-   src_blend 1
-   src_range 0.27 0.4
-   fill
+   # show_range_sector_type B1 1

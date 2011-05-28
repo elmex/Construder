@@ -6,17 +6,9 @@ src_dst 2 2
 
 src_dst 2 1
    src_blend 1
-   src_range 0.5 1
+   src_range 0.7 1
    menger_sponge 3
    src_range 0 0.3
    fill
 
-end
-
-src_dst 1 2
-   src_blend 0
-   src_range 0 1
-   fill 0
-   src_blend 0
-   src_range 0.85 1
-   fill 0.5
+   # show_range_sector_type A3 2

@@ -1,4 +1,5 @@
 package Games::Construder;
+use JSON;
 use common::sense;
 
 our $VERSION = '0.01';
@@ -31,8 +32,15 @@ sub new {
    return $self
 }
 
-
 package Games::Construder::VolDraw;
+
+sub _get_file {
+   my ($file) = @_;
+   open my $f, "<", $file
+      or die "Couldn't open '$file': $!\n";
+   binmode $f, ":raw";
+   do { local $/; <$f> }
+}
 
 my %OPS = (
    add  => 1,
@@ -53,7 +61,6 @@ sub draw_commands {
 
    my (@lines) = map { $_ =~ s/#.*$//; $_ } split /\r?\n/, $str;
    my (@stmts) = map { split /\s*;\s*/, $_ } @lines;
-
 
 # noise umbennen: fill (erkl]ert mehr)
 # ; erlauben
@@ -119,12 +126,12 @@ sub draw_commands {
 
       } elsif ($cmd eq 'cubes') {
          # draw spheres
-         # spheres <recursion-cnt> <shrink factor (default 0)>
+         # cubes <recursion-cnt> <shrink factor (default 0)>
          subdiv (0, 0, 0, 0, $env->{size}, defined $arg[1] ? $arg[1] : 0, $arg[0]);
 
       } elsif ($cmd eq 'triangles') {
          # draw spheres
-         # spheres <recursion-cnt> <shrink factor (default 0)>
+         # triangles <recursion-cnt> <shrink factor (default 0)>
          subdiv (2, 0, 0, 0, $env->{size}, defined $arg[1] ? $arg[1] : 0, $arg[0]);
 
       } elsif ($cmd eq 'self_cubes') {
@@ -140,9 +147,26 @@ sub draw_commands {
          # draw cantor dust <level>
          cantor_dust_box (0, 0, 0, $env->{size}, $arg[0]);
 
+      } elsif ($cmd eq 'sierpinski_pyramid') {
+         # sierpinski_pyramid <level>
+         sierpinski_pyramid (0, 0, 0, $env->{size}, $arg[0]);
+
       } elsif ($cmd eq 'map_range') {
          # map range of destionation buffer
          map_range ($arg[0], $arg[1], $arg[2], $arg[3]);
+
+      } elsif ($cmd eq 'show_range_sector_type') {
+         my ($type, $range_offs) = @arg;
+         my $wg = JSON->new->relaxed->decode (_get_file ("res/world_gen.json"));
+         my $s = $wg->{sector_types}->{$type};
+         my $r = $s->{ranges};
+         unless ($r) {
+            warn "No ranges for sector type '$type' found!\n";
+         }
+         my ($a, $b) = ($r->[$range_offs * 3], $r->[($range_offs * 3) + 1]);
+         map_range (0, $a - 0.000001, 0, 0);
+         map_range ($b + 0.000001, 2, 0, 0);
+         map_range ($a, $b, 0, 0.6); # enhance contrast a bit maybe
 
       } else {
          warn "unknown draw command: $_\n";

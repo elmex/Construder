@@ -15,3 +15,5 @@ src_dst 0 2
    src_blend 1
    src_range 0 0
    fill
+
+   show_range_sector_type A2 1

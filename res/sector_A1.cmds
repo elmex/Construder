@@ -13,11 +13,6 @@ src_dst 0 1
    fill
    dst_range 0 1
 
-#   end
+# show_range_sector_type A1 0
 
-src_dst 1 2
- #  src_range 0.05 0.149999
-  # src_range 0.15 0.35
- #  src_range 0.350001 0.599999
-# src_range 0.5  0.8
-   fill
+   end

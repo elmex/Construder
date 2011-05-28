@@ -228,7 +228,7 @@ void vol_draw_map_range (float a, float b, float j, float k)
       for (x = 0; x < DRAW_CTX.size; x++)
         {
           double v = DRAW_DST(x, y, z);
-          if (v >= a && v <= b)
+          if (v >= a && v < b)
             {
               v -= a;
               v /= range;
@@ -312,6 +312,11 @@ float vol_draw_cube_fill_value (int x, int y, int z, float size)
 
 void vol_draw_fill_pyramid (float x, float y, float z, float size)
 {
+  x    = ceil (x);
+  y    = ceil (y);
+  z    = ceil (z);
+  size = ceil (size);
+
   int j, k, l;
   float pyr_size = size;
   for (k = 0; k < size; k++) // layer
@@ -455,6 +460,18 @@ void vol_draw_self_sim_cubes_hash_seed (float x, float y, float z, float size, u
 
 void vol_draw_sierpinski_pyramid (float x, float y, float z, float size, unsigned short lvl)
 {
+  if (lvl == 0)
+    {
+      vol_draw_fill_pyramid (x, y, z, size);
+      return;
+    }
+
+  float half = size / 2;
+  vol_draw_sierpinski_pyramid (x,        y, z,        half, lvl - 1);
+  vol_draw_sierpinski_pyramid (x + half, y, z,        half, lvl - 1);
+  vol_draw_sierpinski_pyramid (x,        y, z + half, half, lvl - 1);
+  vol_draw_sierpinski_pyramid (x + half, y, z + half, half, lvl - 1);
+  vol_draw_sierpinski_pyramid (x + (half / 2), y + half, z + (half / 2), half, lvl - 1);
 }
 
 void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, double factor, double persistence)
