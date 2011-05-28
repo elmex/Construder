@@ -228,7 +228,7 @@ void vol_draw_map_range (float a, float b, float j, float k)
       for (x = 0; x < DRAW_CTX.size; x++)
         {
           double v = DRAW_DST(x, y, z);
-          if (v >= a && v < b)
+          if (v >= a && v <= b)
             {
               v -= a;
               v /= range;

@@ -56,6 +56,13 @@ sub lerp {
    $a * (1 - $x) + $b * $x
 }
 
+sub show_map_range {
+   my ($a, $b) = @_;
+   map_range (0, $a - 0.000001, 0, 0);
+   map_range ($b + 0.000001, 2, 0, 0);
+   map_range ($a, $b, 0, 0.6); # enhance contrast a bit maybe
+}
+
 sub draw_commands {
    my ($str, $env) = @_;
 
@@ -155,6 +162,16 @@ sub draw_commands {
          # map range of destionation buffer
          map_range ($arg[0], $arg[1], $arg[2], $arg[3]);
 
+      } elsif ($cmd eq 'show_range_region_sector') {
+         my ($type) = @arg;
+         my $wg = JSON->new->relaxed->decode (_get_file ("res/world_gen.json"));
+         my $s = $wg->{sector_types}->{$type};
+         my $r = $s->{region_range};
+         unless ($r) {
+            warn "No region range for sector type '$type' found!\n";
+         }
+         show_map_range (@$r);
+
       } elsif ($cmd eq 'show_range_sector_type') {
          my ($type, $range_offs) = @arg;
          my $wg = JSON->new->relaxed->decode (_get_file ("res/world_gen.json"));
@@ -163,10 +180,7 @@ sub draw_commands {
          unless ($r) {
             warn "No ranges for sector type '$type' found!\n";
          }
-         my ($a, $b) = ($r->[$range_offs * 3], $r->[($range_offs * 3) + 1]);
-         map_range (0, $a - 0.000001, 0, 0);
-         map_range ($b + 0.000001, 2, 0, 0);
-         map_range ($a, $b, 0, 0.6); # enhance contrast a bit maybe
+         show_map_range ($r->[$range_offs * 3], $r->[($range_offs * 3) + 1]);
 
       } else {
          warn "unknown draw command: $_\n";

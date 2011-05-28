@@ -2,7 +2,7 @@
    "sector_types" : {
       "A1" : {
          "file" : "sector_A1.cmds",
-         "region_range" : [0, 0], # range it appears in the region
+         "region_range" : [0, 0.11], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
             0.8,      1.01,     16, # base walls brickwall
@@ -13,7 +13,7 @@
       },
       "A2" : {
          "file" : "sector_A2.cmds",
-         "region_range" : [0, 0], # range it appears in the region
+         "region_range" : [0.11, 0.14], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
             0.8,      1.01,     16, # base walls brickwall
@@ -24,7 +24,7 @@
       },
       "A3" : {
          "file" : "sector_A3.cmds",
-         "region_range" : [0, 0], # range it appears in the region
+         "region_range" : [0.14, 0.16], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
             0.85,     1.01,      2, # base walls are brickwall
@@ -35,7 +35,7 @@
       },
       "A4" : {
          "file" : "sector_A4.cmds",
-         "region_range" : [0, 0], # range it appears in the region
+         "region_range" : [0.16, 0.18], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
             0.74,     1.01,     17, # base walls asphalt
@@ -46,15 +46,60 @@
             0.05,     0.18,     12, # small part of noise is rubber
          ]
       },
+      "E1" : {
+         "region_range" : [0.18, 0.19],
+      },
+      "E2" : {
+         "region_range" : [0.19, 0.2],
+      },
+      "E3" : {
+         "region_range" : [0.3, 0.31],
+      },
+      "E4" : {
+         "region_range" : [0.31, 0.32],
+      },
       "B1" : {
          "file" : "sector_B1.cmds",
-         "region_range" : [0, 1], # range it appears in the region
+         "region_range" : [0.32, 0.34], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
             0.4,      0.6,      17, # most is asphalt
             0.27,     0.4,      28, # most of treasure is oilsmear
             0.05,     0.27,     27, # the least part is diamond inside oilsmear
          ]
+      },
+      "B2" : {
+         "region_range" : [0.34, 0.36],
+      },
+      "B3" : {
+         "region_range" : [0.36, 0.39],
+      },
+      "B4" : {
+         "region_range" : [0.4, 0.5],
+      },
+      "C1" : {
+         "region_range" : [0.5, 0.53],
+      },
+      "C2" : {
+         "region_range" : [0.53, 0.56],
+      },
+      "C3" : {
+         "region_range" : [0.56, 0.6],
+      },
+      "C4" : {
+         "region_range" : [0.6, 0.75],
+      },
+      "D1" : {
+         "region_range" : [0.75, 0.785],
+      },
+      "D2" : {
+         "region_range" : [0.785, 0.8],
+      },
+      "D3" : {
+         "region_range" : [0.8, 0.83],
+      },
+      "D4" : {
+         "region_range" : [0.83, 1],
       },
    }
 }

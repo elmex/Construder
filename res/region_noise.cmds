@@ -1,28 +1,30 @@
-src_dst 0 1
+# first batch of minima and extrema:
+# outside   - inside
+# 0.5       - 0.75
+# 0.7500001 - 1
+src_dst 1 1
    fill_noise 4 2 0.4
-   map_range 0 1 0 0.5
+   map_range 0.28 0.75 -1 -1
+   map_range 0 0.28 0.75 0.5
 
-src_dst 0 2
-   fill_noise 4 1.7 0.2 1
-   dst_range 0.3 1
-   src_blend 0
-   fill -1
-   dst_range 0 0.3
-   map_range 0 0.3 0.51 1
+# second batch of noise with other extremes:
+# 0       - 0.2  # extreme 1
+# 0.20001 - 0.3  # transition!
+# 0.3     - 0.5  # extreme 2
+src_dst 1 2
+   fill_noise 4 2 0.4 1
+   map_range 0 1 0 0.499999
 
-src_blend 1
-   src_dst 1 0
-      src_range 0 0.5; fill
-
-   src_dst 2 0
-      src_range 0.5 1; fill
-
-   end
-
-src_dst 0 4
-   src_range 0 0.16    # cluster 1 0 center
-   #src_range 0 0.169999    # cluster 1 0 center
-   #src_range 0.17 0.339999 # transition
-   #src_range 0.34 0.5      # cluster 2 0.5 center
-   #src_range 0.5 1         # cluster 3 0.5 center
+   # now blend in first noise:
+   src_range 0.5 1
+   src_blend 1
    fill
+
+# view filtering:
+
+ # map_range 0.5 1 0 0
+ # map_range 0 0.2 0 0
+ # map_range 0.3 0.5 0 0
+ # map_range 0.2 0.3 0 0
+
+ # show_range_region_sector D3
