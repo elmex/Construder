@@ -465,12 +465,12 @@ void show_model ()
 
 int is_carved (int x, int y, int z, int sx, int sy, int sz, double carve)
 {
-  if (((x - sx) - 1) < 0
-      || ((y - sy) - 1) < 0
-      || ((z - sz) - 1) < 0
-      || (x + 1) >= sidelen
-      || (y + 1) >= sidelen
-      || (z + 1) >= sidelen)
+  if ((x - sx) < 0
+      || (y - sy) < 0
+      || (z - sz) < 0
+      || (x + 1) > sidelen
+      || (y + 1) > sidelen
+      || (z + 1) > sidelen)
     return 1;
 
   double *cell = &(model[OFFS(x,y,z)]);

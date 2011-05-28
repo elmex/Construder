@@ -136,6 +136,12 @@ double linerp (double a, double b, double x)
 
 void vol_draw_op (unsigned int x, unsigned int y, unsigned int z, double val)
 {
+  if (x >= DRAW_CTX.size
+      || y >= DRAW_CTX.size
+      || z >= DRAW_CTX.size)
+    return;
+
+ 
   if (DRAW_DST(x,y,z) < DRAW_CTX.dst_range[0]
       || DRAW_DST(x,y,z) > DRAW_CTX.dst_range[1])
     return;
@@ -231,8 +237,97 @@ void vol_draw_map_range (float a, float b, float j, float k)
         }
 }
 
-void vol_draw_sierpinski (float x, float y, float z, float size, unsigned short lvl)
+static void draw_3d_line_bresenham (int x0, int y0, int z0, int x1, int y1, int z1)
 {
+  int x_inc = (x1 > x0) ? +1 : -1,
+      y_inc = (y1 > y0) ? +1 : -1,
+      z_inc = (z1 > z0) ? +1 : -1;
+
+  int dx = abs (x1 - x0),
+      dy = abs (y1 - y0),
+      dz = abs (z1 - z0);
+
+  int d1 = 2 * dy - dx,
+      d2 = 2 * dz - dx;
+
+  int inc_e1  = 2 * dy,
+      inc_ne1 = 2 * (dy - dx),
+      inc_e2  = 2 * dz,
+      inc_ne2 = 2 * (dz - dx);
+
+  while (x0 != x1) {
+    vol_draw_op (x0, y0, z0, 1);
+
+    if (d1 <= 0)
+      d1 += inc_e1;
+    else
+      {
+        y0 += y_inc;
+        d1 += inc_ne1;
+      }
+
+    if (d2 <= 0)
+      d2 += inc_e2;
+    else
+      {
+        z0 += z_inc;
+        d2 += inc_ne2;
+      }
+
+    x0 += x_inc;
+  }
+  vol_draw_op (x0, y0, z0, 1);
+}
+
+static void draw_3d_line (int x0, int y0, int z0, int x1, int y1, int z1)
+{
+  int dx = abs (x1 - x0),
+      dy = abs (y1 - y0),
+      dz = abs (z1 - z0);
+
+  if ((dx >= dy) && (dx >= dz))
+    draw_3d_line_bresenham (x0, y0, z0, x1, y1, z1);
+  else if ((dy >= dx) && (dy >= dz))
+    draw_3d_line_bresenham (y0, x0, z0, y1, x1, z1);
+  else
+    draw_3d_line_bresenham (z0, x0, y0, z1, x1, y1);
+}
+
+float vol_draw_cube_fill_value (int x, int y, int z, float size)
+{
+  float radius = (size - 1) / 2;
+  float xm = fabs ((float) x - radius),
+        ym = fabs ((float) y - radius),
+        zm = fabs ((float) z - radius);
+
+  float m = 0;
+  if (m < xm) m = xm;
+  if (m < ym) m = ym;
+  if (z >= 0 && m < zm)
+    m = zm;
+  return linerp (0.1, 0.9,
+                 radius <= 0.01 ? 0 : (m / radius));
+
+}
+
+void vol_draw_fill_pyramid (float x, float y, float z, float size)
+{
+  int j, k, l;
+  float pyr_size = size;
+  for (k = 0; k < size; k++) // layer
+    {
+      for (j = 0; j < pyr_size; j++)
+        for (l = 0; l < pyr_size; l++)
+          {
+            double val = vol_draw_cube_fill_value (j, l, -1, pyr_size);
+            vol_draw_op ((float) j + x, (float) k + y, (float) l + z, val);
+          }
+
+      if (k % 2 == 1)
+        pyr_size -= 2;
+      x += 0.5;
+      z += 0.5;
+    }
 }
 
 void vol_draw_fill_box (float x, float y, float z, float size)
@@ -242,24 +337,10 @@ void vol_draw_fill_box (float x, float y, float z, float size)
     for (k = 0; k < size; k++)
       for (l = 0; l < size; l++)
         {
-          int lm = abs (l - (size / 2));
-          int km = abs (k - (size / 2));
-          int jm = abs (j - (size / 2));
-
-          int m = 0;
-          if (m < lm) m = lm;
-          if (m < km) m = km;
-          if (m < jm) m = jm;
-          double val = linerp (0.1, 0.9, (m / (size / 2)));
-
           int dx = x + j,
               dy = y + k,
               dz = z + l;
-
-          if (dx >= DRAW_CTX.size
-              || dy >= DRAW_CTX.size
-              || dz >= DRAW_CTX.size)
-            continue;
+          double val = vol_draw_cube_fill_value (j, k, l, size);
 
           vol_draw_op (dx, dy, dz, val);
         }
@@ -292,26 +373,88 @@ void vol_draw_subdiv (int type, float x, float y, float z, float size, float shr
 {
   float offs = size * 0.5f * shrink_fact;
 
-  if (type)
+  if (type == 1)
     vol_draw_fill_sphere (x + offs, y + offs, z + offs, size - 2 * offs);
+  else if (type == 2)
+    vol_draw_fill_pyramid (x + offs, y + offs, z + offs, size - 2 * offs);
   else
     vol_draw_fill_box (x + offs, y + offs, z + offs, size - 2 * offs);
 
   if (lvl > 1)
     {
       float cntr = size / 2;
-      float fact = 1;
 
-      vol_draw_subdiv (type, x,        y, z,               cntr * fact, shrink_fact, lvl - 1);
-      vol_draw_subdiv (type, x,        y, z + cntr,        cntr * fact, shrink_fact, lvl - 1);
-      vol_draw_subdiv (type, x + cntr, y, z,               cntr * fact, shrink_fact, lvl - 1);
-      vol_draw_subdiv (type, x + cntr, y, z + cntr,        cntr * fact, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x,        y, z,               cntr, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x,        y, z + cntr,        cntr, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x + cntr, y, z,               cntr, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x + cntr, y, z + cntr,        cntr, shrink_fact, lvl - 1);
 
-      vol_draw_subdiv (type, x,        y + cntr, z,        cntr * fact, shrink_fact, lvl - 1);
-      vol_draw_subdiv (type, x,        y + cntr, z + cntr, cntr * fact, shrink_fact, lvl - 1);
-      vol_draw_subdiv (type, x + cntr, y + cntr, z,        cntr * fact, shrink_fact, lvl - 1);
-      vol_draw_subdiv (type, x + cntr, y + cntr, z + cntr, cntr * fact, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x,        y + cntr, z,        cntr, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x,        y + cntr, z + cntr, cntr, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x + cntr, y + cntr, z,        cntr, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x + cntr, y + cntr, z + cntr, cntr, shrink_fact, lvl - 1);
     }
+}
+
+void vol_draw_self_sim_cubes (float x, float y, float z, float size, unsigned int corners, unsigned int seed, unsigned short lvl)
+{
+  if (lvl >= 1)
+    {
+      if (corners > 7)
+        corners = 7;
+
+      unsigned char corner_mask = 0x0;
+
+      int i;
+      unsigned int rnd = rnd_xor (seed);
+      for (i = 0; i < corners; i++)
+        {
+          double val = (double) rnd / (double) 0xFFFFFFFF;
+          int corner = floor ((val - 0.00000001) * 8.);
+          while (corner_mask & (1 << corner))
+            corner = (corner + 1) % 8;
+          corner_mask |= 1 << corner;
+          rnd = rnd_xor (rnd);
+        }
+
+      float cntr = size / 2;
+
+      if (!(corner_mask & (1 << 0)))
+         vol_draw_self_sim_cubes (x, y, z, cntr, corners, rnd = rnd_xor (rnd), lvl - 1);
+
+      if (!(corner_mask & (1 << 1)))
+        vol_draw_self_sim_cubes (x, y, z + cntr, cntr, corners, rnd = rnd_xor (rnd), lvl - 1);
+
+      if (!(corner_mask & (1 << 2)))
+        vol_draw_self_sim_cubes (x + cntr, y, z, cntr, corners, rnd = rnd_xor (rnd), lvl - 1);
+
+      if (!(corner_mask & (1 << 3)))
+        vol_draw_self_sim_cubes (x + cntr, y, z + cntr, cntr, corners, rnd = rnd_xor (rnd), lvl - 1);
+
+      if (!(corner_mask & (1 << 4)))
+        vol_draw_self_sim_cubes (x, y + cntr, z, cntr, corners, rnd = rnd_xor (rnd), lvl - 1);
+
+      if (!(corner_mask & (1 << 5)))
+        vol_draw_self_sim_cubes (x, y + cntr, z + cntr, cntr, corners, rnd = rnd_xor (rnd), lvl - 1);
+
+      if (!(corner_mask & (1 << 6)))
+        vol_draw_self_sim_cubes (x + cntr, y + cntr, z, cntr, corners, rnd = rnd_xor (rnd), lvl - 1);
+
+      if (!(corner_mask & (1 << 7)))
+        vol_draw_self_sim_cubes (x + cntr, y + cntr, z + cntr, cntr, corners, rnd = rnd_xor (rnd), lvl - 1);
+    }
+  else
+    vol_draw_fill_box (x, y, z, size);
+}
+
+void vol_draw_self_sim_cubes_hash_seed (float x, float y, float z, float size, unsigned int corners, unsigned int seed, unsigned short lvl)
+{
+  seed = hash32int (seed); // make it a bit more random :)
+  vol_draw_self_sim_cubes (x, y, z, size, corners, seed, lvl);
+}
+
+void vol_draw_sierpinski_pyramid (float x, float y, float z, float size, unsigned short lvl)
+{
 }
 
 void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, double factor, double persistence)

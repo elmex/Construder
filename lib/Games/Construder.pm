@@ -122,6 +122,16 @@ sub draw_commands {
          # spheres <recursion-cnt> <shrink factor (default 0)>
          subdiv (0, 0, 0, 0, $env->{size}, defined $arg[1] ? $arg[1] : 0, $arg[0]);
 
+      } elsif ($cmd eq 'triangles') {
+         # draw spheres
+         # spheres <recursion-cnt> <shrink factor (default 0)>
+         subdiv (2, 0, 0, 0, $env->{size}, defined $arg[1] ? $arg[1] : 0, $arg[0]);
+
+      } elsif ($cmd eq 'self_cubes') {
+         # draw spheres
+         # spheres <missing corners> <recursion-cnt> <seed offset>
+         self_sim_cubes_hash_seed (0, 0, 0, $env->{size}, $arg[0], $env->{seed} + $arg[2], $arg[1]);
+
       } elsif ($cmd eq 'menger_sponge') {
          # draw menger sponge <level>
          menger_sponge_box (0, 0, 0, $env->{size}, $arg[0]);
