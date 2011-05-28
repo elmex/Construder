@@ -231,10 +231,43 @@ void vol_draw_map_range (float a, float b, float j, float k)
         }
 }
 
-void vol_draw_sphere_subdiv (float x, float y, float z, float size, unsigned short lvl)
+void vol_draw_sierpinski (float x, float y, float z, float size, unsigned short lvl)
+{
+}
+
+void vol_draw_fill_box (float x, float y, float z, float size)
+{
+  int j, k, l;
+  for (j = 0; j < size; j++)
+    for (k = 0; k < size; k++)
+      for (l = 0; l < size; l++)
+        {
+          int lm = abs (l - (size / 2));
+          int km = abs (k - (size / 2));
+          int jm = abs (j - (size / 2));
+
+          int m = 0;
+          if (m < lm) m = lm;
+          if (m < km) m = km;
+          if (m < jm) m = jm;
+          double val = linerp (0.1, 0.9, (m / (size / 2)));
+
+          int dx = x + j,
+              dy = y + k,
+              dz = z + l;
+
+          if (dx >= DRAW_CTX.size
+              || dy >= DRAW_CTX.size
+              || dz >= DRAW_CTX.size)
+            continue;
+
+          vol_draw_op (dx, dy, dz, val);
+        }
+}
+
+void vol_draw_fill_sphere (float x, float y, float z, float size)
 {
   float cntr = size / 2;
-
   vec3_init (center, x + cntr, y + cntr, z + cntr);
 
   float j, k, l;
@@ -253,18 +286,31 @@ void vol_draw_sphere_subdiv (float x, float y, float z, float size, unsigned sho
               vol_draw_op (x + j, y + k, z + l, sphere_val);
             }
         }
+}
+
+void vol_draw_subdiv (int type, float x, float y, float z, float size, float shrink_fact, unsigned short lvl)
+{
+  float offs = size * 0.5f * shrink_fact;
+
+  if (type)
+    vol_draw_fill_sphere (x + offs, y + offs, z + offs, size - 2 * offs);
+  else
+    vol_draw_fill_box (x + offs, y + offs, z + offs, size - 2 * offs);
 
   if (lvl > 1)
     {
-      vol_draw_sphere_subdiv (x,        y, z,               cntr, lvl - 1);
-      vol_draw_sphere_subdiv (x,        y, z + cntr,        cntr, lvl - 1);
-      vol_draw_sphere_subdiv (x + cntr, y, z,               cntr, lvl - 1);
-      vol_draw_sphere_subdiv (x + cntr, y, z + cntr,        cntr, lvl - 1);
+      float cntr = size / 2;
+      float fact = 1;
 
-      vol_draw_sphere_subdiv (x,        y + cntr, z,        cntr, lvl - 1);
-      vol_draw_sphere_subdiv (x,        y + cntr, z + cntr, cntr, lvl - 1);
-      vol_draw_sphere_subdiv (x + cntr, y + cntr, z,        cntr, lvl - 1);
-      vol_draw_sphere_subdiv (x + cntr, y + cntr, z + cntr, cntr, lvl - 1);
+      vol_draw_subdiv (type, x,        y, z,               cntr * fact, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x,        y, z + cntr,        cntr * fact, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x + cntr, y, z,               cntr * fact, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x + cntr, y, z + cntr,        cntr * fact, shrink_fact, lvl - 1);
+
+      vol_draw_subdiv (type, x,        y + cntr, z,        cntr * fact, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x,        y + cntr, z + cntr, cntr * fact, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x + cntr, y + cntr, z,        cntr * fact, shrink_fact, lvl - 1);
+      vol_draw_subdiv (type, x + cntr, y + cntr, z + cntr, cntr * fact, shrink_fact, lvl - 1);
     }
 }
 
@@ -307,36 +353,6 @@ void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves
     for (y = 0; y < DRAW_CTX.size; y++)
       for (x = 0; x < DRAW_CTX.size; x++)
         DRAW_DST(x,y,z) /= amp_correction;
-}
-
-void vol_draw_fill_box (float x, float y, float z, float size)
-{
-  int j, k, l;
-  for (j = 0; j < size; j++)
-    for (k = 0; k < size; k++)
-      for (l = 0; l < size; l++)
-        {
-          int lm = abs (l - (size / 2));
-          int km = abs (k - (size / 2));
-          int jm = abs (j - (size / 2));
-
-          int m = 0;
-          if (m < lm) m = lm;
-          if (m < km) m = km;
-          if (m < jm) m = jm;
-          double val = linerp (0.1, 0.9, (m / (size / 2)));
-
-          int dx = x + j,
-              dy = y + k,
-              dz = z + l;
-
-          if (dx >= DRAW_CTX.size
-              || dy >= DRAW_CTX.size
-              || dz >= DRAW_CTX.size)
-            continue;
-
-          vol_draw_op (dx, dy, dz, val);
-        }
 }
 
 void vol_draw_menger_sponge_box (float x, float y, float z, float size, unsigned short lvl)

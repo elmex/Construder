@@ -497,7 +497,7 @@ void vol_draw_val (double val);
 
 void vol_draw_dst_self ();
 
-void vol_draw_sphere_subdiv (float x, float y, float z, float size, int lvl);
+void vol_draw_subdiv (int type, float x, float y, float z, float size, float shrink_fact, int lvl);
 
 void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, double factor, double persistence);
 

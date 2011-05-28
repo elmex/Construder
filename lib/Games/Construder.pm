@@ -114,8 +114,13 @@ sub draw_commands {
 
       } elsif ($cmd eq 'spheres') {
          # draw spheres
-         # spheres <recursion-cnt>
-         sphere_subdiv (0, 0, 0, $env->{size}, $arg[0]);
+         # spheres <recursion-cnt> <shrink factor (default 0)>
+         subdiv (1, 0, 0, 0, $env->{size}, defined $arg[1] ? $arg[1] : 0, $arg[0]);
+
+      } elsif ($cmd eq 'cubes') {
+         # draw spheres
+         # spheres <recursion-cnt> <shrink factor (default 0)>
+         subdiv (0, 0, 0, 0, $env->{size}, defined $arg[1] ? $arg[1] : 0, $arg[0]);
 
       } elsif ($cmd eq 'menger_sponge') {
          # draw menger sponge <level>
