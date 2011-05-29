@@ -33,6 +33,8 @@ typedef struct _ctr_render_geom {
   int       uvs_len;
 
   GLuint dl;
+  GLuint vbo_verts, vbo_colors, vbo_uvs, vbo_vert_idxs;
+  int    data_dirty;
   int    dl_dirty;
 
   int    xoff, yoff, zoff;
@@ -41,7 +43,7 @@ typedef struct _ctr_render_geom {
 void ctr_render_clear_geom (void *c)
 {
   ctr_render_geom *geom = c;
-  geom->dl_dirty = 1;
+  geom->data_dirty = 1;
   geom->vertex_idxs = 0;
   geom->vertexes_len = 0;
   geom->colors_len = 0;
@@ -71,8 +73,31 @@ void *ctr_render_new_geom ()
       c = malloc (sizeof (ctr_render_geom));
       memset (c, 0, sizeof (ctr_render_geom));
       c->dl = glGenLists (1);
+      glGenBuffers (1, &c->vbo_verts);
+      glGenBuffers (1, &c->vbo_colors);
+      glGenBuffers (1, &c->vbo_uvs);
+      glGenBuffers (1, &c->vbo_vert_idxs);
+
+      glBindBuffer (GL_ARRAY_BUFFER, c->vbo_verts);
+      glBufferData(GL_ARRAY_BUFFER, sizeof (c->vertexes), NULL, GL_DYNAMIC_DRAW);
+
+      glBindBuffer (GL_ARRAY_BUFFER, c->vbo_colors);
+      glBufferData(GL_ARRAY_BUFFER, sizeof (c->colors), NULL, GL_DYNAMIC_DRAW);
+
+      glBindBuffer (GL_ARRAY_BUFFER, c->vbo_uvs);
+      glBufferData(GL_ARRAY_BUFFER, sizeof (c->uvs), NULL, GL_DYNAMIC_DRAW);
+
+      int i;
+      for (i = 0; i < CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4; i++)
+        c->vertex_idx[i] = i;
+
+      glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, c->vbo_vert_idxs);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (c->vertex_idx), c->vertex_idx, GL_DYNAMIC_DRAW);
+
       ctr_render_clear_geom (c);
     }
+
+  c->dl_dirty = 1;
 
   cgeom++;
   return c;
@@ -86,6 +111,10 @@ void ctr_render_free_geom (void *c)
     {
       ctr_render_geom *geom = c;
       glDeleteLists (geom->dl, 1);
+      glDeleteBuffers (1, &geom->vbo_verts);
+      glDeleteBuffers (1, &geom->vbo_colors);
+      glDeleteBuffers (1, &geom->vbo_uvs);
+      glDeleteBuffers (1, &geom->vbo_vert_idxs);
       free (geom);
     }
 
@@ -106,9 +135,55 @@ void ctr_render_init ()
 void ctr_render_compile_geom (void *c)
 {
   ctr_render_geom *geom = c;
+
+#if 1
+# if 0
+  glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_verts);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof (GL_FLOAT) * geom->vertexes_len, geom->vertexes);
+  glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_colors);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof (GL_FLOAT) * geom->colors_len, geom->colors);
+  glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_uvs);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof (GL_FLOAT) * geom->uvs_len, geom->uvs);
+#else
+  glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_verts);
+  glBufferData(GL_ARRAY_BUFFER, sizeof (GL_FLOAT) * geom->vertexes_len, geom->vertexes, GL_DYNAMIC_DRAW);
+  glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_colors);
+  glBufferData(GL_ARRAY_BUFFER, sizeof (GL_FLOAT) * geom->colors_len, geom->colors, GL_DYNAMIC_DRAW);
+  glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_uvs);
+  glBufferData(GL_ARRAY_BUFFER, sizeof (GL_FLOAT) * geom->uvs_len, geom->uvs, GL_DYNAMIC_DRAW);
+#endif
+
+# if 0
+  if (geom->data_dirty)
+    {
+      glNewList (geom->dl, GL_COMPILE);
+      glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_verts);
+      glEnableClientState(GL_VERTEX_ARRAY);
+      glVertexPointer (3, GL_FLOAT, 0, 0);
+
+      glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_colors);
+      glEnableClientState(GL_COLOR_ARRAY);
+      glColorPointer    (3, GL_FLOAT, 0, 0);
+
+      glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_uvs);
+      glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+      glTexCoordPointer (2, GL_FLOAT, 0, 0);
+
+      glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, geom->vbo_vert_idxs);
+      glDrawElements (GL_QUADS, geom->vertex_idxs, GL_UNSIGNED_INT, 0);
+
+      glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+      glDisableClientState(GL_COLOR_ARRAY);
+      glDisableClientState(GL_VERTEX_ARRAY);
+      glEndList ();
+    }
+# endif
+
+#else
+  ctr_render_geom *geom = c;
   glNewList (geom->dl, GL_COMPILE);
-  glPushMatrix ();
-  glTranslatef (geom->xoff, geom->yoff, geom->zoff);
+  //glPushMatrix ();
+  //glTranslatef (geom->xoff, geom->yoff, geom->zoff);
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_COLOR_ARRAY);
   glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -123,8 +198,11 @@ void ctr_render_compile_geom (void *c)
   glDisableClientState(GL_COLOR_ARRAY);
   glDisableClientState(GL_VERTEX_ARRAY);
 
-  glPopMatrix ();
+  //glPopMatrix ();
   glEndList ();
+#endif
+
+  geom->data_dirty = 0;
   geom->dl_dirty = 0;
 }
 
@@ -132,8 +210,31 @@ void ctr_render_draw_geom (void *c)
 {
   ctr_render_geom *geom = c;
 
-  if (geom->dl_dirty)
+#if 1
+  glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_verts);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glVertexPointer (3, GL_FLOAT, 0, 0);
+
+  glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_colors);
+  glEnableClientState(GL_COLOR_ARRAY);
+  glColorPointer    (3, GL_FLOAT, 0, 0);
+
+  glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_uvs);
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+  glTexCoordPointer (2, GL_FLOAT, 0, 0);
+
+  glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, geom->vbo_vert_idxs);
+  glDrawElements (GL_QUADS, geom->vertex_idxs, GL_UNSIGNED_INT, 0);
+
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableClientState(GL_COLOR_ARRAY);
+  glDisableClientState(GL_VERTEX_ARRAY);
+
+#else
+
+  if (geom->data_dirty || geom->dl_dirty)
     ctr_render_compile_geom (geom);
+#endif
 
   glCallList (geom->dl);
 }
@@ -153,7 +254,6 @@ ctr_render_add_face (unsigned int face, unsigned int type, double light,
       geom->vertexes[geom->vertexes_len++] = ((vert[0] + xoffs) * scale) + xsoffs;
       geom->vertexes[geom->vertexes_len++] = ((vert[1] + yoffs) * scale) + ysoffs;
       geom->vertexes[geom->vertexes_len++] = ((vert[2] + zoffs) * scale) + zsoffs;
-      geom->vertex_idx[geom->vertex_idxs]  = geom->vertex_idxs;
       geom->vertex_idxs++;
     }
 
@@ -243,6 +343,10 @@ ctr_render_chunk (int x, int y, int z, void *geom)
     for (iy = 0; iy < CHUNK_SIZE; iy++)
       for (ix = 0; ix < CHUNK_SIZE; ix++)
         {
+          int dx = ix + g->xoff;
+          int dy = iy + g->yoff;
+          int dz = iz + g->zoff;
+
 //         printf ("OFFS %d %d %d \n", ix, iy, iz);
           ctr_cell *cur = ctr_world_chunk_neighbour_cell (c, ix, iy, iz, 0);
           if (!cur->visible)// || ctr_world_cell_transparent (cur))
@@ -252,7 +356,7 @@ ctr_render_chunk (int x, int y, int z, void *geom)
           if (oa->model)
             {
               ctr_render_model (
-                cur->type, ctr_cell_light (cur), ix, iy, iz, geom);
+                cur->type, ctr_cell_light (cur), dx, dy, dz, geom);
               continue;
             }
 
@@ -260,27 +364,27 @@ ctr_render_chunk (int x, int y, int z, void *geom)
 
           if (ctr_world_cell_transparent (front))
             ctr_render_add_face (
-              0, cur->type, ctr_cell_light (front), ix, iy, iz, 1, 0, 0, 0, geom);
+              0, cur->type, ctr_cell_light (front), dx, dy, dz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (top))
             ctr_render_add_face (
-              1, cur->type, ctr_cell_light (top), ix, iy, iz, 1, 0, 0, 0, geom);
+              1, cur->type, ctr_cell_light (top), dx, dy, dz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (back))
             ctr_render_add_face (
-              2, cur->type, ctr_cell_light (back), ix, iy, iz, 1, 0, 0, 0, geom);
+              2, cur->type, ctr_cell_light (back), dx, dy, dz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (left))
             ctr_render_add_face (
-              3, cur->type, ctr_cell_light (left), ix, iy, iz, 1, 0, 0, 0, geom);
+              3, cur->type, ctr_cell_light (left), dx, dy, dz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (right))
             ctr_render_add_face (
-              4, cur->type, ctr_cell_light (right), ix, iy, iz, 1, 0, 0, 0, geom);
+              4, cur->type, ctr_cell_light (right), dx, dy, dz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (bot))
             ctr_render_add_face (
-              5, cur->type, ctr_cell_light (bot), ix, iy, iz, 1, 0, 0, 0, geom);
+              5, cur->type, ctr_cell_light (bot), dx, dy, dz, 1, 0, 0, 0, geom);
         }
 
   ctr_render_compile_geom (geom);

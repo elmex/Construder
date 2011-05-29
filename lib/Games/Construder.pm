@@ -66,6 +66,8 @@ sub show_map_range {
 sub draw_commands {
    my ($str, $env) = @_;
 
+   $env->{seed}++; # offset by 1, so we get no 0 should be unsigned anyways
+
    my (@lines) = map { $_ =~ s/#.*$//; $_ } split /\r?\n/, $str;
    my (@stmts) = map { split /\s*;\s*/, $_ } @lines;
 

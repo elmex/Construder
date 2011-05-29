@@ -478,9 +478,6 @@ void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves
 {
   double amp_correction = 0;
 
-  if (seed == 0) seed = 1;
-  printf ("SEED NOISE %d\n", seed);
-
   void *noise = mk_3d_noise (DRAW_CTX.size, seed);
 
   int x, y, z;
