@@ -21,12 +21,21 @@ double quad_vert[8][3] = {
   { 1, 0, 1 },
 };
 
+#define VERTEXES_SIZE (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 3)
+#define COLORS_SIZE VERTEXES_SIZE
+#define UVS_SIZE (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 2)
+#define IDX_SIZE (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4)
+
 typedef struct _ctr_render_geom {
-  GLfloat  vertexes  [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 3];
-  GLfloat  colors    [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 3];
-  GLfloat  uvs       [CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 2];
-  GLuint    vertex_idx[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4];
+  GLfloat  vertexes  [VERTEXES_SIZE];
+  GLfloat  colors    [COLORS_SIZE];
+  GLfloat  uvs       [UVS_SIZE];
+  //GLfloat *vertexes;
+  //GLfloat *colors;
+  //GLfloat *uvs;
+  GLuint    vertex_idx[IDX_SIZE];
   int       vertex_idxs;
+
 
   int       vertexes_len;
   int       colors_len;
@@ -79,20 +88,20 @@ void *ctr_render_new_geom ()
       glGenBuffers (1, &c->vbo_vert_idxs);
 
       glBindBuffer (GL_ARRAY_BUFFER, c->vbo_verts);
-      glBufferData(GL_ARRAY_BUFFER, sizeof (c->vertexes), NULL, GL_DYNAMIC_DRAW);
+      glBufferData(GL_ARRAY_BUFFER, VERTEXES_SIZE, NULL, GL_DYNAMIC_DRAW);
 
       glBindBuffer (GL_ARRAY_BUFFER, c->vbo_colors);
-      glBufferData(GL_ARRAY_BUFFER, sizeof (c->colors), NULL, GL_DYNAMIC_DRAW);
+      glBufferData(GL_ARRAY_BUFFER, COLORS_SIZE, NULL, GL_DYNAMIC_DRAW);
 
       glBindBuffer (GL_ARRAY_BUFFER, c->vbo_uvs);
-      glBufferData(GL_ARRAY_BUFFER, sizeof (c->uvs), NULL, GL_DYNAMIC_DRAW);
+      glBufferData(GL_ARRAY_BUFFER, UVS_SIZE, NULL, GL_DYNAMIC_DRAW);
 
       int i;
       for (i = 0; i < CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4; i++)
         c->vertex_idx[i] = i;
 
       glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, c->vbo_vert_idxs);
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (c->vertex_idx), c->vertex_idx, GL_DYNAMIC_DRAW);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (c->vertex_idx), c->vertex_idx, GL_STATIC_DRAW);
 
       ctr_render_clear_geom (c);
     }
@@ -137,7 +146,7 @@ void ctr_render_compile_geom (void *c)
   ctr_render_geom *geom = c;
 
 #if 1
-# if 0
+# if 0 // dunno which is faster :)
   glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_verts);
   glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof (GL_FLOAT) * geom->vertexes_len, geom->vertexes);
   glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_colors);
@@ -145,6 +154,7 @@ void ctr_render_compile_geom (void *c)
   glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_uvs);
   glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof (GL_FLOAT) * geom->uvs_len, geom->uvs);
 #else
+
   glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_verts);
   glBufferData(GL_ARRAY_BUFFER, sizeof (GL_FLOAT) * geom->vertexes_len, geom->vertexes, GL_DYNAMIC_DRAW);
   glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_colors);

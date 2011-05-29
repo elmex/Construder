@@ -41,6 +41,7 @@ Games::Construder::Client::Frontend - desc
 =cut
 
 my ($WIDTH, $HEIGHT) = (800, 600);#600, 400);
+my $UPDATE_P_FRAME = 16;
 #my ($WIDTH, $HEIGHT) = (1200, 720);#600, 400);
 
 my $PL_HEIGHT = 1;
@@ -315,7 +316,7 @@ sub compile_some_chunks {
       unless ($cc->{$_->[0]}->{$_->[1]}->{$_->[2]}) {
          $self->compile_chunk (@$_);
          $comp++;
-         last if $comp > 90;
+         last if $comp > $UPDATE_P_FRAME;
       }
    }
 
@@ -324,7 +325,7 @@ sub compile_some_chunks {
       next unless $self->can_see_chunk (@$c);
       $self->compile_chunk (@$c);
       $comp++;
-      last if $comp > 90; # splitting it over frames doesnt help at all!
+      last if $comp > $UPDATE_P_FRAME; # splitting it over frames doesnt help at all!
       #return;
    }
 
