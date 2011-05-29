@@ -64,7 +64,7 @@ void ctr_render_clear_geom (void *c)
 
 static int cgeom = 0;
 
-#define GEOM_PRE_ALLOC 200
+#define GEOM_PRE_ALLOC 20
 static ctr_render_geom *geom_pre_alloc[GEOM_PRE_ALLOC];
 static int              geom_last_free = 0;
 
@@ -244,9 +244,9 @@ void ctr_render_draw_geom (void *c)
 
   if (geom->data_dirty || geom->dl_dirty)
     ctr_render_compile_geom (geom);
+  glCallList (geom->dl);
 #endif
 
-  glCallList (geom->dl);
 }
 
 void

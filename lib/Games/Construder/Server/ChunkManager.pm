@@ -96,7 +96,7 @@ sub make_sector {
      { size => $cube, seed => $seed, param => $param }
    );
 
-   Games::Construder::VolDraw::dst_to_world (@$sec, $stype->{ranges});
+   Games::Construder::VolDraw::dst_to_world (@$sec, $stype->{ranges} || []);
 
    $self->{sector}->{world_pos2id ($sec)} = {
       created    => time,
