@@ -24,7 +24,7 @@ Games::Construder::Server::Player - desc
 
 =cut
 
-my $PL_VIS_RAD = 3;
+my $PL_VIS_RAD = 4;
 
 sub new {
    my $this  = shift;

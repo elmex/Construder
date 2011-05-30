@@ -31,8 +31,9 @@ Games::Construder::Server::World - desc
 
 =cut
 
-our $CHNKSIZE = 12;
+our $CHNK_SIZE = 12;
 our $CHNKS_P_SEC = 5;
+
 our $REGION_SEED = 42;
 our $REGION_SIZE = 100; # 100x100x100 sections
 our $REGION;
@@ -67,7 +68,7 @@ sub world_pos2id {
 }
 
 sub world_pos2chnkpos {
-   vfloor (vsdiv ($_[0], $CHNKSIZE))
+   vfloor (vsdiv ($_[0], $CHNK_SIZE))
 }
 
 sub world_chnkpos2secpos {
@@ -86,7 +87,7 @@ sub world_secpos2chnkpos {
 sub world_pos2relchnkpos {
    my ($pos) = @_;
    my $chnk = world_pos2chnkpos ($pos);
-   vsub ($pos, vsmul ($chnk, $CHNKSIZE))
+   vsub ($pos, vsmul ($chnk, $CHNK_SIZE))
 }
 
 
@@ -108,9 +109,9 @@ sub world_mutate_at {
    my $b = Games::Construder::World::at (@$pos);
    if ($cb->($b)) {
       my $relpos = vfloor (vsubd ($pos,
-         $chnk->[0] * $CHNKSIZE,
-         $chnk->[1] * $CHNKSIZE,
-         $chnk->[2] * $CHNKSIZE));
+         $chnk->[0] * $CHNK_SIZE,
+         $chnk->[1] * $CHNK_SIZE,
+         $chnk->[2] * $CHNK_SIZE));
 
       Games::Construder::World::query_set_at (@$relpos, $b);
    }

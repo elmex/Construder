@@ -25,9 +25,6 @@ Games::Construder::Server::ChunkManager - desc
 
 =cut
 
-our $CHUNK_SIZE = 12;
-our $CHUNKS_P_SECTOR = 5;
-
 sub new {
    my $this  = shift;
    my $class = ref ($this) || $this;
@@ -87,7 +84,8 @@ sub make_sector {
 
    warn "Create sector @$sec, with seed $seed value $val and type $stype->{type} and param $param\n";
 
-   my $cube = $CHUNKS_P_SECTOR * $CHUNK_SIZE;
+   my $cube = $Games::Construder::Server::World::CHNKS_P_SEC
+              * $Games::Construder::Server::World::CHNK_SIZE;
    Games::Construder::VolDraw::alloc ($cube);
 
    warn "CMDS $stype->{cmds}\n";
@@ -185,9 +183,9 @@ sub load_sector {
       my $offs;
       my $first_chnk = world_secpos2chnkpos ($sec);
       my @chunks;
-      for my $dx (0..($CHUNKS_P_SECTOR - 1)) {
-         for my $dy (0..($CHUNKS_P_SECTOR - 1)) {
-            for my $dz (0..($CHUNKS_P_SECTOR - 1)) {
+      for my $dx (0..($Games::Construder::Server::World::CHNKS_P_SEC - 1)) {
+         for my $dy (0..($Games::Construder::Server::World::CHNKS_P_SEC - 1)) {
+            for my $dz (0..($Games::Construder::Server::World::CHNKS_P_SEC - 1)) {
                my $chnk = vaddd ($first_chnk, $dx, $dy, $dz);
 
                my $len = shift @lens;
@@ -227,9 +225,9 @@ sub save_sector {
 
    my $first_chnk = world_secpos2chnkpos ($sec);
    my @chunks;
-   for my $dx (0..($CHUNKS_P_SECTOR - 1)) {
-      for my $dy (0..($CHUNKS_P_SECTOR - 1)) {
-         for my $dz (0..($CHUNKS_P_SECTOR - 1)) {
+   for my $dx (0..($Games::Construder::Server::World::CHNKS_P_SEC - 1)) {
+      for my $dy (0..($Games::Construder::Server::World::CHNKS_P_SEC - 1)) {
+         for my $dz (0..($Games::Construder::Server::World::CHNKS_P_SEC - 1)) {
             my $chnk = vaddd ($first_chnk, $dx, $dy, $dz);
             push @chunks,
                Games::Construder::World::get_chunk_data (@$chnk);

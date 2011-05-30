@@ -48,16 +48,48 @@
       },
       "E1" : {
          "region_range" : [0.18, 0.19],
+         "file" : "sector_A1.cmds",
+         "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
       },
       "E2" : {
          "region_range" : [0.19, 0.2],
-      },
+         "file" : "sector_A1.cmds",
+          "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
+     },
       "E3" : {
          "region_range" : [0.3, 0.31],
-      },
+         "file" : "sector_A1.cmds",
+           "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
+    },
       "E4" : {
          "region_range" : [0.31, 0.32],
-      },
+         "file" : "sector_A1.cmds",
+            "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
+   },
       "B1" : {
          "file" : "sector_B1.cmds",
          "region_range" : [0.32, 0.34], # range it appears in the region
@@ -70,36 +102,123 @@
       },
       "B2" : {
          "region_range" : [0.34, 0.36],
-      },
+         "file" : "sector_A1.cmds",
+          "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
+     },
       "B3" : {
          "region_range" : [0.36, 0.39],
-      },
+         "file" : "sector_A1.cmds",
+          "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
+     },
       "B4" : {
          "region_range" : [0.39, 0.5],
-      },
+         "file" : "sector_A1.cmds",
+          "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
+     },
       "C1" : {
          "region_range" : [0.5, 0.53],
-      },
+         "file" : "sector_A1.cmds",
+          "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
+     },
       "C2" : {
          "region_range" : [0.53, 0.56],
-      },
+         "file" : "sector_A1.cmds",
+          "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
+     },
       "C3" : {
          "region_range" : [0.56, 0.6],
-      },
+         "file" : "sector_A1.cmds",
+          "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
+     },
       "C4" : {
          "region_range" : [0.6, 0.75],
-      },
+         "file" : "sector_A1.cmds",
+          "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+     },
       "D1" : {
          "region_range" : [0.75, 0.785],
-      },
+         "file" : "sector_A1.cmds",
+          "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
+     },
       "D2" : {
          "region_range" : [0.785, 0.8],
-      },
+         "file" : "sector_A1.cmds",
+          "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
+     },
       "D3" : {
          "region_range" : [0.8, 0.83],
-      },
+         "file" : "sector_A1.cmds",
+          "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
+     },
       "D4" : {
          "region_range" : [0.83, 1],
-      },
+         "file" : "sector_A1.cmds",
+           "ranges" : [
+            0.8,      1.01,     16, # base walls brickwall
+            0.5,      0.8,       2, # inner walls stone
+            0.20,     0.5,      23, # most inner silicon
+            0.05,     0.20,     10, # rest iron
+         ]
+
+    },
    }
 }

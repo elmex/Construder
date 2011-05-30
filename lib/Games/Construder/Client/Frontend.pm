@@ -46,7 +46,8 @@ my $UPDATE_P_FRAME = 16;
 
 my $PL_HEIGHT = 1;
 my $PL_RAD    = 0.3;
-my $PL_VIS_RAD = 3;
+my $PL_VIS_RAD = 4;
+my $FAR_PLANE  = 40;
 
 sub new {
    my $this  = shift;
@@ -109,8 +110,8 @@ sub init_app {
    glFogfv_p (GL_FOG_COLOR, 0.15, 0.15, 0.15, 1);
    glFogf (GL_FOG_DENSITY, 0.45);
    glHint (GL_FOG_HINT, GL_FASTEST);
-   glFogf (GL_FOG_START, 10);
-   glFogf (GL_FOG_END,   29);
+   glFogf (GL_FOG_START, $FAR_PLANE - 20);
+   glFogf (GL_FOG_END,   $FAR_PLANE - 1);
 }
 
 #  0 front  1 top    2 back   3 left   4 right  5 bottom
@@ -310,27 +311,32 @@ sub update_chunk {
 sub compile_some_chunks {
    my $self = shift;
 
-   my $comp = 0;
+   my ($comp) = (0);
    my $cc = $self->{compiled_chunks};
    for ($self->get_visible_chunks) {
       unless ($cc->{$_->[0]}->{$_->[1]}->{$_->[2]}) {
-         $self->compile_chunk (@$_);
-         $comp++;
-         last if $comp > $UPDATE_P_FRAME;
+         if ($comp <= $UPDATE_P_FRAME) {
+            $self->compile_chunk (@$_);
+            $comp++;
+         }
       }
    }
 
+   my $cnt = 0;
    while (@{$self->{chunk_update}}) {
       my $c = shift @{$self->{chunk_update}};
       next unless $self->can_see_chunk (@$c);
-      $self->compile_chunk (@$c);
-      $comp++;
-      last if $comp > $UPDATE_P_FRAME; # splitting it over frames doesnt help at all!
+      if ($comp <= $UPDATE_P_FRAME) {
+         $self->compile_chunk (@$c);
+         $comp++;
+      } else {
+         $cnt++;
+      }
       #return;
    }
 
    if ($comp) {
-      warn "$comp chunks compiled\n";
+      warn "$comp chunks compiled ($cnt updates remaining)\n";
    }
    $comp
 }
@@ -362,7 +368,7 @@ sub render_scene {
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity;
-   gluPerspective (72, $WIDTH / $HEIGHT, 0.1, 30);
+   gluPerspective (72, $WIDTH / $HEIGHT, 0.1, $FAR_PLANE);
 
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity;

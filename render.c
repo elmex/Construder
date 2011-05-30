@@ -1,5 +1,14 @@
 #include <SDL_opengl.h>
 
+unsigned int quad_vert_idx_tri[6][6] = {
+  {0, 1, 2,  2, 3, 0},
+  {1, 5, 6,  6, 2, 1},
+  {7, 6, 5,  5, 4, 7},
+  {4, 5, 1,  1, 0, 4},
+  {3, 2, 6,  6, 7, 3},
+  {3, 7, 4,  4, 0, 3},
+};
+
 unsigned int quad_vert_idx[6][4] = {
   {0, 1, 2, 3},
   {1, 5, 6, 2},
@@ -21,10 +30,18 @@ double quad_vert[8][3] = {
   { 1, 0, 1 },
 };
 
-#define VERTEXES_SIZE (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 3)
+#define USE_TRIANGLES 1
+
+#if USE_TRIANGLES
+#  define VERT_P_PRIM 6
+#else
+#  define VERT_P_PRIM 4
+#endif
+
+#define VERTEXES_SIZE (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * VERT_P_PRIM * 3)
 #define COLORS_SIZE VERTEXES_SIZE
-#define UVS_SIZE (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4 * 2)
-#define IDX_SIZE (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4)
+#define UVS_SIZE (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * VERT_P_PRIM * 2)
+#define IDX_SIZE (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * VERT_P_PRIM)
 
 typedef struct _ctr_render_geom {
   GLfloat  vertexes  [VERTEXES_SIZE];
@@ -97,7 +114,7 @@ void *ctr_render_new_geom ()
       glBufferData(GL_ARRAY_BUFFER, UVS_SIZE, NULL, GL_DYNAMIC_DRAW);
 
       int i;
-      for (i = 0; i < CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 4; i++)
+      for (i = 0; i < IDX_SIZE; i++)
         c->vertex_idx[i] = i;
 
       glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, c->vbo_vert_idxs);
@@ -234,14 +251,17 @@ void ctr_render_draw_geom (void *c)
   glTexCoordPointer (2, GL_FLOAT, 0, 0);
 
   glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, geom->vbo_vert_idxs);
+#if USE_TRIANGLES
+  glDrawElements (GL_TRIANGLES, geom->vertex_idxs, GL_UNSIGNED_INT, 0);
+#else
   glDrawElements (GL_QUADS, geom->vertex_idxs, GL_UNSIGNED_INT, 0);
+#endif
 
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   glDisableClientState(GL_COLOR_ARRAY);
   glDisableClientState(GL_VERTEX_ARRAY);
 
 #else
-
   if (geom->data_dirty || geom->dl_dirty)
     ctr_render_compile_geom (geom);
   glCallList (geom->dl);
@@ -258,6 +278,17 @@ ctr_render_add_face (unsigned int face, unsigned int type, double light,
 {
   //d// printf ("RENDER FACE %d: %g %g %g %g\n", type, xoffs, yoffs, zoffs);
   int h, j, k;
+#if USE_TRIANGLES
+  for (h = 0; h < 6; h++)
+    {
+      double *vert = &(quad_vert[quad_vert_idx_tri[face][h]][0]);
+      geom->vertexes[geom->vertexes_len++] = ((vert[0] + xoffs) * scale) + xsoffs;
+      geom->vertexes[geom->vertexes_len++] = ((vert[1] + yoffs) * scale) + ysoffs;
+      geom->vertexes[geom->vertexes_len++] = ((vert[2] + zoffs) * scale) + zsoffs;
+      geom->vertex_idxs++;
+    }
+
+#else
   for (h = 0; h < 4; h++)
     {
       double *vert = &(quad_vert[quad_vert_idx[face][h]][0]);
@@ -266,8 +297,9 @@ ctr_render_add_face (unsigned int face, unsigned int type, double light,
       geom->vertexes[geom->vertexes_len++] = ((vert[2] + zoffs) * scale) + zsoffs;
       geom->vertex_idxs++;
     }
+#endif
 
-  for (h = 0; h < 12; h++)
+  for (h = 0; h < VERT_P_PRIM * 3; h++)
     geom->colors[geom->colors_len++] = light;
 
   ctr_obj_attr *oa = ctr_world_get_attr (type);
@@ -282,8 +314,19 @@ ctr_render_add_face (unsigned int face, unsigned int type, double light,
   geom->uvs[geom->uvs_len++] = uv[0];
   geom->uvs[geom->uvs_len++] = uv[1];
 
+#if USE_TRIANGLES
+  geom->uvs[geom->uvs_len++] = uv[0];
+  geom->uvs[geom->uvs_len++] = uv[1];
+
   geom->uvs[geom->uvs_len++] = uv[0];
   geom->uvs[geom->uvs_len++] = uv[3];
+
+  geom->uvs[geom->uvs_len++] = uv[2];
+  geom->uvs[geom->uvs_len++] = uv[3];
+#else
+  geom->uvs[geom->uvs_len++] = uv[0];
+  geom->uvs[geom->uvs_len++] = uv[3];
+#endif
 }
 
 void
