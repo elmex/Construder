@@ -40,7 +40,7 @@ Games::Construder::Client::Frontend - desc
 =cut
 
 my ($WIDTH, $HEIGHT) = (800, 600);#600, 400);
-my $UPDATE_P_FRAME = 16;
+my $UPDATE_P_FRAME = 30;
 #my ($WIDTH, $HEIGHT) = (1200, 720);#600, 400);
 
 my $PL_HEIGHT = 1;
@@ -613,7 +613,10 @@ sub setup_event_poller {
 
       my $t1 = time;
       if ($self->compile_some_chunks) {
-         warn "compiling chunks took " . (time - $t1) . " seconds\n";
+         my $t2 = time - $t1;
+         if ($t2 > 0.015) {
+            warn "compiling chunks took " . (time - $t1) . " seconds (almost a whole frame!)\n";
+         }
       }
       #}
    };

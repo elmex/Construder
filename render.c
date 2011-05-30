@@ -40,8 +40,9 @@ double quad_vert[8][3] = {
 //                                       with USE_VBO and USE_TRIANGLES!
 // => USE_VBO with USE_TRIANGLES is nearly as fast as only USE_TRIANGLES
 // => problem probably just was the QUAD drawing.
+// BUT: VBOs help when only a part of the buffers are updated per frame!
 
-#define USE_VBO 0
+#define USE_VBO 1
 #define USE_TRIANGLES 1
 
 #if USE_TRIANGLES

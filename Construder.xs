@@ -443,12 +443,6 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
 
     ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 0);
 
-    // FIXME
-    // error => can't decide locally what i should do!
-    // we need the value from outside, to tell us if the transparent block
-    // is transparent because a light was removed => light_up = 0
-    // or because some non-light was removed => light_up = 1
-
     int light_up = 0;
 
     if (ctr_world_cell_transparent (cur)) // a transparent cell has changed
@@ -484,13 +478,13 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
       {
         ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 1);
 
-        if (cur->type == 40) //  yea, light it!
+        if (cur->type == 40) // was a light: light it!
           {
             cur->light = 12;
             light_up = 1; // propagate our light!
             ctr_world_light_enqueue_neighbours (cx, cy, cz, cur->light - 1);
           }
-        else // oh boy, we will become darker
+        else // oh boy, we will become darker, we are a intransparent block!
           {
             light_up = 0; // make it darker
             unsigned char l = cur->light;
@@ -522,8 +516,7 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
                 cur = ctr_world_query_cell_at (cx, cy, cz, 1);
                 cur->light = new_value;
                 if (new_value > 0) new_value--;
-
-                // enqueue neighbors for update:
+                // enqueue neighbors for update with lower light level:
                 ctr_world_light_enqueue_neighbours (cx, cy, cz, new_value);
               }
           }
@@ -543,22 +536,23 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
 #if DEBUG_LIGHT
             printf ("light down at %d,%d,%d, me: %d, old neigh: %d cur neigh: %d\n", cx, cy, cz, cur->light, old_value, l);
 #endif
-            if (cur->light <= old_value) // we are not brighter than the now dark neighbor
+            if (cur->light <= old_value && cur->light > l)
+              // we are not brighter than the now dark neighbor
+              // and we are lighter than we would be lit by our neighbors
               {
-                if (cur->light > l) // and we are lighter than we would be lit by our neighbors
-                  {
-                    // become dark too and enqueue neighbors for update
-                    cur = ctr_world_query_cell_at (cx, cy, cz, 1);
-                    old_value = cur->light;
-                    cur->light = 0;
-                    if (old_value > 0) old_value--;
-                    // enqueue neighbors for update:
-                    ctr_world_light_enqueue_neighbours (cx, cy, cz, old_value);
+                // become dark too and enqueue neighbors for update
+                cur = ctr_world_query_cell_at (cx, cy, cz, 1);
+                old_value = cur->light;
+                cur->light = 0;
+                if (old_value > 0) old_value--;
+                // enqueue neighbors for update:
+                ctr_world_light_enqueue_neighbours (cx, cy, cz, old_value);
 
-                    ctr_world_light_select_queue (1); // fill for second pass
-                    ctr_world_light_enqueue (cx, cy, cz, 0);
-                    ctr_world_light_select_queue (0);
-                  }
+                // enqueue ourself for the next passes, where we light up
+                // the zero light level by ambient light
+                ctr_world_light_select_queue (1);
+                ctr_world_light_enqueue (cx, cy, cz, 0);
+                ctr_world_light_select_queue (0);
               }
           }
 
@@ -572,7 +566,7 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
             change = 0;
             pass++;
 #if DEBUG_LIGHT
-            printf ("START LIGHT PASS %d\n", pass);
+            printf ("START RELIGHT PASS %d\n", pass);
 #endif
             cur_queue = !cur_queue;
             ctr_world_light_select_queue (cur_queue);
