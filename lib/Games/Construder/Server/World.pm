@@ -107,6 +107,7 @@ sub world_mutate_at {
    Games::Construder::World::query_load_chunks ();
 
    my $b = Games::Construder::World::at (@$pos);
+   my $was_light = $b->[0] == 40;
    if ($cb->($b)) {
       my $relpos = vfloor (vsubd ($pos,
          $chnk->[0] * $CHNK_SIZE,
@@ -122,7 +123,7 @@ sub world_mutate_at {
    } else {
       Games::Construder::World::query_desetup (1);
       my $t1 = time;
-      Games::Construder::World::update_light_at (@{vfloor ($pos)}, 12);
+      Games::Construder::World::update_light_at (@{vfloor ($pos)}, $was_light);
       printf "light calc took: %f\n", time - $t1;
       Games::Construder::World::query_desetup ();
    }

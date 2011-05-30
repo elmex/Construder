@@ -1,10 +1,17 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include "vectorlib.c"
+#include "queue.c"
 #include <assert.h>
 
 #define CHUNK_SIZE      12
 #define CHUNKS_P_SECTOR  5
+#define MAX_LIGHT_RADIUS 12
+#define MAX_LIGHT_RADIUS_CHUNKS ( 6 * ((MAX_LIGHT_RADIUS + 1) * 2) * ((MAX_LIGHT_RADIUS + 1) * 2) * ((MAX_LIGHT_RADIUS + 1) * 2))
+// => 26^3 * 6 neighbors => ~1.3Mb ringbuffer for queue - should be enough :)
+
+
+
 #define CHUNK_ALEN (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE)
 #define POSSIBLE_OBJECTS 4096 // this is the max number of different object types!
 #define MAX_MODEL_DIM   4
@@ -48,6 +55,15 @@ static ctr_obj_attr OBJ_ATTR_MAP[POSSIBLE_OBJECTS];
 static ctr_world WORLD;
 static ctr_cell neighbour_cell;
 
+typedef struct _ctr_light_item {
+    int x, y, z;
+    unsigned char lv;
+} ctr_light_item;
+
+static ctr_queue *light_upd_queue   = 0;
+static ctr_queue *light_upd_queue_1 = 0;
+static ctr_queue *light_upd_queue_2 = 0;
+
 void ctr_world_init ()
 {
   int i;
@@ -58,6 +74,62 @@ void ctr_world_init ()
   neighbour_cell.add     = 0;
   neighbour_cell.meta    = 0;
   neighbour_cell.visible = 1;
+  light_upd_queue_1 =
+     ctr_queue_new (sizeof (ctr_light_item),
+                    CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * MAX_LIGHT_RADIUS_CHUNKS);
+  light_upd_queue_2 =
+     ctr_queue_new (sizeof (ctr_light_item),
+                    CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * MAX_LIGHT_RADIUS_CHUNKS);
+}
+
+void ctr_world_light_upd_start ()
+{
+  printf ("light upd start\n");
+  light_upd_queue = light_upd_queue_1;
+  ctr_queue_clear (light_upd_queue_1);
+  ctr_queue_clear (light_upd_queue_2);
+}
+
+void ctr_world_light_select_queue (int i)
+{
+  light_upd_queue = i > 0 ? light_upd_queue_2 : light_upd_queue_1;
+}
+
+void ctr_world_light_enqueue (int x, int y, int z, unsigned char light)
+{
+  ctr_light_item it;
+  it.x = x;
+  it.y = y;
+  it.z = z;
+  it.lv = light;
+  ctr_queue_enqueue (light_upd_queue, &it);
+  //d// printf ("light upd enqueue %d,%d,%d: %d\n", x, y, z, light);
+}
+
+void ctr_world_light_enqueue_neighbours (int x, int y, int z, unsigned char light)
+{
+  ctr_world_light_enqueue (x + 1, y, z, light);
+  ctr_world_light_enqueue (x - 1, y, z, light);
+  ctr_world_light_enqueue (x, y + 1, z, light);
+  ctr_world_light_enqueue (x, y - 1, z, light);
+  ctr_world_light_enqueue (x, y, z + 1, light);
+  ctr_world_light_enqueue (x, y, z - 1, light);
+}
+
+int ctr_world_light_dequeue (int *x, int *y, int *z, unsigned char *light)
+{
+  ctr_light_item *it = 0;
+  int c = ctr_queue_dequeue (light_upd_queue, (void **) &it);
+  if (it)
+    {
+      *x = it->x;
+      *y = it->y;
+      *z = it->z;
+      *light = it->lv;
+      //d// printf ("light upd dequeue %d,%d,%d: %d\n", *x, *y, *z, *light);
+    }
+
+  return c;
 }
 
 void ctr_world_emit_chunk_change (int x, int y, int z)

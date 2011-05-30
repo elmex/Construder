@@ -191,7 +191,9 @@ sub handle_player_packet : event_cb {
          $player->start_materialize ($hdr->{build_pos});
 
       } elsif ($hdr->{action} == 2 && @{$hdr->{build_pos} || []}) {
-         $player->set_debug_light ($hdr->{build_pos});
+         $player->debug_at ($hdr->{pos});
+         warn "build pos:\n";
+         $player->debug_at ($hdr->{build_pos});
 
       } elsif ($hdr->{action} == 3 && @{$hdr->{pos} || []}) {
          $player->start_dematerialize ($hdr->{pos});

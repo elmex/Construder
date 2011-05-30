@@ -13,32 +13,31 @@ typedef struct _ctr_world_query {
 
 static ctr_world_query QUERY_CONTEXT;
 
-void ctr_world_query_desetup (int no_update)
+int ctr_world_query_desetup (int no_update)
 {
-  if (!no_update)
-    {
-      int cnt = 0;
-      int x, y, z;
-      for (z = 0; z < QUERY_CONTEXT.x_w; z++)
-        for (y = 0; y < QUERY_CONTEXT.y_w; y++)
-          for (x = 0; x < QUERY_CONTEXT.z_w; x++)
-            {
-              ctr_chunk *chnk = QUERY_CHUNK(x, y, z);
-              if (!chnk->dirty)
-                continue;
+  int cnt = 0;
+  int x, y, z;
+  for (z = 0; z < QUERY_CONTEXT.x_w; z++)
+    for (y = 0; y < QUERY_CONTEXT.y_w; y++)
+      for (x = 0; x < QUERY_CONTEXT.z_w; x++)
+        {
+          ctr_chunk *chnk = QUERY_CHUNK(x, y, z);
+          if (!chnk->dirty)
+            continue;
 
-              chnk->dirty = 0;
-              cnt++;
+          chnk->dirty = 0;
+          cnt++;
 
-              // tODO: optimize by dirty flag!
-              ctr_world_emit_chunk_change (
-                x + QUERY_CONTEXT.chnk_x,
-                y + QUERY_CONTEXT.chnk_y,
-                z + QUERY_CONTEXT.chnk_z);
-            }
-      printf ("%d chunk DIRTY at desetup.\n", cnt);
-    }
+          if (!no_update)
+            ctr_world_emit_chunk_change (
+              x + QUERY_CONTEXT.chnk_x,
+              y + QUERY_CONTEXT.chnk_y,
+              z + QUERY_CONTEXT.chnk_z);
+        }
+
+  printf ("%d chunk DIRTY at desetup (no_update: %d).\n", cnt, no_update);
   QUERY_CONTEXT.loaded = 0;
+  return cnt;
 }
 
 void ctr_world_query_setup (int x, int y, int z, int ex, int ey, int ez)

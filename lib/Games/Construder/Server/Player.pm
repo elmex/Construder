@@ -144,7 +144,7 @@ sub init {
       $tick_time = $cur;
    };
 
-   $self->{logic}->{unhappy_rate} = 0.25; # 0.25% per second
+   $self->{logic}->{unhappy_rate} = 0; #d# 0.25; # 0.25% per second
 
    $self->update_score;
    $self->update_slots;
@@ -712,12 +712,12 @@ HELP
    } });
 }
 
-sub set_debug_light {
+sub debug_at {
    my ($self, $pos) = @_;
    world_mutate_at ($pos, sub {
       my ($data) = @_;
-      $data->[1] = $data->[1] > 8 ? 1 : 15;
-      return 1;
+      print "position [@$pos]: @$data\n";
+      return 0;
    });
 }
 
@@ -739,11 +739,12 @@ sub start_materialize {
       return 1;
    }, no_light => 1);
 
+   my $t = $self->{data}->{slots}->{selection}->[$self->{data}->{slots}->{selected}];
+
    my $tmr;
    $tmr = AE::timer 1, 0, sub {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
-         my $t = $self->{data}->{slots}->{selection}->[$self->{data}->{slots}->{selected}];
          $data->[0] = $t;
 
          delete $self->{materializings}->{$id};

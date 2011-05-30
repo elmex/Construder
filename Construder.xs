@@ -11,6 +11,23 @@
 #include "render.c"
 #include "volume_draw.c"
 
+unsigned char ctr_world_query_get_max_light_of_neighbours (x, y, z)
+{
+  ctr_cell *above = ctr_world_query_cell_at (x, y + 1, z, 0);
+  ctr_cell *below = ctr_world_query_cell_at (x, y - 1, z, 0);
+  ctr_cell *left  = ctr_world_query_cell_at (x - 1, y, z, 0);
+  ctr_cell *right = ctr_world_query_cell_at (x + 1, y, z, 0);
+  ctr_cell *front = ctr_world_query_cell_at (x, y, z - 1, 0);
+  ctr_cell *back  = ctr_world_query_cell_at (x, y, z + 1, 0);
+  unsigned char l = 0;
+  if (above->light > l) l = above->light;
+  if (below->light > l) l = below->light;
+  if (left->light > l) l = left->light;
+  if (right->light > l) l = right->light;
+  if (front->light > l) l = front->light;
+  if (back->light > l) l = back->light;
+  return l;
+}
 
 unsigned int ctr_cone_sphere_intersect (double cam_x, double cam_y, double cam_z, double cam_v_x, double cam_v_y, double cam_v_z, double cam_fov, double sphere_x, double sphere_y, double sphere_z, double sphere_rad)
 {
@@ -395,9 +412,195 @@ void ctr_world_query_unallocated_chunks (AV *chnkposes);
 
 void ctr_world_query_setup (int x, int y, int z, int ex, int ey, int ez);
 
-void ctr_world_query_desetup (int no_update = 0);
+int ctr_world_query_desetup (int no_update = 0);
 
-void ctr_world_update_light_at (int rx, int ry, int rz, int r)
+#define DEBUG_LIGHT 0
+void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
+  CODE:
+    vec3_init (pos, rx, ry, rz);
+    vec3_s_div (pos, CHUNK_SIZE);
+    vec3_floor (pos);
+    int chnk_x = pos[0],
+        chnk_y = pos[1],
+        chnk_z = pos[2];
+
+    //d// printf ("UPDATE LIGHT %d %d %d +- 2 %d\n", chnk_x, chnk_y, chnk_z, r);
+
+    ctr_world_query_setup (
+      chnk_x - 2, chnk_y - 2, chnk_z - 2,
+      chnk_x + 2, chnk_y + 2, chnk_z + 2
+    );
+
+    ctr_world_query_load_chunks ();
+
+    // calc relative size inside chunks:
+    int c = (CHUNK_SIZE * 5) / 2;
+    int cx = (rx - chnk_x * CHUNK_SIZE) + CHUNK_SIZE * 2;
+    int cy = (ry - chnk_y * CHUNK_SIZE) + CHUNK_SIZE * 2;
+    int cz = (rz - chnk_z * CHUNK_SIZE) + CHUNK_SIZE * 2;
+
+    ctr_world_light_upd_start ();
+
+    ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 0);
+
+    // FIXME
+    // error => can't decide locally what i should do!
+    // we need the value from outside, to tell us if the transparent block
+    // is transparent because a light was removed => light_up = 0
+    // or because some non-light was removed => light_up = 1
+
+    int light_up = 0;
+
+    if (ctr_world_cell_transparent (cur)) // a transparent cell has changed
+      {
+        unsigned char l = ctr_world_query_get_max_light_of_neighbours (cx, cy, cz);
+        if (l > 0) l--;
+        if (cur->light < l)
+          {
+            ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 1);
+            cur->light = l; // make me brighter and run light_up algo
+            if (l > 0) l--;
+            light_up = 1;
+            ctr_world_light_enqueue_neighbours (cx, cy, cz, l);
+          }
+        else if (cur->light > l) // we (probably? :) were the light!
+          {
+            ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 1);
+            light_up = 0;
+            l = cur->light;
+            // we are the light, so we should add us to the
+            // light_down queue, because we might need to let
+            // other light sources light through!
+            ctr_world_light_enqueue (cx, cy, cz, l);
+          }
+        else // cur->light == l
+          {
+            // still force update :) FIXME!
+            ctr_world_query_cell_at (cx, cy, cz, 1);
+            return; // => no change, so no change for anyone else
+          }
+      }
+    else // oh, a blocking cell has been set!
+      {
+        ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 1);
+
+        if (cur->type == 40) //  yea, light it!
+          {
+            cur->light = 12;
+            light_up = 1; // propagate our light!
+            ctr_world_light_enqueue_neighbours (cx, cy, cz, cur->light - 1);
+          }
+        else // oh boy, we will become darker
+          {
+            light_up = 0; // make it darker
+            unsigned char l = cur->light;
+            if (l > 0) l--;
+            ctr_world_light_enqueue_neighbours (cx, cy, cz, l);
+            cur->light = 0; // we are blocking!
+          }
+      }
+#if DEBUG_LIGHT
+    printf ("light up: %d\n", light_up);
+#endif
+
+    // light_up == 1 means: light value in queue says: you should be this bright!
+    // light_up == 0 means: light value in queue says: do you still have a
+    //                      neighbor thats at least this bright?
+
+    if (light_up)
+      {
+        unsigned char new_value = 0;
+        while (ctr_world_light_dequeue (&cx, &cy, &cz, &new_value))
+          {
+            cur = ctr_world_query_cell_at (cx, cy, cz, 0);
+            if (ctr_world_cell_transparent (cur) && cur->light < new_value)
+              {
+#if DEBUG_LIGHT
+                printf ("light up got %d,%d,%d: %d, me %d\n",
+                        cx, cy, cz, new_value, cur->light);
+#endif
+                cur = ctr_world_query_cell_at (cx, cy, cz, 1);
+                cur->light = new_value;
+                if (new_value > 0) new_value--;
+
+                // enqueue neighbors for update:
+                ctr_world_light_enqueue_neighbours (cx, cy, cz, new_value);
+              }
+          }
+      }
+    else // light down, we tell all neighbours our old light value,
+         // and let them check their neighbours if they still have brighter neighbors
+         // than we originally were
+      {
+        unsigned char old_value = 0;
+        while (ctr_world_light_dequeue (&cx, &cy, &cz, &old_value))
+          {
+            cur = ctr_world_query_cell_at (cx, cy, cz, 0);
+            if (!ctr_world_cell_transparent (cur))
+              continue; // ignore non-transparent blocks
+            unsigned char l = ctr_world_query_get_max_light_of_neighbours (cx, cy, cz);
+            if (l > 0) l--;
+#if DEBUG_LIGHT
+            printf ("light down at %d,%d,%d, me: %d, old neigh: %d cur neigh: %d\n", cx, cy, cz, cur->light, old_value, l);
+#endif
+            if (cur->light <= old_value) // we are not brighter than the now dark neighbor
+              {
+                if (cur->light > l) // and we are lighter than we would be lit by our neighbors
+                  {
+                    // become dark too and enqueue neighbors for update
+                    cur = ctr_world_query_cell_at (cx, cy, cz, 1);
+                    old_value = cur->light;
+                    cur->light = 0;
+                    if (old_value > 0) old_value--;
+                    // enqueue neighbors for update:
+                    ctr_world_light_enqueue_neighbours (cx, cy, cz, old_value);
+
+                    ctr_world_light_select_queue (1); // fill for second pass
+                    ctr_world_light_enqueue (cx, cy, cz, 0);
+                    ctr_world_light_select_queue (0);
+                  }
+              }
+          }
+
+        int cur_queue = 0;
+
+        // select queue for light-re-distribution
+        int change = 1;
+        int pass = 0;
+        while (change)
+          {
+            change = 0;
+            pass++;
+#if DEBUG_LIGHT
+            printf ("START LIGHT PASS %d\n", pass);
+#endif
+            cur_queue = !cur_queue;
+            ctr_world_light_select_queue (cur_queue);
+            while (ctr_world_light_dequeue (&cx, &cy, &cz, &old_value))
+              {
+                cur = ctr_world_query_cell_at (cx, cy, cz, 0);
+                unsigned char l = ctr_world_query_get_max_light_of_neighbours (cx, cy, cz);
+                if (l > 0) l--;
+#if DEBUG_LIGHT
+                printf ("[%d] relight at %d,%d,%d, me: %d, cur neigh: %d\n", pass, cx, cy, cz, cur->light, l);
+#endif
+                if (cur->light < l)
+                  {
+                    // just relight me
+                    cur = ctr_world_query_cell_at (cx, cy, cz, 1);
+                    cur->light = l;
+                    change = 1;
+                  }
+
+                ctr_world_light_select_queue (!cur_queue); // fill for next pass
+                ctr_world_light_enqueue (cx, cy, cz, 0);
+                ctr_world_light_select_queue (cur_queue);
+              }
+          }
+
+      }
+
+void ctr_world_update_light_at_old (int rx, int ry, int rz, int r)
   CODE:
     vec3_init (pos, rx, ry, rz);
     vec3_s_div (pos, CHUNK_SIZE);
