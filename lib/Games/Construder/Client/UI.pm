@@ -6,7 +6,6 @@ use SDL::Video;
 use SDL::TTF;
 use OpenGL qw(:all);
 use JSON;
-use Games::Construder::Client::Renderer;
 use Games::Construder::Vector;
 
 use base qw/Object::Event/;

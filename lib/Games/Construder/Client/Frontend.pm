@@ -20,7 +20,6 @@ use Games::Construder::Vector;
 use Games::Construder::Client::World;
 use Games::Construder::Client::Resources;
 use Games::Construder::Client::UI;
-use Games::Construder::Client::Renderer;
 
 use base qw/Object::Event/;
 

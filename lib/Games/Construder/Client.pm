@@ -2,8 +2,6 @@ package Games::Construder::Client;
 use common::sense;
 use Compress::LZF;
 use Games::Construder::Client::Frontend;
-use Games::Construder::Client::MapChunk;
-use Games::Construder::Client::Renderer;
 use Games::Construder::Client::World;
 use Games::Construder::Protocol;
 use Games::Construder;
