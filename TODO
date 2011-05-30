@@ -1,0 +1,4 @@
+- optimize update of light for "small changes"
+- instead of touching also blocked areas we should add a flood-fill
+  algorithm maybe. in the average case that might improve some things
+  a lot (eg. when updating into the wall

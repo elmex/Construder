@@ -30,6 +30,18 @@ double quad_vert[8][3] = {
   { 1, 0, 1 },
 };
 
+// On intel i965:
+//    USE_VBO = 1  USE_TRIANGLES = 0  => ok, but renderer a bit slow at glDrawElements
+//    USE_VBO = 1  USE_TRIANGLES = 1  => fast updates, but sometimes reallocation
+//                                       seems to be expensive
+//    USE_VBO = 0  USE_TRIANGLES = 0  => classic method, compiling the list takes
+//                                       usually quite long
+//    USE_VBO = 0  USE_TRIANGLES = 1  => compiling the list is still a little cheaper than
+//                                       with USE_VBO and USE_TRIANGLES!
+// => USE_VBO with USE_TRIANGLES is nearly as fast as only USE_TRIANGLES
+// => problem probably just was the QUAD drawing.
+
+#define USE_VBO 0
 #define USE_TRIANGLES 1
 
 #if USE_TRIANGLES
@@ -99,6 +111,12 @@ void *ctr_render_new_geom ()
       c = malloc (sizeof (ctr_render_geom));
       memset (c, 0, sizeof (ctr_render_geom));
       c->dl = glGenLists (1);
+
+      int i;
+      for (i = 0; i < IDX_SIZE; i++)
+        c->vertex_idx[i] = i;
+
+#if USE_VBO
       glGenBuffers (1, &c->vbo_verts);
       glGenBuffers (1, &c->vbo_colors);
       glGenBuffers (1, &c->vbo_uvs);
@@ -113,12 +131,9 @@ void *ctr_render_new_geom ()
       glBindBuffer (GL_ARRAY_BUFFER, c->vbo_uvs);
       glBufferData(GL_ARRAY_BUFFER, UVS_SIZE, NULL, GL_DYNAMIC_DRAW);
 
-      int i;
-      for (i = 0; i < IDX_SIZE; i++)
-        c->vertex_idx[i] = i;
-
       glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, c->vbo_vert_idxs);
       glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (c->vertex_idx), c->vertex_idx, GL_STATIC_DRAW);
+#endif
 
       ctr_render_clear_geom (c);
     }
@@ -137,10 +152,12 @@ void ctr_render_free_geom (void *c)
     {
       ctr_render_geom *geom = c;
       glDeleteLists (geom->dl, 1);
+#if USE_VBO
       glDeleteBuffers (1, &geom->vbo_verts);
       glDeleteBuffers (1, &geom->vbo_colors);
       glDeleteBuffers (1, &geom->vbo_uvs);
       glDeleteBuffers (1, &geom->vbo_vert_idxs);
+#endif
       free (geom);
     }
 
@@ -162,71 +179,38 @@ void ctr_render_compile_geom (void *c)
 {
   ctr_render_geom *geom = c;
 
-#if 1
-# if 0 // dunno which is faster :)
-  glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_verts);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof (GL_FLOAT) * geom->vertexes_len, geom->vertexes);
-  glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_colors);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof (GL_FLOAT) * geom->colors_len, geom->colors);
-  glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_uvs);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof (GL_FLOAT) * geom->uvs_len, geom->uvs);
-#else
-
+#if USE_VBO
   glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_verts);
   glBufferData(GL_ARRAY_BUFFER, sizeof (GL_FLOAT) * geom->vertexes_len, geom->vertexes, GL_DYNAMIC_DRAW);
   glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_colors);
   glBufferData(GL_ARRAY_BUFFER, sizeof (GL_FLOAT) * geom->colors_len, geom->colors, GL_DYNAMIC_DRAW);
   glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_uvs);
   glBufferData(GL_ARRAY_BUFFER, sizeof (GL_FLOAT) * geom->uvs_len, geom->uvs, GL_DYNAMIC_DRAW);
-#endif
-
-# if 0
+#else
   if (geom->data_dirty)
     {
+      ctr_render_geom *geom = c;
       glNewList (geom->dl, GL_COMPILE);
-      glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_verts);
       glEnableClientState(GL_VERTEX_ARRAY);
-      glVertexPointer (3, GL_FLOAT, 0, 0);
-
-      glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_colors);
       glEnableClientState(GL_COLOR_ARRAY);
-      glColorPointer    (3, GL_FLOAT, 0, 0);
-
-      glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_uvs);
       glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-      glTexCoordPointer (2, GL_FLOAT, 0, 0);
 
-      glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, geom->vbo_vert_idxs);
-      glDrawElements (GL_QUADS, geom->vertex_idxs, GL_UNSIGNED_INT, 0);
+      glVertexPointer   (3, GL_FLOAT, 0, geom->vertexes);
+      glColorPointer    (3, GL_FLOAT, 0, geom->colors);
+      glTexCoordPointer (2, GL_FLOAT, 0, geom->uvs);
+
+# if USE_TRIANGLES
+      glDrawElements (GL_TRIANGLES, geom->vertex_idxs, GL_UNSIGNED_INT, geom->vertex_idx);
+# else
+      glDrawElements (GL_QUADS, geom->vertex_idxs, GL_UNSIGNED_INT, geom->vertex_idx);
+# endif
 
       glDisableClientState(GL_TEXTURE_COORD_ARRAY);
       glDisableClientState(GL_COLOR_ARRAY);
       glDisableClientState(GL_VERTEX_ARRAY);
+
       glEndList ();
     }
-# endif
-
-#else
-  ctr_render_geom *geom = c;
-  glNewList (geom->dl, GL_COMPILE);
-  //glPushMatrix ();
-  //glTranslatef (geom->xoff, geom->yoff, geom->zoff);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glEnableClientState(GL_COLOR_ARRAY);
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
-  glVertexPointer   (3, GL_FLOAT, 0, geom->vertexes);
-  glColorPointer    (3, GL_FLOAT, 0, geom->colors);
-  glTexCoordPointer (2, GL_FLOAT, 0, geom->uvs);
-
-  glDrawElements (GL_QUADS, geom->vertex_idxs, GL_UNSIGNED_INT, geom->vertex_idx);
-
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-  glDisableClientState(GL_COLOR_ARRAY);
-  glDisableClientState(GL_VERTEX_ARRAY);
-
-  //glPopMatrix ();
-  glEndList ();
 #endif
 
   geom->data_dirty = 0;
@@ -237,7 +221,7 @@ void ctr_render_draw_geom (void *c)
 {
   ctr_render_geom *geom = c;
 
-#if 1
+#if USE_VBO
   glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_verts);
   glEnableClientState(GL_VERTEX_ARRAY);
   glVertexPointer (3, GL_FLOAT, 0, 0);
@@ -251,11 +235,11 @@ void ctr_render_draw_geom (void *c)
   glTexCoordPointer (2, GL_FLOAT, 0, 0);
 
   glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, geom->vbo_vert_idxs);
-#if USE_TRIANGLES
+# if USE_TRIANGLES
   glDrawElements (GL_TRIANGLES, geom->vertex_idxs, GL_UNSIGNED_INT, 0);
-#else
+# else
   glDrawElements (GL_QUADS, geom->vertex_idxs, GL_UNSIGNED_INT, 0);
-#endif
+# endif
 
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   glDisableClientState(GL_COLOR_ARRAY);

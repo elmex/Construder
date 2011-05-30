@@ -323,6 +323,7 @@ sub compile_some_chunks {
    }
 
    my $cnt = 0;
+   my @next_upd;
    while (@{$self->{chunk_update}}) {
       my $c = shift @{$self->{chunk_update}};
       next unless $self->can_see_chunk (@$c);
@@ -330,10 +331,11 @@ sub compile_some_chunks {
          $self->compile_chunk (@$c);
          $comp++;
       } else {
+         push @next_upd, $c;
          $cnt++;
       }
-      #return;
    }
+   $self->{chunk_update} = \@next_upd;
 
    if ($comp) {
       warn "$comp chunks compiled ($cnt updates remaining)\n";
