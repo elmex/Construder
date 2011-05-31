@@ -45,8 +45,8 @@ my $UPDATE_P_FRAME = 30;
 
 my $PL_HEIGHT = 1;
 my $PL_RAD    = 0.3;
-my $PL_VIS_RAD = 4;
-my $FAR_PLANE  = 40;
+my $PL_VIS_RAD = 3;
+my $FAR_PLANE  = 26;
 
 sub new {
    my $this  = shift;
