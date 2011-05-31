@@ -1,0 +1,19 @@
+# draw basic layout of cantor dust with cubes cut out:
+src_dst 1 0
+   src_blend 0
+   cantor_dust 2
+   src_blend 1
+   cubes 4 0.5
+   map_range 0.9 1 0 0 # map away outer shell
+
+# prepare seeds:
+src_dst 2 2; src_blend 0; fill 0.95
+src_dst 2 1; src_blend 1; self_cubes 6 6
+
+src_dst 2 2; src_blend 0; fill 0.98
+src_dst 2 1; src_blend 1; self_cubes 6 6 1
+
+# fill in seeds:
+src_dst 1 0; src_range 0.9 0.99; fill
+
+# show_range_sector_type B4 3
