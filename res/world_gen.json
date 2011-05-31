@@ -135,15 +135,14 @@
       },
       "C1" : {
          "region_range" : [0.5, 0.53],
-         "file" : "sector_A1.cmds",
+         "file" : "sector_C1.cmds",
           "ranges" : [
-            0.8,      1.01,     16, # base walls brickwall
-            0.5,      0.8,       2, # inner walls stone
-            0.20,     0.5,      23, # most inner silicon
-            0.05,     0.1,      10, # rest iron
+            0.8,      1.01,     11, # spheres are made of steel
+            0.4,      0.5,      15, # sphere outer shell is concrete
+            0.3,      0.4,      10, # sphere shell is iron
+            0.05,     0.3,      25, # innerst spheres have uran
          ]
-
-     },
+      },
       "C2" : {
          "region_range" : [0.53, 0.56],
          "file" : "sector_A1.cmds",
