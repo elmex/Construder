@@ -507,7 +507,10 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
         while (ctr_world_light_dequeue (&cx, &cy, &cz, &new_value))
           {
             cur = ctr_world_query_cell_at (cx, cy, cz, 0);
-            if (ctr_world_cell_transparent (cur) && cur->light < new_value)
+            if (!ctr_world_cell_transparent (cur))
+              continue; // ignore non-transparent blocks
+
+            if (cur->light < new_value)
               {
 #if DEBUG_LIGHT
                 printf ("light up got %d,%d,%d: %d, me %d\n",
