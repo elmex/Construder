@@ -590,7 +590,7 @@ sub setup_event_poller {
    my $accum_time = 0;
    my $dt = 1 / 40;
    my $upd_pos = 0;
-   $self->{poll_w} = AE::timer 0, 0.02, sub { # 50fps!?
+   $self->{poll_w} = AE::timer 0, 0.015, sub { # 66fps!?
       $self->handle_sdl_events;
 
       $ltime = time - 0.02 if not defined $ltime;
