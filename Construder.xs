@@ -415,7 +415,7 @@ void ctr_world_query_setup (int x, int y, int z, int ex, int ey, int ez);
 int ctr_world_query_desetup (int no_update = 0);
 
 #define DEBUG_LIGHT 0
-void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
+void ctr_world_flow_light_at (int rx, int ry, int rz)
   CODE:
     vec3_init (pos, rx, ry, rz);
     vec3_s_div (pos, CHUNK_SIZE);

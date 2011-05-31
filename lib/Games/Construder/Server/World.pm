@@ -72,16 +72,11 @@ sub world_pos2chnkpos {
 }
 
 sub world_chnkpos2secpos {
-#  my $unadj_sec = vfloor (vsdiv ($_[0], $CHNKS_P_SEC));
-#  my $offs = ($unadj_sec->[1] % 3);
-#  my $nchnk = vaddd ($_[0], $offs, 0, $offs);
    vfloor (vsdiv ($_[0], $CHNKS_P_SEC))
 }
 
 sub world_secpos2chnkpos {
-   my $chnk = vsmul ($_[0], $CHNKS_P_SEC);
-#  vsubd ($chnk, $_[0]->[1] % 3, 0, $_[0]->[1] % 3)
-   $chnk
+   vsmul ($_[0], $CHNKS_P_SEC);
 }
 
 sub world_pos2relchnkpos {
@@ -90,12 +85,23 @@ sub world_pos2relchnkpos {
    vsub ($pos, vsmul ($chnk, $CHNK_SIZE))
 }
 
+sub world_load_at {
+   my ($pos) = @_;
+   $Games::Construder::Server::CHNK->check_adjacent_sectors_at_chunk ($pos);
+}
+
+sub world_load_at_chunk {
+   my ($chnk) = @_;
+   $Games::Construder::Server::CHNK->check_adjacent_sectors_at_chunk ($chnk);
+}
 
 sub world_mutate_at {
    my ($pos, $cb, %arg) = @_;
+
    my ($chnk) = world_pos2chnkpos ($pos);
 
-   warn "START MUTATE\n";
+   world_load_at_chunk ($chnk); # blocks for now :-/
+
    Games::Construder::World::query_setup (
       $chnk->[0],
       $chnk->[1],
@@ -125,11 +131,10 @@ sub world_mutate_at {
    } else {
       Games::Construder::World::query_desetup (1);
       my $t1 = time;
-      Games::Construder::World::update_light_at (@{vfloor ($pos)}, $was_light);
+      Games::Construder::World::flow_light_at (@{vfloor ($pos)});
       printf "light calc took: %f\n", time - $t1;
       Games::Construder::World::query_desetup ();
    }
-   warn "DONE MUTATE\n";
 }
 
 =back

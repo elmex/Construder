@@ -48,9 +48,8 @@ sub init {
    };
 }
 
-sub check_adjacent_sectors_at {
-   my ($self, $pos) = @_;
-   my $chnk = world_pos2chnkpos ($pos);
+sub check_adjacent_sectors_at_chunk {
+   my ($self, $chnk) = @_;
 
    for my $dx (-2, 0, 2) {
       for my $dy (-2, 0, 2) {
@@ -69,6 +68,11 @@ sub check_adjacent_sectors_at {
    }
 }
 
+sub check_adjacent_sectors_at {
+   my ($self, $pos) = @_;
+   $self->check_adjacent_sectors_at_chunk (world_pos2chnkpos ($pos));
+}
+
 sub make_sector {
    my ($self, $sec) = @_;
 
@@ -82,13 +86,13 @@ sub make_sector {
 
    my $seed = Games::Construder::Region::get_sector_seed (@$sec);
 
-   warn "Create sector @$sec, with seed $seed value $val and type $stype->{type} and param $param\n";
+   warn "Create sector @$sec, with seed $seed value $val and "
+        . "type $stype->{type} and param $param\n";
 
    my $cube = $Games::Construder::Server::World::CHNKS_P_SEC
               * $Games::Construder::Server::World::CHNK_SIZE;
    Games::Construder::VolDraw::alloc ($cube);
 
-   warn "CMDS $stype->{cmds}\n";
    Games::Construder::VolDraw::draw_commands (
      $stype->{cmds},
      { size => $cube, seed => $seed, param => $param }
