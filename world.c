@@ -208,7 +208,8 @@ void ctr_get_data_from_cell (ctr_cell *c, unsigned char *ptr)
 {
   unsigned char *optr = ptr;
   unsigned short *sptr = (short *) ptr;
-  (*sptr) = htons ((c->type << 4) & 0xFFF0 | c->light & 0x000F);
+  unsigned short typelight = ((c->type << 4) & 0xFFF0) | (c->light & 0x000F);
+  (*sptr) = htons (typelight);
 
   sptr++;
   ptr = (unsigned char *) sptr;

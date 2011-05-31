@@ -454,6 +454,7 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
       {
         unsigned char l = ctr_world_query_get_max_light_of_neighbours (cx, cy, cz);
         if (l > 0) l--;
+        printf ("transparent cell at %d,%d,%d has light %d, neighbors say: %d\n", cx, cy, cz, (int) cur->light, (int) l);
         if (cur->light < l)
           { // if the transparent cell is too dark, flow in light from neigbors
             // and tell all neighbors to check if they are maybe lighted
@@ -490,7 +491,7 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
         // FIXME: add other lamp types here too:
         if (cur->type == 40) // was a light: light it!
           {
-            cur->light = 16;
+            cur->light = 15;
             light_up = 1; // propagate our light!
             ctr_world_light_enqueue_neighbours (cx, cy, cz, cur->light - 1);
           }
@@ -516,7 +517,7 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
       {
         cur = ctr_world_query_cell_at (cx, cy, cz, 0);
         if (!ctr_world_cell_transparent (cur))
-          continue; // ignore non-transparent blocks
+          continue; // ignore blocks that can't be lit
 
         if (light_up)
           { // on light up, tell the cells to update them to the new

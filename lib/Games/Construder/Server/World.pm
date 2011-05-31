@@ -108,12 +108,14 @@ sub world_mutate_at {
 
    my $b = Games::Construder::World::at (@$pos);
    my $was_light = $b->[0] == 40;
+   print "MUTATING (@$b) (AT @$pos)\n";
    if ($cb->($b)) {
       my $relpos = vfloor (vsubd ($pos,
          $chnk->[0] * $CHNK_SIZE,
          $chnk->[1] * $CHNK_SIZE,
          $chnk->[2] * $CHNK_SIZE));
 
+      print "MUTATING TO => (@$b) (AT @$pos)\n";
       Games::Construder::World::query_set_at (@$relpos, $b);
    }
 
