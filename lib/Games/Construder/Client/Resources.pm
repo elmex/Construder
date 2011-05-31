@@ -193,12 +193,17 @@ sub setup_texture {
 
    my $id = glGenTextures_p(1);
    glBindTexture (GL_TEXTURE_2D, $id);
+   glTexParameterf (GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
    glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
    glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-   gluBuild2DMipmaps_s (GL_TEXTURE_2D,
-      $surf->format->BytesPerPixel, $surf->w, $surf->h, $texture_format,
-      GL_UNSIGNED_BYTE, ${$surf->get_pixels_ptr});
+   glTexImage2D_s (GL_TEXTURE_2D,
+      0, $surf->format->BytesPerPixel, $surf->w, $surf->h,
+      0, $texture_format, GL_UNSIGNED_BYTE, ${$surf->get_pixels_ptr});
+
+   #gluBuild2DMipmaps_s (GL_TEXTURE_2D,
+   #   $surf->format->BytesPerPixel, $surf->w, $surf->h, $texture_format,
+   #   GL_UNSIGNED_BYTE, ${$surf->get_pixels_ptr});
 
    SDL::Video::unlock_surface ($surf);
 
