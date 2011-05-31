@@ -445,42 +445,52 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
 
     int light_up = 0;
 
+    // Invariant: The possible radius lighted by a light should be
+    // inside the query_setup() loaded chunks, which are 2 chunks in each
+    // possible direction from the center chunk. That are 5x5x5 chunks
+    // (Which is a whole sector of cells).
+
     if (ctr_world_cell_transparent (cur)) // a transparent cell has changed
       {
         unsigned char l = ctr_world_query_get_max_light_of_neighbours (cx, cy, cz);
         if (l > 0) l--;
         if (cur->light < l)
-          {
+          { // if the transparent cell is too dark, flow in light from neigbors
+            // and tell all neighbors to check if they are maybe lighted
+            // by my new light
             ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 1);
             cur->light = l; // make me brighter and run light_up algo
             if (l > 0) l--;
             light_up = 1;
             ctr_world_light_enqueue_neighbours (cx, cy, cz, l);
           }
-        else if (cur->light > l) // we (probably? :) were the light!
+        else if (cur->light > l) // we are brighter then the neighbors
           {
-            ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 1);
-            light_up = 0;
-            l = cur->light;
-            // we are the light, so we should add us to the
+            // we were the light, so we should add us to the
             // light_down queue, because we might need to let
             // other light sources light through!
-            ctr_world_light_enqueue (cx, cy, cz, l);
+            light_up = 0;
+            ctr_world_light_enqueue (cx, cy, cz, cur->light);
           }
         else // cur->light == l
           {
-            // still force update :) FIXME!
+            // we are transparent and have the light we should have
+            // so we don't need to change anything.
+            // BUT:
+            //    still force update :) FIXME: This should maybe
+            //    be done by ChunkManager
             ctr_world_query_cell_at (cx, cy, cz, 1);
             return; // => no change, so no change for anyone else
           }
       }
-    else // oh, a blocking cell has been set!
+    else // oh, a (light) blocking cell has been set!
       {
         ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 1);
 
+        // FIXME: add other lamp types here too:
         if (cur->type == 40) // was a light: light it!
           {
-            cur->light = 12;
+            cur->light = 16;
             light_up = 1; // propagate our light!
             ctr_world_light_enqueue_neighbours (cx, cy, cz, cur->light - 1);
           }
@@ -488,9 +498,9 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
           {
             light_up = 0; // make it darker
             unsigned char l = cur->light;
-            if (l > 0) l--;
-            ctr_world_light_enqueue_neighbours (cx, cy, cz, l);
-            cur->light = 0; // we are blocking!
+            cur->light = 0; // we are blocking light, so we are dark
+            // let the neighbors check if they were lit possibly by me
+            ctr_world_light_enqueue_neighbours (cx, cy, cz, l - 1);
           }
       }
 #if DEBUG_LIGHT
@@ -501,15 +511,17 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
     // light_up == 0 means: light value in queue says: do you still have a
     //                      neighbor thats at least this bright?
 
-    if (light_up)
+    unsigned char new_value = 0;
+    while (ctr_world_light_dequeue (&cx, &cy, &cz, &new_value))
       {
-        unsigned char new_value = 0;
-        while (ctr_world_light_dequeue (&cx, &cy, &cz, &new_value))
-          {
-            cur = ctr_world_query_cell_at (cx, cy, cz, 0);
-            if (!ctr_world_cell_transparent (cur))
-              continue; // ignore non-transparent blocks
+        cur = ctr_world_query_cell_at (cx, cy, cz, 0);
+        if (!ctr_world_cell_transparent (cur))
+          continue; // ignore non-transparent blocks
 
+        if (light_up)
+          { // on light up, tell the cells to update them to the new
+            // value if it makes them brighter. if it makes them brighter,
+            // the cells will distribute the (by 1 lower) light to the neighbors
             if (cur->light < new_value)
               {
 #if DEBUG_LIGHT
@@ -523,33 +535,40 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
                 ctr_world_light_enqueue_neighbours (cx, cy, cz, new_value);
               }
           }
-      }
-    else // light down, we tell all neighbours our old light value,
-         // and let them check their neighbours if they still have brighter neighbors
-         // than we originally were
-      {
-        unsigned char old_value = 0;
-        while (ctr_world_light_dequeue (&cx, &cy, &cz, &old_value))
-          {
-            cur = ctr_world_query_cell_at (cx, cy, cz, 0);
-            if (!ctr_world_cell_transparent (cur))
-              continue; // ignore non-transparent blocks
+        else
+          { // on light down is split into two passes:
+            //   1st pass: going from the seed cell's we black out
+            //             all cells which were lit by the seed(s)
+            //             (the seeds are usually either the previous light
+            //             source itself or maybe the neighbors of a block
+            //             that potentially occludes the light)
+            //             in other words: the first pass should just walk down
+            //             the light cone of the seeds and black them out
+            //
+            //   2nd pass: With all possibly completely dark cells being dark
+            //             we revisit every darkened cell and compute their light
+            //             from their neighbor cells. We repeat this until
+            //             no light value changes anymore.
+            //
+            //   Bugs should be virtually non-visible, every changed cell from
+            //   the first pass is repaired in the second pass anyway!
+
             unsigned char l = ctr_world_query_get_max_light_of_neighbours (cx, cy, cz);
             if (l > 0) l--;
 #if DEBUG_LIGHT
-            printf ("light down at %d,%d,%d, me: %d, old neigh: %d cur neigh: %d\n", cx, cy, cz, cur->light, old_value, l);
+            printf ("light down at %d,%d,%d, me: %d, old neigh: %d cur neigh: %d\n", cx, cy, cz, cur->light, new_value, l);
 #endif
-            if (cur->light <= old_value && cur->light > l)
+            if (cur->light <= new_value && cur->light > l)
               // we are not brighter than the now dark neighbor
               // and we are lighter than we would be lit by our neighbors
               {
                 // become dark too and enqueue neighbors for update
                 cur = ctr_world_query_cell_at (cx, cy, cz, 1);
-                old_value = cur->light;
+                new_value = cur->light;
                 cur->light = 0;
-                if (old_value > 0) old_value--;
+                if (new_value > 0) new_value--;
                 // enqueue neighbors for update:
-                ctr_world_light_enqueue_neighbours (cx, cy, cz, old_value);
+                ctr_world_light_enqueue_neighbours (cx, cy, cz, new_value);
 
                 // enqueue ourself for the next passes, where we light up
                 // the zero light level by ambient light
@@ -558,6 +577,11 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
                 ctr_world_light_select_queue (0);
               }
           }
+      }
+
+    if (!light_up)
+      {
+        // extra pass for light-down, to reflow other light sources light
 
         int cur_queue = 0;
 
@@ -571,9 +595,10 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
 #if DEBUG_LIGHT
             printf ("START RELIGHT PASS %d\n", pass);
 #endif
-            cur_queue = !cur_queue;
-            ctr_world_light_select_queue (cur_queue);
-            while (ctr_world_light_dequeue (&cx, &cy, &cz, &old_value))
+            // swap queue
+            ctr_world_light_select_queue (cur_queue = !cur_queue);
+            // recompute light for every cell in the queue
+            while (ctr_world_light_dequeue (&cx, &cy, &cz, &new_value))
               {
                 cur = ctr_world_query_cell_at (cx, cy, cz, 0);
                 unsigned char l = ctr_world_query_get_max_light_of_neighbours (cx, cy, cz);
@@ -581,96 +606,23 @@ void ctr_world_update_light_at (int rx, int ry, int rz, int was_light)
 #if DEBUG_LIGHT
                 printf ("[%d] relight at %d,%d,%d, me: %d, cur neigh: %d\n", pass, cx, cy, cz, cur->light, l);
 #endif
+                // if the current cell is too dark, relight it
                 if (cur->light < l)
                   {
-                    // just relight me
                     cur = ctr_world_query_cell_at (cx, cy, cz, 1);
                     cur->light = l;
                     change = 1;
                   }
 
-                ctr_world_light_select_queue (!cur_queue); // fill for next pass
+                // we are in an iterative process, to re-add all cells
+                // right back to the other queue for the next pass.
+                // just because our cell didn't change doesn't mean it won't
+                // in the next pass.
+                ctr_world_light_select_queue (!cur_queue);
                 ctr_world_light_enqueue (cx, cy, cz, 0);
                 ctr_world_light_select_queue (cur_queue);
               }
           }
-
-      }
-
-void ctr_world_update_light_at_old (int rx, int ry, int rz, int r)
-  CODE:
-    vec3_init (pos, rx, ry, rz);
-    vec3_s_div (pos, CHUNK_SIZE);
-    vec3_floor (pos);
-    int chnk_x = pos[0],
-        chnk_y = pos[1],
-        chnk_z = pos[2];
-
-    //d// printf ("UPDATE LIGHT %d %d %d +- 2 %d\n", chnk_x, chnk_y, chnk_z, r);
-
-    ctr_world_query_setup (
-      chnk_x - 1, chnk_y - 1, chnk_z - 1,
-      chnk_x + 1, chnk_y + 1, chnk_z + 1
-    );
-
-    ctr_world_query_load_chunks ();
-
-    // no concentration: do simple approach here and benchmark!
-    // alternative to date is only per-light-radius update once
-    // (which might not work properly either)
-    int c = (CHUNK_SIZE * 3) / 2;
-    int cx = (rx - chnk_x * CHUNK_SIZE) + CHUNK_SIZE;
-    int cy = (ry - chnk_y * CHUNK_SIZE) + CHUNK_SIZE;
-    int cz = (rz - chnk_z * CHUNK_SIZE) + CHUNK_SIZE;
-    int i;
-    r -= 1;
-    for (i = 0; i <= r; i++)
-      {
-        int x, y, z;
-        for (x = cx - r; x <= cx + r; x++)
-          for (y = cy - r; y <= cy + r; y++)
-            for (z = cz - r; z <= cz + r; z++)
-              {
-                ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 1);
-
-                if (i == 0)
-                  {
-                    if (cur->type == 40) // flood light
-                      cur->light = r + 1;
-                    else
-                      cur->light = 0;
-                  }
-                else
-                  {
-                    if (!ctr_world_cell_transparent (cur))
-                      continue;
-
-                    ctr_cell *above = ctr_world_query_cell_at (x, y + 1, z, 0);
-                    ctr_cell *below = ctr_world_query_cell_at (x, y - 1, z, 0);
-                    ctr_cell *left  = ctr_world_query_cell_at (x - 1, y, z, 0);
-                    ctr_cell *right = ctr_world_query_cell_at (x + 1, y, z, 0);
-                    ctr_cell *front = ctr_world_query_cell_at (x, y, z - 1, 0);
-                    ctr_cell *back  = ctr_world_query_cell_at (x, y, z + 1, 0);
-
-                    int ml = above->light;
-                    if (below->light > ml)
-                      ml = below->light;
-                    if (left->light > ml)
-                      ml = left->light;
-                    if (right->light > ml)
-                      ml = right->light;
-                    if (front->light > ml)
-                      ml = front->light;
-                    if (back->light > ml)
-                      ml = back->light;
-
-                    if (ml <= 0)
-                      continue;
-
-                    if (cur->light < ml)
-                      cur->light = ml - 1;
-                  }
-              }
       }
 
  //   ctr_world_query_desetup ();
