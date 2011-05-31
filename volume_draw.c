@@ -141,7 +141,7 @@ void vol_draw_op (unsigned int x, unsigned int y, unsigned int z, double val)
       || z >= DRAW_CTX.size)
     return;
 
- 
+
   if (DRAW_DST(x,y,z) < DRAW_CTX.dst_range[0]
       || DRAW_DST(x,y,z) > DRAW_CTX.dst_range[1])
     return;
@@ -176,19 +176,6 @@ void vol_draw_op (unsigned int x, unsigned int y, unsigned int z, double val)
       case VOL_DRAW_MUL: DRAW_DST(x,y,z) *= val; break;
       case VOL_DRAW_SET: DRAW_DST(x,y,z) = val; break;
     }
-}
-
-void vol_draw_src_range (double a, double b)
-{
-  int x, y, z;
-  for (z = 0; z < DRAW_CTX.size; z++)
-    for (y = 0; y < DRAW_CTX.size; y++)
-      for (x = 0; x < DRAW_CTX.size; x++)
-        {
-          if (DRAW_SRC(x, y, z) >= a && DRAW_SRC(x, y, z) < b)
-            vol_draw_op (x, y, z, DRAW_SRC (x, y, z));
-        }
-
 }
 
 void vol_draw_val (double val)
@@ -293,20 +280,26 @@ static void draw_3d_line (int x0, int y0, int z0, int x1, int y1, int z1)
     draw_3d_line_bresenham (z0, x0, y0, z1, x1, y1);
 }
 
-float vol_draw_cube_fill_value (int x, int y, int z, float size)
+float vol_draw_cube_fill_value (int x, int y, int z, int size)
 {
-  float radius = (size - 1) / 2;
-  float xm = fabs ((float) x - radius),
-        ym = fabs ((float) y - radius),
-        zm = fabs ((float) z - radius);
+  int center = ceil ((float) size / 2.f);
+
+  int xm, ym, zm;
+  if (x < center) xm = center - x;
+  else            xm = x - (center - (size % 2 == 0 ? 1 : 2));
+  if (y < center) ym = center - y;
+  else            ym = y - (center - (size % 2 == 0 ? 1 : 2));
+  if (z < center) zm = center - z;
+  else            zm = z - (center - (size % 2 == 0 ? 1 : 2));
 
   float m = 0;
-  if (m < xm) m = xm;
-  if (m < ym) m = ym;
-  if (z >= 0 && m < zm)
-    m = zm;
+  if (m < xm)           m = xm;
+  if (m < ym)           m = ym;
+  if (z >= 0 && m < zm) m = zm;
+  //d// printf ("X %d,%d,%d, %f, %d %d\n", x,y,z,m, center, size);
+
   return linerp (0.1, 0.9,
-                 radius <= 0.01 ? 0 : (m / radius));
+                 center <= 0 ? 0 : (m / (float) center));
 
 }
 
@@ -321,10 +314,10 @@ void vol_draw_fill_pyramid (float x, float y, float z, float size)
   float pyr_size = size;
   for (k = 0; k < size; k++) // layer
     {
-      for (j = 0; j < pyr_size; j++)
-        for (l = 0; l < pyr_size; l++)
+      for (j = 0; j < ceil (pyr_size); j++)
+        for (l = 0; l < ceil (pyr_size); l++)
           {
-            double val = vol_draw_cube_fill_value (j, l, -1, pyr_size);
+            double val = vol_draw_cube_fill_value (j, l, -1, ceil (pyr_size));
             vol_draw_op ((float) j + x, (float) k + y, (float) l + z, val);
           }
 
@@ -338,6 +331,7 @@ void vol_draw_fill_pyramid (float x, float y, float z, float size)
 void vol_draw_fill_box (float x, float y, float z, float size)
 {
   int j, k, l;
+  size = ceil (size);
   for (j = 0; j < size; j++)
     for (k = 0; k < size; k++)
       for (l = 0; l < size; l++)

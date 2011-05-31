@@ -6,4 +6,4 @@ src_dst 0 1
    cantor_dust 2
    map_range 0.6 1 0 0
 
-   # show_range_sector_type B1 1
+   #show_range_sector_type B1 1

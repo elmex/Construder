@@ -4,7 +4,6 @@ src_dst 0 0
 
 src_dst 0 1
    src_blend 0
- #  fill 1
    mode set
    menger_sponge 2
 
@@ -13,6 +12,6 @@ src_dst 0 1
    fill
    dst_range 0 1
 
-# show_range_sector_type A1 0
+   #show_range_sector_type A1 1
 
    end
