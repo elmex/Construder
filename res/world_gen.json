@@ -145,12 +145,11 @@
       },
       "C2" : {
          "region_range" : [0.53, 0.56],
-         "file" : "sector_A1.cmds",
+         "file" : "sector_C2.cmds",
           "ranges" : [
-            0.8,      1.01,     16, # base walls brickwall
-            0.5,      0.8,       2, # inner walls stone
-            0.20,     0.5,      23, # most inner silicon
-            0.05,     0.20,     10, # rest iron
+            0.6,      1.01,     26, # center cores are plutonium
+            0.37,     0.4,      15, # inner walls concrete
+            0.05,     0.37,     17, # outer asphalt
          ]
 
      },
@@ -160,8 +159,8 @@
           "ranges" : [
             0.8,      1.01,     16, # base walls brickwall
             0.5,      0.8,       2, # inner walls stone
-            0.20,     0.5,      23, # most inner silicon
-            0.05,     0.20,     10, # rest iron
+            0.40,     0.5,      23, # most inner silicon
+            0.05,     0.10,     10, # rest iron
          ]
 
      },

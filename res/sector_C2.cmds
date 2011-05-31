@@ -1,0 +1,16 @@
+src_dst 0 0
+   fill_noise 5 2 0.5
+
+src_dst 0 1
+   src_blend 0.6
+   spheres 3
+
+src_dst 2 1
+   src_blend 1
+   self_cubes 3 P2,5
+
+   map_range 0.4 0.6 0 0
+
+   map_range 0.2 0.3 0 0
+
+#  show_range_sector_type C2 2
