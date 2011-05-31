@@ -17,9 +17,9 @@
          # start inkl., end excl., type
          "ranges" : [
             0.8,      1.01,     16, # base walls brickwall
-            0.5,       0.8,      2, # inner walls stone
-            0.40,      0.5,     23, # most inner silicon
-            0.05,     0.40,     18, # rest copper
+            0.6,       0.8,      2, # inner walls stone
+            0.18,      0.6,     23, # most inner silicon
+            0.05,      0.18,    18, # rest copper
          ]
       },
       "A3" : {
@@ -29,8 +29,8 @@
          "ranges" : [
             0.85,     1.01,      2, # base walls are brickwall
             0.7,      0.85,     20, # inner walls of granite
-            0.2,      0.4,      12, # cube shell is rubber
-            0.05,     0.2,      10, # cube middles are iron
+            0.3,      0.4,      12, # cube shell is rubber
+            0.05,     0.3,      10, # cube middles are iron
          ]
       },
       "A4" : {
@@ -96,8 +96,8 @@
          # start inkl., end excl., type
          "ranges" : [
             0.4,      0.6,      17, # most is asphalt
-            0.27,     0.4,      28, # most of treasure is oilsmear
-            0.05,     0.27,     27, # the least part is diamond inside oilsmear
+            0.29,     0.4,      28, # most of treasure is oilsmear
+            0.05,     0.29,     27, # the least part is diamond inside oilsmear
          ]
       },
       "B2" : {
@@ -105,9 +105,12 @@
          "file" : "sector_B2.cmds",
          # concrete, asphalt, aluminum
          "ranges" : [
+            0.6, 1.01,    17, # much of the noise is asphalt
+            0.4, 0.6,     15, # rest of noise and the outer shell is concrete
+            0.2, 0.4,     17, # inner shell is asphalt
+            0.05, 0.2,    13, # treasure is aluminum
          ]
-
-     },
+      },
       "B3" : {
          "region_range" : [0.36, 0.39],
          "file" : "sector_A1.cmds",

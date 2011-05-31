@@ -7,13 +7,29 @@ src_dst 1 2
    src_blend 1
    menger_sponge 3
 
+# now we have a menger sponge with inner gradient
+
+# make some noise and map a part of it to 0
 src_dst 0 0
    fill_noise 3 P2.1,2.9 0.2
    map_range 0 0.4  0 0
 
+# now we draw only a portion of the menger sponge
+# depending on the 0s in the noise
 src_dst 0 2
    src_blend 1
    src_range 0 0
+   fill
+
+# make some more noise:
+src_dst 1 1
+   fill_noise 3 2 0.5 1
+   map_range 0 1 0.05 0.5
+
+# now we draw some noise over the inner cores:
+src_dst 1 2
+   src_range 0 1
+   dst_range 0.05 0.5
    fill
 
    #show_range_sector_type A2 3

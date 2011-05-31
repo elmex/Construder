@@ -12,6 +12,4 @@ src_dst 0 1
    fill
    dst_range 0 1
 
-   #show_range_sector_type A1 1
-
-   end
+   #show_range_sector_type A1 3

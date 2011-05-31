@@ -23,4 +23,4 @@ src_dst 0 1
    src_blend 1
    fill
 
-   #show_range_sector_type A4 4
+   show_range_sector_type A4 4

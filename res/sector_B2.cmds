@@ -1,0 +1,23 @@
+src_dst 0 0
+   fill 0
+
+src_dst 0 2
+   fill_noise 5 2 0.7
+   src_blend 1
+   self_cubes 3 1
+
+src_dst 0 0
+   src_blend 0
+   cantor_dust 3
+
+src_dst 0 1
+   src_blend 1
+   self_cubes 3 1
+   map_range 0 1 0 0.5
+
+src_dst 2 1
+   src_blend 1
+   src_range 0.55 1
+   fill
+
+   show_range_sector_type B2 3
