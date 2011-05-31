@@ -1,0 +1,10 @@
+src_dst 1 1
+   fill 0
+
+src_dst 1 0
+   src_blend 0
+   cantor_dust 2
+   src_blend 1
+   spheres 2 0.2
+
+#show_range_sector_type B3 2

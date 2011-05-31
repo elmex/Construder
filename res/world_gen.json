@@ -103,7 +103,6 @@
       "B2" : {
          "region_range" : [0.34, 0.36],
          "file" : "sector_B2.cmds",
-         # concrete, asphalt, aluminum
          "ranges" : [
             0.6, 1.01,    17, # much of the noise is asphalt
             0.4, 0.6,     15, # rest of noise and the outer shell is concrete
@@ -113,15 +112,15 @@
       },
       "B3" : {
          "region_range" : [0.36, 0.39],
-         "file" : "sector_A1.cmds",
-          "ranges" : [
-            0.8,      1.01,     16, # base walls brickwall
-            0.5,      0.8,       2, # inner walls stone
-            0.20,     0.5,      23, # most inner silicon
-            0.05,     0.20,     10, # rest iron
+         "file" : "sector_B3.cmds",
+         # concrete, brickwall, silver
+         "ranges" : [
+            0.7, 1.01,   16, # brickwall outer shell
+            0.6, 0.7,    15, # concrete inner shell
+            0.4, 0.6,    16, # brickwall inner shell
+            0.05, 0.4,   22, # cores are silver
          ]
-
-     },
+      },
       "B4" : {
          "region_range" : [0.39, 0.5],
          "file" : "sector_A1.cmds",
