@@ -311,10 +311,11 @@ sub _visible_chunks {
 }
 
 sub update_pos {
-   my ($self, $pos) = @_;
+   my ($self, $pos, $lv) = @_;
 
    my $opos = $self->{data}->{pos};
    $self->{data}->{pos} = $pos;
+   $self->{data}->{look_vec} = $lv;
 
    my $oblk = vfloor ($opos);
    my $nblk = vfloor ($pos);
@@ -498,6 +499,7 @@ sub update_hud_1 {
            box => { dir => "hor" },
            [box => { dir => "vert", padding => 2 },
               [text => { color => "#888888", font => "small" }, "Pos"],
+              [text => { color => "#888888", font => "small" }, "Look"],
               [text => { color => "#888888", font => "small" }, "Chunk"],
               [text => { color => "#888888", font => "small" }, "Sector"],
               [text => { color => "#888888", font => "small" }, "Type"],
@@ -505,6 +507,8 @@ sub update_hud_1 {
            [box => { dir => "vert", padding => 2 },
               [text => { color => "#ffffff", font => "small" },
                  sprintf ("%3d,%3d,%3d", @$abs_pos)],
+              [text => { color => "#ffffff", font => "small" },
+                 sprintf ("%3d,%3d,%3d", @{vsmul ($self->{data}->{look_vec}, 10)})],
               [text => { color => "#ffffff", font => "small" },
                  sprintf ("%3d,%3d,%3d", @$chnk_pos)],
               [text => { color => "#ffffff", font => "small" },
@@ -635,10 +639,12 @@ sub show_navigator {
                @$sec_pos,
                $s->[1], $s->[2],
             );
+
          if (@$coord) {
             my @coords;
             while (@$coord) {
-               push @coords, [shift @$coord, shift @$coord, shift @$coord];
+               my $p = [shift @$coord, shift @$coord, shift @$coord];
+               push @coords, $p;
             }
             $self->display_ui (player_nav => {
                window => {

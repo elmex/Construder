@@ -184,7 +184,7 @@ sub handle_player_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'player_pos') {
       $CHNK->check_adjacent_sectors_at ($hdr->{pos});
-      $player->update_pos ($hdr->{pos});
+      $player->update_pos ($hdr->{pos}, $hdr->{look_vec});
 
    } elsif ($hdr->{cmd} eq 'pos_action') {
       if ($hdr->{action} == 1 && @{$hdr->{build_pos} || []}) {

@@ -604,7 +604,10 @@ sub setup_event_poller {
       }
 
       if ($upd_pos++ > 5) {
-         $self->update_player_pos ($self->{phys_obj}->{player}->{pos});
+         $self->update_player_pos (
+            $self->{phys_obj}->{player}->{pos},
+            $self->get_look_vector
+         );
          $upd_pos = 0;
       }
 

@@ -48,7 +48,7 @@ sub new {
 
    $self->{front}->reg_cb (
       update_player_pos => sub {
-         $self->send_server ({ cmd => "player_pos", pos => $_[1] });
+         $self->send_server ({ cmd => "player_pos", pos => $_[1], look_vec => $_[2] });
       },
       position_action => sub {
          my ($front, $pos, $build_pos, $btn) = @_;
