@@ -852,6 +852,16 @@ sub change_look_lock : event_cb {
 sub input_key_up : event_cb {
    my ($self, $key, $name) = @_;
 
+   my $handled = 0;
+   for ($self->active_uis) {
+      if (delete $self->{active_uis}->{$_}->{key_repeat}->{$name}) {
+         $handled = 1;
+         last;
+      }
+   }
+   return if $handled;
+
+
    if ($name eq 'w') {
       delete $self->{movement}->{forward};
    } elsif ($name eq 's') {
@@ -870,7 +880,7 @@ sub input_key_up : event_cb {
 sub activate_ui {
    my ($self, $ui, $desc) = @_;
 
-   if (my $obj = $self->{activate_ui}->{$ui}) {
+   if (my $obj = $self->{active_uis}->{$ui}) {
       $obj->update ($desc);
       return;
    }
@@ -883,7 +893,10 @@ sub activate_ui {
 
    $obj->update ($desc);
 
+   my $oobj = delete $self->{active_uis}->{$ui};
+   $oobj->active (0) if $oobj;
    $self->{active_uis}->{$ui} = $obj;
+   $obj->active (1);
 
    unless ($obj->{sticky}) {
       push @{$self->{active_ui_stack}}, [$ui, $obj]
@@ -897,7 +910,10 @@ sub deactivate_ui {
    } @{$self->{active_ui_stack}};
 
    my $obj = delete $self->{active_uis}->{$ui};
-   $self->{inactive_uis}->{$ui} = $obj if $obj;
+   if ($obj) {
+      $obj->active (0);
+      $self->{inactive_uis}->{$ui} = $obj;
+   }
 }
 
 sub active_uis {
@@ -920,9 +936,15 @@ sub input_key_down : event_cb {
    my $handled = 0;
 
    for ($self->active_uis) {
-      $self->{active_uis}->{$_}->input_key_press (
-         $key, $name, chr ($unicode), \$handled);
+      my $obj = $self->{active_uis}->{$_};
+      $obj->input_key_press ($key, $name, chr ($unicode), \$handled);
       $self->deactivate_ui ($_) if $handled == 2;
+      if ($handled == 1) {
+         $obj->{key_repeat}->{$name} = AE::timer 0.2, 0.1, sub {
+            my $handled;
+            $obj->input_key_press ($key, $name, chr ($unicode), \$handled);
+         };
+      }
       last if $handled;
    }
    return if $handled;

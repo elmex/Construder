@@ -316,21 +316,23 @@ sub update_pos {
 
    my $opos = $self->{data}->{pos};
    $self->{data}->{pos} = $pos;
-   $self->{data}->{look_vec} = $lv;
+   my $olv = $self->{data}->{look_vec} || [0,0,0];
+   $self->{data}->{look_vec} = vnorm ($lv);
 
    my $oblk = vfloor ($opos);
    my $nblk = vfloor ($pos);
 
-   # TODO: only update when necessary
-   if ($self->{shown_uis}->{player_nav}) {
-      $self->show_navigator;
+   my $new_pos = vlength (vsub ($oblk, $nblk)) > 0;
+   my $new_lv  = vlength (vsub ($olv, $lv)) > 0.05;
+   my $dnew_lv = vlength (vsub ($olv, $lv));
+
+   if ($new_pos || $new_lv) {
+      if ($self->{shown_uis}->{player_nav}) {
+         $self->show_navigator;
+      }
    }
 
-   return unless (
-         $oblk->[0] != $nblk->[0]
-      || $oblk->[1] != $nblk->[1]
-      || $oblk->[2] != $nblk->[2]
-   );
+   return unless $new_pos;
 
    my $last_vis = $self->{last_vis} || {};
    my $next_vis = {};
@@ -618,7 +620,7 @@ sub show_navigator {
              ? (-$diff->[1]) . " below" : "same height");
    my $alt_ok = $diff->[1] == 0;
 
-   my $lv = $self->{data}->{look_vec};
+   my $lv = [@{$self->{data}->{look_vec}}];
 
    my $dist   = vlength ($diff);
    $lv->[1]   = 0;
@@ -638,6 +640,9 @@ sub show_navigator {
       $r = $r < 0 ? -$r . "° left" : $r . "° right";
    } else {
       $r = 0;
+      if ($dl <= 0.001) { # we arrived!
+         $dir_ok = 1;
+      }
    }
 
    $self->display_ui (player_nav => {

@@ -193,7 +193,6 @@ sub layout_text {
 
 sub add_active {
    my ($self, $el) = @_;
-   warn "ACTIVE $el->[0]\n";
    push @{$self->{active_elements}}, $el;
 }
 
@@ -393,8 +392,10 @@ sub element_font {
 sub update {
    my ($self, $gui_desc) = @_;
 
-   $self->{desc} = $gui_desc
-      if defined $gui_desc;
+   if (defined $gui_desc) {
+      delete $self->{key_repeat};
+      $self->{desc} = $gui_desc;
+   }
 
    my $win = $self->{desc}->{window};
 
@@ -434,6 +435,12 @@ sub update {
    $self->draw_element ($layout, [0, 0]);
 
    $self->render_view; # refresh rendering to opengl texture
+}
+
+sub active {
+   my ($self, $act) = @_;
+   $self->{active} = $act;
+   delete $self->{key_repeat};
 }
 
 sub switch_active {
@@ -604,7 +611,7 @@ sub display {
 
 sub input_key_press : event_cb {
    my ($self, $key, $name, $unicode, $rhandled) = @_;
- #  warn "UNICODE ($key, $name) $unicode\n";
+   #d# warn "UI KP $key/$name/$unicode\n";
    my $cmd;
    if ($name eq 'escape') {
       $cmd = "cancel" unless $self->{sticky};
@@ -618,12 +625,12 @@ sub input_key_press : event_cb {
          $$rhandled = 1;
          return;
 
-      } elsif ($name eq 'down') {
+      } elsif ($name eq 'down' || $name eq 'tab' || $name eq 'right') {
          $self->switch_active (1);
          $$rhandled = 1;
          return;
 
-      } elsif ($name eq 'up') {
+      } elsif ($name eq 'up' || $name eq 'left') {
          $self->switch_active (-1);
          $$rhandled = 1;
          return;
