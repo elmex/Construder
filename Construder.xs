@@ -197,6 +197,7 @@ ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int
   CODE:
      ctr_render_clear_geom (geom);
      ctr_render_model (type, light, xo, yo, zo, geom);
+     ctr_render_compile_geom (geom);
 
 void ctr_render_init ();
 
