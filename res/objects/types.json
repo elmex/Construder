@@ -124,14 +124,6 @@
       "density" : 38,
       "natural" : 1,
    },
-   "Gold" : {
-      "type" : 23,
-      "texture" : ["cat2.png", 192, 192, 64, 64],
-      "lore" : "Gold, as precious as it is, it's required for almost any electronic circuit.",
-      "complexity" : 40,
-      "density" : 33,
-      "natural" : 1,
-   },
    "Silicon" : {
       "type" : 23,
       "texture" : ["cat2.png", 256, 192, 64, 64],
@@ -279,6 +271,14 @@
       "lore" : "This is an EPM Device, which lets you destroy any drones within 6 blocks.",
       "destroy_timeout" : 4, # 4 seconds until it destroys itself
       "destroy_action" : "epm", # on destroy trigger epm routine
+   },
+   "Gold" : {
+      "type" : 44,
+      "texture" : ["cat2.png", 192, 192, 64, 64],
+      "lore" : "Gold, as precious as it is, it's required for almost any electronic circuit.",
+      "complexity" : 40,
+      "density" : 33,
+      "natural" : 1,
    },
 
    "Drone" : {

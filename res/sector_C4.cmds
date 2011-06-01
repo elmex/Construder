@@ -1,0 +1,31 @@
+# some noise walls: (range [0.5, 0.65])
+src_dst 2 2
+   fill_noise 5 1.5 0.1
+   map_range 0 0.5  0 0
+   map_range 0.65 1  0 0
+
+# draw the noise walls as spheres:
+src_dst 2 1
+   src_blend 1
+   spheres 2 0.4
+
+# draw some bright spheres
+# with an outer hull and an inner one (0.92, 0.95)
+src_dst 3 3; src_blend 0; fill 0.92
+src_dst 3 0; src_blend 1; spheres 3 0.2
+src_dst 3 3; src_blend 0; fill 0.95
+src_dst 3 0; src_blend 1; spheres 3 0.7
+
+# draw some more spheres: (range 0-0.15)
+src_dst 0 0
+   src_blend 0
+   spheres 2 0.2
+   map_range 0.15 0.9 0 0 # make em hollow
+
+# blend in the noise walls in sphere form:
+src_dst 1 0
+   src_blend 1
+   src_range 0.0001 1
+   fill
+
+   #show_range_sector_type C4 2

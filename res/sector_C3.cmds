@@ -40,4 +40,4 @@ src_dst 1 2
    src_blend 1
    fill
 
-   show_range_sector_type C3 3
+   #show_range_sector_type C3 2

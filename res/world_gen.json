@@ -152,29 +152,30 @@
             0.05,     0.37,     17, # outer asphalt
          ]
 
-     },
+      },
       "C3" : {
          "region_range" : [0.56, 0.6],
          "file" : "sector_C3.cmds",
           "ranges" : [
-            0.92,     1.01,     16, # pyramid outer:
-            0.8,      0.92,     16, # pyramid inner:
-            0.7,      0.8,       2, # first part of outer spheres
-            0.4,      0.7,      23, # second part of outer spheres
-            0.05,     0.10,     10, # rest iron
+            0.92,     1.01,     10, # pyramid outer: iron
+            0.8,      0.92,     44, # pyramid inner: gold
+            0.7,      0.8,      15, # first part of outer spheres: concrete
+            0.4,      0.7,      17, # second part of outer spheres: asphalt
+            0.05,     0.4,      11, # inner sphere: steel
          ]
-
-     },
+      },
       "C4" : {
          "region_range" : [0.6, 0.75],
-         "file" : "sector_A1.cmds",
+         "file" : "sector_C4.cmds",
           "ranges" : [
-            0.8,      1.01,     16, # base walls brickwall
-            0.5,      0.8,       2, # inner walls stone
-            0.20,     0.5,      23, # most inner silicon
-            0.05,     0.20,     10, # rest iron
+            0,    0.08,  11,  # big spheres outer hulls: steel
+            0.08, 0.15,  15,  # big spheres innter hulls: concrete
+            0.5,  0.505, 44,  # few grains of inner noise: gold
+            0.505,0.65,  15,  # inner noise: concrete
+            0.91, 0.93,  11,  # outer shell: steel
+            0.93, 0.99,  44,  # inner core: gold
          ]
-     },
+      },
       "D1" : {
          "region_range" : [0.75, 0.785],
          "file" : "sector_A1.cmds",
@@ -185,7 +186,7 @@
             0.05,     0.20,     10, # rest iron
          ]
 
-     },
+      },
       "D2" : {
          "region_range" : [0.785, 0.8],
          "file" : "sector_A1.cmds",
@@ -196,7 +197,7 @@
             0.05,     0.20,     10, # rest iron
          ]
 
-     },
+      },
       "D3" : {
          "region_range" : [0.8, 0.83],
          "file" : "sector_A1.cmds",
@@ -207,7 +208,7 @@
             0.05,     0.20,     10, # rest iron
          ]
 
-     },
+      },
       "D4" : {
          "region_range" : [0.83, 1],
          "file" : "sector_A1.cmds",
@@ -218,6 +219,6 @@
             0.05,     0.20,     10, # rest iron
          ]
 
-    },
+     },
    }
 }
