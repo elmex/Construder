@@ -168,7 +168,7 @@ sub load_sector {
       }
 
       my ($md, $datalen, @lens) = split /\s+/, $mapdata;
-      warn "F $md, $datalen, @lens\n";
+      #d#warn "F $md, $datalen, @lens\n";
       unless (length ($data) == $datalen) {
          warn "map sector file '$file' corrupted, sector data truncated, "
               . "expected $datalen bytes, but only got ".length ($data)."!\n";

@@ -816,7 +816,7 @@ double region_get_sector_value (void *reg, int x, int y, int z)
     z %= reg_size;
 
     double xv = region[x + y * reg_size + z * reg_size * reg_size];
-    printf ("REGGET %p %d %d %d %d => %f\n", reg, reg_size, x, y, z, xv);
+    //d// printf ("REGGET %p %d %d %d %d => %f\n", reg, reg_size, x, y, z, xv);
     RETVAL = xv;
 
   OUTPUT:

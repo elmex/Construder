@@ -7,6 +7,7 @@ use Games::Construder::Vector;
 use base qw/Object::Event/;
 use Scalar::Util qw/weaken/;
 use Compress::LZF;
+use Math::Trig qw/acos rad2deg/;
 
 =head1 NAME
 
@@ -615,43 +616,60 @@ sub show_navigator {
          ? $diff->[1] . " above"
          : ($diff->[1] < 0
              ? (-$diff->[1]) . " below" : "same height");
+   my $alt_ok = $diff->[1] == 0;
 
    my $lv = $self->{data}->{look_vec};
 
-   my $lr;
-   if ($diff->[0] > 0) {
-      $lr = "$diff->[0] ";
+   my $dist   = vlength ($diff);
+   $lv->[1]   = 0;
+   $diff->[1] = 0;
+   my $dl     = vlength ($diff);
+   my $l      = vlength ($lv) * $dl;
 
-      if ($lv->[0] < 0) {
-         $lr .= " right";
-      } elsif (abs ($lv->[0]) < 0.1) {
-         $lr .= " left";
-      }
-
-   } elsif ($diff->[0] < 0) {
-      $lr = -$diff->[0] . " ";
-
-      if ($lv->[0] > 0) {
-         $lr .= " left";
-      } elsif (abs ($lv->[0]) < 0.1) {
-         $lr .= " right";
-      }
+   my $r;
+   my $dir_ok;
+   if ($l > 0.001) {
+      vinorm ($lv);
+      vinorm ($diff);
+      my $pdot = $lv->[0] * $diff->[2] - $lv->[2] * $diff->[0];
+      $r = rad2deg (atan2 ($pdot, vdot ($lv, $diff)), 1);
+      $r = int $r;
+      $dir_ok = abs ($r) < 10;
+      $r = $r < 0 ? -$r . "° left" : $r . "° right";
+   } else {
+      $r = 0;
    }
 
    $self->display_ui (player_nav => {
       window => {
          pos => ["right", "center"],
-         sticky => 1
+         sticky => 1,
+         alpha => 0.6,
       },
       layout => [
          box => {
             dir => "vert",
          },
-         [text => { color => "#ffffff" }, "Dest: @sec"],
-         [text => { color => "#ffffff" }, "LV: @$lv"],
-         [text => { color => "#ffffff" }, "Diff: @$diff"],
-         [text => { color => "#ffffff" }, "Alt: $alt"],
-         [text => { color => "#ffffff" }, "LR: $lr"],
+         [text => { font => "small", align => "center", color => "#888888" },
+          "Navigator"],
+         [box => {
+            dir => "hor",
+          },
+          [box => { dir => "vert", padding => 4 },
+             [text => { color => "#888888" }, "Pos"],
+             [text => { color => "#888888" }, "Dest"],
+             [text => { color => "#888888" }, "Dist"],
+             [text => { color => "#888888" }, "Alt"],
+             [text => { color => "#888888" }, "Dir"],
+          ],
+          [box => { dir => "vert", padding => 4 },
+             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @$sec_pos],
+             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @sec],
+             [text => { color => "#ffffff" }, int ($dist)],
+             [text => { color => $alt_ok ? "#00ff00" : "#ff0000" }, $alt],
+             [text => { color => $dir_ok ? "#00ff00" : "#ff0000" }, $r],
+          ],
+         ],
       ],
       commands => {
          default_keys => {
