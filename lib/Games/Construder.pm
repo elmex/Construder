@@ -71,9 +71,6 @@ sub draw_commands {
    my (@lines) = map { $_ =~ s/#.*$//; $_ } split /\r?\n/, $str;
    my (@stmts) = map { split /\s*;\s*/, $_ } @lines;
 
-# noise umbennen: fill (erkl]ert mehr)
-# ; erlauben
-# zeichenpuffer direkt "selecten"
    for (@stmts) {
       s/^\s+(.*?)\s*$/$1/;
       next if $_ eq '';
@@ -164,24 +161,31 @@ sub draw_commands {
          # map range of destionation buffer
          map_range ($arg[0], $arg[1], $arg[2], $arg[3]);
 
+      } elsif ($cmd eq 'hist_equalize') {
+         # hist_equalize <number of buckets> <range from> <range to>
+         histogram_equalize ($arg[0] || 1, $arg[1], $arg[2]);
+
       } elsif ($cmd eq 'show_region_sectors') {
+         # show_region_sectors
          my %sectors;
 
          my $wg = JSON->new->relaxed->decode (_get_file ("res/world_gen.json"));
          for my $type (keys %{$wg->{sector_types}}) {
             my $s = $wg->{sector_types}->{$type};
             my $r = $s->{region_range};
-            $sectors{$type} = count_in_range (@$r);
+            $sectors{$type} = [count_in_range (@$r), $r];
          }
 
          my $acc = 0;
-         for (sort { $sectors{$b} <=> $sectors{$a} } keys %sectors) {
-            my $p = $sectors{$_} / (100 ** 2);
+         for (sort { $sectors{$b}->[0] <=> $sectors{$a}->[0] } keys %sectors) {
+            my $p = $sectors{$_}->[0] / (100 ** 2);
             $acc += $p;
-            printf "%2s: %7d (%5.2f%% acc %5.2f%%)\n", $_, $sectors{$_}, $p, $acc;
+            printf "%2s: %7d (%5.2f%% acc %5.2f%%) [%5.4f,%5.4f)\n",
+                   $_, $sectors{$_}->[0], $p, $acc, @{$sectors{$_}->[1]};
          }
 
       } elsif ($cmd eq 'show_range_region_sector') {
+         # show_range_region_sector <sector type>
          my ($type) = @arg;
          my $wg = JSON->new->relaxed->decode (_get_file ("res/world_gen.json"));
          my $s = $wg->{sector_types}->{$type};
@@ -192,14 +196,15 @@ sub draw_commands {
          show_map_range (@$r);
 
       } elsif ($cmd eq 'show_range_sector_type') {
-         my ($type, $range_offs) = @arg;
+         # show_range_region_sector <sector type> <idx in range array>
+         my ($type, $range_idx) = @arg;
          my $wg = JSON->new->relaxed->decode (_get_file ("res/world_gen.json"));
          my $s = $wg->{sector_types}->{$type};
          my $r = $s->{ranges};
          unless ($r) {
             warn "No ranges for sector type '$type' found!\n";
          }
-         show_map_range ($r->[$range_offs * 3], $r->[($range_offs * 3) + 1]);
+         show_map_range ($r->[$range_idx * 3], $r->[($range_idx * 3) + 1]);
 
       } else {
          warn "unknown draw command: $_\n";

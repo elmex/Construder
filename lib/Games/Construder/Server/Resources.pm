@@ -213,6 +213,18 @@ sub loaded_objects : event_cb {
    print "loadded objects:\n" . JSON->new->pretty->encode ($self->{objects}) . "\n";
 }
 
+sub get_sector_types {
+   my ($self) = @_;
+   my @sec;
+
+   my $stypes = $self->{world_gen}->{sector_types};
+   for (sort keys %$stypes) {
+      push @sec, [$_, @{$stypes->{$_}->{region_range}}];
+   }
+
+   @sec
+}
+
 sub get_sector_desc_for_region_value {
    my ($self, $val) = @_;
    my $stypes = $self->{world_gen}->{sector_types};

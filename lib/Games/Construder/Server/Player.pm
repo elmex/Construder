@@ -528,6 +528,7 @@ sub update_hud_1 {
          default_keys => {
             f1 => "help",
             i  => "inventory",
+            n  => "navigator",
             f9 => "teleport_home",
             f12 => "exit_server",
          },
@@ -536,6 +537,8 @@ sub update_hud_1 {
       my $cmd = $_[1];
       if ($cmd eq 'inventory') {
          $self->show_inventory;
+      } elsif ($cmd eq 'navigator') {
+         $self->show_navigator;
       } elsif ($cmd eq 'help') {
          $self->show_help;
       } elsif ($cmd eq 'teleport_home') {
@@ -580,6 +583,92 @@ sub show_inventory_selection {
          $self->display_ui ('player_inv_sel');
       }
    });
+}
+
+sub show_navigator {
+   my ($self) = @_;
+
+   my @sector_types =
+      $Games::Construder::Server::RES->get_sector_types ();
+
+   $self->display_ui (player_nav => {
+      window => {
+         pos => [center => 'center'],
+      },
+      layout => [
+         box => { dir => "vert" },
+         [text => { font => "big", color => "#FFFFFF" }, "Navigator"],
+         [text => { font => "small", color => "#888888" },
+          "(Select a sector type with up/down keys and hit return.)"],
+         [box => { },
+         (map {
+            [select_box => {
+               dir => "vert", align => "center", arg => "item", tag => $_->[0],
+               padding => 2,
+               bgcolor => "#333333",
+               border => { color => "#555555", width => 2 },
+               select_border => { color => "#ffffff", width => 2 },
+               aspect => 1
+             }, [text => { font => "normal", color => "#ffffff" }, $_->[0]]
+            ]
+         } @sector_types)],
+      ],
+      commands => {
+         default_keys => {
+            return => "select",
+         }
+      }
+   }, sub {
+      warn "ARG: $_[2]->{item}|" . join (',', keys %{$_[2]}) . "\n";
+
+      my $cmd = $_[1];
+      warn "CMD $cmd\n";
+      if ($cmd eq 'select') {
+         my $item = $_[2]->{item};
+         my ($s) = grep { $_->[0] eq $item } @sector_types;
+         warn "ITEM @$s\n";
+         my $chnk_pos = world_pos2chnkpos ($self->{data}->{pos});
+         my $sec_pos  = world_chnkpos2secpos ($chnk_pos);
+         my $coord =
+            Games::Construder::Region::get_nearest_sector_in_range (
+               $Games::Construder::Server::World::REGION,
+               @$sec_pos,
+               $s->[1], $s->[2],
+            );
+         if (@$coord) {
+            my @coords;
+            while (@$coord) {
+               push @coords, [shift @$coord, shift @$coord, shift @$coord];
+            }
+            $self->display_ui (player_nav => {
+               window => {
+                  pos => [center => 'center'],
+               },
+               layout => [
+                  box => { dir => "vert" },
+                  [text => { color => "#ff0000" },
+                   "Sector with Type $item found at:\n"
+                   . join ("\n", map { sprintf "%3d,%3d,%3d", @$_ } @coords)]
+               ]
+            });
+
+         } else {
+            $self->display_ui (player_nav => {
+               window => {
+                  pos => [center => 'center'],
+               },
+               layout => [
+                  box => { dir => "vert" },
+                  [text => { color => "#ff0000" },
+                   "Sector with Type $item not found anywhere near!"]
+               ]
+            });
+         }
+      }
+   });
+
+#//AV *region_get_nearest_sector_in_range (void *reg, int x, int y, int z, double a, double b)
+
 }
 
 sub show_inventory {

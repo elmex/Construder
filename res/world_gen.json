@@ -2,7 +2,7 @@
    "sector_types" : {
       "A1" : {
          "file" : "sector_A1.cmds",
-         "region_range" : [0, 0.11], # range it appears in the region
+         "region_range" : [0, 0.05], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
             0.8,      1.01,     16, # base walls brickwall
@@ -13,7 +13,7 @@
       },
       "A2" : {
          "file" : "sector_A2.cmds",
-         "region_range" : [0.11, 0.14], # range it appears in the region
+         "region_range" : [0.05, 0.1], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
             0.8,      1.01,     16, # base walls brickwall
@@ -24,7 +24,7 @@
       },
       "A3" : {
          "file" : "sector_A3.cmds",
-         "region_range" : [0.14, 0.16], # range it appears in the region
+         "region_range" : [0.1, 0.15], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
             0.85,     1.01,      2, # base walls are brickwall
@@ -35,7 +35,7 @@
       },
       "A4" : {
          "file" : "sector_A4.cmds",
-         "region_range" : [0.16, 0.18], # range it appears in the region
+         "region_range" : [0.15, 0.20], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
             0.74,     1.01,     17, # base walls asphalt
@@ -47,7 +47,7 @@
          ]
       },
       "E1" : {
-         "region_range" : [0.18, 0.19],
+         "region_range" : [0.2, 0.25],
          "file" : "sector_E1234.cmds",
          "ranges" : [
             0.4,      0.5,      17, # core of noise: asphalt
@@ -58,7 +58,7 @@
          ]
       },
       "E2" : {
-         "region_range" : [0.19, 0.2],
+         "region_range" : [0.25, 0.3],
          "file" : "sector_E1234.cmds",
          "ranges" : [
             0.4,      0.5,      15, # core of noise: concrete
@@ -69,7 +69,7 @@
          ]
      },
       "E3" : {
-         "region_range" : [0.3, 0.31],
+         "region_range" : [0.3, 0.35],
          "file" : "sector_E1234.cmds",
          "ranges" : [
             0.4,      0.5,      17, # core of noise: asphalt
@@ -80,7 +80,7 @@
          ]
       },
       "E4" : {
-         "region_range" : [0.31, 0.32],
+         "region_range" : [0.35, 0.4],
          "file" : "sector_E1234.cmds",
          "ranges" : [
             0.4,      0.5,      61, # core of noise: moss
@@ -92,7 +92,7 @@
       },
       "B1" : {
          "file" : "sector_B1.cmds",
-         "region_range" : [0.32, 0.34], # range it appears in the region
+         "region_range" : [0.4, 0.45], # range it appears in the region
          # start inkl., end excl., type
          "ranges" : [
             0.4,      0.6,      17, # most is asphalt
@@ -101,7 +101,7 @@
          ]
       },
       "B2" : {
-         "region_range" : [0.34, 0.36],
+         "region_range" : [0.45, 0.5],
          "file" : "sector_B2.cmds",
          "ranges" : [
             0.6, 1.01,    17, # much of the noise is asphalt
@@ -111,7 +111,7 @@
          ]
       },
       "B3" : {
-         "region_range" : [0.36, 0.39],
+         "region_range" : [0.5, 0.55],
          "file" : "sector_B3.cmds",
          # concrete, brickwall, silver
          "ranges" : [
@@ -122,7 +122,7 @@
          ]
       },
       "B4" : {
-         "region_range" : [0.39, 0.5],
+         "region_range" : [0.55, 0.6],
          "file" : "sector_B4.cmds",
          # oilsmear, concrete, diamond seeds
           "ranges" : [
@@ -134,7 +134,7 @@
          ]
       },
       "C1" : {
-         "region_range" : [0.5, 0.52],
+         "region_range" : [0.6, 0.65],
          "file" : "sector_C1.cmds",
           "ranges" : [
             0.8,      1.01,     11, # spheres are made of steel
@@ -144,7 +144,7 @@
          ]
       },
       "C2" : {
-         "region_range" : [0.52, 0.55],
+         "region_range" : [0.65, 0.7],
          "file" : "sector_C2.cmds",
           "ranges" : [
             0.6,      1.01,     26, # center cores are plutonium
@@ -154,7 +154,7 @@
 
       },
       "C3" : {
-         "region_range" : [0.55, 0.59],
+         "region_range" : [0.7, 0.75],
          "file" : "sector_C3.cmds",
           "ranges" : [
             0.92,     1.01,     10, # pyramid outer: iron
@@ -165,7 +165,7 @@
          ]
       },
       "C4" : {
-         "region_range" : [0.59, 0.75],
+         "region_range" : [0.75, 0.8],
          "file" : "sector_C4.cmds",
           "ranges" : [
             0,    0.08,  11,  # big spheres outer hulls: steel
@@ -177,7 +177,7 @@
          ]
       },
       "D1" : {
-         "region_range" : [0.75, 0.785],
+         "region_range" : [0.8, 0.85],
          "file" : "sector_A1.cmds",
           "ranges" : [
             0.8,      1.01,     16, # base walls brickwall
@@ -188,7 +188,7 @@
 
       },
       "D2" : {
-         "region_range" : [0.785, 0.8],
+         "region_range" : [0.85, 0.9],
          "file" : "sector_A1.cmds",
           "ranges" : [
             0.8,      1.01,     16, # base walls brickwall
@@ -199,7 +199,7 @@
 
       },
       "D3" : {
-         "region_range" : [0.8, 0.83],
+         "region_range" : [0.9, 0.95],
          "file" : "sector_A1.cmds",
           "ranges" : [
             0.8,      1.01,     16, # base walls brickwall
@@ -210,7 +210,7 @@
 
       },
       "D4" : {
-         "region_range" : [0.83, 1],
+         "region_range" : [0.95, 1.01],
          "file" : "sector_A1.cmds",
            "ranges" : [
             0.8,      1.01,     16, # base walls brickwall
@@ -218,7 +218,6 @@
             0.20,     0.5,      23, # most inner silicon
             0.05,     0.20,     10, # rest iron
          ]
-
-     },
+      },
    }
 }

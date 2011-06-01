@@ -666,6 +666,8 @@ void vol_draw_map_range (float a, float b, float x, float y);
 
 void vol_draw_copy (void *dst_arr);
 
+void vol_draw_histogram_equalize (int buckets, double a, double b);
+
 int vol_draw_count_in_range (double a, double b)
   CODE:
     int c = 0;
@@ -749,6 +751,46 @@ unsigned int region_get_sector_seed (int x, int y, int z)
   OUTPUT:
     RETVAL
 
+AV *region_get_nearest_sector_in_range (void *reg, int x, int y, int z, double a, double b)
+  CODE:
+     double *region = reg;
+     int reg_size = region[0];
+     region++;
+
+     RETVAL = newAV ();
+     sv_2mortal ((SV *)RETVAL);
+
+     int rad;
+     for (rad = 1; rad < (reg_size / 2); rad++)
+       {
+         int fnd = 0;
+         int dx, dy, dz;
+         for (dx = x - rad; dx <= (x + rad); dx++)
+           for (dy = y - rad; dy <= (y + rad); dy++)
+             for (dz = z - rad; dz <= (z + rad); dz++)
+               {
+                 int ox = dx, oy = dy, oz = dz;
+                 if (ox < 0) ox = -ox;
+                 if (oy < 0) oy = -oy;
+                 if (oz < 0) oz = -oz;
+                 ox %= reg_size;
+                 oy %= reg_size;
+                 oz %= reg_size;
+                 double v = region[ox + oy * reg_size + oz * reg_size * reg_size];
+                 if (v < a || v >= b)
+                   continue;
+                 fnd = 1;
+                 av_push (RETVAL, newSViv (dx));
+                 av_push (RETVAL, newSViv (dy));
+                 av_push (RETVAL, newSViv (dz));
+               }
+         if (fnd)
+           break;
+       }
+
+  OUTPUT:
+    RETVAL
+
 double region_get_sector_value (void *reg, int x, int y, int z)
   CODE:
     if (!reg)
@@ -757,7 +799,7 @@ double region_get_sector_value (void *reg, int x, int y, int z)
     double *region = reg;
     int reg_size = region[0];
     region++;
-    unsigned xp = x % reg_size;
+
     if (x < 0) x = -x;
     if (y < 0) y = -y;
     if (z < 0) z = -z;

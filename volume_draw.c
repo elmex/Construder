@@ -224,6 +224,53 @@ void vol_draw_map_range (float a, float b, float j, float k)
         }
 }
 
+void vol_draw_histogram_equalize (int buckets, double a, double b)
+{
+  int eq[buckets];
+  int lkup[buckets];
+  memset (eq, 0, sizeof (int) * buckets);
+  memset (lkup, 0, sizeof (int) * buckets);
+
+  int x, y, z;
+  for (x = 0; x < DRAW_CTX.size; x++)
+    for (y = 0; y < DRAW_CTX.size; y++)
+      for (z = 0; z < DRAW_CTX.size; z++)
+        {
+          double v = DRAW_DST (x, y, z);
+
+          if (v < a || v > b)
+            continue;
+          v = linerp (0, 1, (v - a) / (b - a));
+
+          int bket = floor (v * (double) buckets);
+          eq[bket]++;
+        }
+
+  int i;
+  int sum = 0;
+  for (i = 0; i < buckets; i++)
+    {
+      sum += eq[i];
+      lkup[i] = sum;
+      //d// printf ("XX %d, %d => %d [%d]\n", i, eq[i], lkup[i], sum);
+    }
+
+  for (x = 0; x < DRAW_CTX.size; x++)
+    for (y = 0; y < DRAW_CTX.size; y++)
+      for (z = 0; z < DRAW_CTX.size; z++)
+        {
+          double v = DRAW_DST (x, y, z);
+
+          if (v < a || v > b)
+            continue;
+          v = linerp (0, 1, (v - a) / (b - a));
+
+          int bket = floor (v * (double) buckets);
+          int lk = lkup[bket];
+          DRAW_DST (x, y, z) = (double) lk / (double) sum;
+        }
+}
+
 static void draw_3d_line_bresenham (int x0, int y0, int z0, int x1, int y1, int z1)
 {
   int x_inc = (x1 > x0) ? +1 : -1,
