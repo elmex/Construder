@@ -730,24 +730,36 @@ sub get_selected_box_pos {
 }
 
 sub _calc_movement {
-   my ($forw_speed, $side_speed, $rot) = @_;
-   my $xd =  sin (deg2rad ($rot));# - 180));
-   my $yd = -cos (deg2rad ($rot));# - 180));
-   my $forw = vsmul ([$xd, 0, $yd], $forw_speed);
+   my ($movement, $rot) = @_;
 
-   $xd =  sin (deg2rad ($rot + 90));# - 180));
-   $yd = -cos (deg2rad ($rot + 90));# - 180));
-   viadd ($forw, vsmul ([$xd, 0, $yd], $side_speed));
+   my ($forw, $strafe) = (0, 0);
+   if ($movement->{forward} > $movement->{backward}) {
+      $forw = +4;
+   } elsif ($movement->{backward} > $movement->{forward}) {
+      $forw = -4;
+   }
+
+   if ($movement->{left} > $movement->{right}) {
+      $strafe = -5;
+   } elsif ($movement->{right} > $movement->{left}) {
+      $strafe = +5;
+   }
+
+   my $xd =  sin (deg2rad ($rot));
+   my $yd = -cos (deg2rad ($rot));
+   my $forw = vsmul ([$xd, 0, $yd], $forw);
+
+   $xd =  sin (deg2rad ($rot + 90));
+   $yd = -cos (deg2rad ($rot + 90));
+   viadd ($forw, vsmul ([$xd, 0, $yd], $strafe));
    $forw
 }
 
+my $FORW_MAX_AMT = 4;
+my $SIDE_MAX_AMT = 5;
 
 sub physics_tick : event_cb {
    my ($self, $dt) = @_;
-
- #  my $player = $self->{phys_obj}->{player};
- #  my $f = world_get_pos ($player->{pos}->array);
- #  warn "POS PLAYER $player->{pos}: ( @$f )\n";
 
    my $player = $self->{phys_obj}->{player};
 
@@ -764,16 +776,13 @@ sub physics_tick : event_cb {
    } else {
       viadd ($player->{vel}, vsmul ($gforce, $dt));
    }
-   #d#warn "DT: $dt => " .vstr( $player->{vel})."\n";
 
    if ((vlength ($player->{vel}) * $dt) > $PL_RAD) {
       $player->{vel} = vsmul (vnorm ($player->{vel}), ($PL_RAD - 0.02) / $dt);
    }
    viadd ($player->{pos}, vsmul ($player->{vel}, $dt));
 
-   my $movement = _calc_movement (
-      $self->{movement}->{straight}, $self->{movement}->{strafe},
-      $self->{yrotate});
+   my $movement = _calc_movement ($self->{movement}, $self->{yrotate});
    $movement = vsmul ($movement, $self->{movement}->{speed} ? 1.5 : 1);
    viadd ($player->{pos}, vsmul ($movement, $dt));
 
@@ -840,11 +849,14 @@ sub change_look_lock : event_cb {
 sub input_key_up : event_cb {
    my ($self, $key, $name) = @_;
 
-   if (grep { $name eq $_ } qw/s w/) {
-      delete $self->{movement}->{straight};
-
-   } elsif (grep { $name eq $_ } qw/a d/) {
-      delete $self->{movement}->{strafe};
+   if ($name eq 'w') {
+      delete $self->{movement}->{forward};
+   } elsif ($name eq 's') {
+      delete $self->{movement}->{backward};
+   } elsif ($name eq 'a') {
+      delete $self->{movement}->{left};
+   } elsif ($name eq 'd') {
+      delete $self->{movement}->{right};
 
    } elsif ($name eq 'left shift') {
       $self->{movement}->{speed} = 0;
@@ -937,23 +949,18 @@ sub input_key_down : event_cb {
       $self->{app}->fullscreen;
    } elsif ($name eq 'left shift') {
       $self->{movement}->{speed} = 1;
-
-   } elsif (grep { $name eq $_ } qw/a s d w/) {
-      my ($xdir, $ydir) = (
-         $name eq 'w'        ?  4
-         : ($name eq 's'     ? -4
-                             :  0),
-         $name eq 'a'        ? -5
-         : ($name eq 'd'     ?  5
-                             :  0),
-      );
-
-      my ($xd, $yd);
-      if ($xdir) {
-         $self->{movement}->{straight} = $xdir;
-      } else {
-         $self->{movement}->{strafe} = $ydir;
-      }
+   } elsif ($name eq 'w') {
+      $self->{movement}->{forward} =
+         $self->{movement}->{backward} + 1;
+   } elsif ($name eq 's') {
+      $self->{movement}->{backward} =
+         $self->{movement}->{forward} + 1;
+   } elsif ($name eq 'a') {
+      $self->{movement}->{left} =
+         $self->{movement}->{right} + 1;
+   } elsif ($name eq 'd') {
+      $self->{movement}->{right} =
+         $self->{movement}->{left} + 1;
    }
    $self->{change} = 1;
 }
