@@ -1,56 +1,23 @@
-# 0       - 0.2  # extreme 1
-# 0.20001 - 0.4  # transition
-# 0.4     - 0.6  # extreme 2
-# 0.6     - 0.8  # extreme 3
-# 0.80001 - 1.0  # border
+# 0       - 0.2  # extreme 1   (A1 - A4)
+# 0.20001 - 0.4  # extreme 2   (B1 - B4)
+# 0.4     - 0.6  # border      (E1 - E4)
+# 0.6     - 0.8  # transition  (D1 - D4)
+# 0.80001 - 1.0  # extreme 3   (C1 - C4)
 
 src_dst 0 0
-   fill 0.01
-
-src_dst 0 1
    fill_noise 3 3 0.4
    hist_equalize 512 0 1
-   show_region_sectors
- #  show_range_region_sector E4
-   end
 
-   dst_range 0 1
+   map_range 0 1 0.40001 1
 
- #  dst_range 0.3 0.65
-   src_blend 0
-   mode mul
-   fill 1.3
+src_dst 0 1
+   fill_noise 3 3 0.4 1
+   hist_equalize 512 0 1
 
-   show_region_sectors
-   end
-
-   # most range: 0.2 - 0.8 => push 
-   map_range 0.5   1    0.6  1.005
-   map_range 0     0.4  0    0.3
-   map_range 0.4   0.5  0.3  0.6
-   show_region_sectors
-   end
-
-   map_range 0.28 0.75 -1 -1
-   map_range 0 0.28 0.75 0.5
-   end
-
-src_dst 1 2
-   fill_noise 4 2 0.4 1
-   map_range 0 1 0 0.499999
-
-   # now blend in first noise:
-   src_range 0.5 1
+   map_range 0.2 0.8 0 0
+   map_range 0.8 1 0.20001 0.4
+   dst_range 0 0
    src_blend 1
    fill
 
-# view filtering:
-
- # map_range 0.5 1 0 0
- # map_range 0 0.2 0 0
- # map_range 0.3 0.5 0 0
- # map_range 0.2 0.3 0 0
- # map_range 0 1 0.3 0.5
-
-  #show_range_region_sector B4
-  show_region_sectors
+   show_region_sectors
