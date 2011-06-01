@@ -319,6 +319,12 @@ sub update_pos {
 
    my $oblk = vfloor ($opos);
    my $nblk = vfloor ($pos);
+
+   # TODO: only update when necessary
+   if ($self->{shown_uis}->{player_nav}) {
+      $self->show_navigator;
+   }
+
    return unless (
          $oblk->[0] != $nblk->[0]
       || $oblk->[1] != $nblk->[1]
@@ -532,7 +538,7 @@ sub update_hud_1 {
          default_keys => {
             f1 => "help",
             i  => "inventory",
-            n  => "navigator",
+            n  => "sector_finder",
             f9 => "teleport_home",
             f12 => "exit_server",
          },
@@ -541,8 +547,8 @@ sub update_hud_1 {
       my $cmd = $_[1];
       if ($cmd eq 'inventory') {
          $self->show_inventory;
-      } elsif ($cmd eq 'navigator') {
-         $self->show_navigator;
+      } elsif ($cmd eq 'sector_finder') {
+         $self->show_sector_finder;
       } elsif ($cmd eq 'help') {
          $self->show_help;
       } elsif ($cmd eq 'teleport_home') {
@@ -590,12 +596,78 @@ sub show_inventory_selection {
 }
 
 sub show_navigator {
+   my ($self, @sec) = @_;
+
+   if (@sec) {
+      $self->{data}->{nav_to} = \@sec;
+   } else {
+      (@sec) = @{$self->{data}->{nav_to} || [0, 0, 0]};
+   }
+
+   my $chnk_pos = world_pos2chnkpos ($self->{data}->{pos});
+   my $sec_pos  = world_chnkpos2secpos ($chnk_pos);
+   my $dest_pos = \@sec;
+
+   my $diff = vsub ($dest_pos, $sec_pos);
+
+   my $alt =
+      $diff->[1] > 0
+         ? $diff->[1] . " above"
+         : ($diff->[1] < 0
+             ? (-$diff->[1]) . " below" : "same height");
+
+   my $lv = $self->{data}->{look_vec};
+
+   my $lr;
+   if ($diff->[0] > 0) {
+      $lr = "$diff->[0] ";
+
+      if ($lv->[0] < 0) {
+         $lr .= " right";
+      } elsif (abs ($lv->[0]) < 0.1) {
+         $lr .= " left";
+      }
+
+   } elsif ($diff->[0] < 0) {
+      $lr = -$diff->[0] . " ";
+
+      if ($lv->[0] > 0) {
+         $lr .= " left";
+      } elsif (abs ($lv->[0]) < 0.1) {
+         $lr .= " right";
+      }
+   }
+
+   $self->display_ui (player_nav => {
+      window => {
+         pos => ["right", "center"],
+         sticky => 1
+      },
+      layout => [
+         box => {
+            dir => "vert",
+         },
+         [text => { color => "#ffffff" }, "Dest: @sec"],
+         [text => { color => "#ffffff" }, "LV: @$lv"],
+         [text => { color => "#ffffff" }, "Diff: @$diff"],
+         [text => { color => "#ffffff" }, "Alt: $alt"],
+         [text => { color => "#ffffff" }, "LR: $lr"],
+      ],
+      commands => {
+         default_keys => {
+            m => "close"
+         }
+      }
+   }, sub { $_[1] eq "close" ? $self->display_ui ('player_nav') : () });
+}
+
+sub show_sector_finder {
    my ($self) = @_;
 
    my @sector_types =
       $Games::Construder::Server::RES->get_sector_types ();
 
-   $self->display_ui (player_nav => {
+   $self->display_ui (player_fsec => {
       window => {
          pos => [center => 'center'],
       },
@@ -618,9 +690,7 @@ sub show_navigator {
          } @sector_types)],
       ],
       commands => {
-         default_keys => {
-            return => "select",
-         }
+         default_keys => { return => "select", }
       }
    }, sub {
       warn "ARG: $_[2]->{item}|" . join (',', keys %{$_[2]}) . "\n";
@@ -646,20 +716,39 @@ sub show_navigator {
                my $p = [shift @$coord, shift @$coord, shift @$coord];
                push @coords, $p;
             }
-            $self->display_ui (player_nav => {
+            $self->display_ui (player_fsec => {
                window => {
                   pos => [center => 'center'],
                },
                layout => [
                   box => { dir => "vert" },
                   [text => { color => "#ff0000" },
-                   "Sector with Type $item found at:\n"
-                   . join ("\n", map { sprintf "%3d,%3d,%3d", @$_ } @coords)]
-               ]
+                   "Sector with Type $item found at:\n"],
+                  (map {
+                     [select_box => {
+                        dir => "vert", align => "center", arg => "item", tag => join (",",@$_),
+                        padding => 2,
+                        bgcolor => "#333333",
+                        border => { color => "#555555", width => 2 },
+                        select_border => { color => "#ffffff", width => 2 },
+                        aspect => 1
+                      },
+                      [text => { font => "normal", color => "#ffffff" },
+                       join (",", @$_)]
+                     ]
+                  } @coords)
+               ],
+               commands => { default_keys => { return => "select" } },
+            }, sub {
+               if ($_[1] eq 'select') {
+                  warn "travel to $_[2]->{item}\n";
+                  $self->display_ui ('player_fsec');
+                  $self->show_navigator (split /,/, $_[2]->{item});
+               }
             });
 
          } else {
-            $self->display_ui (player_nav => {
+            $self->display_ui (player_fsec => {
                window => {
                   pos => [center => 'center'],
                },
