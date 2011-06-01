@@ -48,47 +48,47 @@
       },
       "E1" : {
          "region_range" : [0.18, 0.19],
-         "file" : "sector_A1.cmds",
+         "file" : "sector_E1234.cmds",
          "ranges" : [
-            0.8,      1.01,     16, # base walls brickwall
-            0.5,      0.8,       2, # inner walls stone
-            0.20,     0.5,      23, # most inner silicon
-            0.05,     0.20,     10, # rest iron
+            0.4,      0.5,      17, # core of noise: asphalt
+            0.35,     0.4,      61, # middle of noise: moss
+            0.3,      0.35,     15, # outer of noise: concrete
+            0.8,      1.01,     11, # outer of pyramids: steel
+            0.51,     0.8,      28, # inner of pyramids: oilsmear
          ]
-
       },
       "E2" : {
          "region_range" : [0.19, 0.2],
-         "file" : "sector_A1.cmds",
-          "ranges" : [
-            0.8,      1.01,     16, # base walls brickwall
-            0.5,      0.8,       2, # inner walls stone
-            0.20,     0.5,      23, # most inner silicon
-            0.05,     0.20,     10, # rest iron
+         "file" : "sector_E1234.cmds",
+         "ranges" : [
+            0.4,      0.5,      15, # core of noise: concrete
+            0.35,     0.4,      11, # middle of noise: steel
+            0.3,      0.35,     61, # outer of noise: moss
+            0.8,      1.01,     20, # outer of pyramids: granite
+            0.51,     0.8,      28, # inner of pyramids: oilsmear
          ]
-
      },
       "E3" : {
          "region_range" : [0.3, 0.31],
-         "file" : "sector_A1.cmds",
-           "ranges" : [
-            0.8,      1.01,     16, # base walls brickwall
-            0.5,      0.8,       2, # inner walls stone
-            0.20,     0.5,      23, # most inner silicon
-            0.05,     0.20,     10, # rest iron
+         "file" : "sector_E1234.cmds",
+         "ranges" : [
+            0.4,      0.5,      17, # core of noise: asphalt
+            0.35,     0.4,      16, # middle of noise: brickwall
+            0.3,      0.35,     15, # outer of noise: concrete
+            0.8,      1.01,     16, # outer of pyramids: brickwall
+            0.51,     0.8,      61, # inner of pyramids: moss
          ]
-
-     },
+      },
       "E4" : {
          "region_range" : [0.31, 0.32],
-         "file" : "sector_A1.cmds",
-            "ranges" : [
-            0.8,      1.01,     16, # base walls brickwall
-            0.5,      0.8,       2, # inner walls stone
-            0.20,     0.5,      23, # most inner silicon
-            0.05,     0.20,     10, # rest iron
+         "file" : "sector_E1234.cmds",
+         "ranges" : [
+            0.4,      0.5,      61, # core of noise: moss
+            0.35,     0.4,      16, # middle of noise: brickwall
+            0.3,      0.35,     17, # outer of noise: asphalt
+            0.8,      1.01,     15, # outer of pyramids: concrete
+            0.51,     0.8,      11, # inner of pyramids: steel
          ]
-
       },
       "B1" : {
          "file" : "sector_B1.cmds",
@@ -134,7 +134,7 @@
          ]
       },
       "C1" : {
-         "region_range" : [0.5, 0.53],
+         "region_range" : [0.5, 0.52],
          "file" : "sector_C1.cmds",
           "ranges" : [
             0.8,      1.01,     11, # spheres are made of steel
@@ -144,7 +144,7 @@
          ]
       },
       "C2" : {
-         "region_range" : [0.53, 0.56],
+         "region_range" : [0.52, 0.55],
          "file" : "sector_C2.cmds",
           "ranges" : [
             0.6,      1.01,     26, # center cores are plutonium
@@ -154,7 +154,7 @@
 
       },
       "C3" : {
-         "region_range" : [0.56, 0.6],
+         "region_range" : [0.55, 0.59],
          "file" : "sector_C3.cmds",
           "ranges" : [
             0.92,     1.01,     10, # pyramid outer: iron
@@ -165,7 +165,7 @@
          ]
       },
       "C4" : {
-         "region_range" : [0.6, 0.75],
+         "region_range" : [0.59, 0.75],
          "file" : "sector_C4.cmds",
           "ranges" : [
             0,    0.08,  11,  # big spheres outer hulls: steel

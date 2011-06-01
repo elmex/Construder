@@ -666,6 +666,23 @@ void vol_draw_map_range (float a, float b, float x, float y);
 
 void vol_draw_copy (void *dst_arr);
 
+int vol_draw_count_in_range (double a, double b)
+  CODE:
+    int c = 0;
+    int x, y, z;
+    for (x = 0; x < DRAW_CTX.size; x++)
+      for (y = 0; y < DRAW_CTX.size; y++)
+        for (z = 0; z < DRAW_CTX.size; z++)
+          {
+            double v = DRAW_DST (x, y, z);
+            if (v >= a && v < b)
+              c++;
+          }
+    RETVAL = c;
+  OUTPUT:
+    RETVAL
+
+
 void vol_draw_dst_to_world (int sector_x, int sector_y, int sector_z, AV *range_map)
   CODE:
     int cx = sector_x * CHUNKS_P_SECTOR,

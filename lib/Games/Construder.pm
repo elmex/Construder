@@ -164,6 +164,23 @@ sub draw_commands {
          # map range of destionation buffer
          map_range ($arg[0], $arg[1], $arg[2], $arg[3]);
 
+      } elsif ($cmd eq 'show_region_sectors') {
+         my %sectors;
+
+         my $wg = JSON->new->relaxed->decode (_get_file ("res/world_gen.json"));
+         for my $type (keys %{$wg->{sector_types}}) {
+            my $s = $wg->{sector_types}->{$type};
+            my $r = $s->{region_range};
+            $sectors{$type} = count_in_range (@$r);
+         }
+
+         my $acc = 0;
+         for (sort { $sectors{$b} <=> $sectors{$a} } keys %sectors) {
+            my $p = $sectors{$_} / (100 ** 2);
+            $acc += $p;
+            printf "%2s: %7d (%5.2f%% acc %5.2f%%)\n", $_, $sectors{$_}, $p, $acc;
+         }
+
       } elsif ($cmd eq 'show_range_region_sector') {
          my ($type) = @arg;
          my $wg = JSON->new->relaxed->decode (_get_file ("res/world_gen.json"));
