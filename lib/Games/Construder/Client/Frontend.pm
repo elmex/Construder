@@ -669,6 +669,11 @@ sub get_selected_box_pos {
    my $head_box    = vfloor ($player_head);
    my $rayd        = $self->get_look_vector;
 
+   if ($self->{air_select_mode}) {
+      my $pos = vfloor (vadd ($player_head, vsmul (vnorm ($rayd), 2.5)));
+      return ($pos, $pos);
+   }
+
    my ($select_pos);
 
    my $min_dist = 9999;
@@ -873,6 +878,8 @@ sub input_key_up : event_cb {
 
    } elsif ($name eq 'left shift') {
       $self->{movement}->{speed} = 0;
+   } elsif ($name eq 'left ctrl') {
+      $self->{air_select_mode} = 0;
    }
 
 }
@@ -972,6 +979,8 @@ sub input_key_down : event_cb {
       $self->change_look_lock (not $self->{look_lock});
    } elsif ($name eq 't') {
       $self->{app}->fullscreen;
+   } elsif ($name eq 'left ctrl') {
+      $self->{air_select_mode} = 1;
    } elsif ($name eq 'left shift') {
       $self->{movement}->{speed} = 1;
    } elsif ($name eq 'w') {
