@@ -1,0 +1,43 @@
+src_dst 3 3
+   fill_noise 4 2 0.5
+
+# draw some pyramids => [0.8, 1]
+src_dst 1 1
+   src_blend 0
+   triangles 2 0.7
+   map_range 0.01 1 0.8 1
+
+# draw (hollow) spheres => [0.4,0.8]
+src_dst 3 0
+   src_blend P0.6,1
+   spheres 2 0.3
+   map_range 0.4 1 0 0 # cut out some parts of the core
+   map_range 0.01 0.4 0.4 0.8
+
+# draw the pyramids into the spheres
+src_dst 1 0
+   src_blend 1
+   src_range 0.001 1
+   fill
+   src_range 0 1
+
+# draw some smaller hollow spheres => [0.2, 0.4]
+src_dst 0 1
+   src_blend 0
+   fill 0
+   spheres 1 0.4
+   map_range 0.15 1 0 0
+   map_range 0.001 0.15 0.2 0.4
+
+# draw only potions of the pyramids/spheres over:
+src_dst 0 2
+   src_blend 1
+   cantor_dust 2
+
+# blend in the smaller hollow sphere:
+src_dst 1 2
+   src_range 0.0001 1
+   src_blend 1
+   fill
+
+   show_range_sector_type C3 3
