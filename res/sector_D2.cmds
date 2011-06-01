@@ -1,0 +1,16 @@
+src_dst 0 1
+   src_blend 0
+   spheres 3 0.4
+   map_range 0.00001 1 0.1 0.5
+
+src_dst 0 0
+   fill_noise 4 1.9 P0.2,0.6
+   map_range 0 0.6 0 0
+
+src_dst 1 0
+   src_range 0.1 0.5
+   dst_range 0.6 0.9
+   src_blend 1
+   fill
+
+   #show_range_sector_type D2 1

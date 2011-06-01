@@ -670,6 +670,7 @@ sub get_selected_box_pos {
    my $rayd        = $self->get_look_vector;
 
    if ($self->{air_select_mode}) {
+      # it's soooo much faster, lol :-)
       my $pos = vfloor (vadd ($player_head, vsmul (vnorm ($rayd), 2.5)));
       return ($pos, $pos);
    }

@@ -1,0 +1,15 @@
+src_dst 1 1
+   fill_noise 2 2 0.7 2
+   map_range 0 0.75 0 0
+   map_range 0.75 1 0.5 0.75
+
+src_dst 1 0
+   fill_noise P4.9,3 2 0.22
+   map_range 0.2 0.4 0 0
+   map_range 0.5 0.75 0 0
+
+   src_range 0.01 1
+   dst_range 0.4 0.5
+   fill
+
+   #show_range_sector_type D1 3

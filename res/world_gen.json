@@ -135,25 +135,24 @@
       },
       "D1" : {
          "region_range" : [0.6, 0.65],
-         "file" : "sector_A1.cmds",
+         "file" : "sector_D1.cmds",
           "ranges" : [
-            0.8,      1.01,     16, # base walls brickwall
-            0.5,      0.8,       2, # inner walls stone
-            0.20,     0.5,      23, # most inner silicon
-            0.05,     0.20,     10, # rest iron
+            0.4,      0.45,     21, # first half of walls: sand
+            0.45,     0.5001,   19, # second half of walls: dirt
+            0.5001,   0.75,     18, # seeds are of copper
+            0.05,     0.2,      61, # dark fills are: moss
+            0.75,     1.01,     21, # bright fills are: sand
          ]
-
       },
       "D2" : {
          "region_range" : [0.65, 0.7],
-         "file" : "sector_A1.cmds",
+         "file" : "sector_D2.cmds",
           "ranges" : [
-            0.8,      1.01,     16, # base walls brickwall
-            0.5,      0.8,       2, # inner walls stone
-            0.20,     0.5,      23, # most inner silicon
-            0.05,     0.20,     10, # rest iron
+            0.8,      1.01,      10, # inner walls: iron
+            0.6001,   0.8,       19, # outer walls: dirt
+            0.1,      0.21,       2, # inner spheres: stones
+            0.21,     0.51,      61, # outer spheres: moss
          ]
-
       },
       "D3" : {
          "region_range" : [0.7, 0.75],
