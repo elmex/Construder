@@ -1,8 +1,11 @@
 {
    "balancing" : {
       "max_dematerialize_time" : 30,         # 30 seconds
-      "max_dematerialize_bio"  : 33.3,       # 33.3% bio
-      "max_inventory_space_per_type" : 40,  # max cnt of item in inv
+      "max_dematerialize_bio"  : 33.3,       # 33.3% bio => should be less
+      "max_materialize_time"   : 5,          # 5 seconds
+      "max_materialize_bio"    : 5,          # 5% bio
+      "max_materialize_score"  : 1000,
+      "max_inventory_space_per_type" : 40,  # max cnt of item in inv => should be much higher!
       "min_inventory_space_per_type" : 10,   # min cnt of item in inv
    },
    "sector_types" : {

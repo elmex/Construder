@@ -135,10 +135,6 @@ sub init {
    $self->{hud1_tmr} = AE::timer 0, 1, sub {
       $wself->update_hud_1;
    };
-   $self->{save_timer} = AE::timer 0, 15, sub {
-      $wself->add_score (100);
-      $wself->save;
-   };
    my $tick_time = time;
    $self->{tick_timer} = AE::timer 0.25, 0.25, sub {
       my $cur = time;
@@ -206,11 +202,15 @@ sub starvation {
 
    if ($starves) {
       unless ($self->{death_timer}) {
-         $self->show_bio_warning (1);
-         $self->{death_timer} = AE::timer 30, 0, sub {
-            $self->kill_player;
-            delete $self->{death_timer};
-            $self->show_bio_warning (0);
+         my $cnt = 30;
+         $self->{death_timer} = AE::timer 0, 1, sub {
+            if ($cnt-- <= 0) {
+               $self->kill_player;
+               delete $self->{death_timer};
+               $self->show_bio_warning (0);
+            } else {
+               $self->show_bio_warning ($cnt);
+            }
          };
       }
 
@@ -333,7 +333,7 @@ sub show_bio_warning {
       },
       layout => [
          text => { font => "big", color => "#ff0000", wrap => 30 },
-          "Warning: Bio energy level low.\nDeath imminent, please eat something!",
+          "Warning: Bio energy level low.\nDeath imminent, please dematerialize something with bio energy!\nYou have $enable seconds left!",
       ]
    });
 }
@@ -453,8 +453,8 @@ sub send_chunk {
 
 sub add_score {
    my ($self, $score) = @_;
+   $self->update_score ($score);
    $self->{data}->{score} += $score;
-   $self->update_score (1);
 }
 
 sub msg {
@@ -503,7 +503,7 @@ sub update_score {
              font => "big",
              color => $hl ? "#ff0000" : "#aa8800",
           },
-          $s]
+          ($s . ($hl ? "+$hl" : ""))]
       ]
    });
    if ($hl) {
@@ -533,12 +533,13 @@ sub update_slots {
       my ($spc, $max) = $self->inventory_space_for ($cur);
 
       push @slots,
-      [box => { dir => "vert", padding => 3 },
-         [box => { padding => 2, border => { color => $border }, align => "center" },
-           [model => { color => "#00ff00", width => 50 }, $cur]],
+      [box => { padding => 2, aspect => 1 },
+      [box => { dir => "vert", padding => 2, border => { color => $border }, aspect => 1 },
+         [box => { padding => 2, align => "center" },
+           [model => { color => "#00ff00", width => 40 }, $cur]],
          [text => { font => "small", color => "#999999", align => "center" },
-          $cur ? "$inv->{$cur}/$max" : "/"]
-      ];
+          sprintf ("[%d] ", $i + 1) . ($cur ? "$inv->{$cur}/$max" : "/")]
+      ]];
    }
 
    $self->display_ui (player_slots => {
@@ -1019,10 +1020,31 @@ sub debug_at {
 }
 
 sub do_materialize {
-   my ($self, $pos) = @_;
+   my ($self, $pos, $type, $time, $energy, $score) = @_;
+
+   my $id = world_pos2id ($pos);
+
    $self->send_client ({
-      cmd => "highlight", pos => $pos, color => [0, 1, 1], fade => 1, solid => 1
+      cmd   => "highlight",
+      pos   => $pos,
+      color => [1, 0, 1],
+      fade  => $time
    });
+
+   $self->push_tick_change (bio => -$energy);
+
+   $self->{materializings}->{$id} = 1;
+   my $tmr;
+   $tmr = AE::timer $time, 0, sub {
+      world_mutate_at ($pos, sub {
+         my ($data) = @_;
+         $data->[0] = $type;
+         $self->add_score ($score);
+         delete $self->{materializings}->{$id};
+         undef $tmr;
+         return 1;
+      });
+   };
 }
 
 sub start_materialize {
@@ -1042,7 +1064,6 @@ sub start_materialize {
 
    my $type = $self->{data}->{slots}->{selection}->[$self->{data}->{slots}->{selected}];
 
-   $self->{materializings}->{$id} = 1;
    world_mutate_at ($pos, sub {
       my ($data) = @_;
 
@@ -1050,26 +1071,18 @@ sub start_materialize {
 
       return 0 unless $self->decrease_inventory ($type);
 
-      # XXX: continue here
-
-      my ($time, $energy) =
-         $Games::Construder::Server::RES->get_type_dematerialize_values ($type);
+      my $obj = $Games::Construder::Server::RES->get_object_by_type ($type);
+      my ($time, $energy, $score) =
+         $Games::Construder::Server::RES->get_type_materialize_values ($type);
+      unless ($self->{data}->{bio} >= $energy) {
+         $self->msg (1, "You don't have enough energy to materialize the $obj->{name}!");
+         return;
+      }
 
       $data->[0] = 1;
+      $self->do_materialize ($pos, $type, $time, $energy, $score);
       return 1;
    }, no_light => 1);
-
-   my $tmr;
-   $tmr = AE::timer 1, 0, sub {
-      world_mutate_at ($pos, sub {
-         my ($data) = @_;
-         $data->[0] = $type;
-
-         delete $self->{materializings}->{$id};
-         undef $tmr;
-         return 1;
-      });
-   };
 }
 
 sub inventory_space_for {
@@ -1103,7 +1116,6 @@ sub do_dematerialize {
    $self->push_tick_change (bio => -$energy);
 
    $self->{dematerializings}->{$id} = 1;
-
    my $tmr;
    $tmr = AE::timer $time, 0, sub {
       world_mutate_at ($pos, sub {

@@ -295,6 +295,43 @@ sub get_type_dematerialize_values {
    ($time, $energy)
 }
 
+sub get_type_materialize_values {
+   my ($self, $type) = @_;
+
+   my $bal = $self->{world_gen}->{balancing};
+   my $max_time   = $bal->{max_materialize_time};
+   my $max_energy = $bal->{max_materialize_bio};
+   my $max_score  = $bal->{max_materialize_score};
+
+   my $obj = $self->get_object_by_type ($type);
+
+   my $cplx = $obj->{complexity} / 100;
+   my $dens = $obj->{density} / 100;
+   my ($time, $energy);
+   if ($dens < 50) {
+      $time = ($dens / 2) * $max_time;
+   } else {
+      $time = ($dens ** 2) * $max_time;
+   }
+
+   if ($cplx < 50) {
+      $energy = ($dens / 2) * $max_energy;
+   } else {
+      $energy = ($dens ** 2) * $max_energy;
+   }
+
+   $energy = int ($energy + 0.5);
+
+   my $score = int (
+      (($max_score * 2) / 3) * $dens + ($max_score / 3) * $cplx
+   );
+
+   $score = int (($score / 10) + 0.5) * 10;
+
+   warn "materialize($type): $time / $energy / score\n";
+
+   ($time, $energy, $score)
+}
 =back
 
 =head1 AUTHOR
