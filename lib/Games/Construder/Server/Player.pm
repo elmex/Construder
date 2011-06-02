@@ -232,6 +232,8 @@ sub increase_inventory {
          $self->show_inventory; # update if neccesary
       }
 
+      $self->update_slots;
+
       return 1
    }
    0
@@ -242,12 +244,21 @@ sub decrease_inventory {
 
    my $cnt = $self->{data}->{inv}->{$type}--;
    if ($self->{data}->{inv}->{$type} <= 0) {
+      my $sel = $self->{data}->{slots}->{selection};
+      for (my $i = 0; $i < 10; $i++) {
+         if ($sel->[$i] == $type) {
+            $sel->[$i] = undef;
+         }
+      }
+
       delete $self->{data}->{inv}->{$type};
    }
 
    if ($self->{shown_uis}->{player_inv}) {
       $self->show_inventory; # update if neccesary
    }
+
+   $self->update_slots;
 
    $cnt > 0
 }
@@ -518,12 +529,15 @@ sub update_slots {
          $border = "#ff0000";
       }
 
+      my $o = $Games::Construder::Server::RES->get_object_by_type ($cur);
+      my ($spc, $max) = $self->inventory_space_for ($cur);
+
       push @slots,
       [box => { dir => "vert", padding => 3 },
-         [box => { padding => 2, border => { color => $border } },
+         [box => { padding => 2, border => { color => $border }, align => "center" },
            [model => { color => "#00ff00", width => 50 }, $cur]],
-         [text => { font => "small", color => "#999999" },
-          $cur . ": " . $inv->{$cur}]
+         [text => { font => "small", color => "#999999", align => "center" },
+          $cur ? "$inv->{$cur}/$max" : "/"]
       ];
    }
 
@@ -1004,6 +1018,13 @@ sub debug_at {
    });
 }
 
+sub do_materialize {
+   my ($self, $pos) = @_;
+   $self->send_client ({
+      cmd => "highlight", pos => $pos, color => [0, 1, 1], fade => 1, solid => 1
+   });
+}
+
 sub start_materialize {
    my ($self, $pos) = @_;
 
@@ -1019,23 +1040,30 @@ sub start_materialize {
    # => init materialize
    #   after sucess => calculate score points
 
-   $self->send_client ({
-      cmd => "highlight", pos => $pos, color => [0, 1, 1], fade => 1, solid => 1
-   });
+   my $type = $self->{data}->{slots}->{selection}->[$self->{data}->{slots}->{selected}];
+
    $self->{materializings}->{$id} = 1;
    world_mutate_at ($pos, sub {
       my ($data) = @_;
+
+      return 0 unless $data->[0] == 0;
+
+      return 0 unless $self->decrease_inventory ($type);
+
+      # XXX: continue here
+
+      my ($time, $energy) =
+         $Games::Construder::Server::RES->get_type_dematerialize_values ($type);
+
       $data->[0] = 1;
       return 1;
    }, no_light => 1);
-
-   my $t = $self->{data}->{slots}->{selection}->[$self->{data}->{slots}->{selected}];
 
    my $tmr;
    $tmr = AE::timer 1, 0, sub {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
-         $data->[0] = $t;
+         $data->[0] = $type;
 
          delete $self->{materializings}->{$id};
          undef $tmr;
@@ -1051,7 +1079,7 @@ sub inventory_space_for {
    if (exists $self->{data}->{inv}->{$type}) {
       $cnt = $self->{data}->{inv}->{$type};
    } else {
-      if (scalar (keys %{$self->{data}->{inv}}) >= $PL_MAX_INV) {
+      if (scalar (grep { $_ ne '' && $_ != 0 } keys %{$self->{data}->{inv}}) >= $PL_MAX_INV) {
          $cnt = $spc;
       }
    }
@@ -1080,8 +1108,7 @@ sub do_dematerialize {
    $tmr = AE::timer $time, 0, sub {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
-         my $obj = $Games::Construder::Server::RES->get_object_by_type ($data->[0]);
-
+         warn "INCREATE $type\n";
          $self->increase_inventory ($type);
          $data->[0] = 0;
          delete $self->{dematerializings}->{$id};
@@ -1106,6 +1133,7 @@ sub start_dematerialize {
       if ($obj->{untransformable}) {
          return;
       }
+      warn "DEMAT $type\n";
 
       my ($spc, $max) = $self->inventory_space_for ($type);
       unless ($spc > 0) {
@@ -1121,11 +1149,10 @@ sub start_dematerialize {
       }
 
       $data->[0] = 1; # materialization!
-
       $self->do_dematerialize ($pos, $type, $time, $energy);
 
       return 1;
-   });
+   }, no_light => 1);
 
 }
 

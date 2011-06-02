@@ -290,7 +290,7 @@ sub get_type_dematerialize_values {
 
    $energy = int ($energy + 0.5);
 
-   warn "dematerialize: $time / $energy\n";
+   warn "dematerialize($type): $time / $energy\n";
 
    ($time, $energy)
 }
