@@ -739,25 +739,30 @@ sub show_sector_finder {
                my $p = [shift @$coord, shift @$coord, shift @$coord];
                push @coords, $p;
             }
+            (@coords) = map { $_->[3] = vlength (vsub ($sec_pos, $_)); $_ } @coords;
+            (@coords) = sort { $a->[3] <=> $b->[3] } @coords;
+            splice @coords, 15;
+
             $self->display_ui (player_fsec => {
                window => {
                   pos => [center => 'center'],
                },
                layout => [
                   box => { dir => "vert" },
-                  [text => { color => "#ff0000" },
+                  [text => { color => "#ff0000", align => "center" },
                    "Sector with Type $item found at:\n"],
                   (map {
                      [select_box => {
-                        dir => "vert", align => "center", arg => "item", tag => join (",",@$_),
+                        dir => "vert", align => "left", arg => "item", tag => join (",",@$_),
                         padding => 2,
                         bgcolor => "#333333",
                         border => { color => "#555555", width => 2 },
                         select_border => { color => "#ffffff", width => 2 },
-                        aspect => 1
                       },
-                      [text => { font => "normal", color => "#ffffff" },
-                       join (",", @$_)]
+                      [
+                         text => { font => "normal", color => "#ffffff" },
+                         sprintf ("%d,%d,%d: %d", @$_)
+                      ]
                      ]
                   } @coords)
                ],
@@ -766,7 +771,9 @@ sub show_sector_finder {
                if ($_[1] eq 'select') {
                   warn "travel to $_[2]->{item}\n";
                   $self->display_ui ('player_fsec');
-                  $self->show_navigator (split /,/, $_[2]->{item});
+                  my (@vec) = split /,/, $_[2]->{item};
+                  pop @vec; # remove distance
+                  $self->show_navigator (@vec);
                }
             });
 

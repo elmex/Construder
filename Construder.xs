@@ -766,13 +766,13 @@ AV *region_get_nearest_sector_in_range (void *reg, int x, int y, int z, double a
        {
          int fnd = 0;
          int dx, dy, dz;
-         for (dx = 0; dx <= 2; dx++)
-           for (dy = 0; dy <= 2; dy++)
-             for (dz = 0; dz <= 2; dz++)
+         for (dx = -rad; dx <= rad; dx++)
+           for (dy = -rad; dy <= rad; dy++)
+             for (dz = -rad; dz <= rad; dz++)
                {
-                 int ofx = dx < 2 ? (dx ? rad : 0) : -rad,
-                     ofy = dy < 2 ? (dy ? rad : 0) : -rad,
-                     ofz = dz < 2 ? (dz ? rad : 0) : -rad;
+                 int ofx = dx,
+                     ofy = dy,
+                     ofz = dz;
 
                  int ox = x + ofx,
                      oy = y + ofy,
