@@ -770,13 +770,9 @@ AV *region_get_nearest_sector_in_range (void *reg, int x, int y, int z, double a
            for (dy = -rad; dy <= rad; dy++)
              for (dz = -rad; dz <= rad; dz++)
                {
-                 int ofx = dx,
-                     ofy = dy,
-                     ofz = dz;
-
-                 int ox = x + ofx,
-                     oy = y + ofy,
-                     oz = z + ofz;
+                 int ox = x + dx,
+                     oy = y + dy,
+                     oz = z + dz;
                  if (ox < 0) ox = -ox;
                  if (oy < 0) oy = -oy;
                  if (oz < 0) oz = -oz;
@@ -787,9 +783,9 @@ AV *region_get_nearest_sector_in_range (void *reg, int x, int y, int z, double a
                  if (v < a || v >= b)
                    continue;
 
-                 av_push (RETVAL, newSViv (x + ofx));
-                 av_push (RETVAL, newSViv (y + ofy));
-                 av_push (RETVAL, newSViv (z + ofz));
+                 av_push (RETVAL, newSViv (x + dx));
+                 av_push (RETVAL, newSViv (y + dy));
+                 av_push (RETVAL, newSViv (z + dz));
                  fnd = 1;
                }
 
