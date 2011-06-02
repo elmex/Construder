@@ -156,14 +156,15 @@
       },
       "D3" : {
          "region_range" : [0.7, 0.75],
-         "file" : "sector_A1.cmds",
-          "ranges" : [
-            0.8,      1.01,     16, # base walls brickwall
-            0.5,      0.8,       2, # inner walls stone
-            0.20,     0.5,      23, # most inner silicon
-            0.05,     0.20,     10, # rest iron
+         "file" : "sector_D3.cmds",
+         "ranges" : [
+            0.79,     1.01,      61, # bright cores: moss
+            0.69,     0.79,      18, # seeds second part: copper
+            0.63,     0.69,      10, # seeds first part: iron
+            0.55,     0.63,      19, # walls 2: dirt
+            0.35,     0.43,      21, # walls 1: sand
+            0.001,    0.2,        2, # dark cores: stone
          ]
-
       },
       "D4" : {
          "region_range" : [0.75, 0.8],

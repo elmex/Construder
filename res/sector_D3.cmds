@@ -1,0 +1,30 @@
+# extreme 1: [0.0 ,0.2]
+# walls   1: [0.35,0.43]
+# walls   2: [0.55,0.63]
+# seeds    : [0.63,0.79]
+# extreme 2: [0.79,1.01]
+
+src_dst 0 0
+   src_blend 0
+   cubes 1
+   map_range 0.6 0.8 0 0
+   map_range 0.3 0.45 0 0
+
+src_dst 0 1
+   fill_noise 4 2 P0.1,0.45
+   map_range 0.2  0.35 0 0
+   map_range 0.43 0.55 0 0
+   map_range 0.63 0.79 0 0
+
+src_dst 2 2
+   fill_noise 2 2 0.5
+
+src_dst 2 1
+   src_blend 1
+   src_range 0.63 0.79
+   dst_range 0.55 0.63
+   fill
+   dst_range 0.35 0.43
+   fill
+
+   # show_range_sector_type D3 5
