@@ -142,7 +142,7 @@ sub init {
       $tick_time = $cur;
    };
 
-   $self->{logic}->{unhappy_rate} = 0; #d# 0.25; # 0.25% per second
+   $self->{logic}->{unhappy_rate} = 0.25; # 0.25% per second
 
    $self->update_score;
    $self->update_slots;
@@ -166,9 +166,28 @@ sub player_tick {
       if ($k eq 'happyness' || $k eq 'bio') {
          $self->{data}->{$k} += $a;
 
-         # TODO: fix this w.r.t. happyness and scoring
          if ($self->{data}->{$k} > 100) {
             $self->{data}->{$k} = 100;
+         }
+
+      } elsif ($k eq 'score') {
+         if ($self->{data}->{happyness} < 90) {
+            my $diff = 100 - $self->{data}->{happyness};
+            $diff = 10 if $diff < 10;
+            my $happy = ($diff / 100) * $a;
+            $self->{data}->{happyness} += int ($happy + 0.5);
+
+            if ($self->{data}->{happyness} > 100) {
+               $a = $self->{data}->{happyness} - 100;
+               $self->{data}->{happyness} = 100;
+            }
+         }
+
+         if ($a) {
+            $self->update_score ($a);
+            $self->{data}->{score} += $a;
+            # FIXME: score is fractionAL!?! at leas tthe added stuff?!
+            $self->{data}->{score} = int $self->{data}->{score};
          }
       }
    }
@@ -449,12 +468,6 @@ sub send_chunk {
    my $data = Games::Construder::World::get_chunk_data (@$chnk);
    return unless defined $data;
    $self->send_client ({ cmd => "chunk", pos => $chnk }, compress ($data));
-}
-
-sub add_score {
-   my ($self, $score) = @_;
-   $self->update_score ($score);
-   $self->{data}->{score} += $score;
 }
 
 sub msg {
@@ -1039,7 +1052,7 @@ sub do_materialize {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
          $data->[0] = $type;
-         $self->add_score ($score);
+         $self->push_tick_change (score => $score);
          delete $self->{materializings}->{$id};
          undef $tmr;
          return 1;
