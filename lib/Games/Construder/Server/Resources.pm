@@ -154,7 +154,9 @@ sub load_object {
 
 sub get_object_by_type {
    my ($self, $typeid) = @_;
-   $self->{object_res}->{$typeid}
+   $typeid != 0
+      ? $self->{object_res}->{$typeid}
+      : { untransformable => 1, buildable => 1 }
 }
 
 sub load_texture {
@@ -239,6 +241,58 @@ sub get_sector_desc_for_region_value {
    }
 
    return ();
+}
+
+sub lerp {
+   my ($a, $b, $x) = @_;
+   $a * (1 - $x) + $b * $x
+}
+
+sub get_type_inventory_space {
+   my ($self, $type) = @_;
+
+   my $bal = $self->{world_gen}->{balancing};
+   my $max_carry = $bal->{max_inventory_space_per_type};
+   my $min_carry = $bal->{min_inventory_space_per_type};
+
+   my $obj = $self->get_object_by_type ($type);
+
+   my $dens = $obj->{density} / 100;
+
+   my $space = int (lerp ($min_carry, $max_carry, (1 - $dens)));
+   warn "invspace: $type => $dens | $space\n";
+   $space
+}
+
+sub get_type_dematerialize_values {
+   my ($self, $type) = @_;
+
+   my $bal = $self->{world_gen}->{balancing};
+   my $max_time   = $bal->{max_dematerialize_time};
+   my $max_energy = $bal->{max_dematerialize_bio};
+
+   my $obj = $self->get_object_by_type ($type);
+
+   my $cplx = $obj->{complexity} / 100;
+   my $dens = $obj->{density} / 100;
+   my ($time, $energy);
+   if ($dens < 50) {
+      $time = ($dens / 2) * $max_time;
+   } else {
+      $time = ($dens ** 2) * $max_time;
+   }
+
+   if ($cplx < 50) {
+      $energy = ($dens / 2) * $max_energy;
+   } else {
+      $energy = ($dens ** 2) * $max_energy;
+   }
+
+   $energy = int ($energy + 0.5);
+
+   warn "dematerialize: $time / $energy\n";
+
+   ($time, $energy)
 }
 
 =back

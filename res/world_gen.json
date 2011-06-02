@@ -1,4 +1,10 @@
 {
+   "balancing" : {
+      "max_dematerialize_time" : 30,         # 30 seconds
+      "max_dematerialize_bio"  : 33.3,       # 33.3% bio
+      "max_inventory_space_per_type" : 40,  # max cnt of item in inv
+      "min_inventory_space_per_type" : 10,   # min cnt of item in inv
+   },
    "sector_types" : {
       "A1" : {
          "file" : "sector_A1.cmds",
