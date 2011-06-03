@@ -404,7 +404,7 @@ ctr_render_add_face (unsigned int face, unsigned int type, double light,
 }
 
 void
-ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int yo, unsigned int zo, void *chnk)
+ctr_render_model (unsigned int type, double light, double xo, double yo, double zo, void *chnk)
 {
   ctr_obj_attr *oa = ctr_world_get_attr (type);
   unsigned int dim = oa->model_dim;
@@ -420,16 +420,21 @@ ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int
   unsigned int blk_offs = 0;
   double scale = (double) 1 / (double) (dim > 0 ? dim : 1);
 
+ //d//  printf ("RENDER MODEL START %d %f %f %f\n", dim, xo, yo, zo);
   for (y = 0; y < dim; y++)
     for (z = 0; z < dim; z++)
       for (x = 0; x < dim; x++)
         {
           unsigned int blktype = blocks[blk_offs];
           ctr_obj_attr *oa = ctr_world_get_attr (blktype);
+         //d//  printf ("RENDER MODEL %d: %d\n", blk_offs, blktype);
 
           if (oa->transparent)
-            continue;
-          //d//printf ("MODEL FACE %d %d %d: %d %g\n", x + xo, y + yo, z + zo, blktype, scale);
+            {
+              blk_offs++;
+              continue;
+            }
+          //d// printf ("MODEL FACE %f %f %f :%d %g\n", (double) x + xo, (double) y + yo, (double) z + zo, blktype, scale);
 
           int face;
           for (face = 0; face < 6; face++)

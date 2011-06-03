@@ -94,14 +94,10 @@ sub post_proc {
          );
          if ($model) {
             my ($dim, @blocks) = @$model;
-            my @constr;
-            for my $blknr (1..($dim ** 3)) {
-               my ($blk) = grep { $blknr == $_->[0] } @blocks;
-               if ($blk) {
-                  push @constr, $blk->[1];
-               } else {
-                  push @constr, 0;
-               }
+            my (@constr) = map { 0 } 1..($dim ** 3);
+            while (@blocks) {
+               my ($nr, $type) = (shift @blocks, shift @blocks);
+               $constr[$nr - 1] = $type;
             }
             Games::Construder::World::set_object_model (
                $typeid, $dim, \@constr,
