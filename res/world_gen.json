@@ -5,6 +5,7 @@
       "max_materialize_time"   : 6,          # 6 seconds
       "max_materialize_bio"    : 10,         # 10% bio
       "max_materialize_score"  : 1000,
+      "max_construction_score" : 3000,       # for most complex item
       "score_per_happyness"    : 20,         # 20 score points are 1 happyness
       "max_inventory_space_per_type" : 40,   # max cnt of item in inv => should be much higher!
       "min_inventory_space_per_type" : 10,   # min cnt of item in inv

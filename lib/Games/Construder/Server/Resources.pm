@@ -131,13 +131,16 @@ sub load_object {
       $obj->{texture_id} =
          $self->load_texture ($obj->{texture});
    }
+   if ($obj->{model}) {
+      $obj->{model_str} = join ',', @{$obj->{model}};
+   }
    $obj->{name} = $name;
    my $id = $self->add_res ({
       type => "object",
       data => {
          object_type => $obj->{type},
-         texture_map => $obj->{texture_id},
-         ($obj->{model} ? (model => $obj->{model}) : ()),
+         ($obj->{texture} ? (texture_map => $obj->{texture_id})
+          : ($obj->{model} ? (model => $obj->{model}) : ())),
       }
    });
 
@@ -243,7 +246,7 @@ sub get_sector_desc_for_region_value {
    return ();
 }
 
-sub get_type_by_pattern {
+sub get_object_by_pattern {
    my ($self, $pattern) = @_;
    my ($dim, @a) = @$pattern;
    my @pat;
@@ -294,55 +297,66 @@ sub get_type_by_pattern {
    }
 
    my @collection;
-   my ($p1, $p2, $p3, $p4) = ([], [], [], []);
-   push @collection, $p1, $p2, $p3, $p4;
-   my $blk = 0;
-   for (my $y = 0; $y < $dim; $y++) {
-      $blk = 0;
-      for (my $z = 0; $z < $dim; $z++) {
-         for (my $x = 0; $x < $dim; $x++) {
-            if (my $t = $matrix->[$x]->[$y]->[$z]) {
-               $p1->[$blk] = $t;
+
+   my $di = $dim - 1;
+
+   for my $it (
+      [0, [0..$di], 1, [0..$di]],
+      [0, [0..$di], 1, [reverse (0..$di)]],
+      [0, [reverse (0..$di)], 1, [0..$di]],
+      [0, [reverse (0..$di)], 1, [reverse (0..$di)]],
+      [1, [0..$di], 0, [0..$di]],
+      [1, [0..$di], 0, [reverse (0..$di)]],
+      [1, [reverse (0..$di)], 0, [0..$di]],
+      [1, [reverse (0..$di)], 0, [reverse (0..$di)]],
+   ) {
+      my ($idx1, $range1, $idx2, $range2) = @$it;
+      my @idx;
+      my $p = [];
+
+
+      my $blk = 0;
+      for (my $y = 0; $y < $dim; $y++) {
+
+         for my $i1 (@$range1) {
+            $idx[$idx1] = $i1;
+
+            for my $i2 (@$range2) {
+               $idx[$idx2] = $i2;
+#print "TEST $idx1 $idx2 | $idx[0] $idx[1]\n";
+
+               if (my $t = $matrix->[$idx[1]]->[$y]->[$idx[0]]) {
+                  $p->[$blk] = $t;
+               }
+
+               $blk++;
             }
-            $blk++;
          }
       }
 
-      $blk = 0;
-      for (my $x = 0; $x < $dim; $x++) {
-         for (my $z = $dim - 1; $z >= 0; $z--) {
-            if (my $t = $matrix->[$x]->[$y]->[$z]) {
-               $p2->[$blk] = $t;
-            }
-            $blk++;
-         }
-      }
+      push @collection, $p;
+   }
 
-      $blk = 0;
-      for (my $z = $dim - 1; $z >= 0; $z--) {
-         for (my $x = $dim - 1; $x >= 0; $x--) {
-            if (my $t = $matrix->[$x]->[$y]->[$z]) {
-               $p3->[$blk] = $t;
-            }
-            $blk++;
-         }
+   my @str_coll;
+   for my $pat (@collection) {
+      my @pat;
+      for (my $i = 0; $i < $dim ** 3; $i++) {
+         push @pat, $i + 1, $pat->[$i] if $pat->[$i] ne '';
       }
+      push @str_coll, join ",", $dim, @pat;
+   }
 
-      $blk = 0;
-      for (my $x = $dim - 1; $x >= 0; $x--) {
-         for (my $z = 0; $z < $dim; $z++) {
-            if (my $t = $matrix->[$x]->[$y]->[$z]) {
-               $p4->[$blk] = $t;
-            }
-            $blk++;
-         }
+   warn "Patterns: " . join ("\n", @str_coll) . "\n";
+
+   for my $o (values %{$self->{object_res}}) {
+      warn "SEARCH $o->{model_str} <=> @str_coll\n";
+      if (grep { $o->{model_str} eq $_ } @str_coll) {
+         warn "Found Model $o->{model_str}! => $o->{type}\n";
+         return $o;
       }
    }
 
-   warn "P1: @$p1\n";
-   warn "P2: @$p2\n";
-   warn "P3: @$p3\n";
-   warn "P4: @$p4\n";
+   undef
 }
 
 sub lerp {
@@ -459,6 +473,25 @@ sub get_type_materialize_values {
    warn "materialize($type): $time / $energy / $score\n";
 
    ($time, $energy, $score)
+}
+
+sub get_type_construct_values {
+   my ($self, $type) = @_;
+
+   my $obj       = $self->get_object_by_type ($type);
+   my $bal       = $self->{world_gen}->{balancing};
+   my $max_score = $bal->{max_construction_score};
+
+   my $type_dim_fact = $obj->{model}->[0] + 1;
+   my $max_fact      = 4 * (100/100);
+
+   my $cplx = ($obj->{complexity} / 100) * $type_dim_fact;
+
+   my $score = $max_score * ($cplx / $max_fact);
+   # round up score to a nice value:
+   $score = int (($score / 10) + 0.5) * 10;
+
+   ($score)
 }
 
 sub score2happyness {

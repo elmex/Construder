@@ -605,8 +605,13 @@ sub interact {
          my $a = Games::Construder::World::get_pattern (@$pos);
          if ($a) {
             warn "FOUND PATTERN @$a\n";
-            my $o = $Games::Construder::Server::RES->get_type_by_pattern ($a);
+            my $o = $Games::Construder::Server::RES->get_object_by_pattern ($a);
             if ($o) {
+               my $score = $Games::Construder::Server::RES->get_type_construct_values ($o->{type});
+               if ($self->increase_inventory ($o->{type})) {
+                  $self->push_tick_change (score => $score);
+               }
+
                warn "FOUND TYPE: $o\n";
             }
          } else {

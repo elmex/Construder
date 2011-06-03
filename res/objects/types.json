@@ -95,7 +95,7 @@
       "type" : 19,
       "texture" : ["cat2.png", 448, 128, 64, 64],
       "lore" : "It's just dirt.",
-      "bio_energy" : 5,
+      "bio_energy" : 4,
       "complexity" : 10,
       "density" : 10,
       "natural" : 1,
@@ -265,7 +265,7 @@
    },
    "EPM" : {
       "type" : 43,
-      "model" : [2, [1, 10], [5, 10]],
+      "model" : [2, 1, 10, 2, 30, 5, 10],
       "complexity" : 35,
       "density" : 17,
       "lore" : "This is an EPM Device, which lets you destroy any drones within 6 blocks.",
@@ -292,25 +292,27 @@
       "type" : 60,
       "texture" : ["cat2.png", 320, 128, 64, 64],
       "lore" : "Your only source for nutrition. Lucky you have a generator handy that generates it for you.",
-      "bio_energy" : 35,
+      "bio_energy" : 36,
       "complexity" : 55,
       "density" : 7,
+      "model" : [1, 1, 61],
    },
    "Moss" : {
       "type" : 61,
       "texture" : ["cat2.png", 384, 128, 64, 64],
       "lore" : "Moss, the main problem of this century. Much stuff is overgrown by moss. You can convert it to proteins.",
-      "bio_energy" : 12,
+      "bio_energy" : 16,
       "complexity" : 15,
       "density" : 6,
       "natural" : 1,
+      "model" : [2, 1, 19, 2, 19, 3, 19, 4, 19],
    },
 
-   "gravity_pusher" : {
-      "type" : 90,
-      # dimensions work by counting the lower plane, then walk up Y
-      "model" : [2, [1, 10], [2, 10], [3, 11], [4, 12]],
-      "lore" : "Some advanced tech, that pushes you from the floor",
-      "untransformable" : true
-   },
+   #"gravity_pusher" : {
+   #   "type" : 90,
+   #   # dimensions work by counting the lower plane, then walk up Y
+   #   "model" : [2, 1, 10, 2, 10, 3, 11, 4, 12],
+   #   "lore" : "Some advanced tech, that pushes you from the floor",
+   #   "untransformable" : true
+   #},
 }
