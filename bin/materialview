@@ -17,8 +17,27 @@ if ($flag) {
    (@keys) = grep { $data->{$_}->{$flag} } @keys;
 }
 
+
+sub _score_try1 {
+   my ($cplx, $dens) = @_;
+
+   my $max_score = 1000;
+   $dens /= 100;
+   $cplx /= 100;
+   #$dens = 1 if $dens > 0.3 && $cplx > 0.5;
+   $cplx = $cplx ** 1.5;
+   my $score = int ($max_score * $cplx);
+   my $diff = $max_score - $score;
+   my $l = $diff * ($dens * (1 - ($diff / $max_score)));
+   $score += $l;
+   $score = int (($score / 10) + 0.5) * 10;
+   $score
+}
+
 for my $name (@keys) {
    my $o = $data->{$name};
-   printf "%-20s (%2d): %2d %2d\n",
-      $name, $o->{type}, $o->{complexity}, $o->{density};
+
+   my $score = _score_try1 ($o->{complexity}, $o->{density});
+   printf "%-20s (%2d): %2d %2d (score %4d)\n",
+      $name, $o->{type}, $o->{complexity}, $o->{density}, $score;
 }

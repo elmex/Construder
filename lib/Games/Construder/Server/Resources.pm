@@ -297,6 +297,29 @@ sub get_type_dematerialize_values {
    ($time, $energy)
 }
 
+sub _cplx_dens_2_score {
+   my ($self, $cplx, $dens) = @_;
+
+   my $bal       = $self->{world_gen}->{balancing};
+   my $max_score = $bal->{max_materialize_score};
+
+   $cplx = $cplx ** 1.5; # exponential spread of complexity
+
+   # complexity determines majority of score
+   my $score = int ($max_score * $cplx);
+   my $diff = $max_score - $score;
+
+   # rest of score difference is determined by the density
+   # the higher the difference is, the more the density is taken into account
+   my $rem = $diff * ($dens * (1 - ($diff / $max_score)));
+   $score += $rem;
+
+   # round up score to a nice value:
+   $score = int (($score / 10) + 0.5) * 10;
+
+   $score
+}
+
 sub get_type_materialize_values {
    my ($self, $type) = @_;
 
@@ -325,13 +348,9 @@ sub get_type_materialize_values {
 
    $energy = int ($energy + 0.5);
 
-   my $score = int (
-      (($max_score * 2) / 3) * $dens + ($max_score / 3) * $cplx
-   );
+   my $score = $self->_cplx_dens_2_score ($cplx, $dens);
 
-   $score = int (($score / 10) + 0.5) * 10;
-
-   warn "materialize($type): $time / $energy / score\n";
+   warn "materialize($type): $time / $energy / $score\n";
 
    ($time, $energy, $score)
 }
