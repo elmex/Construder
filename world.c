@@ -26,6 +26,7 @@ typedef struct _ctr_obj_attr {
   double uv[4];
   unsigned short transparent : 1;
   unsigned short blocking    : 1;
+  unsigned short has_txt     : 1;
   unsigned short model       : 1;
   unsigned int   model_dim   : 3;
   unsigned int   model_blocks[MAX_MODEL_SIZE];
@@ -158,11 +159,13 @@ ctr_obj_attr *ctr_world_get_attr (unsigned int type)
 
 void ctr_world_set_object_type (
         unsigned int type, unsigned int transparent, unsigned int blocking,
+        unsigned int has_txt,
         double uv0, double uv1, double uv2, double uv3)
 {
   ctr_obj_attr *oa = ctr_world_get_attr (type);
   oa->transparent = transparent;
   oa->blocking    = blocking;
+  oa->has_txt     = has_txt;
   oa->uv[0]       = uv0;
   oa->uv[1]       = uv1;
   oa->uv[2]       = uv2;

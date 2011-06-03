@@ -404,13 +404,13 @@ ctr_render_add_face (unsigned int face, unsigned int type, double light,
 }
 
 void
-ctr_render_model (unsigned int type, double light, double xo, double yo, double zo, void *chnk)
+ctr_render_model (unsigned int type, double light, double xo, double yo, double zo, void *chnk, int skip, int force_model)
 {
   ctr_obj_attr *oa = ctr_world_get_attr (type);
   unsigned int dim = oa->model_dim;
   unsigned int *blocks = &(oa->model_blocks[0]);
 
-  if (!oa->model)
+  if (!oa->model || (oa->has_txt && !force_model))
     {
       blocks = &type;
       dim = 1;
@@ -420,6 +420,7 @@ ctr_render_model (unsigned int type, double light, double xo, double yo, double 
   unsigned int blk_offs = 0;
   double scale = (double) 1 / (double) (dim > 0 ? dim : 1);
 
+  int drawn = 0;
  //d//  printf ("RENDER MODEL START %d %f %f %f\n", dim, xo, yo, zo);
   for (y = 0; y < dim; y++)
     for (z = 0; z < dim; z++)
@@ -443,8 +444,13 @@ ctr_render_model (unsigned int type, double light, double xo, double yo, double 
               x, y, z, scale,
               xo, yo, zo,
               chnk);
+          drawn++;
+          if (skip >= 0 && drawn >= skip)
+            goto end;
           blk_offs++;
         }
+  end:
+    return;
 }
 
 double ctr_cell_light (ctr_cell *c)
@@ -485,10 +491,10 @@ ctr_render_chunk (int x, int y, int z, void *geom)
             continue;
 
           ctr_obj_attr *oa = ctr_world_get_attr (cur->type);
-          if (oa->model)
+          if (!oa->has_txt)
             {
               ctr_render_model (
-                cur->type, ctr_cell_light (cur), dx, dy, dz, geom);
+                cur->type, ctr_cell_light (cur), dx, dy, dz, geom, -1, 0);
               continue;
             }
 

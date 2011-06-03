@@ -147,8 +147,9 @@ sub load_object {
    print "Set object type $obj->{type}\n";
    Games::Construder::World::set_object_type (
       $obj->{type},
-      ($obj->{type} == 0 || defined $obj->{model} ? 1 : 0),
+      ($obj->{type} == 0 || (!$obj->{texture}  && defined $obj->{model} ? 1 : 0)),
       $obj->{type} != 0,
+      $obj->{texture},
       0,0,0,0 # uv coors dont care!
    );
 
@@ -211,7 +212,7 @@ sub loaded_objects : event_cb {
    my ($self) = @_;
 
    Games::Construder::World::set_object_type (
-      0, 1, 0, 0,
+      0, 1, 0, 0, 0,
       0, 0, 0
    );
 

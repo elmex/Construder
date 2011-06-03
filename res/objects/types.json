@@ -293,7 +293,7 @@
       "texture" : ["cat2.png", 320, 128, 64, 64],
       "lore" : "Your only source for nutrition. Lucky you have a generator handy that generates it for you.",
       "bio_energy" : 36,
-      "complexity" : 55,
+      "complexity" : 35,
       "density" : 7,
       "model" : [1, 1, 61],
    },

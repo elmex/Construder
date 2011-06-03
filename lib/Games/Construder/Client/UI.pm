@@ -71,6 +71,7 @@ sub new {
 sub animation_step {
    my ($self) = @_;
    $self->{anim_state} = not $self->{anim_state};
+   $self->{anim_step}++;
    if (@{$self->{active_elements}}) {
       $self->update;
    }
@@ -379,7 +380,7 @@ sub draw_element {
       $self->draw_text ($offs, $attr->{layout}, $attr->{color});
 
    } elsif ($type eq 'model') {
-      push @{$self->{models}}, [$offs, $attr->{size}, $childs[0]];
+      push @{$self->{models}}, [$offs, $attr->{size}, $childs[0], $attr->{animated}];
    }
 }
 
@@ -512,21 +513,29 @@ sub _get_texfmt {
 our %MODEL_CACHE;
 
 sub render_object_type_sample {
-   my ($type) = @_;
+   my ($type, $skip) = @_;
 
    my ($txtid) = $RES->obj2texture (1);
    glBindTexture (GL_TEXTURE_2D, $txtid);
+
+   if ($skip >= 0) {
+      $skip++;
+      my $geom = Games::Construder::Renderer::new_geom ();
+      Games::Construder::Renderer::model ($type, 1, 0, 0, 0, $geom, $skip, 1);
+      Games::Construder::Renderer::draw_geom ($geom);
+      Games::Construder::Renderer::free_geom ($geom);
+      return;
+   }
 
    if (my $g = $MODEL_CACHE{$type}) {
       Games::Construder::Renderer::draw_geom ($g);
 
    } else {
       my $geom = $MODEL_CACHE{$type} = Games::Construder::Renderer::new_geom ();
-      Games::Construder::Renderer::model ($type, 1, 0, 0, 0, $geom);
+      Games::Construder::Renderer::model ($type, 1, 0, 0, 0, $geom, -1, 0);
       Games::Construder::Renderer::draw_geom ($geom);
    }
 }
-
 
 sub render_view {
    my ($self) = @_;
@@ -593,7 +602,8 @@ sub display {
    glEnd ();
 
    for (@{$self->{models}}) {
-      my ($pos, $size, $model) = @$_;
+      my ($pos, $size, $model, $anim) = @$_;
+
       glPushMatrix;
       my ($w, $h) = ($size->[0] * 0.65, $size->[1] * 0.65);
       glTranslatef ($pos->[0] + ($h * 0.05), $pos->[1] + ($h * 1.2), 1);
@@ -602,7 +612,12 @@ sub display {
       glRotatef (25, 1, 0, 0);
       glRotatef (45, 0, 1, 0);
 
-      render_object_type_sample ($_->[2]);
+      if ($anim) {
+         my $model_blocks = $RES->type_model_blocks ($_->[2]);
+         render_object_type_sample ($_->[2], $self->{anim_step} % $model_blocks);
+      } else {
+         render_object_type_sample ($_->[2], -1);
+      }
       glPopMatrix;
    }
 

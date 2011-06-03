@@ -1019,7 +1019,7 @@ sub show_inventory {
                   [select_box => {
                      dir => "vert", align => "center", arg => "item", tag => $_,
                      padding => 2,
-                     bgcolor => "#333333",
+                     bgcolor => "#111111",
                      border => { color => "#555555", width => 2 },
                      select_border => { color => "#ffffff", width => 2 },
                      aspect => 1

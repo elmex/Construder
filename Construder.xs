@@ -193,10 +193,10 @@ void ctr_render_chunk (int x, int y, int z, void *geom)
     ctr_render_chunk (x, y, z, geom);
 
 void
-ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int yo, unsigned int zo, void *geom)
+ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int yo, unsigned int zo, void *geom, int skip, int force_model)
   CODE:
      ctr_render_clear_geom (geom);
-     ctr_render_model (type, light, xo, yo, zo, geom);
+     ctr_render_model (type, light, xo, yo, zo, geom, skip, force_model);
      ctr_render_compile_geom (geom);
 
 void ctr_render_init ();
@@ -273,7 +273,7 @@ int ctr_world_is_solid_at (double x, double y, double z)
   OUTPUT:
     RETVAL
 
-void ctr_world_set_object_type (unsigned int type, unsigned int transparent, unsigned int blocking, double uv0, double uv1, double uv2, double uv3);
+void ctr_world_set_object_type (unsigned int type, unsigned int transparent, unsigned int blocking, unsigned int has_txt, double uv0, double uv1, double uv2, double uv3);
 
 void ctr_world_set_object_model (unsigned int type, unsigned int dim, AV *blocks);
 
