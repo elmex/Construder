@@ -576,9 +576,14 @@ sub update_slots {
 }
 
 sub _range_color {
-   my ($perc) = @_;
-     $perc <= 30 ? "#ff5555"
-   : $perc <= 60 ? "#ffff55"
+   my ($perc, $low_ok) = @_;
+   my ($first, $second) = (
+      int (($low_ok / 2) / 10) * 10,
+      $low_ok
+   );
+
+     $perc < $first  ? "#ff5555"
+   : $perc < $second ? "#ffff55"
    : "#55ff55"
 }
 
@@ -622,12 +627,12 @@ sub update_hud_1 {
            ]
         ],
         [box => { },
-           [text => { align => "right", font => "big", color => _range_color ($self->{data}->{happyness}), max_chars => 4 },
+           [text => { align => "right", font => "big", color => _range_color ($self->{data}->{happyness}, 90), max_chars => 4 },
               sprintf ("%d%%", $self->{data}->{happyness})],
            [text => { align => "center", color => "#888888" }, "happy"],
         ],
         [box => { },
-           [text => { align => "right", font => "big", color => _range_color ($self->{data}->{bio}), max_chars => 4 },
+           [text => { align => "right", font => "big", color => _range_color ($self->{data}->{bio}, 60), max_chars => 4 },
               sprintf ("%d%%", $self->{data}->{bio})],
            [text => { align => "center", color => "#888888" }, "bio"],
         ],

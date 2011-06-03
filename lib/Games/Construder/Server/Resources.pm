@@ -291,6 +291,7 @@ sub get_type_dematerialize_values {
    }
 
    $energy = int ($energy + 0.5);
+   $energy = 1 if $energy < 1;
 
    warn "dematerialize($type): $time / $energy\n";
 
@@ -349,6 +350,9 @@ sub get_type_materialize_values {
    $energy = int ($energy + 0.5);
 
    my $score = $self->_cplx_dens_2_score ($cplx, $dens);
+
+   $energy = 1    if $energy < 1;
+   $time   = 0.05 if $time < 0.05;;
 
    warn "materialize($type): $time / $energy / $score\n";
 

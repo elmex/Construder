@@ -7,4 +7,4 @@ src_dst 1 0
    src_blend 1
    spheres 2 0.2
 
-#show_range_sector_type B3 2
+#show_range_sector_type B3 4

@@ -2,8 +2,8 @@
    "balancing" : {
       "max_dematerialize_time" : 30,         # 30 seconds
       "max_dematerialize_bio"  : 33.3,       # 33.3% bio => should be less
-      "max_materialize_time"   : 5,          # 5 seconds
-      "max_materialize_bio"    : 5,          # 5% bio
+      "max_materialize_time"   : 6,          # 6 seconds
+      "max_materialize_bio"    : 10,         # 10% bio
       "max_materialize_score"  : 1000,
       "score_per_happyness"    : 20,         # 20 score points are 1 happyness
       "max_inventory_space_per_type" : 40,   # max cnt of item in inv => should be much higher!
