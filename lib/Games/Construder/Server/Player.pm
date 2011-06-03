@@ -1137,6 +1137,7 @@ sub do_materialize {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
          $data->[0] = $type;
+         $data->[3] = 0x2;
          $self->push_tick_change (score => $score);
          delete $self->{materializings}->{$id};
          undef $tmr;

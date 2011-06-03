@@ -30,6 +30,29 @@ double quad_vert[8][3] = {
   { 1, 0, 1 },
 };
 
+double clr_map[16][3] = {
+   { 1,   1,   1   },
+   { 0.6, 0.6, 0.6 },
+   { 0.3, 0.3, 0.3 },
+
+   { 0,   0,   1   },
+   { 0,   1,   0   },
+   { 1,   0,   0   },
+
+   { 0.3, 0.3, 1   },
+   { 0.3, 1,   0.3 },
+   { 0.3, 1,   1   },
+   { 1,   0.3, 1   },
+   { 1,   1,   0.3 },
+
+   { 0.6, 0.6, 1   },
+   { 0.6, 1,   0.6 },
+   { 0.6, 1,   1   },
+   { 1,   0.6, 1   },
+   { 1,   1,   0.6 },
+
+};
+
 // On intel i965:
 //    USE_VBO = 1  USE_TRIANGLES = 0  => ok, but renderer a bit slow at glDrawElements
 //    USE_VBO = 1  USE_TRIANGLES = 1  => fast updates, but sometimes reallocation
@@ -287,7 +310,7 @@ void ctr_render_draw_geom (void *c)
 }
 
 void
-ctr_render_add_face (unsigned int face, unsigned int type, double light,
+ctr_render_add_face (unsigned int face, unsigned int type, unsigned short color, double light,
                      double xoffs, double yoffs, double zoffs,
                      double scale,
                      double xsoffs, double ysoffs, double zsoffs,
@@ -372,8 +395,12 @@ ctr_render_add_face (unsigned int face, unsigned int type, double light,
 #endif
 
 #if !USE_SINGLE_BUFFER
-  for (h = 0; h < VERT_P_PRIM * 3; h++)
-    geom->colors[geom->colors_len++] = light;
+  for (h = 0; h < VERT_P_PRIM; h++)
+    {
+      geom->colors[geom->colors_len++] = clr_map[(color & 0xF)][0] * light;
+      geom->colors[geom->colors_len++] = clr_map[(color & 0xF)][1] * light;
+      geom->colors[geom->colors_len++] = clr_map[(color & 0xF)][2] * light;
+    }
 #endif
 
 #if !USE_SINGLE_BUFFER
@@ -440,7 +467,7 @@ ctr_render_model (unsigned int type, double light, double xo, double yo, double 
           int face;
           for (face = 0; face < 6; face++)
             ctr_render_add_face (
-              face, blktype, light,
+              face, blktype, 0, light,
               x, y, z, scale,
               xo, yo, zo,
               chnk);
@@ -502,27 +529,33 @@ ctr_render_chunk (int x, int y, int z, void *geom)
 
           if (ctr_world_cell_transparent (front))
             ctr_render_add_face (
-              0, cur->type, ctr_cell_light (front), dx, dy, dz, 1, 0, 0, 0, geom);
+              0, cur->type, cur->add & 0x0F, ctr_cell_light (front),
+              dx, dy, dz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (top))
             ctr_render_add_face (
-              1, cur->type, ctr_cell_light (top), dx, dy, dz, 1, 0, 0, 0, geom);
+              1, cur->type, cur->add & 0x0F, ctr_cell_light (top),
+              dx, dy, dz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (back))
             ctr_render_add_face (
-              2, cur->type, ctr_cell_light (back), dx, dy, dz, 1, 0, 0, 0, geom);
+              2, cur->type, cur->add & 0x0F, ctr_cell_light (back),
+              dx, dy, dz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (left))
             ctr_render_add_face (
-              3, cur->type, ctr_cell_light (left), dx, dy, dz, 1, 0, 0, 0, geom);
+              3, cur->type, cur->add & 0x0F, ctr_cell_light (left),
+              dx, dy, dz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (right))
             ctr_render_add_face (
-              4, cur->type, ctr_cell_light (right), dx, dy, dz, 1, 0, 0, 0, geom);
+              4, cur->type, cur->add & 0x0F, ctr_cell_light (right),
+              dx, dy, dz, 1, 0, 0, 0, geom);
 
           if (ctr_world_cell_transparent (bot))
             ctr_render_add_face (
-              5, cur->type, ctr_cell_light (bot), dx, dy, dz, 1, 0, 0, 0, geom);
+              5, cur->type, cur->add & 0x0F, ctr_cell_light (bot),
+              dx, dy, dz, 1, 0, 0, 0, geom);
         }
 
   ctr_render_compile_geom (geom);
