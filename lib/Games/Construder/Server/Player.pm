@@ -171,16 +171,13 @@ sub player_tick {
          }
 
       } elsif ($k eq 'score') {
-         if ($self->{data}->{happyness} < 90) {
-            my $diff = 100 - $self->{data}->{happyness};
-            $diff = 10 if $diff < 10;
-            my $happy = ($diff / 100) * $a;
-            $self->{data}->{happyness} += int ($happy + 0.5);
+         my $happy = $Games::Construder::Server::RES->score2happyness ($a);
+         $self->{data}->{happyness} += int ($happy + 0.5);
 
-            if ($self->{data}->{happyness} > 100) {
-               $a = int ($self->{data}->{happyness} - 100);
-               $self->{data}->{happyness} = 100;
-            }
+         if ($self->{data}->{happyness} < 90) {
+            $a = 0;
+         } elsif ($self->{data}->{happyness} > 100) {
+            $self->{data}->{happyness} = 100;
          }
 
          if ($a) {

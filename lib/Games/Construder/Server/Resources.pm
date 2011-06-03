@@ -354,6 +354,18 @@ sub get_type_materialize_values {
 
    ($time, $energy, $score)
 }
+
+sub score2happyness {
+   my ($self, $score) = @_;
+   my $bal     = $self->{world_gen}->{balancing};
+   my $s_per_h = $bal->{score_per_happyness};
+
+   my $s = $score / $s_per_h;
+
+   $s
+}
+
+
 =back
 
 =head1 AUTHOR
