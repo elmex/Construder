@@ -178,7 +178,7 @@ sub player_tick {
             $self->{data}->{happyness} += int ($happy + 0.5);
 
             if ($self->{data}->{happyness} > 100) {
-               $a = $self->{data}->{happyness} - 100;
+               $a = int ($self->{data}->{happyness} - 100);
                $self->{data}->{happyness} = 100;
             }
          }
@@ -186,7 +186,6 @@ sub player_tick {
          if ($a) {
             $self->update_score ($a);
             $self->{data}->{score} += $a;
-            # FIXME: score is fractionAL!?! at leas tthe added stuff?!
             $self->{data}->{score} = int $self->{data}->{score};
          }
       }
@@ -198,7 +197,7 @@ sub player_tick {
       $self->{logic}->{bio_rate} = 5;
 
    } elsif ($self->{data}->{happyness} > 0) {
-      $self->{logic}->{bio_rate} = 0;
+      $self->{logic}->{bio_rate} = 0.03;
    }
 
    $self->{data}->{bio} -= $dt * $logic->{bio_rate};
@@ -241,11 +240,14 @@ sub starvation {
 }
 
 sub increase_inventory {
-   my ($self, $type) = @_;
+   my ($self, $type, $cnt) = @_;
+
+   $cnt ||= 1;
 
    my ($spc, $max) = $self->inventory_space_for ($type);
    if ($spc > 0) {
-      $self->{data}->{inv}->{$type}++;
+      $cnt = $spc if $spc < $cnt;
+      $self->{data}->{inv}->{$type} += $cnt;
 
       if ($self->{shown_uis}->{player_inv}) {
          $self->show_inventory; # update if neccesary
@@ -263,13 +265,6 @@ sub decrease_inventory {
 
    my $cnt = $self->{data}->{inv}->{$type}--;
    if ($self->{data}->{inv}->{$type} <= 0) {
-      my $sel = $self->{data}->{slots}->{selection};
-      for (my $i = 0; $i < 10; $i++) {
-         if ($sel->[$i] == $type) {
-            $sel->[$i] = undef;
-         }
-      }
-
       delete $self->{data}->{inv}->{$type};
    }
 
@@ -550,8 +545,8 @@ sub update_slots {
       [box => { dir => "vert", padding => 2, border => { color => $border }, aspect => 1 },
          [box => { padding => 2, align => "center" },
            [model => { color => "#00ff00", width => 40 }, $cur]],
-         [text => { font => "small", color => "#999999", align => "center" },
-          sprintf ("[%d] ", $i + 1) . ($cur ? "$inv->{$cur}/$max" : "/")]
+         [text => { font => "small", color => $cur && $inv->{$cur} <= 0 ? "#990000" : "#999999", align => "center" },
+          sprintf ("[%d] %d/%d", $i + 1, $inv->{$cur} * 1, $cur ? $max : 0)]
       ]];
    }
 
@@ -581,6 +576,13 @@ sub update_slots {
          $self->update_slots;
       }
    });
+}
+
+sub _range_color {
+   my ($perc) = @_;
+     $perc <= 30 ? "#ff5555"
+   : $perc <= 60 ? "#ffff55"
+   : "#55ff55"
 }
 
 sub update_hud_1 {
@@ -623,12 +625,12 @@ sub update_hud_1 {
            ]
         ],
         [box => { },
-           [text => { align => "right", font => "big", color => "#ffff55", max_chars => 4 },
+           [text => { align => "right", font => "big", color => _range_color ($self->{data}->{happyness}), max_chars => 4 },
               sprintf ("%d%%", $self->{data}->{happyness})],
            [text => { align => "center", color => "#888888" }, "happy"],
         ],
         [box => { },
-           [text => { align => "right", font => "big", color => "#55ff55", max_chars => 4 },
+           [text => { align => "right", font => "big", color => _range_color ($self->{data}->{bio}), max_chars => 4 },
               sprintf ("%d%%", $self->{data}->{bio})],
            [text => { align => "center", color => "#888888" }, "bio"],
         ],
@@ -638,6 +640,7 @@ sub update_hud_1 {
             f1 => "help",
             i  => "inventory",
             n  => "sector_finder",
+            c  => "cheat",
             f9 => "teleport_home",
             f12 => "exit_server",
          },
@@ -648,6 +651,8 @@ sub update_hud_1 {
          $self->show_inventory;
       } elsif ($cmd eq 'sector_finder') {
          $self->show_sector_finder;
+      } elsif ($cmd eq 'cheat') {
+         $self->show_cheat_dialog;
       } elsif ($cmd eq 'help') {
          $self->show_help;
       } elsif ($cmd eq 'teleport_home') {
@@ -688,10 +693,46 @@ sub show_inventory_selection {
             $i = $1 - 1;
          }
          $self->{data}->{slots}->{selection}->[$i] = $type;
+         $self->{data}->{slots}->{selected} = $i;
          $self->update_slots;
          $self->display_ui ('player_inv_sel');
       }
    });
+}
+
+sub show_cheat_dialog {
+   my ($self) = @_;
+
+   $self->display_ui (player_cheat => {
+      window => { pos => [center => 'center'], },
+      layout => [
+         box => { dir => "vert", padding => 25 },
+         [text => { align => 'center', font => 'big', color => "#00ff00" }, "Cheat"],
+         [text => { align => 'center', font => 'normal', color => "#00ff00", wrap => 40 },
+                  "What material do you want to max out in your inventory? Be careful, your score will be reset to 0!"],
+         [box => {  dir => "hor" },
+            [text => { font => 'normal', color => "#ffffff" }, "Material Type:"],
+            [entry => { font => 'normal', color => "#ffffff", arg => "type",
+                        highlight => ["#111111", "#333333"], max_chars => 9 },
+             ""],
+         ]
+      ],
+      commands => {
+         default_keys => {
+            return => "cheat",
+         },
+      },
+   }, sub {
+      if ($_[1] eq 'cheat') {
+         my $t = $_[2]->{type};
+         my ($spc, $max) = $self->inventory_space_for ($_[2]->{type});
+         $self->{data}->{score} = 0;
+         $self->update_score;
+         $self->increase_inventory ($t, $spc);
+         $self->display_ui ('player_cheat');
+      }
+   });
+
 }
 
 sub show_navigator {
