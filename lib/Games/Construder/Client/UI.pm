@@ -667,12 +667,13 @@ sub input_key_press : event_cb {
          };
 
          if ($self->{active_element}->[0] eq 'select_box') {
-               warn "SELE $self->{active_element}->[1]->{arg} ||\n";
             $arg->{$self->{active_element}->[1]->{arg}} =
                $self->{active_element}->[1]->{tag};
          }
       }
-      $self->{command_cb}->($cmd, $arg) if $self->{command_cb};
+
+      $self->{command_cb}->($cmd, $arg, $self->{commands}->{need_selected_boxes})
+         if $self->{command_cb};
       $$rhandled = $cmd eq 'cancel' ? 2 : 1;
    }
 }

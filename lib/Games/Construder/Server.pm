@@ -180,7 +180,9 @@ sub handle_player_packet : event_cb {
    my ($self, $player, $hdr, $body) = @_;
 
    if ($hdr->{cmd} eq 'ui_response') {
-      $player->ui_res ($hdr->{ui}, $hdr->{ui_command}, $hdr->{arg});
+      warn "UIRESPONSE @{$hdr->{pos}}\n";
+      $player->ui_res ($hdr->{ui}, $hdr->{ui_command}, $hdr->{arg},
+                       [$hdr->{pos}, $hdr->{build_pos}]);
 
    } elsif ($hdr->{cmd} eq 'player_pos') {
       $CHNK->check_adjacent_sectors_at ($hdr->{pos});

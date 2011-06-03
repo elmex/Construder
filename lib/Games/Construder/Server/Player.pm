@@ -260,9 +260,16 @@ sub increase_inventory {
 sub decrease_inventory {
    my ($self, $type) = @_;
 
-   my $cnt = $self->{data}->{inv}->{$type}--;
-   if ($self->{data}->{inv}->{$type} <= 0) {
-      delete $self->{data}->{inv}->{$type};
+   my $cnt = 0;
+
+   if ($type eq 'all') {
+      $self->{data}->{inv} = {};
+
+   } else {
+      $cnt = $self->{data}->{inv}->{$type}--;
+      if ($self->{data}->{inv}->{$type} <= 0) {
+         delete $self->{data}->{inv}->{$type};
+      }
    }
 
    if ($self->{shown_uis}->{player_inv}) {
@@ -323,10 +330,12 @@ sub refill_bio {
 sub kill_player {
    my ($self) = @_;
    $self->teleport ([0, 0, 0]);
+   $self->decrease_inventory ('all');
    $self->{data}->{happyness} = 100;
    $self->{data}->{bio}       = 100;
    $self->{data}->{score}    -=
       int ($self->{data}->{score} * (20 / 100)); # 20% score loss
+
 }
 
 sub show_bio_warning {
@@ -587,6 +596,28 @@ sub _range_color {
    : "#55ff55"
 }
 
+sub interact {
+   my ($self, $pos) = @_;
+   warn "INTERACT: @$pos\n";
+   world_mutate_at ($pos, sub {
+      my ($data) = @_;
+      if ($data->[0] == 36) {
+         my $a = Games::Construder::World::get_pattern (@$pos);
+         if ($a) {
+            warn "FOUND PATTERN @$a\n";
+            my $o = $Games::Construder::Server::RES->get_type_by_pattern ($a);
+            if ($o) {
+               warn "FOUND TYPE: $o\n";
+            }
+         } else {
+            warn "no properly constructed floor found!\n";
+         }
+      }
+      print "position [@$pos]: @$data\n";
+      return 0;
+   });
+}
+
 sub update_hud_1 {
    my ($self) = @_;
 
@@ -638,17 +669,21 @@ sub update_hud_1 {
         ],
       ],
       commands => {
+         need_selected_boxes => 1,
          default_keys => {
             f1 => "help",
             i  => "inventory",
             n  => "sector_finder",
             c  => "cheat",
+            e  => "interact",
             f9 => "teleport_home",
             f12 => "exit_server",
          },
       },
    }, sub {
-      my $cmd = $_[1];
+      my ($ui, $cmd, $arg, $pos) = @_;
+      warn "CMD $pos | $arg\n";
+
       if ($cmd eq 'inventory') {
          $self->show_inventory;
       } elsif ($cmd eq 'sector_finder') {
@@ -659,6 +694,8 @@ sub update_hud_1 {
          $self->show_help;
       } elsif ($cmd eq 'teleport_home') {
          $self->teleport ([0, 0, 0]);
+      } elsif ($cmd eq 'interact') {
+         $self->interact ($pos->[0]);
       } elsif ($cmd eq 'exit_server') {
          exit;
       }
@@ -1251,11 +1288,11 @@ sub display_ui {
 }
 
 sub ui_res : event_cb {
-   my ($self, $ui, $cmd, $arg) = @_;
-   warn "ui response $ui: $cmd ($arg)\n";
+   my ($self, $ui, $cmd, $arg, $pos) = @_;
+   warn "ui response $ui: $cmd ($arg) (@$pos)\n";
 
    if (my $u = $self->{displayed_uis}->{$ui}) {
-      $u->($ui, $cmd, $arg);
+      $u->($ui, $cmd, $arg, $pos);
    }
 
    if ($cmd eq 'cancel') {

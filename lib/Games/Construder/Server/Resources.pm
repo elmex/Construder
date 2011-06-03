@@ -243,6 +243,108 @@ sub get_sector_desc_for_region_value {
    return ();
 }
 
+sub get_type_by_pattern {
+   my ($self, $pattern) = @_;
+   my ($dim, @a) = @$pattern;
+   my @pat;
+   while (@a) {
+      my ($nr, $type) = (shift @a, shift @a);
+      $pat[$nr] = $type;
+   }
+# z 0-3 * x 0-3
+#   x 0 1 2 3
+# z
+# 0   X Y
+# 1       Z
+# 2         L
+# 3   A
+
+# x 0-3 * z 3-0
+#   x 0 1 2 3
+# z
+# 0       L
+# 1     Z
+# 2   Y
+# 3   X     A
+
+# z 3-0 * x 3-0
+#   x 0 1 2 3
+# z
+# 0         A
+# 1   L
+# 2     Z
+# 3       Y X
+
+# x 3-0 * z 3-0
+#   x 0 1 2 3
+# z
+# 0   A     X
+# 1         Y
+# 2       Z
+# 3     L
+   my $matrix = [];
+   my $blk = 1;
+   for (my $y = 0; $y < $dim; $y++) {
+      for (my $z = 0; $z < $dim; $z++) {
+         for (my $x = 0; $x < $dim; $x++) {
+            $matrix->[$x]->[$y]->[$z] = $pat[$blk];
+            $blk++;
+         }
+      }
+   }
+
+   my @collection;
+   my ($p1, $p2, $p3, $p4) = ([], [], [], []);
+   push @collection, $p1, $p2, $p3, $p4;
+   my $blk = 0;
+   for (my $y = 0; $y < $dim; $y++) {
+      $blk = 0;
+      for (my $z = 0; $z < $dim; $z++) {
+         for (my $x = 0; $x < $dim; $x++) {
+            if (my $t = $matrix->[$x]->[$y]->[$z]) {
+               $p1->[$blk] = $t;
+            }
+            $blk++;
+         }
+      }
+
+      $blk = 0;
+      for (my $x = 0; $x < $dim; $x++) {
+         for (my $z = $dim - 1; $z >= 0; $z--) {
+            if (my $t = $matrix->[$x]->[$y]->[$z]) {
+               $p2->[$blk] = $t;
+            }
+            $blk++;
+         }
+      }
+
+      $blk = 0;
+      for (my $z = $dim - 1; $z >= 0; $z--) {
+         for (my $x = $dim - 1; $x >= 0; $x--) {
+            if (my $t = $matrix->[$x]->[$y]->[$z]) {
+               $p3->[$blk] = $t;
+            }
+            $blk++;
+         }
+      }
+
+      $blk = 0;
+      for (my $x = $dim - 1; $x >= 0; $x--) {
+         for (my $z = 0; $z < $dim; $z++) {
+            if (my $t = $matrix->[$x]->[$y]->[$z]) {
+               $p4->[$blk] = $t;
+            }
+            $blk++;
+         }
+      }
+   }
+
+   warn "P1: @$p1\n";
+   warn "P2: @$p2\n";
+   warn "P3: @$p3\n";
+   warn "P4: @$p4\n";
+}
+
 sub lerp {
    my ($a, $b, $x) = @_;
    $a * (1 - $x) + $b * $x

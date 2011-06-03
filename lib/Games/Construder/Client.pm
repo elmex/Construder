@@ -183,10 +183,15 @@ sub handle_packet : event_cb {
    } elsif ($hdr->{cmd} eq 'activate_ui') {
       my $desc = $hdr->{desc};
       $desc->{command_cb} = sub {
-         my ($cmd, $arg) = @_;
+         my ($cmd, $arg, $need_selection) = @_;
+
          $self->send_server ({
             cmd => 'ui_response' =>
-               ui => $hdr->{ui}, ui_command => $cmd, arg => $arg
+               ui => $hdr->{ui}, ui_command => $cmd, arg => $arg,
+               ($need_selection
+                  ? (pos => $self->{front}->{selected_box},
+                     build_pos => $self->{front}->{selected_build_box})
+                  : ())
          });
       };
       $self->{front}->activate_ui ($hdr->{ui}, $desc);

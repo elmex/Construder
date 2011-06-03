@@ -415,6 +415,164 @@ void ctr_world_query_setup (int x, int y, int z, int ex, int ey, int ez);
 
 int ctr_world_query_desetup (int no_update = 0);
 
+AV *ctr_world_get_pattern (int x, int y, int z)
+  CODE:
+    vec3_init (pos, x, y, z);
+    vec3_s_div (pos, CHUNK_SIZE);
+    vec3_floor (pos);
+    int chnk_x = pos[0],
+        chnk_y = pos[1],
+        chnk_z = pos[2];
+
+    ctr_world_query_setup (
+      chnk_x - 1, chnk_y - 1, chnk_z - 1,
+      chnk_x + 1, chnk_y + 1, chnk_z + 1
+    );
+
+    ctr_world_query_load_chunks ();
+
+    RETVAL = newAV ();
+    sv_2mortal ((SV *)RETVAL);
+
+    // calc relative size inside chunks:
+    int c = (CHUNK_SIZE * 3) / 2;
+    int cx = (x - chnk_x * CHUNK_SIZE) + CHUNK_SIZE;
+    int cy = (y - chnk_y * CHUNK_SIZE) + CHUNK_SIZE;
+    int cz = (z - chnk_z * CHUNK_SIZE) + CHUNK_SIZE;
+
+    printf ("QUERY AT %d %d %d\n", cx, cy, cz);
+
+    // find lowest cx/cz coord with constr. floor
+    ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 0);
+    while (cur->type == 36)
+      {
+        cx--;
+        printf ("CX %d\n", cx);
+        cur = ctr_world_query_cell_at (cx, cy, cz, 0);
+      }
+
+    cx++;
+    cur = ctr_world_query_cell_at (cx, cy, cz, 0);
+    while (cur->type == 36)
+      {
+        cz--;
+        printf ("CZ %d\n", cz);
+        cur = ctr_world_query_cell_at (cx, cy, cz, 0);
+      }
+    cz++;
+
+    printf ("MINX FOUND %d %d\n", cx, cz);
+
+    // find out how large the floor is
+    int dim;
+    for (dim = 4; dim >= 1; dim--)
+      {
+        int no_floor = 0;
+
+        int dx, dz;
+        for (dx = 0; dx < dim; dx++)
+          for (dz = 0; dz < dim; dz++)
+            {
+              ctr_cell *cur = ctr_world_query_cell_at (cx + dx, cy, cz + dz, 0);
+              printf ("TXT[%d] %d %d %d: %d\n", dim, cx + dx, cy, cz + dz, cur->type);
+              if (cur->type != 36)
+                no_floor = 1;
+            }
+        if (!no_floor)
+          break;
+      }
+
+    if (dim <= 0)
+      {
+        ctr_world_query_desetup (1);
+        XSRETURN_UNDEF;
+      }
+
+    printf ("floor dimension: %d\n", dim);
+    // next: search first x/z coord with a block over it
+    int min_x = 100, min_y = 100, min_z = 100, max_x = 0, max_y = 0, max_z = 0;
+    int dx, dy, dz;
+    int fnd = 0;
+    for (dy = 1; dy <= dim; dy++)
+      for (dz = 0; dz < dim; dz++)
+        for (dx = 0; dx < dim; dx++)
+          {
+            int ix = dx + cx,
+                iy = dy + cy,
+                iz = dz + cz;
+            cur = ctr_world_query_cell_at (ix, iy, iz, 0);
+            if (cur->type != 0)
+              {
+                if (min_x > ix) min_x = ix;
+                if (min_y > iy) min_y = iy;
+                if (min_z > iz) min_z = iz;
+              }
+          }
+
+    for (dy = 1; dy <= dim; dy++)
+      for (dz = 0; dz < dim; dz++)
+        for (dx = 0; dx < dim; dx++)
+          {
+            int ix = dx + cx,
+                iy = dy + cy,
+                iz = dz + cz;
+            cur = ctr_world_query_cell_at (ix, iy, iz, 0);
+            if (cur->type != 0)
+              {
+                if (max_x < ix) max_x = ix;
+                if (max_y < iy) max_y = iy;
+                if (max_z < iz) max_z = iz;
+              }
+          }
+
+    dim = 0;
+    if (((max_x - min_x) + 1) > dim)
+      dim = (max_x - min_x) + 1;
+    if (((max_y - min_y) + 1) > dim)
+      dim = (max_y - min_y) + 1;
+    if (((max_z - min_z) + 1) > dim)
+      dim = (max_z - min_z) + 1;
+
+    printf ("FOUND MIN MAX %d %d %d, %d %d %d, dimension: %d\n", min_x, min_y, min_z, max_x, max_y, max_z, dim);
+
+    av_push (RETVAL, newSViv (dim));
+
+    int blk_nr = 1;
+    for (dy = 0; dy < dim; dy++)
+      for (dz = 0; dz < dim; dz++)
+        for (dx = 0; dx < dim; dx++)
+          {
+            int ix = min_x + dx,
+                iy = min_y + dy,
+                iz = min_z + dz;
+
+            printf ("SEARCHING %d %d %d %d\n", ix, iy, iz, blk_nr);
+
+            // outside construction pad:
+            if (ix > max_x || iy > max_y || iz > max_z)
+              {
+                printf ("skip\n");
+                blk_nr++; // but is just empty space of pattern
+                continue;
+              }
+
+            cur = ctr_world_query_cell_at (ix, iy, iz, 0);
+            if (cur->type != 0)
+              {
+                printf ("type: %d\n", cur->type);
+                av_push (RETVAL, newSViv (blk_nr));
+                av_push (RETVAL, newSViv (cur->type));
+              }
+
+            blk_nr++;
+          }
+
+    ctr_world_query_desetup (1);
+
+  OUTPUT:
+    RETVAL
+
+
 #define DEBUG_LIGHT 0
 void ctr_world_flow_light_at (int rx, int ry, int rz)
   CODE:
