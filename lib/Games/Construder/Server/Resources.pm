@@ -256,6 +256,7 @@ sub get_type_inventory_space {
    my $min_carry = $bal->{min_inventory_space_per_type};
 
    my $obj = $self->get_object_by_type ($type);
+   $obj or return 0;
 
    my $dens = $obj->{density} / 100;
 
@@ -272,6 +273,7 @@ sub get_type_dematerialize_values {
    my $max_energy = $bal->{max_dematerialize_bio};
 
    my $obj = $self->get_object_by_type ($type);
+   $obj or return (1, 1);
 
    my $cplx = $obj->{complexity} / 100;
    my $dens = $obj->{density} / 100;
@@ -304,6 +306,7 @@ sub get_type_materialize_values {
    my $max_score  = $bal->{max_materialize_score};
 
    my $obj = $self->get_object_by_type ($type);
+   $obj or return (1, 1, 0);
 
    my $cplx = $obj->{complexity} / 100;
    my $dens = $obj->{density} / 100;
