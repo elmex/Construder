@@ -238,6 +238,12 @@ sub starvation {
    }
 }
 
+sub has_inventory_space {
+   my ($self, $type, $cnt) = @_;
+   my ($spc, $max) = $self->inventory_space_for ($type);
+   $spc >= $cnt
+}
+
 sub increase_inventory {
    my ($self, $type, $cnt) = @_;
 
@@ -584,6 +590,16 @@ sub interact {
       print "interact position [@$pos]: @$data\n";
       Games::Construder::Server::Objects::interact ($self, $data->[0], $pos);
       return 0;
+   });
+}
+
+sub highlight {
+   my ($self, $pos, $time, $color) = @_;
+   $self->send_client ({
+      cmd   => "highlight",
+      pos   => $pos,
+      color => $color,
+      fade  => -$time
    });
 }
 
@@ -1090,12 +1106,7 @@ sub do_materialize {
 
    my $id = world_pos2id ($pos);
 
-   $self->send_client ({
-      cmd   => "highlight",
-      pos   => $pos,
-      color => [0, 1, 0],
-      fade  => $time
-   });
+   $self->highlight ($pos, $time, [0, 1, 0]);
 
    $self->push_tick_change (bio => -$energy);
 
@@ -1173,12 +1184,7 @@ sub do_dematerialize {
    my ($self, $pos, $type, $time, $energy) = @_;
 
    my $id = world_pos2id ($pos);
-   $self->send_client ({
-      cmd   => "highlight",
-      pos   => $pos,
-      color => [1, 0, 0],
-      fade  => -$time
-   });
+   $self->highlight ($pos, $time, [1, 0, 0]);
 
    $self->push_tick_change (bio => -$energy);
 
@@ -1215,8 +1221,7 @@ sub start_dematerialize {
       }
       warn "DEMAT $type\n";
 
-      my ($spc, $max) = $self->inventory_space_for ($type);
-      unless ($spc > 0) {
+      unless ($self->has_inventory_space ($type)) {
          $self->msg (1, "Inventory full, no space for $obj->{name} available!");
          return;
       }

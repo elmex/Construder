@@ -482,6 +482,7 @@ sub get_type_construct_values {
    my $obj       = $self->get_object_by_type ($type);
    my $bal       = $self->{world_gen}->{balancing};
    my $max_score = $bal->{max_construction_score};
+   my $max_time  = $bal->{max_construction_clear_time};
 
    my $type_dim_fact = $obj->{model}->[0] + 1;
    my $max_fact      = 4 * (100/100);
@@ -492,7 +493,7 @@ sub get_type_construct_values {
    # round up score to a nice value:
    $score = int (($score / 10) + 0.5) * 10;
 
-   ($score)
+   ($score, $max_time * ($obj->{complexity} / 100))
 }
 
 sub score2happyness {

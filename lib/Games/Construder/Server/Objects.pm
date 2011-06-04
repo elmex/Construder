@@ -40,22 +40,17 @@ sub ia_construction_pad {
    if ($a) {
       my $obj = $Games::Construder::Server::RES->get_object_by_pattern ($a);
       if ($obj) {
-         my $score = $Games::Construder::Server::RES->get_type_construct_values ($obj->{type});
+         my ($score, $time) =
+            $Games::Construder::Server::RES->get_type_construct_values ($obj->{type});
 
-         if ($PL->increase_inventory ($obj->{type})) {
-            $PL->push_tick_change (score => $score);
+         if ($PL->has_inventory_space ($obj->{type})) {
             my $a = Games::Construder::World::get_pattern (@$POS, 1);
+
             my @poses;
             while (@$a) {
                my $pos = [shift @$a, shift @$a, shift @$a];
                push @poses, $pos;
-               warn "HL POS @$pos\n";
-               $PL->send_client ({
-                  cmd   => "highlight",
-                  pos   => $pos,
-                  color => [0, 0, 1],
-                  fade  => -1
-               });
+               $PL->highlight ($pos, $time, [0, 0, 1]);
             }
 
             world_mutate_at (\@poses, sub {
@@ -65,16 +60,22 @@ sub ia_construction_pad {
             }, no_light => 1);
 
             my $tmr;
-            $tmr = AE::timer 1, 0, sub {
+            $tmr = AE::timer $time, 0, sub {
                world_mutate_at (\@poses, sub {
                   my ($data) = @_;
                   $data->[0] = 0;
                   1
                });
+
+               if ($PL->increase_inventory ($obj->{type})) {
+                  $PL->push_tick_change (score => $score);
+                  $PL->msg (0, "Added one $obj->{name} to your inventory.");
+               } else {
+                  $PL->msg (1, "The created $obj->{name} does not fit into your inventory!");
+               }
+
                undef $tmr;
             };
-
-            $PL->msg ("Added a $obj->{name} to your inventory.");
 
          } else {
             $PL->msg (1, "The created $obj->{name} would not fit into your inventory!");
