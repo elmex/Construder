@@ -34,7 +34,7 @@ Games::Construder::Server::World - desc
 our $CHNK_SIZE = 12;
 our $CHNKS_P_SEC = 5;
 
-our $REGION_SEED = 469392432;
+our $REGION_SEED = 42;
 our $REGION_SIZE = 100; # 100x100x100 sections
 our $REGION;
 

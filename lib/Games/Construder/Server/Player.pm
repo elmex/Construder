@@ -129,9 +129,6 @@ sub init {
    $self->save;
    my $wself = $self;
    weaken $wself;
-   $self->{hud1_tmr} = AE::timer 0, 1, sub {
-      $wself->update_hud_1;
-   };
    my $tick_time = time;
    $self->{tick_timer} = AE::timer 0.25, 0.25, sub {
       my $cur = time;
@@ -145,6 +142,7 @@ sub init {
    $self->new_ui (msgbox      => "Games::Construder::Server::UI::MsgBox");
    $self->new_ui (score       => "Games::Construder::Server::UI::Score");
    $self->new_ui (slots       => "Games::Construder::Server::UI::Slots");
+   $self->new_ui (status      => "Games::Construder::Server::UI::Status");
 
    $self->update_score;
    $self->{uis}->{slots}->show;
@@ -485,18 +483,6 @@ sub update_score {
 
 # TODO: Continue here with UI rewrite:
 
-sub _range_color {
-   my ($perc, $low_ok) = @_;
-   my ($first, $second) = (
-      int (($low_ok / 2) / 10) * 10,
-      $low_ok
-   );
-
-     $perc < $first  ? "#ff5555"
-   : $perc < $second ? "#ffff55"
-   : "#55ff55"
-}
-
 sub interact {
    my ($self, $pos) = @_;
    warn "INTERACT: @$pos\n";
@@ -517,93 +503,6 @@ sub highlight {
       color => $color,
       fade  => -$time
    });
-}
-
-sub update_hud_1 {
-   my ($self) = @_;
-
-   #R# my $abs_pos  = vfloor ($self->{data}->{pos});
-   #R# my $chnk_pos = world_pos2chnkpos ($self->{data}->{pos});
-   #R# my $sec_pos  = world_chnkpos2secpos ($chnk_pos);
-
-   #R# my $sinfo = $Games::Construder::Server::CHNK->sector_info (@$chnk_pos);
-
-   #R# $self->display_ui (player_hud_1 => {
-   #R#    window => {
-   #R#       sticky => 1,
-   #R#       pos => [right => 'up'],
-   #R#       alpha => 0.8,
-   #R#    },
-   #R#    layout => [
-   #R#      box => { dir => "vert" },
-   #R#      [
-   #R#         box => { dir => "hor" },
-   #R#         [box => { dir => "vert", padding => 2 },
-   #R#            [text => { color => "#888888", font => "small" }, "Pos"],
-   #R#            [text => { color => "#888888", font => "small" }, "Look"],
-   #R#            [text => { color => "#888888", font => "small" }, "Chunk"],
-   #R#            [text => { color => "#888888", font => "small" }, "Sector"],
-   #R#            [text => { color => "#888888", font => "small" }, "Type"],
-   #R#         ],
-   #R#         [box => { dir => "vert", padding => 2 },
-   #R#            [text => { color => "#ffffff", font => "small" },
-   #R#               sprintf ("%3d,%3d,%3d", @$abs_pos)],
-   #R#            [text => { color => "#ffffff", font => "small" },
-   #R#               sprintf ("%3d,%3d,%3d", @{vsmul ($self->{data}->{look_vec}, 10)})],
-   #R#            [text => { color => "#ffffff", font => "small" },
-   #R#               sprintf ("%3d,%3d,%3d", @$chnk_pos)],
-   #R#            [text => { color => "#ffffff", font => "small" },
-   #R#               sprintf ("%3d,%3d,%3d", @$sec_pos)],
-   #R#            [text => { color => "#ffffff", font => "small" },
-   #R#               sprintf ("%s, %0.5f", $sinfo->{type}, $sinfo->{param})],
-   #R#         ]
-   #R#      ],
-   #R#      [box => { },
-   #R#         [text => { align => "right", font => "big", color => _range_color ($self->{data}->{happyness}, 90), max_chars => 4 },
-   #R#            sprintf ("%d%%", $self->{data}->{happyness})],
-   #R#         [text => { align => "center", color => "#888888" }, "happy"],
-   #R#      ],
-   #R#      [box => { },
-   #R#         [text => { align => "right", font => "big", color => _range_color ($self->{data}->{bio}, 60), max_chars => 4 },
-   #R#            sprintf ("%d%%", $self->{data}->{bio})],
-   #R#         [text => { align => "center", color => "#888888" }, "bio"],
-   #R#      ],
-   #R#    ],
-   #R#    commands => {
-   #R#       need_selected_boxes => 1,
-   #R#       default_keys => {
-   #R#          f1 => "help",
-   #R#          i  => "inventory",
-   #R#          n  => "sector_finder",
-   #R#          c  => "cheat",
-   #R#          t  => "location_book",
-   #R#          e  => "interact",
-   #R#          f9 => "teleport_home",
-   #R#          f12 => "exit_server",
-   #R#       },
-   #R#    },
-   #R# }, sub {
-   #R#    my ($ui, $cmd, $arg, $pos) = @_;
-   #R#    warn "CMD $pos | $arg\n";
-
-   #R#    if ($cmd eq 'inventory') {
-   #R#       $self->show_inventory;
-   #R#    } elsif ($cmd eq 'location_book') {
-   #R#       $self->show_location_book;
-   #R#    } elsif ($cmd eq 'sector_finder') {
-   #R#       $self->show_sector_finder;
-   #R#    } elsif ($cmd eq 'cheat') {
-   #R#       $self->show_cheat_dialog;
-   #R#    } elsif ($cmd eq 'help') {
-   #R#       $self->show_help;
-   #R#    } elsif ($cmd eq 'teleport_home') {
-   #R#       $self->teleport ([0, 0, 0]);
-   #R#    } elsif ($cmd eq 'interact') {
-   #R#       $self->interact ($pos->[0]);
-   #R#    } elsif ($cmd eq 'exit_server') {
-   #R#       exit;
-   #R#    }
-   #R# });
 }
 
 sub show_inventory_selection {

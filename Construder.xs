@@ -912,7 +912,7 @@ void *region_new_from_vol_draw_dst ()
 
 unsigned int region_get_sector_seed (int x, int y, int z)
   CODE:
-    RETVAL = map_coord2int (x, y, z, 0);
+    RETVAL = map_coord2int (x, y, z);
   OUTPUT:
     RETVAL
 

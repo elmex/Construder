@@ -20,7 +20,7 @@ unsigned int hash32int (unsigned int i)
   return i;
 }
 
-unsigned int map_coord2int (unsigned int x, unsigned int y, unsigned int z, unsigned int seed)
+unsigned int map_coord2int (unsigned int x, unsigned int y, unsigned int z)
 {
   unsigned long out = 0;
   unsigned int i = 0;
@@ -36,10 +36,8 @@ unsigned int map_coord2int (unsigned int x, unsigned int y, unsigned int z, unsi
       y >>= 1;
       z >>= 1;
     }
-  if (seed)
-    return hash32int (hash32int (out) + seed);
-  else
-    return hash32int (out);
+
+  return hash32int (out);
 }
 
 #define NOISE_ARR_OFFS(slen,x,y,z) (1 + (x) + (y) * slen + (z) * (slen * slen))
@@ -47,6 +45,8 @@ unsigned int map_coord2int (unsigned int x, unsigned int y, unsigned int z, unsi
 void *mk_3d_noise (unsigned int slen, unsigned int seed)
 {
    int x, y, z;
+
+   seed = hash32int (seed);
 
    slen++; // sample one more at the edge
 

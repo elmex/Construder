@@ -31,7 +31,12 @@ sub new {
 
    weaken $self->{pl};
 
+   $self->init;
+
    return $self
+}
+
+sub init {
 }
 
 sub layout {
@@ -39,9 +44,8 @@ sub layout {
    die "subclass responsibility\n";
 }
 
-sub commands {
+sub commands { # subclasses should overwrite this
    my ($self) = @_;
-   die "subclass responsibility";
    # key => cmd name
    ()
 }
@@ -55,11 +59,13 @@ sub show {
    my ($self, @args) = @_;
    my $lyout = $self->layout (@args);
    $lyout->{commands}->{default_keys} = { $self->commands };
+   if ($self->{cmd_need_select_boxes}) {
+      $lyout->{commands}->{need_selected_boxes} = 1;
+   }
    $self->{pl}->display_ui ($self->{ui_name} => $lyout);
 }
 
-sub handle_command {
-   die "subclass responsibility\n";
+sub handle_command { # subclasses should overwrite this
 }
 
 sub react {
@@ -229,6 +235,125 @@ sub layout {
       },
       layout => [
          box => { }, @slots
+      ],
+   }
+}
+
+package Games::Construder::Server::UI::Status;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub init {
+   my ($self) = @_;
+
+   my $wself = $self;
+   weaken $wself;
+   $self->{tmr} = AE::timer 0, 1, sub {
+      $wself->show;
+   };
+}
+
+sub commands {
+   my ($self) = @_;
+   $self->{cmd_need_select_boxes} = 1;
+
+   (
+      f1  => "help",
+      f9  => "teleport_home",
+      f12 => "exit_server",
+      i   => "inventory",
+      n   => "sector_finder",
+      c   => "cheat",
+      t   => "location_book",
+      e   => "interact",
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg, $pos) = @_;
+
+   my $pl = $self->{pl};
+
+   if ($cmd eq 'inventory') {
+      $pl->show_inventory;
+   } elsif ($cmd eq 'location_book') {
+      $pl->show_location_book;
+   } elsif ($cmd eq 'sector_finder') {
+      $pl->show_sector_finder;
+   } elsif ($cmd eq 'cheat') {
+      $pl->show_cheat_dialog;
+   } elsif ($cmd eq 'help') {
+      $pl->show_help;
+   } elsif ($cmd eq 'teleport_home') {
+      $pl->teleport ([0, 0, 0]);
+   } elsif ($cmd eq 'interact') {
+      $pl->interact ($pos->[0]);
+   } elsif ($cmd eq 'exit_server') {
+      exit;
+   }
+}
+
+sub _range_color {
+   my ($perc, $low_ok) = @_;
+   my ($first, $second) = (
+      int (($low_ok / 2) / 10) * 10,
+      $low_ok
+   );
+
+     $perc < $first  ? "#ff5555"
+   : $perc < $second ? "#ffff55"
+   : "#55ff55"
+}
+
+sub layout {
+   my ($self) = @_;
+
+   my $abs_pos  = $self->{pl}->get_pos_normalized;
+   my $chnk_pos = $self->{pl}->get_pos_chnk;
+   my $sec_pos  = $self->{pl}->get_pos_sector;
+
+   my $sinfo = $Games::Construder::Server::CHNK->sector_info (@$chnk_pos);
+
+   {
+      window => {
+         sticky => 1,
+         pos => [right => 'up'],
+         alpha => 0.8,
+      },
+      layout => [
+        box => { dir => "vert" },
+        [
+           box => { dir => "hor" },
+           [box => { dir => "vert", padding => 2 },
+              [text => { color => "#888888", font => "small" }, "Pos"],
+              #d#[text => { color => "#888888", font => "small" }, "Look"],
+              [text => { color => "#888888", font => "small" }, "Chunk"],
+              [text => { color => "#888888", font => "small" }, "Sector"],
+              [text => { color => "#888888", font => "small" }, "Type"],
+           ],
+           [box => { dir => "vert", padding => 2 },
+              [text => { color => "#ffffff", font => "small" },
+                 sprintf ("%3d,%3d,%3d", @$abs_pos)],
+              #d#[text => { color => "#ffffff", font => "small" },
+              #d#   sprintf ("%3d,%3d,%3d", @{vsmul ($self->{data}->{look_vec}, 10)})],
+              [text => { color => "#ffffff", font => "small" },
+                 sprintf ("%3d,%3d,%3d", @$chnk_pos)],
+              [text => { color => "#ffffff", font => "small" },
+                 sprintf ("%3d,%3d,%3d", @$sec_pos)],
+              [text => { color => "#ffffff", font => "small" },
+                 sprintf ("%s, %0.5f", $sinfo->{type}, $sinfo->{param})],
+           ]
+        ],
+        [box => { },
+           [text => { align => "right", font => "big", color => _range_color ($self->{pl}->{data}->{happyness}, 90), max_chars => 4 },
+              sprintf ("%d%%", $self->{pl}->{data}->{happyness})],
+           [text => { align => "center", color => "#888888" }, "happy"],
+        ],
+        [box => { },
+           [text => { align => "right", font => "big", color => _range_color ($self->{pl}->{data}->{bio}, 60), max_chars => 4 },
+              sprintf ("%d%%", $self->{pl}->{data}->{bio})],
+           [text => { align => "center", color => "#888888" }, "bio"],
+        ],
       ],
    }
 }
