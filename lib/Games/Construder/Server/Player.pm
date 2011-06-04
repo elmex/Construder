@@ -141,6 +141,9 @@ sub init {
 
    $self->{logic}->{unhappy_rate} = 0.25; # 0.25% per second
 
+   $self->new_ui (bio_warning => "Games::Construder::Server::UI::BioWarning");
+   $self->new_ui (msgbox      => "Games::Construder::Server::UI::MsgBox");
+
    $self->update_score;
    $self->update_slots;
    $self->send_visible_chunks;
@@ -212,6 +215,8 @@ sub player_tick {
 sub starvation {
    my ($self, $starves) = @_;
 
+   my $bio_ui = $self->{uis}->{bio_warning};
+
    if ($starves) {
       unless ($self->{death_timer}) {
          my $cnt = 30;
@@ -219,16 +224,17 @@ sub starvation {
             if ($cnt-- <= 0) {
                $self->kill_player;
                delete $self->{death_timer};
-               $self->show_bio_warning (0);
+
+               $bio_ui->hide;
             } else {
-               $self->show_bio_warning ($cnt);
+               $bio_ui->show ($cnt);
             }
          };
       }
 
    } else {
       if (delete $self->{death_timer}) {
-         $self->show_bio_warning (0);
+         $bio_ui->hide;
       }
    }
 }
@@ -342,20 +348,10 @@ sub kill_player {
 
 }
 
-sub show_bio_warning {
-   my ($self, $enable) = @_;
-   unless ($enable) {
-      $self->display_ui ('player_bio_warning');
-      return;
-   }
-
-   $self->display_ui (player_bio_warning => ui_player_bio_warning ($enable));
-}
-
 sub logout {
    my ($self) = @_;
    $self->save;
-   delete $self->{displayed_uis};
+   delete $self->{uis};
    delete $self->{upd_score_hl_tmout};
    delete $self->{death_timer};
    warn "player $self->{name} logged out\n";
@@ -427,11 +423,21 @@ sub update_pos {
    }
 }
 
-# TODO:
-#  X light-setzen per maus
-#  X player inkrementell updates der welt schicken
-#  - modelle einbauen
-#  - objekte weiter eintragen
+sub get_pos_normalized {
+   my ($self) = @_;
+   vfloor ($self->{data}->{pos})
+}
+
+sub get_pos_chnk {
+   my ($self) = @_;
+   world_pos2chnkpos ($self->{data}->{pos})
+}
+
+sub get_pos_sector {
+   my ($self) = @_;
+   world_chnkpos2secpos (world_pos2chnkpos ($self->{data}->{pos}))
+}
+
 sub chunk_updated {
    my ($self, $chnk) = @_;
 
@@ -467,37 +473,15 @@ sub send_chunk {
 
 sub msg {
    my ($self, $error, $msg) = @_;
-
-   $self->display_ui (player_msg => {
-      window => {
-         pos => [center => "center", 0, 0.25],
-         alpha => 0.6,
-      },
-      layout => [
-         text => { font => "big", color => $error ? "#ff0000" : "#ffffff", wrap => 20 },
-         $msg
-      ]
-   });
-
-   $self->{msg_tout} = AE::timer (($error ? 3 : 1), 0, sub {
-      $self->display_ui ('player_msg');
-      delete $self->{msg_tout};
-   });
+   $self->{uis}->{msgbox}->show ($error, $msg);
 }
 
 sub update_score {
    my ($self, $hl) = @_;
-
-   my $s = $self->{data}->{score};
-
-   $self->display_ui (player_score => ui_player_score ($s, $hl));
-   if ($hl) {
-      $self->{upd_score_hl_tmout} = AE::timer 1.5, 0, sub {
-         $self->update_score;
-         delete $self->{upd_score_hl_tmout};
-      };
-   }
+   $self->{uis}->{score}->show ($hl);
 }
+
+# TODO: Continue here with UI rewrite:
 
 sub update_slots {
    my ($self) = @_;
@@ -646,6 +630,7 @@ sub update_hud_1 {
             i  => "inventory",
             n  => "sector_finder",
             c  => "cheat",
+            t  => "location_book",
             e  => "interact",
             f9 => "teleport_home",
             f12 => "exit_server",
@@ -657,6 +642,8 @@ sub update_hud_1 {
 
       if ($cmd eq 'inventory') {
          $self->show_inventory;
+      } elsif ($cmd eq 'location_book') {
+         $self->show_location_book;
       } elsif ($cmd eq 'sector_finder') {
          $self->show_sector_finder;
       } elsif ($cmd eq 'cheat') {
@@ -743,6 +730,17 @@ sub show_cheat_dialog {
       }
    });
 
+}
+
+sub show_location_book {
+   my ($self) = @_;
+
+   ui_player_location_book ($pl, sub {
+      map { [$_, $self->{data}->{tags}] } 0..9
+   }, sub {
+      my ($slot, $name) = @_;
+      $self->{data}->{tags}->[$slot] = $name, $chnk_pos, $sec_pos;
+   });
 }
 
 sub show_navigator {
@@ -1238,32 +1236,41 @@ sub teleport {
    $self->send_client ({ cmd => "place_player", pos => $pos });
 }
 
+sub new_ui {
+   my ($self, $id, $class) = @_;
+   my $o = $class->new (ui_name => $id, pl => $self);
+   $self->{uis}->{$id} = $o;
+}
+
+sub delete_ui {
+   my ($self, $id) = @_;
+   delete $self->{uis}->{$id};
+}
+
 sub display_ui {
-   my ($self, $id, $dest, $cb) = @_;
+   my ($self, $id, $dest) = @_;
+
+   my $o = $self->{uis}->{$id};
 
    unless ($dest) {
       $self->send_client ({ cmd => deactivate_ui => ui => $id });
-      delete $self->{displayed_uis}->{$id};
-      delete $self->{shown_uis}->{$id};
+      delete $o->{shown};
       return;
    }
 
-   $self->{displayed_uis}->{$id} = $cb if $cb;
    $self->send_client ({ cmd => activate_ui => ui => $id, desc => $dest });
-   $self->{shown_uis}->{$id}++;
+   $o->{shown} = 1;
 }
 
 sub ui_res : event_cb {
    my ($self, $ui, $cmd, $arg, $pos) = @_;
    warn "ui response $ui: $cmd ($arg) (@$pos)\n";
 
-   if (my $u = $self->{displayed_uis}->{$ui}) {
-      $u->($ui, $cmd, $arg, $pos);
-   }
+   if (my $o = $self->{uis}->{$id}) {
+      $o->react ($cmd, $arg, $pos);
 
-   if ($cmd eq 'cancel') {
-      delete $self->{shown_uis}->{$ui};
-      delete $self->{displayed_uis}->{$ui};
+      delete $o->{shown}
+         if $cmd eq 'cancel';
    }
 }
 
