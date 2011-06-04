@@ -36,23 +36,14 @@ sub new {
 
 sub layout {
    my ($self, @args) = @_;
-}
-
-sub reg_cmd {
-   my ($self, $key, $cb) = @_;
-   my $n = $self->{ui_name} . '_' . $key;
-   $self->{cmds}->{$key} = $n;
-   $self->{cbs}->{$n} = $cb;
+   die "subclass responsibility\n";
 }
 
 sub commands {
    my ($self) = @_;
-   my $cmdname = 1;
-   {
-      map {
-         $_ => $self->{cmds}->{$_}
-      } keys %{%self->{cmds}}
-   }
+   die "subclass responsibility";
+   # key => cmd name
+   ()
 }
 
 sub update {
@@ -63,18 +54,19 @@ sub update {
 sub show {
    my ($self, @args) = @_;
    my $lyout = $self->layout (@args);
-   $lyout->{commands}->{default_keys} = $self->commands;
-
+   $lyout->{commands}->{default_keys} = { $self->commands };
    $self->{pl}->display_ui ($self->{ui_name} => $lyout);
+}
+
+sub handle_command {
+   die "subclass responsibility\n";
 }
 
 sub react {
    my ($self, $cmd, $arg, $pos) = @_;
    return unless $self->{shown};
 
-   my $cb = $self->{cbs}->{$cmd}
-      or return;
-   $cb->($arg, $pos);
+   $self->handle_command ($cmd, $arg, $pos);
 }
 
 sub hide {
@@ -179,21 +171,83 @@ sub layout {
    }
 }
 
-sub ui_player_location_book {
-   my ($pl, $fetch, $set) = @_;
+package Games::Construder::Server::UI::Slots;
 
-   $pl->displayed_uis (location_book => {
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   (
+      map {
+         $_ => "slot_" . ($_ == 0 ? 9 : $_ - 1)
+      } 0..9
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg, $pos) = @_;
+
+   warn "CMD @_\n";
+
+   if ($cmd =~ /slot_(\d+)/) {
+      $self->{pl}->{data}->{slots}->{selected} = $1;
+      $self->show;
+   }
+}
+
+sub layout {
+   my ($self) = @_;
+
+   my $slots = $self->{pl}->{data}->{slots};
+   my $inv   = $self->{pl}->{data}->{inv};
+
+   my @slots;
+   for (my $i = 0; $i < 10; $i++) {
+      my $cur = $slots->{selection}->[$i];
+
+      my $border = "#0000ff";
+      if ($i == $slots->{selected}) {
+         $border = "#ff0000";
+      }
+
+      my $o = $Games::Construder::Server::RES->get_object_by_type ($cur);
+      my ($spc, $max) = $self->{pl}->inventory_space_for ($cur);
+
+      push @slots,
+      [box => { padding => 2, aspect => 1 },
+      [box => { dir => "vert", padding => 2, border => { color => $border }, aspect => 1 },
+         [box => { padding => 2, align => "center" },
+           [model => { color => "#00ff00", width => 40 }, $cur]],
+         [text => { font => "small", color => $cur && $inv->{$cur} <= 0 ? "#990000" : "#999999", align => "center" },
+          sprintf ("[%d] %d/%d", $i + 1, $inv->{$cur} * 1, $cur ? $max : 0)]
+      ]];
+   }
+
+   {
       window => {
+         sticky => 1,
+         pos    => [left => "down"],
       },
       layout => [
+         box => { }, @slots
       ],
-      commands => {
-         default_keys => {
-            return => "set"
-         }
-      }
-   });
+   }
 }
+
+#R# sub ui_player_location_book {
+#R#    my ($pl, $fetch, $set) = @_;
+#R# 
+#R#    $pl->displayed_uis (location_book => {
+#R#       window => {
+#R#       },
+#R#       layout => [
+#R#       ],
+#R#       commands => {
+#R#          default_keys => {
+#R#             return => "set"
+#R#          }
+#R#       }
+#R#    });
+#R# }
 
 =back
 
