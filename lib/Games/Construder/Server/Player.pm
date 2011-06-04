@@ -240,6 +240,7 @@ sub starvation {
 
 sub has_inventory_space {
    my ($self, $type, $cnt) = @_;
+   $cnt ||= 1;
    my ($spc, $max) = $self->inventory_space_for ($type);
    $spc >= $cnt
 }

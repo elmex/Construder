@@ -134,24 +134,32 @@ sub layout_text {
    my $txt_w;
 
    if ($wrap) {
-      my ($max_w) = @{ SDL::TTF::size_utf8 ($font, "m" x $wrap) };
+      my @olines;
+      for (@lines) {
+         my @words = split /\s+/, $_;
+         my $line = "";
+         while (@words) {
+            if (length ($line) >= $wrap) {
+               push @olines, $line;
+               $line = "";
+            }
+            $line .= (shift @words) . " ";
+         }
+         if (length ($line)) {
+            push @olines, $line;
+         }
+      }
+      (@olines) = map { s/\s*$//; $_ } @olines;
+
+      my $max_w;
+      for (@olines) {
+         my ($w) = @{ SDL::TTF::size_utf8 ($font, $_) };
+         $max_w = $w if $max_w < $w;
+      }
       $txt_w = $max_w;
 
-      my @ilines = @lines;
-      (@lines) = ();
+      (@lines) = @olines;
 
-      while (@ilines) {
-         my $l = shift @ilines;
-         my ($w, $h) = @{ SDL::TTF::size_utf8 ($font, $l) };
-
-         while ($w > $max_w) {
-            # FIXME: this substr works on utf encoded strings, not unicode strings
-            #        it WILL destroy multibyte encoded characters!
-            $ilines[0] = (substr $l, -1, 1, '') . $ilines[0];
-            ($w) = @{ SDL::TTF::size_utf8 ($font, $l) };
-         }
-         push @lines, $l;
-      }
    } else {
       for my $l (@lines) {
          my ($w, $h) = @{ SDL::TTF::size_utf8 ($font, $l) };
