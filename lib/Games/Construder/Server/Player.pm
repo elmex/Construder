@@ -354,17 +354,7 @@ sub show_bio_warning {
       return;
    }
 
-   $self->display_ui (player_bio_warning => {
-      window => {
-         sticky => 1,
-         pos => [center => 'center', 0, -0.25],
-         alpha => 0.3,
-      },
-      layout => [
-         text => { font => "big", color => "#ff0000", wrap => 30 },
-          "Warning: Bio energy level low.\nDeath imminent, please dematerialize something with bio energy!\nYou have $enable seconds left!",
-      ]
-   });
+   $self->display_ui (player_bio_warning => ui_player_bio_warning ($enable));
 }
 
 sub logout {

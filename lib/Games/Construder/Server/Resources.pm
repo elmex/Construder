@@ -484,16 +484,18 @@ sub get_type_construct_values {
    my $max_score = $bal->{max_construction_score};
    my $max_time  = $bal->{max_construction_clear_time};
 
-   my $type_dim_fact = $obj->{model}->[0] + 1;
+   my $time = ($obj->{density} / 100) * $max_time;
+
    my $max_fact      = 4 * (100/100);
+   my $type_dim_fact = $obj->{model}->[0] + 1;
+   my $cplx          = ($obj->{complexity} / 100) * $type_dim_fact;
+   my $score         = $max_score * ($cplx / $max_fact);
 
-   my $cplx = ($obj->{complexity} / 100) * $type_dim_fact;
-
-   my $score = $max_score * ($cplx / $max_fact);
    # round up score to a nice value:
    $score = int (($score / 10) + 0.5) * 10;
+   $time  = 0.05 if $time < 0.05;;
 
-   ($score, $max_time * ($obj->{complexity} / 100))
+   ($score, $time)
 }
 
 sub score2happyness {

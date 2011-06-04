@@ -4,6 +4,7 @@ require Exporter;
 our @ISA = qw/Exporter/;
 our @EXPORT = qw/
    ui_player_score
+   ui_player_bio_warning
 /;
 
 =head1 NAME
@@ -43,6 +44,25 @@ sub ui_player_score {
             font  => "big",
             color => $hl ? "#ff0000" : "#aa8800",
           }, ($score . ($hl ? "+$hl" : ""))]
+      ]
+   }
+}
+
+sub ui_player_bio_warning {
+   my ($seconds) = @_;
+
+   {
+      window => {
+         sticky => 1,
+         pos    => [center => 'center', 0, -0.15],
+         alpha  => 0.3,
+      },
+      layout => [
+         box => { dir => "vert" },
+         [text => { font => "big", color => "#ff0000", wrap => 28, align => "center" },
+          "Warning: Bio energy level low! You have $seconds seconds left!\n"],
+         [text => { font => "normal", color => "#ff0000", wrap => 35, align => "center" },
+          "Death imminent, please dematerialize something that provides bio energy!"],
       ]
    }
 }
