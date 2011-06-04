@@ -87,7 +87,8 @@ sub world_pos2relchnkpos {
 
 sub world_load_at {
    my ($pos) = @_;
-   $Games::Construder::Server::CHNK->check_adjacent_sectors_at_chunk ($pos);
+   my ($chnk) = world_pos2chnkpos ($pos);
+   $Games::Construder::Server::CHNK->check_adjacent_sectors_at_chunk ($chnk);
 }
 
 sub world_load_at_chunk {
@@ -96,46 +97,52 @@ sub world_load_at_chunk {
 }
 
 sub world_mutate_at {
-   my ($pos, $cb, %arg) = @_;
+   my ($poses, $cb, %arg) = @_;
 
-   my ($chnk) = world_pos2chnkpos ($pos);
+   if (ref $poses->[0]) {
+      my $min = [];
+      my $max = [];
+      for (@$poses) {
+         world_load_at ($_); # blocks for now :-/
 
-   world_load_at_chunk ($chnk); # blocks for now :-/
-
-   Games::Construder::World::query_setup (
-      $chnk->[0],
-      $chnk->[1],
-      $chnk->[2],
-      $chnk->[0],
-      $chnk->[1],
-      $chnk->[2]
-   );
-   Games::Construder::World::query_load_chunks ();
-
-   my $b = Games::Construder::World::at (@$pos);
-   my $was_light = $b->[0] == 40;
-   print "MUTATING (@$b) (AT @$pos)\n";
-   if ($cb->($b)) {
-      my $relpos = vfloor (vsubd ($pos,
-         $chnk->[0] * $CHNK_SIZE,
-         $chnk->[1] * $CHNK_SIZE,
-         $chnk->[2] * $CHNK_SIZE));
-
-      print "MUTATING TO => (@$b) (AT @$pos)\n";
-      Games::Construder::World::query_set_at (@$relpos, $b);
-   }
-
-   if ($arg{no_light}) {
-      Games::Construder::World::query_desetup ();
+         $min->[0] = $_->[0] if !defined $min->[0] || $min->[0] > $_->[0];
+         $min->[1] = $_->[1] if !defined $min->[1] || $min->[1] > $_->[1];
+         $min->[2] = $_->[2] if !defined $min->[2] || $min->[2] > $_->[2];
+         $max->[0] = $_->[0] if !defined $max->[0] || $max->[0] < $_->[0];
+         $max->[1] = $_->[1] if !defined $max->[1] || $max->[1] < $_->[1];
+         $max->[2] = $_->[2] if !defined $max->[2] || $max->[2] < $_->[2];
+      }
+      warn "MUTL @$min | @$max\n";
+      Games::Construder::World::flow_light_query_setup (@$min, @$max);
 
    } else {
-      Games::Construder::World::query_desetup (1);
-      my $t1 = time;
-      Games::Construder::World::flow_light_at (@{vfloor ($pos)});
-      printf "light calc took: %f\n", time - $t1;
-      Games::Construder::World::query_desetup ();
+      world_load_at ($poses); # blocks for now :-/
+
+      Games::Construder::World::flow_light_query_setup (@$poses, @$poses);
+      $poses = [$poses];
    }
+
+   for my $pos (@$poses) {
+      my $b = Games::Construder::World::at (@$pos);
+      print "MULT MUTATING (@$b) (AT @$pos)\n";
+      if ($cb->($b)) {
+         print "MULT MUTATING TO => (@$b) (AT @$pos)\n";
+         Games::Construder::World::query_set_at_abs (@$pos, $b);
+         unless ($arg{no_light}) {
+            my $t1 = time;
+            Games::Construder::World::flow_light_at (@{vfloor ($pos)});
+            printf "mult light calc took: %f\n", time - $t1;
+         }
+      }
+   }
+
+   Games::Construder::World::query_desetup ();
 }
+
+# TODO: - finish multi-mutate
+#       - test light!
+#       - test construction patterns
+#       - pattern multiplizitaet => 1 pattern, mehrere output
 
 =back
 

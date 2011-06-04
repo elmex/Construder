@@ -3,6 +3,8 @@ use Devel::FindRef;
 use common::sense;
 use AnyEvent;
 use Games::Construder::Server::World;
+use Games::Construder::Server::UI;
+use Games::Construder::Server::Objects;
 use Games::Construder::Vector;
 use base qw/Object::Event/;
 use Scalar::Util qw/weaken/;
@@ -496,32 +498,9 @@ sub update_score {
 
    my $s = $self->{data}->{score};
 
-   $self->display_ui (player_score => {
-      window => {
-         sticky  => 1,
-         pos     => [center => "up"],
-         alpha   => $hl ? 1 : 0.6,
-      },
-      layout => [
-         box => {
-            border => { color => $hl ? "#ff0000" : "#777700" },
-            padding => ($hl ? 10 : 2),
-            align => "hor",
-         },
-         [text => {
-            font => "normal",
-            color => "#aa8800",
-            align => "center"
-          }, "Score:"],
-         [text => {
-             font => "big",
-             color => $hl ? "#ff0000" : "#aa8800",
-          },
-          ($s . ($hl ? "+$hl" : ""))]
-      ]
-   });
+   $self->display_ui (player_score => ui_player_score ($s, $hl));
    if ($hl) {
-      $self->{upd_score_hl_tmout} = AE::timer 1, 0, sub {
+      $self->{upd_score_hl_tmout} = AE::timer 1.5, 0, sub {
          $self->update_score;
          delete $self->{upd_score_hl_tmout};
       };
@@ -599,26 +578,11 @@ sub _range_color {
 sub interact {
    my ($self, $pos) = @_;
    warn "INTERACT: @$pos\n";
+
    world_mutate_at ($pos, sub {
       my ($data) = @_;
-      if ($data->[0] == 36) {
-         my $a = Games::Construder::World::get_pattern (@$pos);
-         if ($a) {
-            warn "FOUND PATTERN @$a\n";
-            my $o = $Games::Construder::Server::RES->get_object_by_pattern ($a);
-            if ($o) {
-               my $score = $Games::Construder::Server::RES->get_type_construct_values ($o->{type});
-               if ($self->increase_inventory ($o->{type})) {
-                  $self->push_tick_change (score => $score);
-               }
-
-               warn "FOUND TYPE: $o\n";
-            }
-         } else {
-            warn "no properly constructed floor found!\n";
-         }
-      }
-      print "position [@$pos]: @$data\n";
+      print "interact position [@$pos]: @$data\n";
+      Games::Construder::Server::Objects::interact ($self, $data->[0], $pos);
       return 0;
    });
 }
@@ -1113,6 +1077,10 @@ sub debug_at {
    world_mutate_at ($pos, sub {
       my ($data) = @_;
       print "position [@$pos]: @$data\n";
+      if ($data->[0] == 1) {
+         $data->[0] = 0;
+         return 1;
+      }
       return 0;
    });
 }
@@ -1125,7 +1093,7 @@ sub do_materialize {
    $self->send_client ({
       cmd   => "highlight",
       pos   => $pos,
-      color => [1, 0, 1],
+      color => [0, 1, 0],
       fade  => $time
    });
 
@@ -1137,7 +1105,7 @@ sub do_materialize {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
          $data->[0] = $type;
-         $data->[3] = 0x2;
+        #d# $data->[3] = 0x2;
          $self->push_tick_change (score => $score);
          delete $self->{materializings}->{$id};
          undef $tmr;
@@ -1208,7 +1176,7 @@ sub do_dematerialize {
    $self->send_client ({
       cmd   => "highlight",
       pos   => $pos,
-      color => [1, 0, 1],
+      color => [1, 0, 0],
       fade  => -$time
    });
 
@@ -1222,6 +1190,7 @@ sub do_dematerialize {
          warn "INCREATE $type\n";
          $self->increase_inventory ($type);
          $data->[0] = 0;
+         $data->[3] &= 0xF0; # clear color :)
          delete $self->{dematerializings}->{$id};
          undef $tmr;
          return 1;

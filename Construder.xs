@@ -409,13 +409,18 @@ void ctr_world_query_set_at (unsigned int rel_x, unsigned int rel_y, unsigned in
   CODE:
     ctr_world_query_set_at_pl (rel_x, rel_y, rel_z, cell);
 
+void ctr_world_query_set_at_abs (unsigned int rel_x, unsigned int rel_y, unsigned int rel_z, AV *cell)
+  CODE:
+    ctr_world_query_abs2rel (&rel_x, &rel_y, &rel_z);
+    ctr_world_query_set_at_pl (rel_x, rel_y, rel_z, cell);
+
 void ctr_world_query_unallocated_chunks (AV *chnkposes);
 
 void ctr_world_query_setup (int x, int y, int z, int ex, int ey, int ez);
 
 int ctr_world_query_desetup (int no_update = 0);
 
-AV *ctr_world_get_pattern (int x, int y, int z)
+AV *ctr_world_get_pattern (int x, int y, int z, int mutate)
   CODE:
     vec3_init (pos, x, y, z);
     vec3_s_div (pos, CHUNK_SIZE);
@@ -435,10 +440,8 @@ AV *ctr_world_get_pattern (int x, int y, int z)
     sv_2mortal ((SV *)RETVAL);
 
     // calc relative size inside chunks:
-    int c = (CHUNK_SIZE * 3) / 2;
-    int cx = (x - chnk_x * CHUNK_SIZE) + CHUNK_SIZE;
-    int cy = (y - chnk_y * CHUNK_SIZE) + CHUNK_SIZE;
-    int cz = (z - chnk_z * CHUNK_SIZE) + CHUNK_SIZE;
+    int cx = x, cy = y, cz = z;
+    ctr_world_query_abs2rel (&cx, &cy, &cz);
 
     printf ("QUERY AT %d %d %d\n", cx, cy, cz);
 
@@ -535,7 +538,8 @@ AV *ctr_world_get_pattern (int x, int y, int z)
 
     printf ("FOUND MIN MAX %d %d %d, %d %d %d, dimension: %d\n", min_x, min_y, min_z, max_x, max_y, max_z, dim);
 
-    av_push (RETVAL, newSViv (dim));
+    if (!mutate)
+      av_push (RETVAL, newSViv (dim));
 
     int blk_nr = 1;
     for (dy = 0; dy < dim; dy++)
@@ -546,12 +550,9 @@ AV *ctr_world_get_pattern (int x, int y, int z)
                 iy = min_y + dy,
                 iz = min_z + dz;
 
-            printf ("SEARCHING %d %d %d %d\n", ix, iy, iz, blk_nr);
-
             // outside construction pad:
             if (ix > max_x || iy > max_y || iz > max_z)
               {
-                printf ("skip\n");
                 blk_nr++; // but is just empty space of pattern
                 continue;
               }
@@ -559,9 +560,17 @@ AV *ctr_world_get_pattern (int x, int y, int z)
             cur = ctr_world_query_cell_at (ix, iy, iz, 0);
             if (cur->type != 0)
               {
-                printf ("type: %d\n", cur->type);
-                av_push (RETVAL, newSViv (blk_nr));
-                av_push (RETVAL, newSViv (cur->type));
+                if (mutate == 1)
+                  {
+                    av_push (RETVAL, newSViv ((chnk_x - 1) * CHUNK_SIZE + ix));
+                    av_push (RETVAL, newSViv ((chnk_y - 1) * CHUNK_SIZE + iy));
+                    av_push (RETVAL, newSViv ((chnk_z - 1) * CHUNK_SIZE + iz));
+                  }
+                else
+                  {
+                    av_push (RETVAL, newSViv (blk_nr));
+                    av_push (RETVAL, newSViv (cur->type));
+                  }
               }
 
             blk_nr++;
@@ -574,33 +583,30 @@ AV *ctr_world_get_pattern (int x, int y, int z)
 
 
 #define DEBUG_LIGHT 0
-void ctr_world_flow_light_at (int rx, int ry, int rz)
-  CODE:
-    vec3_init (pos, rx, ry, rz);
-    vec3_s_div (pos, CHUNK_SIZE);
-    vec3_floor (pos);
-    int chnk_x = pos[0],
-        chnk_y = pos[1],
-        chnk_z = pos[2];
 
-    //d// printf ("UPDATE LIGHT %d %d %d +- 2 %d\n", chnk_x, chnk_y, chnk_z, r);
+void ctr_world_flow_light_query_setup (int minx, int miny, int minz, int maxx, int maxy, int maxz)
+  CODE:
+    vec3_init (min_pos, minx, miny, minz);
+    vec3_s_div (min_pos, CHUNK_SIZE);
+    vec3_floor (min_pos);
+    vec3_init (max_pos, maxx, maxy, maxz);
+    vec3_s_div (max_pos, CHUNK_SIZE);
+    vec3_floor (max_pos);
 
     ctr_world_query_setup (
-      chnk_x - 2, chnk_y - 2, chnk_z - 2,
-      chnk_x + 2, chnk_y + 2, chnk_z + 2
+      min_pos[0] - 2, min_pos[1] - 2, min_pos[2] - 2,
+      max_pos[0] + 2, max_pos[1] + 2, max_pos[2] + 2
     );
 
     ctr_world_query_load_chunks ();
 
-    // calc relative size inside chunks:
-    int c = (CHUNK_SIZE * 5) / 2;
-    int cx = (rx - chnk_x * CHUNK_SIZE) + CHUNK_SIZE * 2;
-    int cy = (ry - chnk_y * CHUNK_SIZE) + CHUNK_SIZE * 2;
-    int cz = (rz - chnk_z * CHUNK_SIZE) + CHUNK_SIZE * 2;
+void ctr_world_flow_light_at (int x, int y, int z)
+  CODE:
+    ctr_world_query_abs2rel (&x, &y, &z);
 
     ctr_world_light_upd_start ();
 
-    ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 0);
+    ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 0);
 
     int light_up = 0;
 
@@ -611,18 +617,18 @@ void ctr_world_flow_light_at (int rx, int ry, int rz)
 
     if (ctr_world_cell_transparent (cur)) // a transparent cell has changed
       {
-        unsigned char l = ctr_world_query_get_max_light_of_neighbours (cx, cy, cz);
+        unsigned char l = ctr_world_query_get_max_light_of_neighbours (x, y, z);
         if (l > 0) l--;
-        printf ("transparent cell at %d,%d,%d has light %d, neighbors say: %d\n", cx, cy, cz, (int) cur->light, (int) l);
+        printf ("transparent cell at %d,%d,%d has light %d, neighbors say: %d\n", x, y, z, (int) cur->light, (int) l);
         if (cur->light < l)
           { // if the transparent cell is too dark, flow in light from neigbors
             // and tell all neighbors to check if they are maybe lighted
             // by my new light
-            ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 1);
+            ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 1);
             cur->light = l; // make me brighter and run light_up algo
             if (l > 0) l--;
             light_up = 1;
-            ctr_world_light_enqueue_neighbours (cx, cy, cz, l);
+            ctr_world_light_enqueue_neighbours (x, y, z, l);
           }
         else if (cur->light > l) // we are brighter then the neighbors
           {
@@ -630,7 +636,7 @@ void ctr_world_flow_light_at (int rx, int ry, int rz)
             // light_down queue, because we might need to let
             // other light sources light through!
             light_up = 0;
-            ctr_world_light_enqueue (cx, cy, cz, cur->light);
+            ctr_world_light_enqueue (x, y, z, cur->light);
           }
         else // cur->light == l
           {
@@ -639,20 +645,20 @@ void ctr_world_flow_light_at (int rx, int ry, int rz)
             // BUT:
             //    still force update :) FIXME: This should maybe
             //    be done by ChunkManager
-            ctr_world_query_cell_at (cx, cy, cz, 1);
+            ctr_world_query_cell_at (x, y, z, 1);
             return; // => no change, so no change for anyone else
           }
       }
     else // oh, a (light) blocking cell has been set!
       {
-        ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 1);
+        ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 1);
 
         // FIXME: add other lamp types here too:
         if (cur->type == 40) // was a light: light it!
           {
             cur->light = 15;
             light_up = 1; // propagate our light!
-            ctr_world_light_enqueue_neighbours (cx, cy, cz, cur->light - 1);
+            ctr_world_light_enqueue_neighbours (x, y, z, cur->light - 1);
           }
         else // oh boy, we will become darker, we are a intransparent block!
           {
@@ -660,7 +666,7 @@ void ctr_world_flow_light_at (int rx, int ry, int rz)
             unsigned char l = cur->light;
             cur->light = 0; // we are blocking light, so we are dark
             // let the neighbors check if they were lit possibly by me
-            ctr_world_light_enqueue_neighbours (cx, cy, cz, l - 1);
+            ctr_world_light_enqueue_neighbours (x, y, z, l - 1);
           }
       }
 #if DEBUG_LIGHT
@@ -672,9 +678,9 @@ void ctr_world_flow_light_at (int rx, int ry, int rz)
     //                      neighbor thats at least this bright?
 
     unsigned char new_value = 0;
-    while (ctr_world_light_dequeue (&cx, &cy, &cz, &new_value))
+    while (ctr_world_light_dequeue (&x, &y, &z, &new_value))
       {
-        cur = ctr_world_query_cell_at (cx, cy, cz, 0);
+        cur = ctr_world_query_cell_at (x, y, z, 0);
         if (!ctr_world_cell_transparent (cur))
           continue; // ignore blocks that can't be lit
 
@@ -686,13 +692,13 @@ void ctr_world_flow_light_at (int rx, int ry, int rz)
               {
 #if DEBUG_LIGHT
                 printf ("light up got %d,%d,%d: %d, me %d\n",
-                        cx, cy, cz, new_value, cur->light);
+                        x, y, z, new_value, cur->light);
 #endif
-                cur = ctr_world_query_cell_at (cx, cy, cz, 1);
+                cur = ctr_world_query_cell_at (x, y, z, 1);
                 cur->light = new_value;
                 if (new_value > 0) new_value--;
                 // enqueue neighbors for update with lower light level:
-                ctr_world_light_enqueue_neighbours (cx, cy, cz, new_value);
+                ctr_world_light_enqueue_neighbours (x, y, z, new_value);
               }
           }
         else
@@ -713,27 +719,27 @@ void ctr_world_flow_light_at (int rx, int ry, int rz)
             //   Bugs should be virtually non-visible, every changed cell from
             //   the first pass is repaired in the second pass anyway!
 
-            unsigned char l = ctr_world_query_get_max_light_of_neighbours (cx, cy, cz);
+            unsigned char l = ctr_world_query_get_max_light_of_neighbours (x, y, z);
             if (l > 0) l--;
 #if DEBUG_LIGHT
-            printf ("light down at %d,%d,%d, me: %d, old neigh: %d cur neigh: %d\n", cx, cy, cz, cur->light, new_value, l);
+            printf ("light down at %d,%d,%d, me: %d, old neigh: %d cur neigh: %d\n", x, y, z, cur->light, new_value, l);
 #endif
             if (cur->light <= new_value && cur->light > l)
               // we are not brighter than the now dark neighbor
               // and we are lighter than we would be lit by our neighbors
               {
                 // become dark too and enqueue neighbors for update
-                cur = ctr_world_query_cell_at (cx, cy, cz, 1);
+                cur = ctr_world_query_cell_at (x, y, z, 1);
                 new_value = cur->light;
                 cur->light = 0;
                 if (new_value > 0) new_value--;
                 // enqueue neighbors for update:
-                ctr_world_light_enqueue_neighbours (cx, cy, cz, new_value);
+                ctr_world_light_enqueue_neighbours (x, y, z, new_value);
 
                 // enqueue ourself for the next passes, where we light up
                 // the zero light level by ambient light
                 ctr_world_light_select_queue (1);
-                ctr_world_light_enqueue (cx, cy, cz, 0);
+                ctr_world_light_enqueue (x, y, z, 0);
                 ctr_world_light_select_queue (0);
               }
           }
@@ -758,18 +764,18 @@ void ctr_world_flow_light_at (int rx, int ry, int rz)
             // swap queue
             ctr_world_light_select_queue (cur_queue = !cur_queue);
             // recompute light for every cell in the queue
-            while (ctr_world_light_dequeue (&cx, &cy, &cz, &new_value))
+            while (ctr_world_light_dequeue (&x, &y, &z, &new_value))
               {
-                cur = ctr_world_query_cell_at (cx, cy, cz, 0);
-                unsigned char l = ctr_world_query_get_max_light_of_neighbours (cx, cy, cz);
+                cur = ctr_world_query_cell_at (x, y, z, 0);
+                unsigned char l = ctr_world_query_get_max_light_of_neighbours (x, y, z);
                 if (l > 0) l--;
 #if DEBUG_LIGHT
-                printf ("[%d] relight at %d,%d,%d, me: %d, cur neigh: %d\n", pass, cx, cy, cz, cur->light, l);
+                printf ("[%d] relight at %d,%d,%d, me: %d, cur neigh: %d\n", pass, x, y, z, cur->light, l);
 #endif
                 // if the current cell is too dark, relight it
                 if (cur->light < l)
                   {
-                    cur = ctr_world_query_cell_at (cx, cy, cz, 1);
+                    cur = ctr_world_query_cell_at (x, y, z, 1);
                     cur->light = l;
                     change = 1;
                   }
@@ -779,7 +785,7 @@ void ctr_world_flow_light_at (int rx, int ry, int rz)
                 // just because our cell didn't change doesn't mean it won't
                 // in the next pass.
                 ctr_world_light_select_queue (!cur_queue);
-                ctr_world_light_enqueue (cx, cy, cz, 0);
+                ctr_world_light_enqueue (x, y, z, 0);
                 ctr_world_light_select_queue (cur_queue);
               }
           }

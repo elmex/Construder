@@ -94,6 +94,38 @@ void ctr_world_query_load_chunks ()
   QUERY_CONTEXT.loaded = 1;
 }
 
+void ctr_world_query_rel2abs (int *rel_x, int *rel_y, int *rel_z)
+{
+  *rel_x = QUERY_CONTEXT.chnk_x * CHUNK_SIZE + *rel_x;
+  *rel_y = QUERY_CONTEXT.chnk_y * CHUNK_SIZE + *rel_y;
+  *rel_z = QUERY_CONTEXT.chnk_z * CHUNK_SIZE + *rel_z;
+}
+
+void ctr_world_query_abs2rel (int *x, int *y, int *z)
+{
+  vec3_init (pos, *x, *y, *z);
+  vec3_s_div (pos, CHUNK_SIZE);
+  vec3_floor (pos);
+  int chnk_x = pos[0],
+      chnk_y = pos[1],
+      chnk_z = pos[2];
+
+  *x -= chnk_x * CHUNK_SIZE;
+  *y -= chnk_y * CHUNK_SIZE;
+  *z -= chnk_z * CHUNK_SIZE;
+
+  chnk_x -= QUERY_CONTEXT.chnk_x;
+  chnk_y -= QUERY_CONTEXT.chnk_y;
+  chnk_z -= QUERY_CONTEXT.chnk_z;
+  assert (chnk_x >= 0);
+  assert (chnk_y >= 0);
+  assert (chnk_z >= 0);
+
+  *x += chnk_x * CHUNK_SIZE;
+  *y += chnk_y * CHUNK_SIZE;
+  *z += chnk_z * CHUNK_SIZE;
+}
+
 ctr_cell *ctr_world_query_cell_at (unsigned int rel_x, unsigned int rel_y, unsigned int rel_z, int modify)
 {
   int chnk_x = rel_x / CHUNK_SIZE,
