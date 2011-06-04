@@ -66,21 +66,16 @@ sub _check_file {
 
 sub _initialize_player {
    my ($self) = @_;
+   my $inv = $Games::Construder::Server::RES->get_initial_inventory;
    my $data = {
       name      => $self->{name},
       happyness => 100,
       bio       => 100,
       score     => 0,
       pos       => [0, 0, 0],
-      inv       => {
-         2  => 30, # 30 stones
-         16 => 50, # 50 brickwalls
-         15 => 20, # 20 concretes
-         40 => 10, # 10 flood lights
-         60 => 20, # 20 proteins
-      },
+      inv       => $inv,
       slots => {
-         selection => [2, 16, 40],
+         selection => [keys %$inv],
          selected  => 0
       },
    };

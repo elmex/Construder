@@ -214,7 +214,7 @@
      "complexity" : 40,
      "density" : 10,
    },
-   "Modellizer" : {
+   "Transformer" : {
      "type" : 36,
      "texture" : ["cat2.png", 384, 64, 64, 64],
      "lore" : "A very complex piece of equipment. It transforms big sized models into usable devices and materials.",
@@ -288,7 +288,7 @@
       "untransformable" : true
    },
 
-   "Proteins" : {
+   "Soilent Blue" : {
       "type" : 60,
       "texture" : ["cat2.png", 320, 128, 64, 64],
       "lore" : "Your only source for nutrition. Lucky you have a generator handy that generates it for you.",

@@ -365,6 +365,14 @@ sub lerp {
    $a * (1 - $x) + $b * $x
 }
 
+sub get_initial_inventory {
+   my ($self) = @_;
+   my $inv = $self->{world_gen}->{initial_inventory};
+   my $i = {};
+   (%$i) = (%$inv);
+   $i
+}
+
 sub get_type_inventory_space {
    my ($self, $type) = @_;
 
