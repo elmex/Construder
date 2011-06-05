@@ -143,6 +143,7 @@ sub init {
    $self->new_ui (score       => "Games::Construder::Server::UI::Score");
    $self->new_ui (slots       => "Games::Construder::Server::UI::Slots");
    $self->new_ui (status      => "Games::Construder::Server::UI::Status");
+   $self->new_ui (inventory   => "Games::Construder::Server::UI::Inventory");
 
    $self->update_score;
    $self->{uis}->{slots}->show;
@@ -784,89 +785,6 @@ sub show_sector_finder {
 
 #//AV *region_get_nearest_sector_in_range (void *reg, int x, int y, int z, double a, double b)
 
-}
-
-sub show_inventory {
-   my ($self) = @_;
-
-   #R# my $inv = $self->{data}->{inv};
-   #R# warn "SHOW INV $self->{shown_uis}->{player_inv}|\n";
-
-   #R# my @grid;
-
-   #R# my @keys = sort { $a <=> $b } keys %$inv;
-   #R# my @shortcuts = qw/
-   #R#    1 q a y 2 w s x
-   #R#    3 e d c 4 r f v
-   #R#    5 t g b 6 z h n
-   #R# /;
-
-   #R# for (0..4) {
-   #R#    my @row;
-   #R#    for (0..3) {
-   #R#       my $i = (shift @keys) || 1;
-   #R#       my $o = $Games::Construder::Server::RES->get_object_by_type ($i);
-   #R#       my ($spc, $max) = $self->inventory_space_for ($i);
-   #R#       push @row, [$i, $inv->{$i}, $o, shift @shortcuts, $max];
-   #R#    }
-   #R#    push @grid, \@row;
-   #R# }
-
-   #R# $self->display_ui (player_inv => {
-   #R#    window => {
-   #R#       pos => [center => 'center'],
-   #R#    },
-   #R#    layout => [
-   #R#       box => { dir => "vert" },
-   #R#       [text => { font => "big", color => "#FFFFFF" }, "Inventory"],
-   #R#       [text => { font => "small", color => "#888888" },
-   #R#        "(Select a resource by shortcut key or up/down and hit return.)"],
-   #R#       [box => { },
-   #R#       (map {
-   #R#          [box => { dir => "vert", padding => 4 },
-   #R#             map {
-   #R#                [select_box => {
-   #R#                   dir => "vert", align => "center", arg => "item", tag => $_,
-   #R#                   padding => 2,
-   #R#                   bgcolor => "#111111",
-   #R#                   border => { color => "#555555", width => 2 },
-   #R#                   select_border => { color => "#ffffff", width => 2 },
-   #R#                   aspect => 1
-   #R#                 },
-   #R#                   [text => { align => "center", color => "#ffffff" },
-   #R#                    $_->[1] ? $_->[1] . "/$_->[4]" : "0/0"],
-   #R#                   [model => { align => "center", width => 60 }, $_->[0]],
-   #R#                   [text  => { font => "small", align => "center",
-   #R#                               color => "#ffffff" },
-   #R#                    $_->[0] == 1 ? "<empty>" : "[$_->[3]] $_->[2]->{name}"]
-   #R#                ]
-
-   #R#             } @$_
-   #R#          ]
-   #R#       } @grid)
-   #R#       ]
-   #R#    ],
-   #R#    commands => {
-   #R#       default_keys => {
-   #R#          return => "select",
-   #R#          (map { map { $_->[3] => "short_$_->[0]" } @$_ } @grid)
-   #R#       }
-   #R#    }
-   #R# }, sub {
-   #R#    warn "ARG: $_[2]->{item}|" . join (',', keys %{$_[2]}) . "\n";
-
-   #R#    my $cmd = $_[1];
-   #R#    warn "CMD $cmd\n";
-   #R#    if ($cmd eq 'select') {
-   #R#       my $item = $_[2]->{item};
-   #R#       $self->display_ui ("player_inv");
-   #R#       $self->show_inventory_selection ($item->[0]);
-
-   #R#    } elsif ($cmd =~ /short_(\d+)/) {
-   #R#       $self->display_ui ("player_inv");
-   #R#       $self->show_inventory_selection ($1);
-   #R#    }
-   #R# });
 }
 
 sub show_help {
