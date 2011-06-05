@@ -270,15 +270,17 @@ sub increase_inventory {
 }
 
 sub decrease_inventory {
-   my ($self, $type) = @_;
+   my ($self, $type, $cnt) = @_;
 
-   my $cnt = 0;
+   $cnt ||= 1;
+
+   my $old_val = 0;
 
    if ($type eq 'all') {
       $self->{data}->{inv} = {};
 
    } else {
-      $cnt = $self->{data}->{inv}->{$type}--;
+      $old_val = $self->{data}->{inv}->{$type} -= $cnt;
       if ($self->{data}->{inv}->{$type} <= 0) {
          delete $self->{data}->{inv}->{$type};
       }
@@ -290,7 +292,7 @@ sub decrease_inventory {
 
    $self->{uis}->{slots}->show;
 
-   $cnt > 0
+   $old_val > 0
 }
 
 sub try_eat_something {

@@ -376,15 +376,31 @@ sub init {
 }
 
 sub commands {
+   (
+      return => "enter"
+   )
 }
 
 sub handle_command {
    my ($self, $cmd, $arg) = @_;
    my $max_cnt = $self->{max_count};
+
+   if ($cmd eq 'enter') {
+      my $cnt = $arg->{cnt};
+      if ($cnt <= $max_cnt) {
+         $self->{cb}->($cnt);
+
+      } else {
+         $self->show ('error');
+      }
+
+   } elsif ($cmd eq 'cancel') {
+      $self->{cb}->();
+   }
 }
 
 sub layout {
-   my ($self) = @_;
+   my ($self, $error) = @_;
 
    my $msg = $self->{msg};
 
@@ -393,6 +409,17 @@ sub layout {
          pos => [center => 'center'],
       },
       layout => [
+         box => { dir => "vert" },
+         [text => { color => "#ffffff", align => "center" },
+          $msg],
+         ($error ?
+            [text => { align => "center", color => "#ff0000" },
+             "Entered value: $error, is too high!"] : ()),
+         [box => { dir => "hor", align => "center" },
+            [entry => { font => 'normal', color => "#ffffff", arg => "cnt",
+                        highlight => ["#111111", "#333333"], max_chars => 3 },
+             $self->{max_count}],
+            [text => { font => "normal", color => "#999999" }, "Max: $self->{max_count}"]],
       ]
    }
 }
@@ -409,9 +436,9 @@ sub commands {
    my $inv_cnt = $self->{pl}->{data}->{inv}->{$type}
       or return ();
    (
-      map {
+      (map {
          $_ => "slot_" . ($_ == 0 ? 9 : $_ - 1)
-      } 0..9,
+      } 0..9),
       d => "discard",
    )
 }
@@ -435,13 +462,14 @@ sub _perc_to_word {
       $k = shift @k;
    }
 
-   $PERC{$k} . "($p|$k)"
+   $PERC{$k}
 }
 
 sub handle_command {
    my ($self, $cmd, $arg) = @_;
 
    my $type = $self->{type};
+   warn "HAD $cmd\n";
 
    if ($cmd =~ /slot_(\d+)/) {
       $self->{pl}->{data}->{slots}->{selection}->[$1] = $type;
@@ -450,14 +478,19 @@ sub handle_command {
       $self->hide;
 
    } elsif ($cmd eq 'discard') {
+      $self->hide;
+      warn "DISC $self->{pl}->{data}->{inv}->{$self->{type}}\n";
       $self->new_ui (discard_material =>
          "Games::Construder::Server::UI::CountQuery",
          msg       => "Discard how many?",
          max_count => $self->{pl}->{data}->{inv}->{$self->{type}},
          cb => sub {
-            $self->{pl}->{data}->{inv}->{$self->{type}} = $_[0];
+            if (defined $_[0]) {
+               $self->{pl}->decrease_inventory ($self->{type}, $_[0]);
+            }
             $self->delete_ui ('discard_material');
          });
+      $self->{pl}->{uis}->{discard_material}->show;
    }
 }
 
@@ -494,7 +527,8 @@ sub layout {
              [text => { color => "#0000ff" }, "Possible Actions:"],
              [box => { dir => "vert", padding => 10, border => { color => "#0000ff" } },
                 [text => { color => "#ffffff", font => "normal", wrap => 50 },
-                   "* Assign to slot, press keys '0' to '9'",
+                   "* Assign to slot, press keys '0' to '9'"],
+                [text => { color => "#ffffff", font => "normal", wrap => 50 },
                    "* Discard some, press key 'd'"],
              ]
           ) : ()
@@ -540,8 +574,12 @@ sub build_grid {
 sub commands {
    my ($self) = @_;
    my $grid = $self->{grid};
-   map { warn "CHECK $_->[4] => $_->[0]\n"; $_->[4] => "short_" . $_->[0] }
-      map { @$_ } @$grid
+
+   (
+      return => "select",
+      map { $_->[4] => "short_" . $_->[0] }
+         map { @$_ } @$grid
+   )
 }
 
 sub handle_command {
