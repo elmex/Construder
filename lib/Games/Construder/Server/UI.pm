@@ -50,6 +50,16 @@ sub commands { # subclasses should overwrite this
    ()
 }
 
+sub new_ui {
+   my ($self, @args) = @_;
+   $self->{pl}->new_ui (@args);
+}
+
+sub delete_ui {
+   my ($self, @args) = @_;
+   $self->{pl}->delete_ui (@args);
+}
+
 sub update {
    my ($self, @args) = @_;
    $self->show (@args) if $self->{shown};
@@ -275,7 +285,7 @@ sub handle_command {
    my $pl = $self->{pl};
 
    if ($cmd eq 'inventory') {
-      $pl->show_inventory;
+      $pl->{uis}->{inventory}->show;
    } elsif ($cmd eq 'location_book') {
       $pl->show_location_book;
    } elsif ($cmd eq 'sector_finder') {
@@ -287,7 +297,7 @@ sub handle_command {
    } elsif ($cmd eq 'teleport_home') {
       $pl->teleport ([0, 0, 0]);
    } elsif ($cmd eq 'interact') {
-      $pl->interact ($pos->[0]);
+      $pl->interact ($pos->[0]) if @{$pos->[0] || []};
    } elsif ($cmd eq 'exit_server') {
       exit;
    }
@@ -358,18 +368,149 @@ sub layout {
    }
 }
 
-package Games::Construder::Server::UI::Inventory;
+package Games::Construder::Server::UI::CountQuery;
 
 use base qw/Games::Construder::Server::UI/;
 
+sub init {
+}
+
 sub commands {
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+   my $max_cnt = $self->{max_count};
 }
 
 sub layout {
    my ($self) = @_;
 
-   my $inv = $self->{data}->{inv};
-   warn "SHOW INV $self->{shown_uis}->{player_inv}|\n";
+   my $msg = $self->{msg};
+
+   {
+      window => {
+         pos => [center => 'center'],
+      },
+      layout => [
+      ]
+   }
+}
+
+package Games::Construder::Server::UI::MaterialView;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   my ($self) = @_;
+
+   my $type = $self->{type};
+
+   my $inv_cnt = $self->{pl}->{data}->{inv}->{$type}
+      or return ();
+   (
+      map {
+         $_ => "slot_" . ($_ == 0 ? 9 : $_ - 1)
+      } 0..9,
+      d => "discard",
+   )
+}
+
+my %PERC = (
+   10 => "extremely low",
+   20 => "very low",
+   30 => "low",
+   50 => "medium",
+   70 => "high",
+   80 => "very high",
+   90 => "extremely high",
+);
+
+sub _perc_to_word {
+   my ($p) = @_;
+
+   my (@k) = sort keys %PERC;
+   my $k = shift @k;
+   while ($p > $k) {
+      $k = shift @k;
+   }
+
+   $PERC{$k} . "($p|$k)"
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   my $type = $self->{type};
+
+   if ($cmd =~ /slot_(\d+)/) {
+      $self->{pl}->{data}->{slots}->{selection}->[$1] = $type;
+      $self->{pl}->{data}->{slots}->{selected} = $1;
+      $self->{pl}->{uis}->{slots}->show;
+      $self->hide;
+
+   } elsif ($cmd eq 'discard') {
+      $self->new_ui (discard_material =>
+         "Games::Construder::Server::UI::CountQuery",
+         msg       => "Discard how many?",
+         max_count => $self->{pl}->{data}->{inv}->{$self->{type}},
+         cb => sub {
+            $self->{pl}->{data}->{inv}->{$self->{type}} = $_[0];
+            $self->delete_ui ('discard_material');
+         });
+   }
+}
+
+sub layout {
+   my ($self, $type) = @_;
+
+   $self->{type} = $type;
+
+   my $inv_cnt = $self->{pl}->{data}->{inv}->{$type};
+
+   warn "SHOW INV SEL $type\n";
+   my $o = $Games::Construder::Server::RES->get_object_by_type ($type);
+
+   my @sec =
+      $Games::Construder::Server::RES->get_sector_types_where_type_is_found ($type);
+
+   {
+      window => {
+         pos => [center => 'center'],
+      },
+      layout => [
+         box => { dir => "vert" },
+          [text => { color => "#ffffff", font => "big" }, $o->{name}],
+          [text => { color => "#9999ff", font => "normal", wrap => 50 }, $o->{lore}],
+          [text => { color => "#9999ff", font => "normal", wrap => 50 },
+             "It's complexity is " . _perc_to_word ($o->{complexity}) .
+             " and it's density is " . _perc_to_word ($o->{density})],
+          [text => { color => "#9999ff", font => "normal", wrap => 50 },
+            @sec
+               ? "This can be found in sectors with following types: "
+                    . join (",", @sec)
+               : "This can not be found in any sector."],
+          $inv_cnt ? (
+             [text => { color => "#0000ff" }, "Possible Actions:"],
+             [box => { dir => "vert", padding => 10, border => { color => "#0000ff" } },
+                [text => { color => "#ffffff", font => "normal", wrap => 50 },
+                   "* Assign to slot, press keys '0' to '9'",
+                   "* Discard some, press key 'd'"],
+             ]
+          ) : ()
+      ],
+   }
+}
+
+
+package Games::Construder::Server::UI::Inventory;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub build_grid {
+   my ($self) = @_;
+
+   my $inv = $self->{pl}->{data}->{inv};
 
    my @grid;
 
@@ -378,28 +519,58 @@ sub layout {
       1 q a y 2 w s x
       3 e d c 4 r f v
       5 t g b 6 z h n
+      7 u j m 8 i k ,
    /;
 
-   for (0..4) {
+   for (0..6) {
       my @row;
       for (0..3) {
          my $i = (shift @keys) || 1;
          my $o = $Games::Construder::Server::RES->get_object_by_type ($i);
-         my ($spc, $max) = $self->inventory_space_for ($i);
-         push @row, [$i, $inv->{$i}, $o, shift @shortcuts, $max];
+         my ($spc, $max) = $self->{pl}->inventory_space_for ($i);
+                    # type, inv count, max inv, object info, shortcut
+         push @row, [$i, $inv->{$i}, $max, $o, shift @shortcuts];
       }
       push @grid, \@row;
    }
 
-   $self->display_ui (player_inv => {
+   $self->{grid} = \@grid;
+}
+
+sub commands {
+   my ($self) = @_;
+   my $grid = $self->{grid};
+   map { warn "CHECK $_->[4] => $_->[0]\n"; $_->[4] => "short_" . $_->[0] }
+      map { @$_ } @$grid
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'select') {
+      $self->hide;
+      $self->{pl}->{uis}->{material_view}->show ($arg->{item}->[0]);
+
+   } elsif ($cmd =~ /short_(\d+)/) {
+      $self->hide;
+      $self->{pl}->{uis}->{material_view}->show ($1);
+   }
+}
+
+sub layout {
+   my ($self) = @_;
+
+   $self->build_grid;
+
+   {
       window => {
          pos => [center => 'center'],
       },
       layout => [
-         box => { dir => "vert" },
-         [text => { font => "big", color => "#FFFFFF" }, "Inventory"],
-         [text => { font => "small", color => "#888888" },
-          "(Select a resource by shortcut key or up/down and hit return.)"],
+         box => { dir => "vert", border => { color => "#ffffff" } },
+         [text => { font => "big", color => "#FFFFFF", align => "center" }, "Inventory"],
+         [text => { font => "small", color => "#888888", wrap => 40, align => "center" },
+          "(Select a resource directly by [shortcut key] or up/down and hit return.)"],
          [box => { },
             (map {
                [box => { dir => "vert", padding => 4 },
@@ -408,44 +579,24 @@ sub layout {
                         dir => "vert", align => "center", arg => "item", tag => $_,
                         padding => 2,
                         bgcolor => "#111111",
-                        border => { color => "#555555", width => 2 },
+                        border => { color => "#000000", width => 2 },
                         select_border => { color => "#ffffff", width => 2 },
                         aspect => 1
                       },
                         [text => { align => "center", color => "#ffffff" },
-                         $_->[1] ? $_->[1] . "/$_->[4]" : "0/0"],
+                         $_->[1] ? $_->[1] . "/$_->[2]" : "0/0"],
                         [model => { align => "center", width => 60 }, $_->[0]],
                         [text  => { font => "small", align => "center",
                                     color => "#ffffff" },
-                         $_->[0] == 1 ? "<empty>" : "[$_->[3]] $_->[2]->{name}"]
+                         $_->[0] == 1 ? "<empty>" : "[$_->[4]] $_->[3]->{name}"]
                      ]
 
                   } @$_
                ]
-            } @grid)
+            } @{$self->{grid}})
          ]
       ],
-      commands => {
-         default_keys => {
-            return => "select",
-            (map { map { $_->[3] => "short_$_->[0]" } @$_ } @grid)
-         }
-      }
-   }, sub {
-      warn "ARG: $_[2]->{item}|" . join (',', keys %{$_[2]}) . "\n";
-
-      my $cmd = $_[1];
-      warn "CMD $cmd\n";
-      if ($cmd eq 'select') {
-         my $item = $_[2]->{item};
-         $self->display_ui ("player_inv");
-         $self->show_inventory_selection ($item->[0]);
-
-      } elsif ($cmd =~ /short_(\d+)/) {
-         $self->display_ui ("player_inv");
-         $self->show_inventory_selection ($1);
-      }
-   });
+   }
 }
 
 

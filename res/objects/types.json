@@ -288,7 +288,7 @@
       "untransformable" : true
    },
 
-   "Soilent Blue" : {
+   "Soylent Blue" : {
       "type" : 60,
       "texture" : ["cat2.png", 320, 128, 64, 64],
       "lore" : "Your only source for nutrition. Lucky you have a generator handy that generates it for you.",

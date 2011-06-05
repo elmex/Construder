@@ -28,7 +28,7 @@ Games::Construder::Server::Player - desc
 =cut
 
 my $PL_VIS_RAD = 3;
-my $PL_MAX_INV = 20;
+my $PL_MAX_INV = 28;
 
 sub new {
    my $this  = shift;
@@ -143,6 +143,7 @@ sub init {
    $self->new_ui (score       => "Games::Construder::Server::UI::Score");
    $self->new_ui (slots       => "Games::Construder::Server::UI::Slots");
    $self->new_ui (status      => "Games::Construder::Server::UI::Status");
+   $self->new_ui (material_view => "Games::Construder::Server::UI::MaterialView");
    $self->new_ui (inventory   => "Games::Construder::Server::UI::Inventory");
 
    $self->update_score;
@@ -258,7 +259,7 @@ sub increase_inventory {
       $self->{data}->{inv}->{$type} += $cnt;
 
       if ($self->{shown_uis}->{player_inv}) {
-         $self->show_inventory; # update if neccesary
+         $self->{uis}->{inventory}->show; # update if neccesary
       }
 
       $self->{uis}->{slots}->show;
@@ -284,7 +285,7 @@ sub decrease_inventory {
    }
 
    if ($self->{shown_uis}->{player_inv}) {
-      $self->show_inventory; # update if neccesary
+      $self->{uis}->{inventory}->show; # update if neccesary
    }
 
    $self->{uis}->{slots}->show;
@@ -504,43 +505,6 @@ sub highlight {
       color => $color,
       fade  => -$time
    });
-}
-
-sub show_inventory_selection {
-   my ($self, $type) = @_;
-
-   #R# warn "SHOW INV SEL $type\n";
-   #R# my $o = $Games::Construder::Server::RES->get_object_by_type ($type);
-
-   #R# $self->display_ui (player_inv_sel => {
-   #R#    window => {
-   #R#       pos => [center => 'center'],
-   #R#    },
-   #R#    layout => [
-   #R#       box => { dir => "vert" },
-   #R#        [text => { color => "#ffffff", font => "big" }, "Selected: " . $o->{name}],
-   #R#        [text => { color => "#ffffff", font => "normal", wrap => 50 },
-   #R#           "* You can put it into a slot by pressing one of the number keys 0 to 9" ],
-   #R#    ],
-   #R#    commands => {
-   #R#       default_keys => {
-   #R#          (map { ("$_" => "slot_$_") } 0..9)
-   #R#       }
-   #R#    }
-   #R# }, sub {
-   #R#    if ($_[1] =~ /slot_(\d+)/) {
-   #R#       my $i = 0;
-   #R#       if ($1 eq '0') {
-   #R#          $i = 9;
-   #R#       } else {
-   #R#          $i = $1 - 1;
-   #R#       }
-   #R#       $self->{data}->{slots}->{selection}->[$i] = $type;
-   #R#       $self->{data}->{slots}->{selected} = $i;
-   #R#       $self->update_slots;
-   #R#       $self->display_ui ('player_inv_sel');
-   #R#    }
-   #R# });
 }
 
 sub show_cheat_dialog {
@@ -881,13 +845,6 @@ sub start_materialize {
       return;
    }
 
-   # has item?
-   # enough bio energy?
-   # space to build is free?
-   # => decrease inventory item
-   # => init materialize
-   #   after sucess => calculate score points
-
    my $type = $self->{data}->{slots}->{selection}->[$self->{data}->{slots}->{selected}];
 
    world_mutate_at ($pos, sub {
@@ -1001,8 +958,8 @@ sub teleport {
 }
 
 sub new_ui {
-   my ($self, $id, $class) = @_;
-   my $o = $class->new (ui_name => $id, pl => $self);
+   my ($self, $id, $class, %arg) = @_;
+   my $o = $class->new (ui_name => $id, pl => $self, %arg);
    $self->{uis}->{$id} = $o;
 }
 

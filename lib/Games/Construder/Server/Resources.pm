@@ -247,6 +247,30 @@ sub get_sector_desc_for_region_value {
    return ();
 }
 
+sub get_sector_types_where_type_is_found {
+   my ($self, $type) = @_;
+
+   my $stypes = $self->{world_gen}->{sector_types};
+   my @out;
+
+   for my $stype (keys %$stypes) {
+      my $st = $stypes->{$stype};
+      my (@rng) = @{$st->{ranges}};
+      my @types;
+      while (@rng) {
+         shift @rng;
+         shift @rng;
+         push @types, shift @rng;
+      }
+
+      if (grep { $_ == $type } @types) {
+         push @out, $stype;
+      }
+   }
+
+   sort { $a cmp $b } @out
+}
+
 sub get_object_by_pattern {
    my ($self, $pattern) = @_;
    my ($dim, @a) = @$pattern;

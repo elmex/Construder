@@ -614,7 +614,7 @@ sub display {
 
       glPushMatrix;
       my ($w, $h) = ($size->[0] * 0.65, $size->[1] * 0.65);
-      glTranslatef ($pos->[0] + ($h * 0.05), $pos->[1] + ($h * 1.2), 1);
+      glTranslatef ($pos->[0] + ($h * 0.05), $pos->[1] + ($h * 1.2), $self->{sticky} ? 0.5 : 1);
       glScalef ($w, $h, 0.01);
       glScalef (1, -1, 1);
       glRotatef (25, 1, 0, 0);
