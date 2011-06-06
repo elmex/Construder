@@ -491,8 +491,6 @@ sub update_score {
    $self->{uis}->{score}->show ($hl);
 }
 
-# TODO: Continue here with UI rewrite:
-
 sub query {
    my ($self, $pos) = @_;
    return unless @$pos;
@@ -509,7 +507,6 @@ sub query {
 
 sub interact {
    my ($self, $pos) = @_;
-   warn "INTERACT: @$pos\n";
 
    world_mutate_at ($pos, sub {
       my ($data) = @_;
@@ -672,7 +669,6 @@ sub start_dematerialize {
 
       return 1;
    }, no_light => 1);
-
 }
 
 sub create_assignment {
