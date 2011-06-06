@@ -672,6 +672,41 @@ sub start_dematerialize {
 
 }
 
+sub create_challenge {
+   my ($self) = @_;
+
+   # generate random sector position
+   #      parameter: distance
+   #
+   # determine form of construct: wire-frame cube, cube, platform
+   #
+   # determine size (count of source) of construct
+   #
+   # determine how many different materials need to be used:
+   #   generate source materials:
+   #      depends on score of player,
+   #      metrics need to come from the world_gen.json for this
+   #      (metrics ala which score means which source materials)
+   #      level of source materials is computed from
+   #      types.json
+   #        - calculation calculates distance from root-materials
+   #        - root-materials get some value that indicates whether
+   #          they are rated as "rare" or not. => this can probably be done
+   #          easier manually than by looking at their actual occurance in the sectors.
+   #
+   # determine how long the player has
+   #   - use some world_gen base value as measurement how long a player has
+   #     to cover the distance 1
+   #   - on high levels this can be shrunken, player should use teleporters!
+   #
+   # determine punishment for player: how much score he loses
+   #
+   # => make challenge description, display challenge, start counter
+   #    store challenge in player data
+   #    time counter should be on player, and counted down in 10 sec intervals
+   #    on player load challenge timers have to be restarted
+}
+
 sub send_client : event_cb {
    my ($self, $hdr, $body) = @_;
 }

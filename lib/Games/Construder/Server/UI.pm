@@ -1053,6 +1053,27 @@ HELP
    } });
 }
 
+package Games::Construder::Server::UI::ChallengeGenerator;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   ( return => "generate" )
+}
+
+sub handle_command {
+   my ($self, $cmd) = @_;
+
+   if ($cmd eq 'generate') {
+      $self->{pl}->create_challenge;
+   }
+}
+
+sub layout {
+   {
+      window => [ center => 'center' ],
+   }
+}
 
 =back
 
