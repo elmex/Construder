@@ -83,8 +83,34 @@ sub load_region_file {
    $self->{region_cmds} = _get_file ("res/region_noise.cmds");
 }
 
+sub load_text_db {
+   my ($self) = @_;
+   my $txt = _get_file ("res/text.db");
+   my $db = {};
+
+   my @records = split /\r?\n\r?\n/, $txt;
+
+   for (@records) {
+      if (/^(\S+)\s*\n(.*)$/s) {
+         my $txt = $2;
+         my (@keys) = split /:/, $1;
+         my $last = pop @keys;
+         my $d = $db;
+         for (@keys) {
+            $d = $d->{$_} ||= {};
+         }
+         $txt =~ s/\r?\n/ /sg;
+         $d->{$last} = $txt;
+      }
+   }
+
+   $self->{txt_db} = $db;
+}
+
 sub load_objects {
    my ($self) = @_;
+   $self->load_text_db;
+
    my $objects = JSON->new->relaxed->decode (_get_file ("res/objects/types.json"));
    $self->{objects} = $objects;
 
@@ -127,6 +153,11 @@ sub load_texture_file {
 
 sub load_object {
    my ($self, $name, $obj) = @_;
+
+   if (my $txt = $self->{txt_db}->{obj}->{$name}) {
+      $obj->{$_} = $txt->{$_} for keys %$txt;
+   }
+
    if (defined $obj->{texture}) {
       $obj->{texture_id} =
          $self->load_texture ($obj->{texture});
@@ -139,8 +170,8 @@ sub load_object {
       type => "object",
       data => {
          object_type => $obj->{type},
-         ($obj->{texture} ? (texture_map => $obj->{texture_id})
-          : ($obj->{model} ? (model => $obj->{model}) : ())),
+         ($obj->{texture} ? (texture_map => $obj->{texture_id}) : ()),
+         ($obj->{model} ? (model => $obj->{model}) : ()),
       }
    });
 
@@ -245,6 +276,49 @@ sub get_sector_desc_for_region_value {
    }
 
    return ();
+}
+
+sub get_type_source_materials {
+   my ($self, $type) = @_;
+   my $o = $self->get_object_by_type ($type);
+
+   my %out;
+
+   my (@model) = @{$o->{model} || []}
+      or return ();
+   shift @model; # dimension
+   while (@model) {
+      shift @model;
+      my $t = shift @model;
+      $out{$t}++;
+   }
+
+   map {
+      my $o = $self->get_object_by_type ($_);
+      [$o, $out{$_}]
+   } keys %out
+}
+
+sub get_types_where_type_is_source_material {
+   my ($self, $type) = @_;
+
+   my @dest;
+
+   for my $o (values %{$self->{object_res}}) {
+      my (@model) = @{$o->{model} || []}
+         or next;
+      shift @model; # dimension
+      while (@model) {
+         shift @model;
+         if ((shift @model) == $type) {
+            unless (grep { $_ eq $o } @dest) {
+               push @dest, $o;
+            }
+         }
+      }
+   }
+
+   sort { $a->{name} cmp $b->{name} } @dest
 }
 
 sub get_sector_types_where_type_is_found {

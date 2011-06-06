@@ -8,7 +8,6 @@
    "Stones" : {
      "type"       : 2,
      "texture"    : ["cat2.png", 192, 0, 64, 64],
-     "lore"       : "Stones are the most basic block",
      "complexity" : 15,
      "density"    : 30,
      "natural"    : 1,
@@ -28,6 +27,8 @@
      "complexity" : 10,
      "density" : 45,
      "natural" : 1,
+     "model" : [2, 1, 10, 2, 10, 3, 10, 4, 10],
+     "model_cnt" : 2
    },
    "Rubber" : {
      "type"    : 12,
@@ -36,6 +37,7 @@
      "complexity" : 7,
      "density" : 20,
      "natural" : 1,
+     "model" : [1, 1, 28],
    },
    "Aluminum" : {
      "type" : 13,
@@ -59,6 +61,8 @@
      "complexity" : 17,
      "density" : 40,
      "natural" : 1,
+     "model" : [2, 1, 2, 2, 2, 3, 2, 4, 2],
+     "model_cnt" : 8
    },
    "Brickwall" : {
      "type" : 16,
@@ -67,6 +71,8 @@
      "complexity" : 20,
      "density" : 27,
      "natural" : 1,
+     "model" : [2, 1, 2, 2, 21, 5, 21, 6, 2],
+     "model_cnt" : 10,
    },
    "Asphalt" : {
      "type" : 17,
@@ -75,6 +81,8 @@
      "complexity" : 20,
      "density" : 20,
      "natural" : 1,
+     "model" : [2, 1, 28, 2, 12, 5, 2, 6, 2],
+     "model_cnt" : 10,
    },
    "Marble" : {
      "type" : 18,
@@ -131,6 +139,8 @@
       "complexity" : 12,
       "density" : 20,
       "natural" : 1,
+      "model" : [2, 1, 21, 2, 21, 3, 21, 4, 21],
+      "model_cnt" : 2
    },
    "Superconductor" : {
       "type" : 24,

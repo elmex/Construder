@@ -439,6 +439,7 @@ ctr_render_model (unsigned int type, double light, double xo, double yo, double 
 
   if (!oa->model || (oa->has_txt && !force_model))
     {
+      printf ("DEFAULTANIM: %d %p\n", oa->has_txt, oa->model);
       blocks = &type;
       dim = 1;
     }

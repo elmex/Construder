@@ -266,7 +266,7 @@ sub increase_inventory {
 
       $self->{uis}->{slots}->show;
 
-      return 1
+      return $cnt;
    }
    0
 }
@@ -282,7 +282,8 @@ sub decrease_inventory {
       $self->{data}->{inv} = {};
 
    } else {
-      $old_val = $self->{data}->{inv}->{$type} -= $cnt;
+      $old_val = $self->{data}->{inv}->{$type};
+      $self->{data}->{inv}->{$type} -= $cnt;
       if ($self->{data}->{inv}->{$type} <= 0) {
          delete $self->{data}->{inv}->{$type};
       }
@@ -361,7 +362,7 @@ sub logout {
    delete $self->{upd_score_hl_tmout};
    delete $self->{death_timer};
    warn "player $self->{name} logged out\n";
-#d#  print Devel::FindRef::track $self;
+ #d#  print Devel::FindRef::track $self;
 }
 
 my $world_c = 0;

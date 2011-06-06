@@ -112,7 +112,7 @@ sub layout {
       weaken $wself;
       $self->{upd_score_hl_tmout} = AE::timer 1.5, 0, sub {
          $wself->show;
-         delete $self->{upd_score_hl_tmout};
+         delete $wself->{upd_score_hl_tmout};
       };
    }
 
@@ -175,9 +175,9 @@ sub layout {
 
    my $wself = $self;
    weaken $wself;
-   $self->{msg_tout} = AE::timer (($error ? 3 : 1), 0, sub {
+   $self->{msg_tout} = AE::timer (($error ? 4 : 2.5), 0, sub {
       $wself->hide;
-      delete $self->{msg_tout};
+      delete $wself->{msg_tout};
    });
 
    {
@@ -512,6 +512,14 @@ sub layout {
    my @sec =
       $Games::Construder::Server::RES->get_sector_types_where_type_is_found ($type);
 
+   my @destmat =
+      $Games::Construder::Server::RES->get_types_where_type_is_source_material ($type);
+
+   my @srcmat =
+      $Games::Construder::Server::RES->get_type_source_materials ($type);
+      warn "RET\n";
+
+
    {
       window => {
          pos => [center => 'center'],
@@ -519,16 +527,34 @@ sub layout {
       layout => [
          box => { dir => "vert" },
           [text => { color => "#ffffff", font => "big" }, $o->{name}],
-          [text => { color => "#9999ff", font => "normal", wrap => 50 }, $o->{lore}],
+          [box => { dir => "hor", align => "left" },
+             [text => { align => "left", color => "#ffffff", font => "normal", wrap => 35 }, $o->{lore}],
+             [model => { align => "left", animated => 0, width => 90 }, $o->{type}],
+             (@srcmat
+               ? [box => { dir => "vert", align => "left" },
+                  [text => { color => "#999999", font => "small", align => "center" },
+                   "Build Pattern:\n"
+                   . join ("\n", map { $_->[1] . "x " . $_->[0]->{name} } @srcmat)],
+                  [model => { animated => 1, width => 90, align => "center" }, $o->{type}],
+                 ]
+               : ()),
+          ],
           [text => { color => "#9999ff", font => "normal", wrap => 50 },
-             "It's complexity is " . _perc_to_word ($o->{complexity}) .
+             "- It's complexity is " . _perc_to_word ($o->{complexity}) .
              " and it's density is " . _perc_to_word ($o->{density})],
           [text => { color => "#9999ff", font => "normal", wrap => 50 },
             @sec
-               ? "This can be found in sectors with following types: "
-                    . join (",", @sec)
-               : "This can not be found in any sector."],
+               ? "- This can be found in sectors with following types: "
+                    . join (", ", @sec)
+               : "- This can not be found in any sector."],
+          [text => { color => "#9999ff", font => "normal", wrap => 50 },
+           (@destmat
+              ? "- This can be used as source material for: "
+                . join (", ", map { $_->{name} } @destmat)
+              : "- This can't be processed any further.")],
           $inv_cnt ? (
+             [text => { color => "#9999ff", font => "normal", wrap => 50 },
+                "- You have $inv_cnt of this in your inventory."],
              [text => { color => "#0000ff" }, "Possible Actions:"],
              [box => { dir => "vert", padding => 10, border => { color => "#0000ff" } },
                 [text => { color => "#ffffff", font => "normal", wrap => 50 },

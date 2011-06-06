@@ -67,12 +67,16 @@ sub ia_construction_pad {
                   1
                });
 
-               if ($PL->increase_inventory ($obj->{type})) {
+               my $gen_cnt = $obj->{model_cnt} || 1;
+
+               my $add_cnt = $PL->increase_inventory ($obj->{type}, $gen_cnt);
+               if ($add_cnt > 0) {
                   $PL->push_tick_change (score => $score);
-                  $PL->msg (0, "Added one $obj->{name} to your inventory.");
-               } else {
-                  $PL->msg (1, "The created $obj->{name} does not fit into your inventory!");
                }
+
+               $PL->msg (0,
+                  "Added $add_cnt of $gen_cnt $obj->{name} to your inventory."
+                  . ($gen_cnt > $add_cnt ? " The rest was discarded." : ""));
 
                undef $tmr;
             };
