@@ -860,7 +860,7 @@ sub input_key_up : event_cb {
 
    my $handled = 0;
    for ($self->active_uis) {
-      if (delete $self->{active_uis}->{$_}->{key_repeat}->{$name}) {
+      if (delete $self->{active_uis}->{$_}->{key_repeat}) {
          $handled = 1;
          last;
       }
@@ -948,7 +948,7 @@ sub input_key_down : event_cb {
       $obj->input_key_press ($key, $name, chr ($unicode), \$handled);
       $self->deactivate_ui ($_) if $handled == 2;
       if ($handled == 1) {
-         $obj->{key_repeat}->{$name} = AE::timer 0.2, 0.1, sub {
+         $obj->{key_repeat} = AE::timer 0.2, 0.1, sub {
             my $handled;
             $obj->input_key_press ($key, $name, chr ($unicode), \$handled);
          };
