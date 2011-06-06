@@ -147,11 +147,14 @@ sub init {
    $self->new_ui (cheat         => "Games::Construder::Server::UI::Cheat");
    $self->new_ui (sector_finder => "Games::Construder::Server::UI::SectorFinder");
    $self->new_ui (navigator     => "Games::Construder::Server::UI::Navigator");
+   $self->new_ui (assignment      => "Games::Construder::Server::UI::Assignment");
+   $self->new_ui (assignment_time => "Games::Construder::Server::UI::AssignmentTime");
 
    $self->update_score;
    $self->{uis}->{slots}->show;
    $self->send_visible_chunks;
    $self->teleport ();
+   $self->check_assignment;
 }
 
 sub push_tick_change {
@@ -672,8 +675,33 @@ sub start_dematerialize {
 
 }
 
-sub create_challenge {
+sub create_assignment {
    my ($self) = @_;
+
+   my $x = (rand () * 2) - 1;
+   my $y = (rand () * 2) - 1;
+   my $z = (rand () * 2) - 1;
+
+   my $score = $self->{data}->{score};
+
+   $score /= 1000;
+
+   my $dist = ($score + rand ($score)) + 1;
+
+   my $vec = vsmul (vnorm ([$x, $y, $z]), $dist);
+   my $sec = vfloor (vadd ($vec, $self->get_pos_sector));
+
+   warn "assignment at @$vec => @$sec\n";
+
+   my $cal = $self->{data}->{assignment} = {
+      sec => $sec,
+      score => $score * 5000,
+      time => int (60 * $dist),
+   };
+
+   $self->{uis}->{assignment}->show;
+
+   $self->check_assignment;
 
    # generate random sector position
    #      parameter: distance
@@ -701,10 +729,36 @@ sub create_challenge {
    #
    # determine punishment for player: how much score he loses
    #
-   # => make challenge description, display challenge, start counter
-   #    store challenge in player data
+   # => make assignment description, display assignment, start counter
+   #    store assignment in player data
    #    time counter should be on player, and counted down in 10 sec intervals
-   #    on player load challenge timers have to be restarted
+   #    on player load assignment timers have to be restarted
+}
+
+sub check_assignment {
+   my ($self) = @_;
+   my $assign = $self->{data}->{assignment};
+   unless ($assign) {
+      $self->{uis}->{assignment_time}->hide;
+      return;
+   }
+
+   $self->{uis}->{assignment_time}->show;
+   my $wself = $self;
+   weaken $wself;
+   $self->{assign_timer} = AE::timer 1, 1, sub {
+      $wself->{data}->{assignment}->{time} -= 1;
+      $wself->{uis}->{assignment_time}->show;
+      if ($wself->{data}->{assignment}->{time} <= 0) {
+         $wself->cancel_assignment;
+      }
+   };
+}
+
+sub cancel_assignment {
+   my ($self) = @_;
+   $self->{data}->{assignment} = undef;
+   $self->check_assignment;
 }
 
 sub send_client : event_cb {

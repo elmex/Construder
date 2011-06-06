@@ -279,6 +279,7 @@ sub commands {
       i   => "inventory",
       n   => "sector_finder",
       c   => "cheat",
+      x   => "assignment",
       t   => "location_book",
       e   => "interact",
       q   => "query",
@@ -306,6 +307,8 @@ sub handle_command {
       $pl->interact ($pos->[0]) if @{$pos->[0] || []};
    } elsif ($cmd eq 'query') {
       $pl->query ($pos->[0]);
+   } elsif ($cmd eq 'assignment') {
+      $self->show_ui ('assignment');
    } elsif ($cmd eq 'exit_server') {
       exit;
    }
@@ -1053,27 +1056,76 @@ HELP
    } });
 }
 
-package Games::Construder::Server::UI::ChallengeGenerator;
+package Games::Construder::Server::UI::Assignment;
 
 use base qw/Games::Construder::Server::UI/;
 
 sub commands {
-   ( return => "generate" )
+   (
+      return => "generate",
+      n => "navigate",
+      c => "cancel_assign",
+   )
 }
 
 sub handle_command {
    my ($self, $cmd) = @_;
 
    if ($cmd eq 'generate') {
-      $self->{pl}->create_challenge;
+      $self->{pl}->create_assignment;
+      $self->show;
+
+   } elsif ($cmd eq 'navigate') {
+      $self->hide;
+      $self->show_ui ('navigator', sector => $self->{pl}->{data}->{assignment}->{sec});
+
+   } elsif ($cmd eq 'cancel_assign') {
+      $self->{pl}->cancel_assignment;
    }
 }
 
 sub layout {
+   my ($self) = @_;
+
+   my $cal = $self->{pl}->{data}->{assignment};
+
    {
-      window => [ center => 'center' ],
+      window => { pos => [ center => 'center' ] },
+      layout => [
+         box => { dir => "vert", border => { color => "#ffffff" } },
+         [text => { color => "#ffffff" },
+           JSON->new->pretty->encode ($cal)],
+      ]
    }
 }
+
+package Games::Construder::Server::UI::AssignmentTime;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub layout {
+   my ($self) = @_;
+
+   my $cal = $self->{pl}->{data}->{assignment};
+
+   my $color;
+   if ($cal->{time} > 180) {
+      $color = "#00ff00";
+   } elsif ($cal->{time} > 90) {
+      $color = "#00ffff";
+   } else {
+      $color = "#ff0000";
+   }
+   warn "HDOFEOF\n";
+
+   {
+      window => { pos => [ left => "up", 0.1, 0 ], sticky => 1 },
+      layout => [
+         text => { color => $color, align => "center" }, "Assignment:\n$cal->{time}s"
+      ]
+   }
+}
+
 
 =back
 
