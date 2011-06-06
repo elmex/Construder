@@ -55,6 +55,11 @@ sub new_ui {
    $self->{pl}->new_ui (@args);
 }
 
+sub show_ui {
+   my ($self, $name, @arg) = @_;
+   $self->{pl}->{uis}->{$name}->show (@arg);
+}
+
 sub delete_ui {
    my ($self, @args) = @_;
    $self->{pl}->delete_ui (@args);
@@ -285,13 +290,13 @@ sub handle_command {
    my $pl = $self->{pl};
 
    if ($cmd eq 'inventory') {
-      $pl->{uis}->{inventory}->show;
+      $self->show_ui ('inventory');
    } elsif ($cmd eq 'location_book') {
       $pl->show_location_book;
    } elsif ($cmd eq 'sector_finder') {
-      $pl->show_sector_finder;
+      $self->show_ui ('sector_finder');
    } elsif ($cmd eq 'cheat') {
-      $pl->show_cheat_dialog;
+      $self->show_ui ('cheat');
    } elsif ($cmd eq 'help') {
       $pl->show_help;
    } elsif ($cmd eq 'teleport_home') {
@@ -474,7 +479,7 @@ sub handle_command {
    if ($cmd =~ /slot_(\d+)/) {
       $self->{pl}->{data}->{slots}->{selection}->[$1] = $type;
       $self->{pl}->{data}->{slots}->{selected} = $1;
-      $self->{pl}->{uis}->{slots}->show;
+      $self->show_ui ('slots');
       $self->hide;
 
    } elsif ($cmd eq 'discard') {
@@ -490,7 +495,7 @@ sub handle_command {
             }
             $self->delete_ui ('discard_material');
          });
-      $self->{pl}->{uis}->{discard_material}->show;
+      $self->show_ui ('discard_material');
    }
 }
 
@@ -587,11 +592,11 @@ sub handle_command {
 
    if ($cmd eq 'select') {
       $self->hide;
-      $self->{pl}->{uis}->{material_view}->show ($arg->{item}->[0]);
+      $self->show_ui ('material_view', $arg->{item}->[0]);
 
    } elsif ($cmd =~ /short_(\d+)/) {
       $self->hide;
-      $self->{pl}->{uis}->{material_view}->show ($1);
+      $self->show_ui ('material_view', $1);
    }
 }
 
@@ -637,6 +642,312 @@ sub layout {
    }
 }
 
+package Games::Construder::Server::UI::Cheat;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   ( return => "cheat" )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'cheat') {
+
+      my $t = $arg->{type};
+      my ($spc, $max) = $self->{pl}->inventory_space_for ($arg->{type});
+      $self->{pl}->{data}->{score} = 0;
+      $self->{pl}->update_score;
+      $self->{pl}->increase_inventory ($t, $spc);
+      $self->hide;
+   }
+}
+
+sub layout {
+   {
+      window => { pos => [center => 'center'], },
+      layout => [
+         box => { dir => "vert", padding => 25, border => { color => "#ffffff" } },
+         [text => { align => 'center', font => 'big', color => "#00ff00" }, "Cheat"],
+         [text => { align => 'center', font => 'normal', color => "#00ff00", wrap => 40 },
+                  "What material do you want to max out in your inventory? Be careful, your score will be reset to 0!"],
+         [box => {  dir => "hor", align => "center" },
+            [text => { font => 'normal', color => "#ffffff" }, "Material Type:"],
+            [entry => { font => 'normal', color => "#ffffff", arg => "type",
+                        highlight => ["#111111", "#333333"], max_chars => 9 },
+             ""],
+         ]
+      ]
+   }
+}
+
+package Games::Construder::Server::UI::Navigator;
+use Games::Construder::Vector;
+use Math::Trig qw/deg2rad rad2deg pi tan atan/;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   ( m => "close" )
+}
+
+sub handle_command {
+   my ($self, $cmd) = @_;
+   if ($cmd eq 'close') {
+      $self->hide;
+   }
+}
+
+sub layout {
+   my ($self, $type, $pos) = @_;
+
+   if ($pos) {
+      $self->{nav_to} = $pos;
+   } else {
+      ($pos) = $self->{nav_to} || [0, 0, 0];
+   }
+
+   my $sec_pos  = $self->{pl}->get_pos_sector;
+   my $dest_pos = [@$pos];
+
+   my $diff = vsub ($dest_pos, $sec_pos);
+
+   my $alt =
+      $diff->[1] > 0
+         ? $diff->[1] . " above"
+         : ($diff->[1] < 0
+             ? (-$diff->[1]) . " below" : "same height");
+   my $alt_ok = $diff->[1] == 0;
+
+   my $lv = [@{$self->{pl}->{data}->{look_vec}}];
+
+   my $dist   = vlength ($diff);
+   $lv->[1]   = 0;
+   $diff->[1] = 0;
+   my $dl     = vlength ($diff);
+   my $l      = vlength ($lv) * $dl;
+
+   my $r;
+   my $dir_ok;
+   if ($l > 0.001) {
+      vinorm ($lv);
+      vinorm ($diff);
+      my $pdot = $lv->[0] * $diff->[2] - $lv->[2] * $diff->[0];
+      $r = rad2deg (atan2 ($pdot, vdot ($lv, $diff)), 1);
+      $r = int $r;
+      $dir_ok = abs ($r) < 10;
+      $r = $r < 0 ? -$r . "° left" : $r . "° right";
+   } else {
+      $r = 0;
+      if ($dl <= 0.001) { # we arrived!
+         $dir_ok = 1;
+      }
+   }
+
+   {
+      window => {
+         pos => ["right", "center"],
+         sticky => 1,
+         alpha => 0.6,
+      },
+      layout => [
+         box => {
+            dir => "vert",
+         },
+         [text => { font => "small", align => "center", color => "#888888" },
+          "Navigator"],
+         [box => {
+            dir => "hor",
+          },
+          [box => { dir => "vert", padding => 4 },
+             [text => { color => "#888888" }, "Pos"],
+             [text => { color => "#888888" }, "Dest"],
+             [text => { color => "#888888" }, "Dist"],
+             [text => { color => "#888888" }, "Alt"],
+             [text => { color => "#888888" }, "Dir"],
+          ],
+          [box => { dir => "vert", padding => 4 },
+             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @$sec_pos],
+             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @$pos],
+             [text => { color => "#ffffff" }, int ($dist)],
+             [text => { color => $alt_ok ? "#00ff00" : "#ff0000" }, $alt],
+             [text => { color => $dir_ok ? "#00ff00" : "#ff0000" }, $r],
+          ],
+         ],
+      ],
+   }
+}
+
+package Games::Construder::Server::UI::SectorFinderSelect;
+use Games::Construder::Vector;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   ( return => "select" )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'select') {
+      $self->hide;
+      my (@vec) = split /,/, $arg->{sector};
+      pop @vec; # remove distance
+      $self->show_ui ('navigator', sector => \@vec);
+   }
+}
+
+sub layout {
+   my ($self, $stype, $error) = @_;
+
+   $self->{stype} = $stype;
+
+   if ($error) {
+      return {
+         window => { pos => [center => 'center'], },
+         layout => [
+            box => { dir => "vert" },
+            [text => { color => "#ff0000", align => "center" },
+             "Sector with Type $stype not found anywhere near!"]
+         ]
+      };
+   }
+
+   my @sector_types =
+      $Games::Construder::Server::RES->get_sector_types ();
+   my ($s) = grep { $_->[0] eq $stype } @sector_types;
+
+   my $sec_pos  = $self->{pl}->get_pos_sector;
+   my $coord =
+      Games::Construder::Region::get_nearest_sector_in_range (
+         $Games::Construder::Server::World::REGION,
+         @$sec_pos,
+         $s->[1], $s->[2],
+      );
+
+   unless (@$coord) {
+      $self->show ($stype, 1);
+      return;
+   }
+
+   my @coords;
+   while (@$coord) {
+      my $p = [shift @$coord, shift @$coord, shift @$coord];
+      push @coords, $p;
+   }
+   (@coords) = map { $_->[3] = vlength (vsub ($sec_pos, $_)); $_ } @coords;
+   (@coords) = sort { $a->[3] <=> $b->[3] } @coords;
+   splice @coords, 15;
+
+   {
+      window => {
+         pos => [center => 'center'],
+      },
+      layout => [
+         box => { dir => "vert" },
+         [text => { color => "#ff0000", align => "center" },
+          "Sector with Type $stype found at:\n"],
+         (map {
+            [select_box => {
+               dir => "vert", align => "left", align => "center",
+               arg => "sector", tag => join (",",@$_),
+               padding => 2,
+               bgcolor => "#333333",
+               border => { color => "#555555", width => 2 },
+               select_border => { color => "#ffffff", width => 2 },
+             },
+             [
+                text => { font => "normal", color => "#ffffff" },
+                sprintf ("%d,%d,%d: %d", @$_)
+             ]
+            ]
+         } @coords)
+      ],
+   }
+}
+
+package Games::Construder::Server::UI::SectorFinder;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub init {
+   my ($self) = @_;
+   $self->new_ui (
+      sector_finder_sec_select =>
+         "Games::Construder::Server::UI::SectorFinderSelect");
+}
+
+sub commands {
+   ( return => "select" )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'select') {
+      my $st = $arg->{sector};
+      $self->hide;
+      $self->show_ui ('sector_finder_sec_select', $st);
+   }
+}
+
+sub layout {
+   my ($self) = @_;
+
+   my @sector_types =
+      $Games::Construder::Server::RES->get_sector_types ();
+
+   my @grid;
+
+   my $row = [];
+   while (@sector_types) {
+      push @$row, shift @sector_types;
+      if (@$row > 3) {
+         push @grid, $row;
+         $row = [];
+      }
+   }
+   push @grid, $row if @$row;
+
+   {
+      window => {
+         pos => [center => 'center'],
+      },
+      layout => [
+         box => { dir => "vert", border => { color => "#ffffff" }, padding => 10 },
+         [text => { align => "center", font => "big", color => "#FFFFFF" },
+          "Find sector..."],
+         [text => { align => "center", font => "small", color => "#888888" },
+          "Select a sector type with up/down keys and hit return."],
+         [box => { align => "center", dir => "vert" },
+         (map {
+            my $row = $_;
+            [box => { },
+             map {
+               [select_box => {
+                  dir => "vert", align => "center", arg => "sector", tag => $_->[0],
+                  padding => 2,
+                  bgcolor => "#333333",
+                  border => { color => "#555555", width => 2 },
+                  select_border => { color => "#ffffff", width => 2 },
+                  aspect => 1
+                }, [text => { font => "normal", color => "#ffffff" }, $_->[0]]
+               ]
+             } @$row
+            ]
+         } @grid)],
+      ]
+   }
+}
+
+sub show_sector_finder {
+   my ($self) = @_;
+
+
+}
+
 
 #R# sub ui_player_location_book {
 #R#    my ($pl, $fetch, $set) = @_;
@@ -653,6 +964,66 @@ sub layout {
 #R#       }
 #R#    });
 #R# }
+sub show_location_book {
+   my ($self) = @_;
+
+   #R#ui_player_location_book ($pl, sub {
+   #R#   map { [$_, $self->{data}->{tags}] } 0..9
+   #R#}, sub {
+   #R#   my ($slot, $name) = @_;
+   #R#   $self->{data}->{tags}->[$slot] = $name, $chnk_pos, $sec_pos;
+   #R#});
+}
+
+sub show_help {
+   my ($self) = @_;
+   return;
+
+   my $help_txt = <<HELP;
+[ w a s d ]
+forward, left, backward, right
+[ shift ]
+holding down shift doubles your speed
+[ f ]
+toggle mouse look
+[ g ]
+enable gravitation and collision detection
+[ i ]
+show up inventory
+[ space ]
+jump
+[ escape ]
+close window or quit game
+[ left, right mouse button ]
+dematerialize and materialize
+[ F9 ]
+teleport to the starting point
+HELP
+
+   $self->send_client ({ cmd => activate_ui => ui => "player_help", desc => {
+      window => {
+         extents => [center => center => 0.8, 1],
+         alpha => 1,
+         color => "#000000",
+         prio => 1000,
+      },
+      elements => [
+         {
+            type => "text", extents => ["center", 0.01, 0.9, "font_height"],
+            font => "big", color => "#ffffff",
+            align => "center",
+            text => "Help:"
+         },
+         {
+            type => "text", extents => ["center", "bottom_of 0", 1, 0.9],
+            font => "small", color => "#ffffff",
+            align => "center",
+            text => $help_txt,
+         },
+      ]
+   } });
+}
+
 
 =back
 
