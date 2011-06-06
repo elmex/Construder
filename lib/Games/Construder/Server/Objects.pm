@@ -17,25 +17,21 @@ Games::Construder::Server::Objects - desc
 
 =cut
 
-our $PL;
-our $POS;
-
 our %TYPES = (
    36 => \&ia_construction_pad,
 );
 
 sub interact {
    my ($player, $type, $pos) = @_;
-   $PL  = $player;
-   $POS = $pos;
-
    my $cb = $TYPES{$type}
       or return;
 
-   $cb->();
+   $cb->($player, $pos);
 }
 
 sub ia_construction_pad {
+   my ($PL, $POS) = @_;
+
    my $a = Games::Construder::World::get_pattern (@$POS, 0);
    if ($a) {
       my $obj = $Games::Construder::Server::RES->get_object_by_pattern ($a);

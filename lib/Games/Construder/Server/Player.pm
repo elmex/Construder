@@ -362,7 +362,7 @@ sub logout {
    delete $self->{upd_score_hl_tmout};
    delete $self->{death_timer};
    warn "player $self->{name} logged out\n";
- #d#  print Devel::FindRef::track $self;
+   print Devel::FindRef::track $self;
 }
 
 my $world_c = 0;
@@ -489,6 +489,20 @@ sub update_score {
 }
 
 # TODO: Continue here with UI rewrite:
+
+sub query {
+   my ($self, $pos) = @_;
+   return unless @$pos;
+
+   world_mutate_at ($pos, sub {
+      my ($data) = @_;
+      if ($data->[0]) {
+         $self->{uis}->{material_view}->show ($data->[0]);
+      }
+      return 0;
+   });
+
+}
 
 sub interact {
    my ($self, $pos) = @_;

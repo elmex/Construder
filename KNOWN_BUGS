@@ -1,0 +1,6 @@
+- Opening a new UI dialog while a key is pressed leads to
+  keyrepeats in the non-visible window. Currently the server needs
+  to be very clean w.r.t. opening/closing windows.
+
+- Pending timer events might have a reference to a partly destructed player
+  object. Think of a better way to handle logouts and player destruction.

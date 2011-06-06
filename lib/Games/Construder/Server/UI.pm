@@ -281,6 +281,7 @@ sub commands {
       c   => "cheat",
       t   => "location_book",
       e   => "interact",
+      q   => "query",
    )
 }
 
@@ -303,6 +304,8 @@ sub handle_command {
       $pl->teleport ([0, 0, 0]);
    } elsif ($cmd eq 'interact') {
       $pl->interact ($pos->[0]) if @{$pos->[0] || []};
+   } elsif ($cmd eq 'query') {
+      $pl->query ($pos->[0]);
    } elsif ($cmd eq 'exit_server') {
       exit;
    }
