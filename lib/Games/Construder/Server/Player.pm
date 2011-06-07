@@ -135,8 +135,6 @@ sub init {
       $tick_time = $cur;
    };
 
-   $self->{logic}->{unhappy_rate} = 0.25; # 0.25% per second
-
    $self->new_ui (bio_warning   => "Games::Construder::Server::UI::BioWarning");
    $self->new_ui (msgbox        => "Games::Construder::Server::UI::MsgBox");
    $self->new_ui (score         => "Games::Construder::Server::UI::Score");
@@ -165,7 +163,7 @@ sub push_tick_change {
 sub player_tick {
    my ($self, $dt) = @_;
 
-   my $logic = $self->{logic};
+   my $player_values = $Games::Construder::Server::RES->player_values ();
 
    while (@{$self->{tick_changes}}) {
       my ($k, $a) = @{shift @{$self->{tick_changes}}};
@@ -195,16 +193,18 @@ sub player_tick {
       }
    }
 
-   $self->{data}->{happyness} -= $dt * $logic->{unhappy_rate};
+   my $bio_rate;
+
+   $self->{data}->{happyness} -= $dt * $player_values->{unhappy_rate};
    if ($self->{data}->{happyness} < 0) {
       $self->{data}->{happyness} = 0;
-      $self->{logic}->{bio_rate} = 5;
+      $bio_rate = $player_values->{bio_unhappy};
 
    } elsif ($self->{data}->{happyness} > 0) {
-      $self->{logic}->{bio_rate} = 0.03;
+      $bio_rate = $player_values->{bio_happy};
    }
 
-   $self->{data}->{bio} -= $dt * $logic->{bio_rate};
+   $self->{data}->{bio} -= $dt * $bio_rate;
    if ($self->{data}->{bio} <= 0) {
       $self->{data}->{bio} = 0;
 

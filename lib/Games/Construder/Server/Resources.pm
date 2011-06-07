@@ -614,6 +614,11 @@ sub score2happyness {
    $s
 }
 
+sub player_values {
+   my ($self) = @_;
+   $self->{world_gen}->{balancing}->{player};
+}
+
 
 =back
 

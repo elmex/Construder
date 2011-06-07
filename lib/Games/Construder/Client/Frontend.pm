@@ -43,8 +43,8 @@ my ($WIDTH, $HEIGHT) = (800, 600);#600, 400);
 my $UPDATE_P_FRAME = 30;
 #my ($WIDTH, $HEIGHT) = (1200, 720);#600, 400);
 
-my $PL_HEIGHT = 1;
-my $PL_RAD    = 0.3;
+my $PL_HEIGHT  = 1.3;
+my $PL_RAD     = 0.3;
 my $PL_VIS_RAD = 3;
 my $FAR_PLANE  = 26;
 
@@ -684,7 +684,7 @@ sub get_selected_box_pos {
 
    if ($self->{air_select_mode}) {
       # it's soooo much faster, lol :-)
-      my $pos = vfloor (vadd ($player_head, vsmul (vnorm ($rayd), 2.5)));
+      my $pos = vfloor (vadd ($player_head, vsmul (vnorm ($rayd), 2.7)));
       return ($pos, $pos);
    }
 
@@ -756,15 +756,15 @@ sub _calc_movement {
 
    my ($forw, $strafe) = (0, 0);
    if ($movement->{forward} > $movement->{backward}) {
-      $forw = +4;
+      $forw = +3;
    } elsif ($movement->{backward} > $movement->{forward}) {
-      $forw = -4;
+      $forw = -3;
    }
 
    if ($movement->{left} > $movement->{right}) {
-      $strafe = -5;
+      $strafe = -3;
    } elsif ($movement->{right} > $movement->{left}) {
-      $strafe = +5;
+      $strafe = +3;
    }
 
    my $xd =  sin (deg2rad ($rot));
@@ -776,9 +776,6 @@ sub _calc_movement {
    viadd ($forw, vsmul ([$xd, 0, $yd], $strafe));
    $forw
 }
-
-my $FORW_MAX_AMT = 4;
-my $SIDE_MAX_AMT = 5;
 
 sub physics_tick : event_cb {
    my ($self, $dt) = @_;
@@ -805,7 +802,7 @@ sub physics_tick : event_cb {
    viadd ($player->{pos}, vsmul ($player->{vel}, $dt));
 
    my $movement = _calc_movement ($self->{movement}, $self->{yrotate});
-   $movement = vsmul ($movement, $self->{movement}->{speed} ? 1.5 : 1);
+   $movement = vsmul ($movement, $self->{movement}->{speed} ? 2.5 : 1);
    viadd ($player->{pos}, vsmul ($movement, $dt));
 
    #d#warn "check player at $player->{pos}\n";
