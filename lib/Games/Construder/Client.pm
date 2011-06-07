@@ -202,6 +202,9 @@ sub handle_packet : event_cb {
    } elsif ($hdr->{cmd} eq 'highlight') {
       $self->{front}->add_highlight ($hdr->{pos}, $hdr->{color}, $hdr->{fade});
 
+   } elsif ($hdr->{cmd} eq 'model_highlight') {
+      $self->{front}->add_highlight_model ($hdr->{pos}, $hdr->{model}, $hdr->{color}, $hdr->{id});
+
    } elsif ($hdr->{cmd} eq 'chunk') {
       $body = decompress ($body);
       Games::Construder::World::set_chunk_data (@{$hdr->{pos}}, $body, length $body);

@@ -144,29 +144,19 @@ my @vertices = (
 );
 
 sub _render_quad {
-   my ($pos, $faces, $uv) = @_;
-   #d#warn "QUAD $x $y $z $light\n";
+   my ($pos, $scale) = @_;
 
-   my @uv = (
-    #  w  h
-      [$uv->[2], $uv->[3]],
-      [$uv->[2], $uv->[1]],
-      [$uv->[0], $uv->[1]],
-      [$uv->[0], $uv->[3]],
-   );
+   $scale ||= 1;
 
-   foreach (@$faces) {
-      my ($face, $light) = @$_;
-      glColor3f ($light, $light, $light) if defined $light;
-      foreach my $vertex (0..3) {
+   for my $face (0..5) {
+      for my $vertex (0..3) {
          my $index  = $indices[4 * $face + $vertex];
          my $coords = $vertices[$index];
 
-         glTexCoord2f (@{$uv[$vertex]});
          glVertex3f (
-            $coords->[0] + $pos->[0],
-            $coords->[1] + $pos->[1],
-            $coords->[2] + $pos->[2]
+            ($coords->[0] * $scale) + $pos->[0],
+            ($coords->[1] * $scale) + $pos->[1],
+            ($coords->[2] * $scale) + $pos->[2]
          );
       }
    }
@@ -183,7 +173,7 @@ sub _render_highlight {
    glTranslatef (@$pos);
    glScalef (1 + 2*$rad, 1 + 2*$rad, 1+2*$rad);
    glBegin (GL_QUADS);
-   _render_quad ([0, 0, 0], [map { [$_, undef] } 0..5]);
+   _render_quad ([0, 0, 0]);
    glEnd;
    glPopMatrix;
 }
@@ -342,6 +332,25 @@ sub compile_some_chunks {
    $comp
 }
 
+sub add_highlight_model {
+   my ($self, $pos, $relposes, $color, $id) = @_;
+
+   $self->{model_highlights}->{$id} = OpenGL::List::glpList {
+      glPushMatrix;
+      glBindTexture (GL_TEXTURE_2D, 0);
+      glColor4f (@{@$color > 3 ? $color : [@$color, 0.5]});
+      glTranslatef (@$pos);
+      for my $p (@$relposes) {
+         $p = vaddd ($p, 0.3, 0.3, 0.3);
+         glBegin (GL_QUADS);
+         warn "WUAD @$p @ @$pos\n";
+         _render_quad ($p, 0.3);
+         glEnd;
+      }
+      glPopMatrix;
+   };
+}
+
 sub add_highlight {
    my ($self, $pos, $color, $fade, $id) = @_;
 
@@ -405,6 +414,10 @@ sub render_scene {
 
    for (@{$self->{box_highlights}}) {
       _render_highlight ($_->[0], $_->[1], $_->[2]->{rad});
+   }
+
+   for (values %{$self->{model_highlights}}) {
+      glCallList ($_);
    }
 
    my $qp = $self->{selected_box};
