@@ -185,7 +185,6 @@ sub handle_player_packet : event_cb {
                        [$hdr->{pos}, $hdr->{build_pos}]);
 
    } elsif ($hdr->{cmd} eq 'player_pos') {
-      $CHNK->check_adjacent_sectors_at ($hdr->{pos});
       $player->update_pos ($hdr->{pos}, $hdr->{look_vec});
 
    } elsif ($hdr->{cmd} eq 'pos_action') {
@@ -221,7 +220,6 @@ sub login {
 
    $self->send_client ($cid,
       { cmd => "login" });
-
 }
 
 sub handle_packet : event_cb {

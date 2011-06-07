@@ -49,7 +49,7 @@ sub init {
 }
 
 sub check_adjacent_sectors_at_chunk {
-   my ($self, $chnk) = @_;
+   my ($self, $chnk, $load_cb) = @_;
 
    for my $dx (-2, 0, 2) {
       for my $dy (-2, 0, 2) {
@@ -66,11 +66,13 @@ sub check_adjacent_sectors_at_chunk {
          }
       }
    }
+
+   $load_cb->() if $load_cb;
 }
 
 sub check_adjacent_sectors_at {
-   my ($self, $pos) = @_;
-   $self->check_adjacent_sectors_at_chunk (world_pos2chnkpos ($pos));
+   my ($self, $pos, $load_cb) = @_;
+   $self->check_adjacent_sectors_at_chunk (world_pos2chnkpos ($pos), $load_cb);
 }
 
 sub make_sector {

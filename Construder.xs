@@ -420,6 +420,64 @@ void ctr_world_query_setup (int x, int y, int z, int ex, int ey, int ez);
 
 int ctr_world_query_desetup (int no_update = 0);
 
+AV *ctr_world_find_free_spot (int x, int y, int z, int with_floor)
+  CODE:
+    vec3_init (pos, x, y, z);
+    vec3_s_div (pos, CHUNK_SIZE);
+    vec3_floor (pos);
+    int chnk_x = pos[0],
+        chnk_y = pos[1],
+        chnk_z = pos[2];
+
+    ctr_world_query_setup (
+      chnk_x - 2, chnk_y - 2, chnk_z - 2,
+      chnk_x + 2, chnk_y + 2, chnk_z + 2
+    );
+
+    ctr_world_query_load_chunks ();
+
+    int cx = x, cy = y, cz = z;
+    ctr_world_query_abs2rel (&cx, &cy, &cz);
+
+    RETVAL = newAV ();
+    sv_2mortal ((SV *)RETVAL);
+
+    int rad;
+    int ix, iy, iz;
+    int found = 0;
+    for (rad = 0; !found && rad < ((CHUNK_SIZE * 2) - 3); rad++) // -3 safetymargin
+      for (ix = -rad; !found && ix <= rad; ix++)
+        for (iy = -rad; !found && iy <= rad; iy++)
+          for (iz = -rad; !found && iz <= rad; iz++)
+            {
+              int dx = ix + cx,
+                  dy = iy + cy,
+                  dz = iz + cz;
+
+              ctr_cell *cur = ctr_world_query_cell_at (dx, dy, dz, 0);
+              ctr_obj_attr *attr = ctr_world_get_attr (cur->type);
+              if (attr->blocking)
+                continue;
+
+              cur = ctr_world_query_cell_at (dx, dy + 1, dz, 0);
+              attr = ctr_world_get_attr (cur->type);
+              if (attr->blocking)
+                continue;
+
+              cur = ctr_world_query_cell_at (dx, dy - 1, dz, 0);
+              attr = ctr_world_get_attr (cur->type);
+              if (with_floor && !attr->blocking)
+                continue;
+
+              av_push (RETVAL, newSViv (x + ix));
+              av_push (RETVAL, newSViv (y + iy));
+              av_push (RETVAL, newSViv (z + iz));
+              found = 1;
+            }
+
+  OUTPUT:
+    RETVAL
+
 AV *ctr_world_get_pattern (int x, int y, int z, int mutate)
   CODE:
     vec3_init (pos, x, y, z);

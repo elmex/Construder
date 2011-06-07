@@ -14,6 +14,8 @@ our @EXPORT = qw/
    world_secpos2chnkpos
    world_pos2relchnkpos
    world_mutate_at
+   world_load_at
+   world_find_free_spot
 /;
 
 
@@ -86,14 +88,14 @@ sub world_pos2relchnkpos {
 }
 
 sub world_load_at {
-   my ($pos) = @_;
+   my ($pos, $cb) = @_;
    my ($chnk) = world_pos2chnkpos ($pos);
-   $Games::Construder::Server::CHNK->check_adjacent_sectors_at_chunk ($chnk);
+   $Games::Construder::Server::CHNK->check_adjacent_sectors_at_chunk ($chnk, $cb);
 }
 
 sub world_load_at_chunk {
-   my ($chnk) = @_;
-   $Games::Construder::Server::CHNK->check_adjacent_sectors_at_chunk ($chnk);
+   my ($chnk, $cb) = @_;
+   $Games::Construder::Server::CHNK->check_adjacent_sectors_at_chunk ($chnk, $cb);
 }
 
 sub world_mutate_at {
@@ -139,10 +141,11 @@ sub world_mutate_at {
    Games::Construder::World::query_desetup ();
 }
 
-# TODO: - finish multi-mutate
-#       - test light!
-#       - test construction patterns
-#       - pattern multiplizitaet => 1 pattern, mehrere output
+sub world_find_free_spot {
+   my ($pos, $wflo) = @_;
+   $wflo = 0 unless defined $wflo;
+   Games::Construder::World::find_free_spot (@$pos, $wflo);
+}
 
 =back
 

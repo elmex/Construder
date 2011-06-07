@@ -413,6 +413,11 @@ sub update_pos {
 
    return unless $new_pos;
 
+   # just trigger this, if new chunks are generated or loaded they
+   # will be automatically sent if visible by chunk_updated.
+   world_load_at ($pos); # fixme: still blocks for now :)
+
+   # send whats available for now
    my $last_vis = $self->{last_vis} || {};
    my $next_vis = {};
    my @chunks   = _visible_chunks ($pos);
@@ -780,7 +785,14 @@ sub teleport {
    my ($self, $pos) = @_;
 
    $pos ||= $self->{data}->{pos};
-   $self->send_client ({ cmd => "place_player", pos => $pos });
+   world_load_at ($pos, sub {
+      my $new_pos = world_find_free_spot ($pos, 1);
+      unless ($new_pos) {
+         $new_pos = world_find_free_spot ($pos, 0); # without floor on second try
+      }
+      $new_pos = vaddd ($new_pos, 0.5, 0.5, 0.5);
+      $self->send_client ({ cmd => "place_player", pos => $new_pos });
+   });
 }
 
 sub new_ui {
