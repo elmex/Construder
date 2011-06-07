@@ -343,7 +343,7 @@ sub compile_some_chunks {
 }
 
 sub add_highlight {
-   my ($self, $pos, $color, $fade, $solid) = @_;
+   my ($self, $pos, $color, $fade, $id) = @_;
 
    push @$color, 0 if @$color < 4;
 
@@ -351,7 +351,7 @@ sub add_highlight {
 
    $color->[3] = 1 if $fade > 0;
    push @{$self->{box_highlights}},
-      [$pos, $color, { fading => $fade, rad => 0.08 + rand (0.005) }];
+      [$pos, $color, { fading => $fade, rad => 0.08 + rand (0.005) }, $id];
 }
 
 my $render_cnt;

@@ -200,7 +200,7 @@ sub handle_packet : event_cb {
       $self->{front}->deactivate_ui ($hdr->{ui});
 
    } elsif ($hdr->{cmd} eq 'highlight') {
-      $self->{front}->add_highlight ($hdr->{pos}, $hdr->{color}, $hdr->{fade}, $hdr->{solid});
+      $self->{front}->add_highlight ($hdr->{pos}, $hdr->{color}, $hdr->{fade});
 
    } elsif ($hdr->{cmd} eq 'chunk') {
       $body = decompress ($body);

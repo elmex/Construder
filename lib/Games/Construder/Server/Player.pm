@@ -528,6 +528,18 @@ sub highlight {
 
 sub debug_at {
    my ($self, $pos) = @_;
+   for (my $x = 0; $x < 5; $x++) {
+      for (my $y = 0; $y < 5; $y++) {
+         for (my $z = 0; $z < 5; $z++) {
+            $self->send_client ({
+               cmd => "highlight",
+               pos => vaddd ($pos, $x, $y, $z),
+               color => [1, 0, 1],
+               fade => 3
+            });
+         }
+      }
+   }
    world_mutate_at ($pos, sub {
       my ($data) = @_;
       print "position [@$pos]: @$data\n";
