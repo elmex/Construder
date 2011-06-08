@@ -573,11 +573,12 @@ sub do_materialize {
    $tmr = AE::timer $time, 0, sub {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
+         undef $tmr;
+
          $data->[0] = $type;
         #d# $data->[3] = 0x2;
-         $self->push_tick_change (score => $score);
          delete $self->{materializings}->{$id};
-         undef $tmr;
+         $self->push_tick_change (score => $score);
          return 1;
       });
    };
@@ -642,14 +643,15 @@ sub do_dematerialize {
    $self->{dematerializings}->{$id} = 1;
    my $tmr;
    $tmr = AE::timer $time, 0, sub {
+      undef $tmr;
+
       world_mutate_at ($pos, sub {
          my ($data) = @_;
          warn "INCREATE $type\n";
-         $self->increase_inventory ($type);
          $data->[0] = 0;
          $data->[3] &= 0xF0; # clear color :)
          delete $self->{dematerializings}->{$id};
-         undef $tmr;
+         $self->increase_inventory ($type);
          return 1;
       });
    };

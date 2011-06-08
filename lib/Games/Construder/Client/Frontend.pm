@@ -80,10 +80,36 @@ sub init_physics {
    $self->{box_highlights} = [];
 }
 
+sub resize_app {
+   my ($self, $nw, $nh) = @_;
+   ($WIDTH, $HEIGHT) = ($nw, $nh);
+
+   for (values %{$self->{active_uis}}) {
+      $_->resize_screen ($nw, $nh);
+      $_->update;
+   }
+
+   for (values %{$self->{inactive_uis}}) {
+      $_->resize_screen ($nw, $nh);
+      $_->update;
+   }
+
+   delete $self->{cached_cam_cone};
+
+   $self->{app}->resize ($WIDTH, $HEIGHT);
+   glViewport (0, 0, $WIDTH, $HEIGHT);
+}
+
 sub init_app {
    my ($self) = @_;
    $self->{app} = SDLx::App->new (
-      title => "Construder 0.01alpha", width => $WIDTH, height => $HEIGHT, gl => 1);
+      title  => "Construder 0.01alpha",
+      width  => $WIDTH,
+      height => $HEIGHT,
+      gl     => 1,
+      resizeable => 1
+   );
+
    SDL::Events::enable_unicode (1);
    $self->{sdl_event} = SDL::Event->new;
    SDL::Video::GL_set_attribute (SDL::Constants::SDL_GL_SWAP_CONTROL, 1);
@@ -111,6 +137,8 @@ sub init_app {
    glHint (GL_FOG_HINT, GL_FASTEST);
    glFogf (GL_FOG_START, $FAR_PLANE - 20);
    glFogf (GL_FOG_END,   $FAR_PLANE - 1);
+
+   glViewport (0, 0, $WIDTH, $HEIGHT);
 }
 
 #  0 front  1 top    2 back   3 left   4 right  5 bottom
@@ -524,6 +552,9 @@ sub handle_sdl_events {
 
       } elsif ($type == SDL_MOUSEBUTTONDOWN) {
          $self->input_mouse_button ($sdle->button_button, 1);
+
+      } elsif ($type == SDL_VIDEORESIZE) {
+         $self->resize_app ($sdle->resize_w, $sdle->resize_h);
 
       } elsif ($type == 12) {
          warn "Exit event!\n";

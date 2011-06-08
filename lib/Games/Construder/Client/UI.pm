@@ -68,6 +68,12 @@ sub new {
    return $self
 }
 
+sub resize_screen {
+   my ($self, $w, $h) = @_;
+   $self->{W} = $w;
+   $self->{H} = $h;
+}
+
 sub animation_step {
    my ($self) = @_;
    $self->{anim_state} = not $self->{anim_state};
