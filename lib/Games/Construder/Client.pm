@@ -44,7 +44,7 @@ sub new {
    $Games::Construder::Client::UI::RES = $self->{res};
 
    $self->{front} =
-      Games::Construder::Client::Frontend->new (res => $self->{res});
+      Games::Construder::Client::Frontend->new (res => $self->{res}, client => $self);
 
    $self->{front}->reg_cb (
       update_player_pos => sub {
@@ -72,32 +72,13 @@ sub start {
    $c->recv;
 }
 
-sub msgbox {
-   my ($self, $msg, $cb) = @_;
-
-   unless (defined $msg) {
-      $self->{front}->deactivate_ui ('cl_msgbox');
-      return;
-   }
-
-   $self->{front}->activate_ui (cl_msgbox => {
-      window => { pos => [ 'center', 'center' ] },
-      layout => [box => { dir => "vert", padding => 10, border => { color => "#888888" } },
-         [text => { align => "center", font => 'normal', color => "#ffffff", wrap => 30 },
-          $msg],
-         [text => { align => "center", font => 'small', color => "#888888" },
-          "(Press Escape-Key to hide)"],
-      ]
-   });
-}
-
 sub connect {
    my ($self, $host, $port) = @_;
 
    tcp_connect $host, $port, sub {
       my ($fh) = @_;
       unless ($fh) {
-         $self->msgbox ("Couldn't connect to server: $!");
+         $self->{front}->msg ("Couldn't connect to server: $!");
          return;
       }
 
@@ -136,7 +117,7 @@ sub send_server {
 
 sub connected : event_cb {
    my ($self) = @_;
-   $self->msgbox ("Connected to Server!");
+   $self->{front}->msg ("Connected to Server!");
    $self->send_server ({ cmd => 'hello', version => "Games::Construder::Client 0.1" });
 }
 
@@ -146,7 +127,7 @@ sub handle_packet : event_cb {
    warn "cl< $hdr->{cmd} (".length ($body).")\n";
 
    if ($hdr->{cmd} eq 'hello') {
-      $self->msgbox ("Queried Resources");
+      $self->{front}->msg ("Queried Resources");
       $self->send_server ({ cmd => 'list_resources' });
 
    } elsif ($hdr->{cmd} eq 'resources_list') {
@@ -157,9 +138,9 @@ sub handle_packet : event_cb {
 
       if (@data_res_ids) {
          $self->send_server ({ cmd => get_resources => ids => \@data_res_ids });
-         $self->msgbox ("Initiated resource transfer (".scalar (@data_res_ids).")");
+         $self->{front}->msg ("Initiated resource transfer (".scalar (@data_res_ids).")");
       } else {
-         $self->msgbox ("No resources on server found!");
+         $self->{front}->msg ("No resources on server found!");
       }
 
    } elsif ($hdr->{cmd} eq 'resource') {
@@ -169,7 +150,7 @@ sub handle_packet : event_cb {
       $self->send_server ({ cmd => 'transfer_poll' });
 
    } elsif ($hdr->{cmd} eq 'transfer_end') {
-      $self->msgbox;
+      $self->{front}->msg;
       #print JSON->new->pretty->encode ($self->{front}->{res}->{resource});
       $self->{res}->post_proc;
       $self->{res}->dump_resources;
@@ -226,7 +207,7 @@ sub handle_packet : event_cb {
 sub disconnected : event_cb {
    my ($self) = @_;
    delete $self->{srv};
-   $self->msgbox ("Disconnected from server!");
+   $self->{front}->msg ("Disconnected from server!");
 }
 
 =back

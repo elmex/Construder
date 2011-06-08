@@ -39,9 +39,9 @@ Games::Construder::Client::Frontend - desc
 
 =cut
 
-my ($WIDTH, $HEIGHT) = (800, 600);#600, 400);
+my ($WIDTH, $HEIGHT) = (800, 600);
+my $DEPTH = 24;
 my $UPDATE_P_FRAME = 30;
-#my ($WIDTH, $HEIGHT) = (1200, 720);#600, 400);
 
 my $PL_HEIGHT  = 1.3;
 my $PL_RAD     = 0.3;
@@ -82,7 +82,16 @@ sub init_physics {
 
 sub resize_app {
    my ($self, $nw, $nh) = @_;
+   eval {
+      $self->{app}->resize ($nw, $nh);
+   };
+   if ($@) {
+      $self->msg ("Can't resize application: $@");
+   }
+
    ($WIDTH, $HEIGHT) = ($nw, $nh);
+
+   glViewport (0, 0, $WIDTH, $HEIGHT);
 
    for (values %{$self->{active_uis}}) {
       $_->resize_screen ($nw, $nh);
@@ -91,13 +100,9 @@ sub resize_app {
 
    for (values %{$self->{inactive_uis}}) {
       $_->resize_screen ($nw, $nh);
-      $_->update;
    }
 
    delete $self->{cached_cam_cone};
-
-   $self->{app}->resize ($WIDTH, $HEIGHT);
-   glViewport (0, 0, $WIDTH, $HEIGHT);
 }
 
 sub init_app {
@@ -106,6 +111,7 @@ sub init_app {
       title  => "Construder 0.01alpha",
       width  => $WIDTH,
       height => $HEIGHT,
+      d      => $DEPTH,
       gl     => 1,
       resizeable => 1
    );
@@ -924,6 +930,25 @@ sub input_key_up : event_cb {
       $self->{air_select_mode} = 0;
    }
 
+}
+
+sub msg {
+   my ($self, $msg, $cb) = @_;
+
+   unless (defined $msg) {
+      $self->deactivate_ui ('cl_msgbox');
+      return;
+   }
+
+   $self->activate_ui (cl_msgbox => {
+      window => { pos => [ 'center', 'center' ] },
+      layout => [box => { dir => "vert", padding => 10, border => { color => "#888888" } },
+         [text => { align => "center", font => 'normal', color => "#ffffff", wrap => 30 },
+          $msg],
+         [text => { align => "center", font => 'small', color => "#888888" },
+          "(Press Escape-Key to hide)"],
+      ]
+   });
 }
 
 sub activate_ui {
