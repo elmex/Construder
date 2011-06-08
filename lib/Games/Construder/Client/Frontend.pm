@@ -80,6 +80,11 @@ sub init_physics {
    $self->{box_highlights} = [];
 }
 
+sub exit_app {
+   my ($self) = @_;
+   exit;
+}
+
 sub resize_app {
    my ($self, $nw, $nh) = @_;
    eval {
@@ -157,14 +162,6 @@ my @indices  = (
    qw/ 3 7 4 0 /, # 5 bottom
 );
 
-#my @normals = (
-#   [ 0, 0,-1],
-#   [ 0, 1, 0],
-#   [ 0, 0, 1],
-#   [-1, 0, 0],
-#   [ 1, 0, 0],
-#   [ 0,-1, 0],
-#),
 my @vertices = (
    [ 0,  0,  0 ],
    [ 0,  1,  0 ],
@@ -628,7 +625,6 @@ sub setup_event_poller {
          $self->step_animations ($anim_dt);
          $anim_accum_time -= $anim_dt;
       }
-
    };
    $self->{ui_timer} = AE::timer 0, 1, sub {
       for ($self->active_uis) {
@@ -932,6 +928,56 @@ sub input_key_up : event_cb {
 
 }
 
+sub esc_menu {
+   my ($self) = @_;
+
+   $self->activate_ui (esc_menu => {
+      window => { pos => [center => 'center'] },
+      layout => [ box => { dir => "vert" },
+         [text => { align => "center", font => "big", color => "#ffffff" },
+          "Construder Client Menu"],
+         [text => { align => "center", color => "#999999", font => "small" },
+          "(To select the menu item, press the key in the square brackets)"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "[s] Connection Settings"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "[d] Disconnect"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "[c] Connect"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "[a] Audio Options"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "[v] Video Options"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "[t] View Credits"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "[q] Exit (Press the 'q' key)"],
+      ],
+      commands => {
+         default_keys => {
+            q => "exit",
+            c => "credits",
+            v => "video",
+            a => "audio",
+         }
+      },
+      command_cb => sub {
+         my ($cmd, $arg, $need_selection) = @_;
+
+         if ($cmd eq 'exit') {
+            $self->exit_app;
+
+         } elsif ($cmd eq 'credits') {
+            $self->deactivate_ui ('esc_menu');
+            $self->show_credits;
+
+         } elsif ($cmd eq 'video') {
+         } elsif ($cmd eq 'audio') {
+         }
+      }
+   });
+}
+
 sub msg {
    my ($self, $msg, $cb) = @_;
 
@@ -1023,7 +1069,10 @@ sub input_key_down : event_cb {
    }
    return if $handled;
 
-   ($name eq "q" || $name eq 'escape') and exit;
+   if ($name eq 'escape') {
+      $self->esc_menu;
+      return;
+   }
 
    warn "Key down $key ($name)\n";
 

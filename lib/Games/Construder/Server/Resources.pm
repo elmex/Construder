@@ -76,6 +76,12 @@ sub load_world_gen_file {
       $stypes->{$_}->{type} = $_;
       $stypes->{$_}->{cmds} = _get_file ("res/$stypes->{$_}->{file}");
    }
+
+   my $music = $self->{world_gen}->{music};
+   $self->{music} = {};
+   for (keys %$music) {
+      $self->load_music ($_, $music->{$_});
+   }
 }
 
 sub load_region_file {
@@ -210,6 +216,22 @@ sub load_texture {
       }
    });
    $txtres_id
+}
+
+sub load_music {
+   my ($self, $name, $mentry) = @_;
+
+   $self->{music}->{$name} = $mentry;
+
+   my $data  = _get_file ("res/music/" . $mentry->{file});
+
+   my $md5  = md5_base64 ($data);
+   $self->{music}->{$name}->{res}
+      = $self->add_res ({
+         type => "music",
+         data => $mus,
+         md5  => $md5,
+      });
 }
 
 sub list_resources {

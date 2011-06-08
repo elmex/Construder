@@ -1,4 +1,17 @@
 {
+   "music" : {
+      "test" : {
+         "file" : "",
+         "license" : "",
+         "author" : "",
+         "source" : "",
+      }
+   },
+   "credits" : {
+      "graphics" : [
+         { "license" : "", "source" : "" },
+      ],
+   },
    "balancing" : {
       "max_dematerialize_time" : 30,         # 30 seconds
       "max_dematerialize_bio"  : 33.3,       # 33.3% bio => should be less
