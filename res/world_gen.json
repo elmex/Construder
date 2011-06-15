@@ -39,8 +39,8 @@
          "max_score_time_fact" : 0.5, # max time factor for high levels
          "max_distance" : 40,
          "min_distance" : 5,
-         "time_per_sector" : 20,
-         "time_per_block" : 1,
+         "time_per_pos"   : 20, # 0.2 seconds per block distance
+         "time_per_block" : 7,  # 7 seconds per block building should be ample... i hope :)
       }
    },
    "initial_inventory" : {

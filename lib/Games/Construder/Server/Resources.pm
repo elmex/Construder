@@ -687,7 +687,7 @@ sub get_assignment_for_score {
 
    # calculate distance of assignment
    $distance = lerp ($abal->{min_distance}, $abal->{max_distance}, $level);
-   $time += $distance * $abal->{time_per_sector};
+   $time += $distance * $abal->{time_per_pos};
    $distance *= 60;
    $distance = 0;  #d#
 
