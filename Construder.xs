@@ -478,6 +478,43 @@ AV *ctr_world_find_free_spot (int x, int y, int z, int with_floor)
   OUTPUT:
     RETVAL
 
+AV *ctr_world_get_types_in_cube (int x, int y, int z, int size)
+  CODE:
+    vec3_init (pos1, x, y, z);
+    vec3_s_div (pos1, CHUNK_SIZE);
+    vec3_floor (pos1);
+
+    vec3_init (pos2, x + size, y + size, z + size);
+    vec3_s_div (pos2, CHUNK_SIZE);
+    vec3_floor (pos2);
+
+    ctr_world_query_setup (
+      (int) pos1[0], (int) pos1[1], (int) pos1[2],
+      (int) pos2[0], (int) pos2[1], (int) pos2[2]
+    );
+
+    ctr_world_query_load_chunks ();
+
+    int cx = x, cy = y, cz = z;
+    ctr_world_query_abs2rel (&cx, &cy, &cz);
+
+    RETVAL = newAV ();
+    sv_2mortal ((SV *)RETVAL);
+
+    int dx, dy, dz;
+    for (dx = 0; dx < size; dx++)
+      for (dy = 0; dy < size; dy++)
+        for (dz = 0; dz < size; dz++)
+          {
+            ctr_cell *cur = ctr_world_query_cell_at (cx + dx, cy + dy, cz + dz, 0);
+            av_push (RETVAL, newSViv (cur->type));
+          }
+
+    ctr_world_query_desetup (1);
+
+  OUTPUT:
+    RETVAL
+
 AV *ctr_world_get_pattern (int x, int y, int z, int mutate)
   CODE:
     vec3_init (pos, x, y, z);

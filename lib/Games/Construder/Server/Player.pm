@@ -6,6 +6,7 @@ use Games::Construder::Server::World;
 use Games::Construder::Server::UI;
 use Games::Construder::Server::Objects;
 use Games::Construder::Vector;
+use Time::HiRes qw/time/;
 use base qw/Object::Event/;
 use Scalar::Util qw/weaken/;
 use Compress::LZF;
@@ -739,7 +740,7 @@ sub create_assignment {
             my $model = ($materials->{$type} ||= []);
 
             my $pos = [$x, $y, $z];
-            push @$model, [$pos, [1, 0, 1, 0.1]];
+            push @$model, [$pos, [1, 0, 1, 0.2]];
 
             my $id = join ",", @{vadd ($pos, $wpos)};
             $positions->{$id} = $type;
@@ -752,6 +753,8 @@ sub create_assignment {
       size       => $size,
       score      => $score,
       time       => $time,
+      materials  => [sort keys %$materials],
+      unfin_mat  => [sort keys %$materials],
    };
    print "ASSIGNMENT : " . JSON->new->pretty->encode ($cal) . "\n";
    $cal->{pos_types} = $positions;
@@ -793,18 +796,74 @@ sub create_assignment {
    #    on player load assignment timers have to be restarted
 }
 
+sub check_assignment_positions {
+   my ($self) = @_;
+
+   my $t      = time;
+   my $assign = $self->{data}->{assignment};
+   my $lpos   = { %{$assign->{pos_types}} };
+   my $typ    =
+      Games::Construder::World::get_types_in_cube (@{$assign->{pos}}, $assign->{size});
+
+   printf "CHECK TIME 1 %f\n", $t - time;
+
+   for (my $x = 0; $x < $assign->{size}; $x++) {
+      for (my $y = 0; $y < $assign->{size}; $y++) {
+         for (my $z = 0; $z < $assign->{size}; $z++) {
+            my $t = shift @$typ;
+            my $pid = join (",", @{vaddd ($assign->{pos}, $x, $y, $z)});
+
+            if ($assign->{pos_types}->{$pid}) {
+               if ($assign->{pos_types}->{$pid} == $t) {
+                  delete $lpos->{$pid};
+               }
+            }
+         }
+      }
+   }
+
+   my %tleft;
+   for (keys %$lpos) {
+      $tleft{$lpos->{$_}}++;
+   }
+   $assign->{left} = \%tleft;
+
+   printf "CHECK TIME 2 %f\n", $t - time;
+}
+
 sub check_assignment {
    my ($self) = @_;
+
    my $assign = $self->{data}->{assignment};
    unless ($assign) {
       $self->{uis}->{assignment_time}->hide;
+      $self->send_client ({
+         cmd => "model_highlight",
+         id => "assignment"
+      });
       return;
    }
+
+   unless ($self->{assign_ment_hl}) {
+      $self->{assign_ment_hl} = 1;
+      my $mat = $assign->{unfin_mat}->[0];
+
+      $self->send_client ({
+         cmd   => "model_highlight",
+         pos   => $assign->{pos},
+         model => $assign->{mat_models}->{2},
+         id    => "assignment",
+      });
+   }
+
+   $self->check_assignment_positions;
 
    $self->{uis}->{assignment_time}->show;
    my $wself = $self;
    weaken $wself;
    $self->{assign_timer} = AE::timer 1, 1, sub {
+      $wself->check_assignment_positions;
+
       $wself->{data}->{assignment}->{time} -= 1;
       $wself->{uis}->{assignment_time}->show;
       if ($wself->{data}->{assignment}->{time} <= 0) {

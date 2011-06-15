@@ -34,8 +34,8 @@
       "assignments" : {
          "max_score"    : 1000000,
          "min_score"    : 1000,
-         "min_size"     : 5,   #  5x5x5   is already proper
-         "max_size"     : 40,  # 40x40x40 is REALLY huge! => new size every ~29k points
+         "min_size"     : 3,   # 3x3x3
+         "max_size"     : 11,  # 11x11x11 much bigger will not be nice for the player
          "max_score_time_fact" : 0.5, # max time factor for high levels
          "max_distance" : 40,
          "min_distance" : 5,

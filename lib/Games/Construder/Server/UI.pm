@@ -734,10 +734,106 @@ sub handle_command {
 sub layout {
    my ($self, $type, $pos) = @_;
 
-   if ($pos) {
-      $self->{nav_to} = $pos;
+   if ($type eq 'pos') {
+      $self->layout_pos ($pos);
+   } elsif ($type eq 'sector') {
+      $self->layout_sector ($pos);
+   } elsif ($self->{nav_to_sector}) {
+      $self->layout_sector ();
    } else {
-      ($pos) = $self->{nav_to} || [0, 0, 0];
+      $self->layout_pos ();
+   }
+
+}
+
+sub layout_pos {
+   my ($self, $pos) = @_;
+
+   if ($pos) {
+      $self->{nav_to_pos} = $pos;
+   } else {
+      ($pos) = $self->{nav_to_pos} || [0, 0, 0];
+   }
+
+   my $sec_pos  = $self->{pl}->get_pos_normalized;
+   my $dest_pos = [@$pos];
+
+   my $diff = vsub ($dest_pos, $sec_pos);
+
+   my $alt =
+      $diff->[1] > 0
+         ? $diff->[1] . " above"
+         : ($diff->[1] < 0
+             ? (-$diff->[1]) . " below" : "same height");
+   my $alt_ok = $diff->[1] == 0;
+
+   my $lv = [@{$self->{pl}->{data}->{look_vec}}];
+
+   my $dist   = vlength ($diff);
+   $lv->[1]   = 0;
+   $diff->[1] = 0;
+   my $dl     = vlength ($diff);
+   my $l      = vlength ($lv) * $dl;
+
+   my $r;
+   my $dir_ok;
+   if ($l > 0.001) {
+      vinorm ($lv);
+      vinorm ($diff);
+      my $pdot = $lv->[0] * $diff->[2] - $lv->[2] * $diff->[0];
+      $r = rad2deg (atan2 ($pdot, vdot ($lv, $diff)), 1);
+      $r = int $r;
+      $dir_ok = abs ($r) < 10;
+      $r = $r < 0 ? -$r . "° left" : $r . "° right";
+   } else {
+      $r = 0;
+      if ($dl <= 0.001) { # we arrived!
+         $dir_ok = 1;
+      }
+   }
+
+   {
+      window => {
+         pos => ["right", "center"],
+         sticky => 1,
+         alpha => 0.6,
+      },
+      layout => [
+         box => {
+            dir => "vert",
+         },
+         [text => { font => "small", align => "center", color => "#888888" },
+          "Navigator"],
+         [box => {
+            dir => "hor",
+          },
+          [box => { dir => "vert", padding => 4 },
+             [text => { color => "#888888" }, "Pos"],
+             [text => { color => "#888888" }, "Dest"],
+             [text => { color => "#888888" }, "Dist"],
+             [text => { color => "#888888" }, "Alt"],
+             [text => { color => "#888888" }, "Dir"],
+          ],
+          [box => { dir => "vert", padding => 4 },
+             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @$sec_pos],
+             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @$pos],
+             [text => { color => "#ffffff" }, int ($dist)],
+             [text => { color => $alt_ok ? "#00ff00" : "#ff0000" }, $alt],
+             [text => { color => $dir_ok ? "#00ff00" : "#ff0000" }, $r],
+          ],
+         ],
+      ],
+   }
+}
+
+
+sub layout_sector {
+   my ($self, $pos) = @_;
+
+   if ($pos) {
+      $self->{nav_to_sector} = $pos;
+   } else {
+      ($pos) = $self->{nav_to_sector} || [0, 0, 0];
    }
 
    my $sec_pos  = $self->{pl}->get_pos_sector;
@@ -1077,7 +1173,7 @@ sub handle_command {
 
    } elsif ($cmd eq 'navigate') {
       $self->hide;
-      $self->show_ui ('navigator', sector => $self->{pl}->{data}->{assignment}->{sec});
+      $self->show_ui ('navigator', pos => $self->{pl}->{data}->{assignment}->{pos});
 
    } elsif ($cmd eq 'cancel_assign') {
       $self->{pl}->cancel_assignment;
@@ -1088,13 +1184,16 @@ sub layout {
    my ($self) = @_;
 
    my $cal = $self->{pl}->{data}->{assignment} || {};
+   my $mcal = { %$cal };
+   delete $mcal->{pos_types};
+   delete $mcal->{mat_models};
 
    {
       window => { pos => [ center => 'center' ] },
       layout => [
          box => { dir => "vert", border => { color => "#ffffff" } },
          [text => { color => "#ffffff" },
-           JSON->new->pretty->encode ($cal)],
+           JSON->new->pretty->encode ($mcal)],
       ]
    }
 }
@@ -1120,7 +1219,10 @@ sub layout {
    {
       window => { pos => [ left => "up", 0.1, 0 ], sticky => 1 },
       layout => [
-         text => { color => $color, align => "center" }, "Assignment:\n$cal->{time}s"
+         box => { dir => "vert" },
+         [ text => { color => $color, align => "center" }, "Assignment:\n$cal->{time}s" ],
+         [ text => { color => "#888888", align => "center" }, 
+           "Left:\n" . join ("\n", map { "$_: $cal->{left}->{$_}" } keys %{$cal->{left}}) ],
       ]
    }
 }

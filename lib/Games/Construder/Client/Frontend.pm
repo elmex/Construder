@@ -372,6 +372,11 @@ sub compile_some_chunks {
    $comp
 }
 
+sub remove_highlight_model {
+   my ($self, $id) = @_;
+   delete $self->{model_highlights}->{$id};
+}
+
 sub add_highlight_model {
    my ($self, $pos, $relposes, $id) = @_;
 

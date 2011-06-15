@@ -689,6 +689,7 @@ sub get_assignment_for_score {
    $distance = lerp ($abal->{min_distance}, $abal->{max_distance}, $level);
    $time += $distance * $abal->{time_per_sector};
    $distance *= 60;
+   $distance = 0;  #d#
 
    # include the time factor for high levels
    my $time_fact = lerp (1, $abal->{min_score_time_fact}, $level);
