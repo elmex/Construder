@@ -229,7 +229,7 @@ sub load_music {
    $self->{music}->{$name}->{res}
       = $self->add_res ({
          type => "music",
-         data => $mus,
+         data => $data,
          md5  => $md5,
       });
 }

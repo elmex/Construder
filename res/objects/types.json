@@ -317,6 +317,24 @@
       "natural" : 1,
       "model" : [2, 1, 19, 2, 19, 3, 19, 4, 19],
    },
+   #"Test" : {
+   #   "type" : 801,
+   #   "complexity" : 50,
+   #   "density" : 50,
+   #   "model" : [2, 1, 44, 8, 44],
+   #},
+   #"Test2" : {
+   #   "type" : 802,
+   #   "complexity" : 60,
+   #   "density" : 45,
+   #   "model" : [2, 1, 801, 8, 801],
+   #},
+   #"Test3" : {
+   #   "type" : 803,
+   #   "complexity" : 65,
+   #   "density" : 40,
+   #   "model" : [2, 1, 801, 2, 801, 3, 801, 4, 801, 5, 2, 6, 802],
+   #}
 
    #"gravity_pusher" : {
    #   "type" : 90,

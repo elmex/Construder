@@ -430,8 +430,9 @@ ctr_render_add_face (unsigned int face, unsigned int type, unsigned short color,
 #endif
 }
 
+void ctr_render_model (unsigned int type, double light, double xo, double yo, double zo, void *chnk, int skip, int force_model, double scaling);
 void
-ctr_render_model (unsigned int type, double light, double xo, double yo, double zo, void *chnk, int skip, int force_model)
+ctr_render_model (unsigned int type, double light, double xo, double yo, double zo, void *chnk, int skip, int force_model, double scaling)
 {
   ctr_obj_attr *oa = ctr_world_get_attr (type);
   unsigned int dim = oa->model_dim;
@@ -447,31 +448,45 @@ ctr_render_model (unsigned int type, double light, double xo, double yo, double 
   int x, y, z;
   unsigned int blk_offs = 0;
   double scale = (double) 1 / (double) (dim > 0 ? dim : 1);
+  scale *= scaling;
 
   int drawn = 0;
  //d//  printf ("RENDER MODEL START %d %f %f %f\n", dim, xo, yo, zo);
   for (y = 0; y < dim; y++)
     for (z = 0; z < dim; z++)
-      for (x = 0; x < dim; x++)
+      for (x = dim - 1; x >= 0; x--)
         {
           unsigned int blktype = blocks[blk_offs];
           ctr_obj_attr *oa = ctr_world_get_attr (blktype);
          //d//  printf ("RENDER MODEL %d: %d\n", blk_offs, blktype);
 
-          if (oa->transparent)
+          if (blktype == 0) // was: oa->transparent, but models are transp. too
             {
               blk_offs++;
               continue;
             }
-          //d// printf ("MODEL FACE %f %f %f :%d %g\n", (double) x + xo, (double) y + yo, (double) z + zo, blktype, scale);
 
-          int face;
-          for (face = 0; face < 6; face++)
-            ctr_render_add_face (
-              face, blktype, 0, light,
-              x, y, z, scale,
-              xo, yo, zo,
-              chnk);
+
+          //d// printf ("MODEL FACE %f %f %f :%d %g\n", (double) x + xo, (double) y + yo, (double) z + zo, blktype, scale);
+          if (!oa->has_txt)
+            {
+              ctr_render_model (
+                blktype, light,
+                ((double) x * scale) + xo,
+                ((double) y * scale) + yo,
+                ((double) z * scale) + zo, chnk, -1, 0, scale);
+            }
+          else
+            {
+              int face;
+              for (face = 0; face < 6; face++)
+                ctr_render_add_face (
+                  face, blktype, 0, light,
+                  x, y, z, scale,
+                  xo, yo, zo,
+                  chnk);
+            }
+
           drawn++;
           if (skip >= 0 && drawn >= skip)
             goto end;
@@ -522,7 +537,7 @@ ctr_render_chunk (int x, int y, int z, void *geom)
           if (!oa->has_txt)
             {
               ctr_render_model (
-                cur->type, ctr_cell_light (cur), dx, dy, dz, geom, -1, 0);
+                cur->type, ctr_cell_light (cur), dx, dy, dz, geom, -1, 0, 1);
               continue;
             }
 
