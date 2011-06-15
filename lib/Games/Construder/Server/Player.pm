@@ -541,11 +541,10 @@ sub debug_at {
             my $x = $_;
             map {
                my $y = $_;
-               map { [$x, $y, $_] } 0..10
+               map { [[$x, $y, $_], [1, 0, rand (100) / 100, 0.2]] } 0..10
             } 0..10
          } 0..10
       ],
-      color => [1, 0, 1, 0.2],
       id => "debug"
    });
    world_mutate_at ($pos, sub {
@@ -720,6 +719,22 @@ sub create_assignment {
    $self->{uis}->{assignment}->show;
 
    $self->check_assignment;
+
+   # - linerp: level of materials (based on models and occurance in sectors of them)
+   #                the level of the material determines the time the player has to
+   #                to get that material. natual materials give the player few time
+   #                per material item.
+   # - linerp: number of different materials, needs to be within displayable colors
+   #                multiplier for level of materials time.
+   # - linerp: size of construct
+   #                time is linerp't from two min-size-time to max-size-time
+   # - linerp: time factor
+   #                linerp (1, time-max-score-fact, score / max_score)
+   #                mit end-zeit multipliziert
+   # - linerp: entfernung vom player
+   #                time from sector-manhattan-distance multiplied with
+   #                travel-time-per-sector
+   # - linerp in collection: shape of construct
 
    # generate random sector position
    #      parameter: distance

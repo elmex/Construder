@@ -373,17 +373,17 @@ sub compile_some_chunks {
 }
 
 sub add_highlight_model {
-   my ($self, $pos, $relposes, $color, $id) = @_;
+   my ($self, $pos, $relposes, $id) = @_;
 
    $self->{model_highlights}->{$id} = OpenGL::List::glpList {
       glPushMatrix;
       glBindTexture (GL_TEXTURE_2D, 0);
-      glColor4f (@{@$color > 3 ? $color : [@$color, 0.5]});
       glTranslatef (@$pos);
-      for my $p (@$relposes) {
+      for (@$relposes) {
+         my ($p, $c) = @$_;
          $p = vaddd ($p, 0.3, 0.3, 0.3);
+         glColor4f (@{@$c > 3 ? $c : [@$c, 0.5]});
          glBegin (GL_QUADS);
-         warn "WUAD @$p @ @$pos\n";
          _render_quad ($p, 0.3);
          glEnd;
       }

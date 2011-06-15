@@ -186,7 +186,7 @@ sub handle_packet : event_cb {
       $self->{front}->add_highlight ($hdr->{pos}, $hdr->{color}, $hdr->{fade});
 
    } elsif ($hdr->{cmd} eq 'model_highlight') {
-      $self->{front}->add_highlight_model ($hdr->{pos}, $hdr->{model}, $hdr->{color}, $hdr->{id});
+      $self->{front}->add_highlight_model ($hdr->{pos}, $hdr->{model}, $hdr->{id});
 
    } elsif ($hdr->{cmd} eq 'chunk') {
       $body = decompress ($body);
