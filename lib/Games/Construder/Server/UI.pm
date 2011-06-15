@@ -1116,7 +1116,6 @@ sub layout {
    } else {
       $color = "#ff0000";
    }
-   warn "HDOFEOF\n";
 
    {
       window => { pos => [ left => "up", 0.1, 0 ], sticky => 1 },

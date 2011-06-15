@@ -1,0 +1,5 @@
+src_dst 0 0
+  fill_noise 4 2 0.3
+  hist_equalize 256 0 1
+  map_range 0 0.6 0 0
+  hist_equalize 255 0.0001 0.9

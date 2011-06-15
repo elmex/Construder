@@ -692,6 +692,15 @@ sub start_dematerialize {
    }, no_light => 1);
 }
 
+sub _map_value_to_material {
+   my ($map, $val) = @_;
+   for (@$map) {
+      my ($a, $b, $t) = @$_;
+      return $t if $val >= $a && $val < $b;
+   }
+   undef
+}
+
 sub create_assignment {
    my ($self) = @_;
 
@@ -704,9 +713,9 @@ sub create_assignment {
       $Games::Construder::Server::RES->get_assignment_for_score ($self->{data}->{score});
 
    my $vec = vsmul (vnorm ([$x, $y, $z]), $distance);
-   my $sec = vfloor (vadd ($vec, $self->get_pos_sector));
+   my $wpos = vfloor (vadd ($vec, $self->get_pos_normalized));
 
-   warn "assignment at @$vec => @$sec\n";
+   warn "assignment at @$vec => @$wpos\n";
 
    Games::Construder::VolDraw::alloc ($size);
 
@@ -716,17 +725,37 @@ sub create_assignment {
    );
 
    my $cube = Games::Construder::VolDraw::to_perl ();
+   warn "CUBE @$cube\n";
    shift @$cube;
 
-   # calc highlight models
-   # make position->material map for assignment confirmation
+   my $materials = {};
+   my $positions = {};
+
+   for (my $x = 0; $x < $size; $x++) {
+      for (my $y = 0; $y < $size; $y++) {
+         for (my $z = 0; $z < $size; $z++) {
+            my $val = shift @$cube;
+            my $type = _map_value_to_material ($material_map, $val);
+            my $model = ($materials->{$type} ||= []);
+
+            my $pos = [$x, $y, $z];
+            push @$model, [$pos, [1, 0, 1, 0.1]];
+
+            my $id = join ",", @{vadd ($pos, $wpos)};
+            $positions->{$id} = $type;
+         }
+      }
+   }
 
    my $cal = $self->{data}->{assignment} = {
-      sec    => $sec,
-      size   => $size,
-      score  => $score,
-      time   => $time,
+      pos        => $wpos,
+      size       => $size,
+      score      => $score,
+      time       => $time,
    };
+   print "ASSIGNMENT : " . JSON->new->pretty->encode ($cal) . "\n";
+   $cal->{pos_types} = $positions;
+   $cal->{mat_models} = $materials;
 
    $self->{uis}->{assignment}->show;
 

@@ -676,7 +676,7 @@ sub get_assignment_for_score {
    $desc = $desc->{cmds};
 
    # size:
-   $size = lerp ($abal->{min_size}, $abal->{max_size}, $level);
+   $size = int (lerp ($abal->{min_size}, $abal->{max_size}, $level));
 
    # select materials:
    my $mat_level = lerp (1, 100, $level); # material level
@@ -688,6 +688,7 @@ sub get_assignment_for_score {
    # calculate distance of assignment
    $distance = lerp ($abal->{min_distance}, $abal->{max_distance}, $level);
    $time += $distance * $abal->{time_per_sector};
+   $distance *= 60;
 
    # include the time factor for high levels
    my $time_fact = lerp (1, $abal->{min_score_time_fact}, $level);
@@ -695,6 +696,11 @@ sub get_assignment_for_score {
 
    my $ascore = lerp ($abal->{min_score}, $abal->{max_score}, $level);
    $ascore = int (($ascore / 50) + 0.5) * 50;
+
+   $material_map = [
+      [0,   0.2,    2],
+      [0.2, 1.001, 19],
+   ];
 
    ($desc, $size, $material_map, $distance, $time, $ascore)
 }

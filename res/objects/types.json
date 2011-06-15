@@ -181,7 +181,6 @@
       "density" : 15,
       "natural" : 1,
    },
-
    "Minicell" : {
      "type" : 30,
      "texture" : ["cat2.png", 256, 0, 64, 64],
