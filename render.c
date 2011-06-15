@@ -468,7 +468,7 @@ ctr_render_model (unsigned int type, double light, double xo, double yo, double 
 
 
           //d// printf ("MODEL FACE %f %f %f :%d %g\n", (double) x + xo, (double) y + yo, (double) z + zo, blktype, scale);
-          if (!oa->has_txt)
+          if (!oa->has_txt && oa->model)
             {
               ctr_render_model (
                 blktype, light,
@@ -476,7 +476,7 @@ ctr_render_model (unsigned int type, double light, double xo, double yo, double 
                 ((double) y * scale) + yo,
                 ((double) z * scale) + zo, chnk, -1, 0, scale);
             }
-          else
+          else if (oa->has_txt)
             {
               int face;
               for (face = 0; face < 6; face++)

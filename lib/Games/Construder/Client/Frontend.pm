@@ -928,6 +928,29 @@ sub input_key_up : event_cb {
 
 }
 
+sub show_credits {
+   my ($self) = @_;
+
+   $self->activate_ui (credits => {
+      window => { pos => [center => 'center'] },
+      layout => [ box => { dir => "vert" },
+         [text => { align => "center", font => "big", color => "#ffffff" },
+          "Credits"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "Perl Client: Robin Redeker"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "Perl Server Code: Robin Redeker"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "Graphics: Various"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "Music: Various"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "Game Design: Robin Redeker"],
+      ],
+   });
+
+}
+
 sub esc_menu {
    my ($self) = @_;
 
@@ -966,10 +989,13 @@ sub esc_menu {
 
          if ($cmd eq 'exit') {
             $self->exit_app;
+            return 1;
 
          } elsif ($cmd eq 'credits') {
+            warn "SLEC CRED\n";
             $self->deactivate_ui ('esc_menu');
             $self->show_credits;
+            return 1;
 
          } elsif ($cmd eq 'video') {
          } elsif ($cmd eq 'audio') {
@@ -1009,7 +1035,7 @@ sub activate_ui {
 
    $obj ||=
       Games::Construder::Client::UI->new (
-         W => $WIDTH, H => $HEIGHT, res => $self->{res});
+         W => $WIDTH, H => $HEIGHT, res => $self->{res}, name => $ui);
 
    $obj->update ($desc);
 
@@ -1028,9 +1054,11 @@ sub deactivate_ui {
    @{$self->{active_ui_stack}} = grep {
       $_->[0] ne $ui
    } @{$self->{active_ui_stack}};
+   warn "DEACT $ui\n";
 
    my $obj = delete $self->{active_uis}->{$ui};
    if ($obj) {
+   warn "DEACT $ui $obj\n";
       $obj->active (0);
       $self->{inactive_uis}->{$ui} = $obj;
    }
@@ -1059,7 +1087,7 @@ sub input_key_down : event_cb {
       my $obj = $self->{active_uis}->{$_};
       $obj->input_key_press ($key, $name, chr ($unicode), \$handled);
       $self->deactivate_ui ($_) if $handled == 2;
-      if ($handled == 1) {
+      if ($handled == 1 && $obj->{active}) {
          $obj->{key_repeat} = AE::timer 0.2, 0.1, sub {
             my $handled;
             $obj->input_key_press ($key, $name, chr ($unicode), \$handled);
@@ -1093,7 +1121,7 @@ sub input_key_down : event_cb {
       $self->{ghost_mode} = not $self->{ghost_mode};
    } elsif ($name eq 'f') {
       $self->change_look_lock (not $self->{look_lock});
-   } elsif ($name eq 't') {
+   } elsif ($name eq 'l') {
       $self->{app}->fullscreen;
    } elsif ($name eq 'left ctrl') {
       $self->{air_select_mode} = 1;
