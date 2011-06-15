@@ -712,9 +712,9 @@ sub create_assignment {
    warn "assignment at @$vec => @$sec\n";
 
    my $cal = $self->{data}->{assignment} = {
-      sec => $sec,
+      sec   => $sec,
       score => $score * 5000,
-      time => int (60 * $dist),
+      time  => int (60 * $dist),
    };
 
    $self->{uis}->{assignment}->show;

@@ -41,6 +41,8 @@ sub new {
    });
 
    $self->{res} = Games::Construder::Client::Resources->new;
+   $self->{res}->init_directories;
+   $self->{res}->load_config;
    $Games::Construder::Client::UI::RES = $self->{res};
 
    $self->{front} =

@@ -21,9 +21,9 @@ Games::Construder::Server::Resources - desc
 
 =cut
 
-our $VARDIR = $ENV{HOME}    ? "$ENV{HOME}/.blockminer3d"
-            : $ENV{AppData} ? "$ENV{APPDATA}/blockminer3d"
-            : File::Spec->tmpdir . "/blockminer3d";
+our $VARDIR = $ENV{HOME}    ? "$ENV{HOME}/.construder"
+            : $ENV{AppData} ? "$ENV{APPDATA}/construder"
+            : File::Spec->tmpdir . "/construder";
 
 our $PLAYERDIR = "$VARDIR/players";
 our $MAPDIR    = "$VARDIR/chunks";
@@ -68,7 +68,7 @@ sub _get_file {
 
 sub load_world_gen_file {
    my ($self) = @_;
-   $self->{world_gen} = JSON->new->relaxed->decode (my $f = _get_file ("res/world_gen.json"));
+   $self->{world_gen} = JSON->new->relaxed->utf8->decode (my $f = _get_file ("res/world_gen.json"));
 
    my $stypes = $self->{world_gen}->{sector_types}
      or die "No sector types defined in world_gen.json!\n";
@@ -117,7 +117,7 @@ sub load_objects {
    my ($self) = @_;
    $self->load_text_db;
 
-   my $objects = JSON->new->relaxed->decode (_get_file ("res/objects/types.json"));
+   my $objects = JSON->new->relaxed->utf8->decode (_get_file ("res/objects/types.json"));
    $self->{objects} = $objects;
 
    for (keys %$objects) {

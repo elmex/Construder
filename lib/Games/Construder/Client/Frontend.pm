@@ -122,7 +122,13 @@ sub init_app {
       resizeable => 1
    );
 
-   $self->{sound} = SDLx::Sound->new;
+   my $init = SDL::Mixer::init (SDL::Mixer::MIX_INIT_OGG);
+   unless ($init & SDL::Mixer::MIX_INIT_OGG) {
+      die "Couldn't initialize SDL Mixer for OGG!\n";
+   }
+
+   SDL::Mixer::open_audio( 44100, SDL::Mixer::AUDIO_S16SYS, 2, 4096 );
+   SDL::Mixer::Music::volume_music ($self->{res}->{config}->{volume_music});
 
    SDL::Events::enable_unicode (1);
    $self->{sdl_event} = SDL::Event->new;
@@ -838,7 +844,7 @@ sub physics_tick : event_cb {
    viadd ($player->{pos}, vsmul ($player->{vel}, $dt));
 
    my $movement = _calc_movement ($self->{movement}, $self->{yrotate});
-   $movement = vsmul ($movement, $self->{movement}->{speed} ? 2.5 : 1);
+   $movement = vsmul ($movement, $self->{movement}->{speed} ? 2.2 : 1);
    viadd ($player->{pos}, vsmul ($movement, $dt));
 
    #d#warn "check player at $player->{pos}\n";
@@ -952,6 +958,8 @@ sub show_audio_settings {
 
          if ($cmd eq 'change') {
             SDL::Mixer::Music::volume_music ($arg->{music});
+            $self->{res}->{config}->{volume_music} = $arg->{music};
+            $self->{res}->save_config;
             $self->show_audio_settings;
             return 1;
          }
@@ -1000,6 +1008,8 @@ sub esc_menu {
           "[c] Connect"],
          [text => { align => "center", color => "#ffffff", font => "normal" },
           "[a] Audio Options"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "[f] Toggle Fullscreen"],
 #         [text => { align => "center", color => "#ffffff", font => "normal" },
 #          "[v] Video Options"],
          [text => { align => "center", color => "#ffffff", font => "normal" },
@@ -1011,6 +1021,7 @@ sub esc_menu {
          default_keys => {
             q => "exit",
             t => "credits",
+            f => "fullscreen",
 #            v => "video",
             a => "audio",
          }
@@ -1032,6 +1043,9 @@ sub esc_menu {
             $self->deactivate_ui ('esc_menu');
             $self->show_audio_settings;
             return 1;
+
+         } elsif ($cmd eq 'fullscreen') {
+            $self->{app}->fullscreen;
          }
       }
    });
@@ -1154,8 +1168,6 @@ sub input_key_down : event_cb {
       $self->{ghost_mode} = not $self->{ghost_mode};
    } elsif ($name eq 'f') {
       $self->change_look_lock (not $self->{look_lock});
-   } elsif ($name eq 'l') {
-      $self->{app}->fullscreen;
    } elsif ($name eq 'left ctrl') {
       $self->{air_select_mode} = 1;
    } elsif ($name eq 'left shift') {

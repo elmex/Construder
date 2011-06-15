@@ -22,6 +22,12 @@ Games::Construder::Client::Resources - Manage textures for the Client
 
 =cut
 
+our $VARDIR = $ENV{HOME}    ? "$ENV{HOME}/.construder"
+            : $ENV{AppData} ? "$ENV{APPDATA}/construder"
+            : File::Spec->tmpdir . "/construder";
+
+our $CLCONFIG = "construder_client.json";
+
 sub new {
    my $this  = shift;
    my $class = ref ($this) || $this;
@@ -29,6 +35,47 @@ sub new {
    bless $self, $class;
 
    return $self
+}
+
+sub init_directories {
+   my ($self) = @_;
+
+   unless (-e $VARDIR && -d $VARDIR) {
+      mkdir $VARDIR
+         or die "Couldn't create var data dir '$VARDIR': $!\n";
+   }
+
+}
+
+sub _get_file {
+   my ($file) = @_;
+   open my $f, "<", $file
+      or die "Couldn't open '$file': $!\n";
+   binmode $f, ":raw";
+   do { local $/; <$f> }
+}
+
+sub load_config {
+   my ($self) = @_;
+
+   if (-e "$VARDIR/$CLCONFIG") {
+      $self->{config} = JSON->new->pretty->utf8->decode (_get_file ("$VARDIR/$CLCONFIG"));
+
+   } else {
+      $self->{config} = { };
+   }
+}
+
+sub save_config {
+   my ($self) = @_;
+   my $cfg = JSON->new->pretty->utf8->encode ($self->{config} ||= {});
+   my $file = $VARDIR . "/" . $CLCONFIG;
+   open my $c, ">", "$file~"
+      or die "couldn't open '$file~' for writing: $!\n";
+   binmode $c, ":raw";
+   print $c $cfg or die "Couldn't write to $file~: $!\n";
+   close $c or die "Couldn't close $file~: $!\n";
+   rename "$file~", $file or die "Couldn't rename $file~ to $file: $!\n";
 }
 
 sub set_resources {
