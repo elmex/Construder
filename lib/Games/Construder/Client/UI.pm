@@ -246,14 +246,15 @@ sub setup_sizes {
       $attr->{inner_size} = [$mw, $mh];
       return $attr->{size};
 
-   } elsif ($type eq 'text' || $type eq 'entry') {
-      if ($type eq 'entry') {
+   } elsif ($type eq 'text' || $type eq 'entry' || $type eq 'range') {
+      if ($type eq 'entry' || $type eq 'range') {
          $self->add_active ($el);
       }
 
       my ($fnt) = element_font ($el);
+      my $txt = $type eq 'range' ? "< $childs[0] >" : $childs[0];
       my $lyout =
-         layout_text ($fnt, $childs[0], $attr->{wrap},
+         layout_text ($fnt, $txt, $attr->{wrap},
                       $attr->{align}, $attr->{line_range},
                       $attr->{max_chars});
 
@@ -386,6 +387,14 @@ sub draw_element {
       $self->draw_text ($offs, $attr->{layout}, $attr->{color});
 
    } elsif ($type eq 'entry') {
+      if ($self->{active_element} eq $el) {
+         $self->draw_box (
+            $offs, $attr->{size},
+            ($self->{anim_state} ? $attr->{highlight}->[0] : $attr->{highlight}->[1]));
+      }
+      $self->draw_text ($offs, $attr->{layout}, $attr->{color});
+
+   } elsif ($type eq 'range') {
       if ($self->{active_element} eq $el) {
          $self->draw_box (
             $offs, $attr->{size},
@@ -654,6 +663,18 @@ sub input_key_press : event_cb {
          $$rhandled = 1;
          return;
 
+      } elsif ($el->[0] eq 'range' && ($name eq 'left' || $name eq 'right')) {
+         $el->[2] += ($name eq 'left' ? -1 : 1) * $el->[1]->{step};
+         if ($el->[2] < $el->[1]->{range}->[0]) {
+            $el->[2] = $el->[1]->{range}->[0];
+         }
+         if ($el->[2] > $el->[1]->{range}->[1]) {
+            $el->[2] = $el->[1]->{range}->[1];
+         }
+         $self->update;
+         $$rhandled = 1;
+         return;
+
       } elsif ($name eq 'down' || $name eq 'tab' || $name eq 'right') {
          $self->switch_active (1);
          $$rhandled = 1;
@@ -689,6 +710,8 @@ sub input_key_press : event_cb {
             map {
                my @a;
                if ($_->[0] eq 'entry') {
+                  (@a) = ($_->[1]->{arg} => $_->[2]);
+               } elsif ($_->[0] eq 'range') {
                   (@a) = ($_->[1]->{arg} => $_->[2]);
                }
                @a

@@ -6,6 +6,7 @@ use SDLx::App;
 use SDL::Mouse;
 use SDL::Video;
 use SDL::Events;
+use SDLx::Sound;
 use SDL::Image;
 use SDL::Event;
 use OpenGL qw(:all);
@@ -120,6 +121,8 @@ sub init_app {
       gl     => 1,
       resizeable => 1
    );
+
+   $self->{sound} = SDLx::Sound->new;
 
    SDL::Events::enable_unicode (1);
    $self->{sdl_event} = SDL::Event->new;
@@ -928,6 +931,34 @@ sub input_key_up : event_cb {
 
 }
 
+sub show_audio_settings {
+   my ($self) = @_;
+
+   $self->activate_ui (audio_settings => {
+      window => { pos => [center => 'center'] },
+      layout => [ box => { dir => "vert" },
+         [text => { align => "center", font => "big", color => "#ffffff" },
+          "Audio Settings"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "Music Volume: " . SDL::Mixer::Music::volume_music (-1)],
+         [range => { align => "center", color => "#ffffff", font => "normal", arg => "music", step => 5, range => [0, SDL::Mixer::MIX_MAX_VOLUME], highlight => ["#111111", "#333333"] },
+          SDL::Mixer::Music::volume_music (-1)],
+      ],
+      commands => {
+         default_keys => { return => "change" }
+      },
+      command_cb => sub {
+         my ($cmd, $arg, $need_selection) = @_;
+
+         if ($cmd eq 'change') {
+            SDL::Mixer::Music::volume_music ($arg->{music});
+            $self->show_audio_settings;
+            return 1;
+         }
+      }
+   });
+}
+
 sub show_credits {
    my ($self) = @_;
 
@@ -969,8 +1000,8 @@ sub esc_menu {
           "[c] Connect"],
          [text => { align => "center", color => "#ffffff", font => "normal" },
           "[a] Audio Options"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "[v] Video Options"],
+#         [text => { align => "center", color => "#ffffff", font => "normal" },
+#          "[v] Video Options"],
          [text => { align => "center", color => "#ffffff", font => "normal" },
           "[t] View Credits"],
          [text => { align => "center", color => "#ffffff", font => "normal" },
@@ -979,8 +1010,8 @@ sub esc_menu {
       commands => {
          default_keys => {
             q => "exit",
-            c => "credits",
-            v => "video",
+            t => "credits",
+#            v => "video",
             a => "audio",
          }
       },
@@ -997,8 +1028,10 @@ sub esc_menu {
             $self->show_credits;
             return 1;
 
-         } elsif ($cmd eq 'video') {
          } elsif ($cmd eq 'audio') {
+            $self->deactivate_ui ('esc_menu');
+            $self->show_audio_settings;
+            return 1;
          }
       }
    });
