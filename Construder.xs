@@ -908,6 +908,21 @@ int vol_draw_count_in_range (double a, double b)
     RETVAL
 
 
+AV *vol_draw_to_perl ()
+  CODE:
+    RETVAL = newAV ();
+    sv_2mortal ((SV *)RETVAL);
+    av_push (RETVAL, newSViv (DRAW_CTX.size));
+
+    int x, y, z;
+    for (x = 0; x < DRAW_CTX.size; x++)
+      for (y = 0; y < DRAW_CTX.size; y++)
+        for (z = 0; z < DRAW_CTX.size; z++)
+          av_push (RETVAL, newSVnv (DRAW_DST (x, y, z)));
+
+  OUTPUT:
+    RETVAL
+
 void vol_draw_dst_to_world (int sector_x, int sector_y, int sector_z, AV *range_map)
   CODE:
     int cx = sector_x * CHUNKS_P_SECTOR,

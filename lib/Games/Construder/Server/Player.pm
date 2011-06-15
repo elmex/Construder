@@ -695,46 +695,42 @@ sub start_dematerialize {
 sub create_assignment {
    my ($self) = @_;
 
+   # random direction:
    my $x = (rand () * 2) - 1;
    my $y = (rand () * 2) - 1;
    my $z = (rand () * 2) - 1;
 
-   my $score = $self->{data}->{score};
+   my ($desc, $size, $material_map, $distance, $time, $score) =
+      $Games::Construder::Server::RES->get_assignment_for_score ($self->{data}->{score});
 
-   $score /= 1000;
-
-   my $dist = ($score + rand ($score)) + 1;
-
-   my $vec = vsmul (vnorm ([$x, $y, $z]), $dist);
+   my $vec = vsmul (vnorm ([$x, $y, $z]), $distance);
    my $sec = vfloor (vadd ($vec, $self->get_pos_sector));
 
    warn "assignment at @$vec => @$sec\n";
 
+   Games::Construder::VolDraw::alloc ($size);
+
+   Games::Construder::VolDraw::draw_commands (
+     $desc,
+     { size => $size, seed => $score, param => 1 }
+   );
+
+   my $cube = Games::Construder::VolDraw::to_perl ();
+   shift @$cube;
+
+   # calc highlight models
+   # make position->material map for assignment confirmation
+
    my $cal = $self->{data}->{assignment} = {
-      sec   => $sec,
-      score => $score * 5000,
-      time  => int (60 * $dist),
+      sec    => $sec,
+      size   => $size,
+      score  => $score,
+      time   => $time,
    };
 
    $self->{uis}->{assignment}->show;
 
    $self->check_assignment;
-
-   # - linerp: level of materials (based on models and occurance in sectors of them)
-   #                the level of the material determines the time the player has to
-   #                to get that material. natual materials give the player few time
-   #                per material item.
-   # - linerp: number of different materials, needs to be within displayable colors
-   #                multiplier for level of materials time.
-   # - linerp: size of construct
-   #                time is linerp't from two min-size-time to max-size-time
-   # - linerp: time factor
-   #                linerp (1, time-max-score-fact, score / max_score)
-   #                mit end-zeit multipliziert
-   # - linerp: entfernung vom player
-   #                time from sector-manhattan-distance multiplied with
-   #                travel-time-per-sector
-   # - linerp in collection: shape of construct
 
    # generate random sector position
    #      parameter: distance

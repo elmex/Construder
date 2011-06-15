@@ -27,6 +27,17 @@
          "unhappy_rate" : 0.25,  # 0.25% per second
          "bio_unhappy"  : 0.84,  # he has 120 seconds to get happy
          "bio_happy"    : 0.055, # he can live happily for 30 minutes
+      },
+      "assignments" : {
+         "max_score"    : 1000000,
+         "min_score"    : 1000,
+         "min_size"     : 5,   #  5x5x5   is already proper
+         "max_size"     : 40,  # 40x40x40 is REALLY huge! => new size every ~29k points
+         "max_score_time_fact" : 0.5, # max time factor for high levels
+         "max_distance" : 40,
+         "min_distance" : 5,
+         "time_per_sector" : 20,
+         "time_per_block" : 1,
       }
    },
    "initial_inventory" : {

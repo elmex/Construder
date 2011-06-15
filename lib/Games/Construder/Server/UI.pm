@@ -1087,7 +1087,7 @@ sub handle_command {
 sub layout {
    my ($self) = @_;
 
-   my $cal = $self->{pl}->{data}->{assignment};
+   my $cal = $self->{pl}->{data}->{assignment} || {};
 
    {
       window => { pos => [ center => 'center' ] },
