@@ -30,7 +30,6 @@ Games::Construder::Server - desc
 =cut
 
 our $RES;
-our $CHNK;
 
 sub new {
    my $this  = shift;
@@ -53,49 +52,7 @@ sub init {
    $RES->load_region_file;
    $RES->load_world_gen_file;
 
-   $CHNK = Games::Construder::Server::ChunkManager->new;
-   $CHNK->init;
-
-   # active objects verwaltung
-   #    - player
-   #       inventory / aktive objekte
-   #    - chunks
-   #       chunk id => position, liste der aktiven objekte
-   # => aber wie die einzelnen entities identifizieren?!
-   #    evtl. unique-id einführen und beim laden
-   #    in eine globale liste einfügen?
-   #    => währe also ambesten eine 32 (oder 28) Bit ID an der Entity
-   #      => könnte erzeugt werden aus timestamp oder sowas....
-   #         oder besser: globaler counter
-   #
-   # speicherung evtl. einfach als liste von objekten im json
-   # laden genauso, record enthält beim laden aber position in der map
-   #                position kann sich aber ändern:
-   #                - 2 typen ovn positionen: in chunk, in player
-
-   world_init (sub {
-      my ($x, $y, $z) = @_;
-      # $action   => remove (-1), add (1), undefined (0/undef)
-      # $offsetid => id des objekts
-      #d# warn "CHUNK CHANGED (@_)\n";
-      $CHNK->chunk_changed (@_);
-      my $chnk = [@_];
-      for (values %{$self->{players}}) {
-         $_->chunk_updated ($chnk);
-      }
-   }, sub {
-      my ($x, $y, $z, $type) = @_;
-      # we have no entity at $x,$y,$z yet:
-        # and type is active => create entity at $x,$y,$z
-        # and type is not active => should not happen, active entity should be instanciated .)
-      # else
-        # type is not active: delete entity at $x,$y,$z
-        # type is active: delete entity at $x,$y,$z and instanciate $type entity here
-
-      # TODO: how is movement made? eg. entity is removed from $x,$y,$z, but should
-      #       be used later to instanciate an entity somewhere else, or even
-      #       be mvoed into the inventory of the player!
-   }, $RES->{region_cmds});
+   world_init ($self, $RES->{region_cmds});
 
    $RES->load_objects;
 }

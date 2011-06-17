@@ -187,7 +187,7 @@ sub load_object {
       }
    });
 
-   print "Set object type $obj->{type}\n";
+   #d# print "Set object type $obj->{type}\n";
    Games::Construder::World::set_object_type (
       $obj->{type},
       ($obj->{type} == 0 || (!$obj->{texture}  && defined $obj->{model} ? 1 : 0)),
@@ -275,7 +275,7 @@ sub loaded_objects : event_cb {
       0, 0, 0
    );
 
-   print "loadded objects:\n" . JSON->new->pretty->encode ($self->{objects}) . "\n";
+   #d# print "loadded objects:\n" . JSON->new->pretty->encode ($self->{objects}) . "\n";
 }
 
 sub get_random_assignment {

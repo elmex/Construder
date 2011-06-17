@@ -255,6 +255,7 @@ sub layout {
 }
 
 package Games::Construder::Server::UI::Status;
+use Games::Construder::Server::World;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -333,7 +334,7 @@ sub layout {
    my $chnk_pos = $self->{pl}->get_pos_chnk;
    my $sec_pos  = $self->{pl}->get_pos_sector;
 
-   my $sinfo = $Games::Construder::Server::CHNK->sector_info (@$chnk_pos);
+   my $sinfo = world_sector_info (@$chnk_pos);
 
    {
       window => {
