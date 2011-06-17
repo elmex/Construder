@@ -11,6 +11,7 @@ use Games::Construder::Server::Player;
 use Games::Construder::Server::World;
 use Games::Construder::Server::Objects;
 use Games::Construder::Server::ChunkManager;
+use Games::Construder::Vector;
 
 use base qw/Object::Event/;
 
@@ -140,6 +141,18 @@ sub client_disconnected : event_cb {
    delete $self->{player_guards}->{$cid};
    delete $self->{clients}->{$cid};
    warn "client disconnected: $cid\n";
+}
+
+sub players_near_pos {
+   my ($self, $pos) = @_;
+   my @p;
+   for (values %{$self->{players}}) {
+      my $d = vsub ($pos, $_->get_pos_normalized);
+      if (vlength ($d) < 60) {
+         push @p, $_;
+      }
+   }
+   @p
 }
 
 sub client_connected : event_cb {

@@ -19,6 +19,7 @@ our @EXPORT = qw/
    world_mutate_at
    world_load_at
    world_find_free_spot
+   world_at
    world_sector_info
 /;
 
@@ -47,10 +48,15 @@ our $REGION;
 our %SECTORS;
 
 our $STORE_SCHED_TMR;
+our $TICK_TMR;
 our @SAVE_SECTORS_QUEUE;
+
+our $SRV;
 
 sub world_init {
    my ($server, $region_cmds) = @_;
+
+   $SRV = $server;
 
    Games::Construder::World::init (
       sub {
@@ -72,7 +78,7 @@ sub world_init {
       sub {
          my ($x, $y, $z, $type) = @_;
          warn "TEST\n";
-         my $sec = world_chnkpos2secpos ([$x, $y, $z]);
+         my $sec = world_chnkpos2secpos (world_pos2chnkpos ([$x, $y, $z]));
          my $id  = world_pos2id ($sec);
          my $eid = world_pos2id ([$x, $y, $z]);
 
@@ -81,9 +87,9 @@ sub world_init {
             Games::Construder::Server::Objects::destroy ($e);
          }
 
-         warn "INSTANCE entity $eid at sector $id with type $type\n";
-         $SECTORS{$id}->{entities}->{$eid} =
-            Games::Construder::Server::Objects::instance ($type);
+         $e = Games::Construder::Server::Objects::instance ($type);
+         warn "INSTANCE entity $eid at sector $id with type $type: $e\n";
+         $SECTORS{$id}->{entities}->{$eid} = $e if $e;
          warn "inst done\n";
       }
    );
@@ -98,6 +104,17 @@ sub world_init {
          _world_save_sector ($s->[1]);
       } else {
          goto NEXT;
+      }
+   };
+
+   $TICK_TMR = AE::timer 0, 0.25, sub {
+      for my $s (values %SECTORS) {
+         for my $eid (keys %{$s->{entities}}) {
+            my $e = $s->{entities}->{$eid};
+            next unless $e->{time_active};
+            my $pos = [split /,/, $eid];
+            Games::Construder::Server::Objects::tick ($pos, $e, $e->{type}, 0.25);
+         }
       }
    };
 
@@ -207,8 +224,10 @@ sub _world_load_sector {
          }
       }
 
+      my ($ecnt) = scalar (keys %{$SECTORS{$id}->{entities}});
+
       delete $SECTORS{$id}->{dirty}; # saved with the sector
-      warn "loaded sector $id from '$file', took "
+      warn "loaded sector $id from '$file', got $ecnt entities, took "
            . sprintf ("%.3f seconds", time - $t1)
            . ".\n";
 
@@ -245,6 +264,7 @@ sub _world_save_sector {
       }
    }
 
+   my ($ecnt) = scalar (keys %{$SECTORS{$id}->{entities}});
    my $meta_data = JSON->new->utf8->pretty->encode ($meta || {});
 
    my $data = join "", @chunks;
@@ -268,7 +288,7 @@ sub _world_save_sector {
 
       if (rename "$file~", $file) {
          delete $SECTORS{$id}->{dirty};
-         warn "saved sector $id to '$file', took "
+         warn "saved sector $id to '$file', saved $ecnt entities, took "
               . sprintf ("%.3f seconds", time - $t1)
               . "\n";
 
@@ -364,6 +384,7 @@ sub world_load_at_chunk {
 
 sub world_at {
    my ($poses, $cb, %arg) = @_;
+
    world_mutate_at ($poses, sub {
       my ($cell, $pos) = @_;
       my $si = world_sector_info_at ($pos);

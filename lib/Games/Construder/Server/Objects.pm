@@ -1,6 +1,7 @@
 package Games::Construder::Server::Objects;
 use common::sense;
 use Games::Construder::Server::World;
+use Games::Construder::Vector;
 use Games::Construder;
 
 =head1 NAME
@@ -52,20 +53,31 @@ sub instance {
 
    my $cb = $TYPES_INSTANCIATE{$type}
       or return;
-   $cb->($type)
+   my $i = $cb->($type);
+   $i->{type} = $type;
+   $i
 }
 
 sub tick {
-   my ($pos, $entity, $type) = @_;
+   my ($pos, $entity, $type, $dt) = @_;
    my $cb = $TYPES_TIMESENSITIVE{$type}
       or return;
-   $cb->($pos, $entity, $type)
+   $cb->($pos, $entity, $type, $dt)
 }
 
 sub in_vaporizer {
    {
+      time_active => 1,
       time => 4,
    }
+}
+
+sub tmr_vaporizer {
+   my ($pos, $entity, $type, $dt) = @_;
+   warn "vapo tick: $dt\n";
+   my (@pl) =
+      $Games::Construder::Server::World::SRV->players_near_pos ($pos);
+   warn "palyersnear: @pl\n";
 }
 
 sub ia_vaporizer {
@@ -87,6 +99,7 @@ sub ia_vaporizer {
          $d->[0] = 0;
          1
       });
+      undef $where;
    };
 }
 
