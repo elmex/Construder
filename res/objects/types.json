@@ -290,6 +290,16 @@
       "natural" : 1,
    },
 
+   "Simple Vaporizer" : {
+      "type" : 45,
+      "density" : 22,
+      "complexity" : 38,
+      "lore" : "This simple vaporizer vaporizes material in a certain small radius.",
+      "model" : [2, 1, 42, 2, 30],
+      "destroy_timeout" : 4,           # 4 seconds until it destroys itself
+      "destroy_action" : "vaporize_1", # on destroy trigger epm routine
+   },
+
    "Drone" : {
      "type" : 50,
      "texture" : ["cat2.png", 64, 128, 64, 64],

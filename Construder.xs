@@ -203,11 +203,12 @@ void ctr_render_init ();
 
 MODULE = Games::Construder PACKAGE = Games::Construder::World PREFIX = ctr_world_
 
-void ctr_world_init (SV *change_cb)
+void ctr_world_init (SV *change_cb, SV *cell_change_cb)
   CODE:
      ctr_world_init ();
      SvREFCNT_inc (change_cb);
      WORLD.chunk_change_cb = change_cb;
+     WORLD.active_cell_change_cb = cell_change_cb;
 
 SV *
 ctr_world_get_chunk_data (int x, int y, int z)

@@ -41,10 +41,10 @@ our $REGION_SIZE = 100; # 100x100x100 sections
 our $REGION;
 
 sub world_init {
-   Games::Construder::World::init ($_[0]);
+   Games::Construder::World::init ($_[0], $_[1]);
    Games::Construder::VolDraw::init ();
 
-   region_init ($_[1]);
+   region_init ($_[2]);
 }
 
 sub region_init {

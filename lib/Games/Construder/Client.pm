@@ -38,7 +38,7 @@ sub new {
    $self->init_object_events;
 
    Games::Construder::World::init (sub {
-   });
+   }, sub { });
 
    $self->{res} = Games::Construder::Client::Resources->new;
    $self->{res}->init_directories;

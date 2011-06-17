@@ -50,6 +50,7 @@ typedef struct _ctr_chunk {
 typedef struct _ctr_world {
     ctr_axis_array *y;
     SV *chunk_change_cb;
+    SV *active_cell_change_cb;
 } ctr_world;
 
 static ctr_obj_attr OBJ_ATTR_MAP[POSSIBLE_OBJECTS];
@@ -151,6 +152,27 @@ void ctr_world_emit_chunk_change (int x, int y, int z)
       LEAVE;
     }
 }
+
+void ctr_world_emit_active_cell_change (int x, int y, int z, ctr_cell *c)
+{
+  if (WORLD.chunk_change_cb)
+    {
+      dSP;
+      ENTER;
+      SAVETMPS;
+      PUSHMARK(SP);
+      XPUSHs(sv_2mortal(newSViv (x)));
+      XPUSHs(sv_2mortal(newSViv (y)));
+      XPUSHs(sv_2mortal(newSViv (z)));
+      XPUSHs(sv_2mortal(newSViv (c->type)));
+      PUTBACK;
+      call_sv (WORLD.active_cell_change_cb, G_DISCARD | G_VOID);
+      SPAGAIN;
+      FREETMPS;
+      LEAVE;
+    }
+}
+
 
 ctr_obj_attr *ctr_world_get_attr (unsigned int type)
 {

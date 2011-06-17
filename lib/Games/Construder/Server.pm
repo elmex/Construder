@@ -74,7 +74,7 @@ sub init {
    #                - 2 typen ovn positionen: in chunk, in player
 
    world_init (sub {
-      my ($x, $y, $z, $action, $offsetid) = @_;
+      my ($x, $y, $z) = @_;
       # $action   => remove (-1), add (1), undefined (0/undef)
       # $offsetid => id des objekts
       #d# warn "CHUNK CHANGED (@_)\n";
@@ -83,6 +83,18 @@ sub init {
       for (values %{$self->{players}}) {
          $_->chunk_updated ($chnk);
       }
+   }, sub {
+      my ($x, $y, $z, $type) = @_;
+      # we have no entity at $x,$y,$z yet:
+        # and type is active => create entity at $x,$y,$z
+        # and type is not active => should not happen, active entity should be instanciated .)
+      # else
+        # type is not active: delete entity at $x,$y,$z
+        # type is active: delete entity at $x,$y,$z and instanciate $type entity here
+
+      # TODO: how is movement made? eg. entity is removed from $x,$y,$z, but should
+      #       be used later to instanciate an entity somewhere else, or even
+      #       be mvoed into the inventory of the player!
    }, $RES->{region_cmds});
 
    $RES->load_objects;

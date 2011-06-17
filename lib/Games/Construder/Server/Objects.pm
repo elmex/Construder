@@ -19,6 +19,7 @@ Games::Construder::Server::Objects - desc
 
 our %TYPES = (
    36 => \&ia_construction_pad,
+   45 => \&ia_vaporizer,
 );
 
 sub interact {
@@ -27,6 +28,28 @@ sub interact {
       or return;
 
    $cb->($player, $pos);
+}
+
+sub ia_vaporizer {
+   my ($PL, $POS) = @_;
+   my $where = {};
+
+   $where->{tout} = AE::timer 0, 4, sub {
+      my @poses;
+      for my $x (-1, 0, 1) {
+         for my $y (-1, 0, 1) {
+            for my $z (-1, 0, 1) {
+               push @poses, vaddd ($POS, $x, $y, $z);
+            }
+         }
+      }
+
+      world_mutate_at (\@poses, sub {
+         my ($d) = @_;
+         $d->[0] = 0;
+         1
+      });
+   };
 }
 
 sub ia_construction_pad {
