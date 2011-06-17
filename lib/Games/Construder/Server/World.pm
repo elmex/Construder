@@ -401,8 +401,6 @@ sub world_mutate_at {
       my $min = [];
       my $max = [];
       for (@$poses) {
-         world_load_at ($_); # blocks for now :-/
-
          $min->[0] = $_->[0] if !defined $min->[0] || $min->[0] > $_->[0];
          $min->[1] = $_->[1] if !defined $min->[1] || $min->[1] > $_->[1];
          $min->[2] = $_->[2] if !defined $min->[2] || $min->[2] > $_->[2];
@@ -410,7 +408,20 @@ sub world_mutate_at {
          $max->[1] = $_->[1] if !defined $max->[1] || $max->[1] < $_->[1];
          $max->[2] = $_->[2] if !defined $max->[2] || $max->[2] < $_->[2];
       }
-      warn "MUTL @$min | @$max\n";
+
+      my $chnk_x = int ((($max->[0] - $min->[0]) / $CHNK_SIZE) + 0.5);
+      my $chnk_y = int ((($max->[1] - $min->[1]) / $CHNK_SIZE) + 0.5);
+      my $chnk_z = int ((($max->[2] - $min->[2]) / $CHNK_SIZE) + 0.5);
+      my $base_chnk = world_pos2chnkpos ($min);
+
+      for (my $x = $base_chnk->[0]; $x < $base_chnk->[0] + $chnk_x; $x++) {
+         for (my $y = $base_chnk->[1]; $y < $base_chnk->[1] + $chnk_y; $y++) {
+            for (my $z = $base_chnk->[2]; $z < $base_chnk->[2] + $chnk_z; $z++) {
+               world_load_at_chunk ([$x, $y, $z]);
+            }
+         }
+      }
+     #d# warn "MUTL @$min | @$max\n";
       Games::Construder::World::flow_light_query_setup (@$min, @$max);
 
    } else {
@@ -422,14 +433,14 @@ sub world_mutate_at {
 
    for my $pos (@$poses) {
       my $b = Games::Construder::World::at (@$pos);
-      print "MULT MUTATING (@$b) (AT @$pos)\n";
+     #d# print "MULT MUTATING (@$b) (AT @$pos)\n";
       if ($cb->($b, $pos)) {
-         print "MULT MUTATING TO => (@$b) (AT @$pos)\n";
+        #d# print "MULT MUTATING TO => (@$b) (AT @$pos)\n";
          Games::Construder::World::query_set_at_abs (@$pos, $b);
          unless ($arg{no_light}) {
             my $t1 = time;
             Games::Construder::World::flow_light_at (@{vfloor ($pos)});
-            printf "mult light calc took: %f\n", time - $t1;
+            #d#printf "mult light calc took: %f\n", time - $t1;
          }
       }
    }

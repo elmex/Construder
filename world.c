@@ -87,7 +87,6 @@ void ctr_world_init ()
 
 void ctr_world_light_upd_start ()
 {
-  printf ("light upd start\n");
   light_upd_queue = light_upd_queue_1;
   ctr_queue_clear (light_upd_queue_1);
   ctr_queue_clear (light_upd_queue_2);

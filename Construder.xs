@@ -716,7 +716,9 @@ void ctr_world_flow_light_at (int x, int y, int z)
       {
         unsigned char l = ctr_world_query_get_max_light_of_neighbours (x, y, z);
         if (l > 0) l--;
+#if DEBUG_LIGHT
         printf ("transparent cell at %d,%d,%d has light %d, neighbors say: %d\n", x, y, z, (int) cur->light, (int) l);
+#endif
         if (cur->light < l)
           { // if the transparent cell is too dark, flow in light from neigbors
             // and tell all neighbors to check if they are maybe lighted

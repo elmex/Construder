@@ -17,9 +17,9 @@ int ctr_world_query_desetup (int no_update)
 {
   int cnt = 0;
   int x, y, z;
-  for (z = 0; z < QUERY_CONTEXT.x_w; z++)
+  for (z = 0; z < QUERY_CONTEXT.z_w; z++)
     for (y = 0; y < QUERY_CONTEXT.y_w; y++)
-      for (x = 0; x < QUERY_CONTEXT.z_w; x++)
+      for (x = 0; x < QUERY_CONTEXT.x_w; x++)
         {
           ctr_chunk *chnk = QUERY_CHUNK(x, y, z);
           if (!chnk->dirty)

@@ -84,16 +84,34 @@ sub ia_vaporizer {
    my ($PL, $POS) = @_;
    my $where = {};
 
-   $where->{tout} = AE::timer 0, 4, sub {
-      my @poses;
-      for my $x (-1, 0, 1) {
-         for my $y (-1, 0, 1) {
-            for my $z (-1, 0, 1) {
-               push @poses, vaddd ($POS, $x, $y, $z);
-            }
+
+   my (@pl) =
+      $Games::Construder::Server::World::SRV->players_near_pos ($POS);
+
+   my $rad = 10;
+
+   for my $x (-$rad..$rad) {
+      $_->highlight (vaddd ($POS, $x, 0, 0), 2, [1, 1, 0]) for @pl;
+   }
+   for my $y (-$rad..$rad) {
+      $_->highlight (vaddd ($POS, 0, $y, 0), 2, [1, 1, 0]) for @pl;
+   }
+   for my $z (-$rad..$rad) {
+      $_->highlight (vaddd ($POS, 0, 0, $z), 2, [1, 1, 0]) for @pl;
+   }
+
+   warn "start makingposes\n";
+   my @poses;
+   for my $x (-$rad..$rad) {
+      for my $y (-$rad..$rad) {
+         for my $z (-$rad..$rad) {
+            push @poses, my $p = vaddd ($POS, $x, $y, $z);
          }
       }
+   }
+   warn "end makingposes\n";
 
+   $where->{tout} = AE::timer 2, 0, sub {
       world_mutate_at (\@poses, sub {
          my ($d) = @_;
          $d->[0] = 0;
