@@ -1202,6 +1202,18 @@ package Games::Construder::Server::UI::AssignmentTime;
 
 use base qw/Games::Construder::Server::UI/;
 
+sub commands {
+   ( c => "rot_selection" )
+}
+
+sub handle_command {
+   my ($self, $cmd) = @_;
+
+   if ($cmd eq 'rot_selection') {
+      $self->{pl}->assignment_select_next;
+   }
+}
+
 sub layout {
    my ($self) = @_;
 
@@ -1223,6 +1235,8 @@ sub layout {
          [ text => { color => $color, align => "center" }, "Assignment:\n$cal->{time}s" ],
          [ text => { color => "#888888", align => "center" }, 
            "Left:\n" . join ("\n", map { "$_: $cal->{left}->{$_}" } keys %{$cal->{left}}) ],
+         [ text => { color => "#ff8888", align => "center" }, 
+           "Selected: " . $cal->{sel_mat} ],
       ]
    }
 }

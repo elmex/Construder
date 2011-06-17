@@ -754,8 +754,8 @@ sub create_assignment {
       score      => $score,
       time       => $time,
       materials  => [sort keys %$materials],
-      unfin_mat  => [sort keys %$materials],
    };
+   $cal->{sel_mat} = $cal->{materials}->[0];
    print "ASSIGNMENT : " . JSON->new->pretty->encode ($cal) . "\n";
    $cal->{pos_types} = $positions;
    $cal->{mat_models} = $materials;
@@ -828,7 +828,54 @@ sub check_assignment_positions {
    }
    $assign->{left} = \%tleft;
 
+   $self->update_assignment_highlight;
+
    printf "CHECK TIME 2 %f\n", $t - time;
+}
+
+sub assignment_select_next {
+   my ($self) = @_;
+   my $assign = $self->{data}->{assignment};
+   my @left = grep {
+      $assign->{left}->{$_} > 0
+   } keys %{$assign->{left}};
+
+   push @left, @left;
+   for (my $i = 0; $i < (@left / 2); $i++) {
+      if ($left[$i] == $assign->{sel_mat}) {
+         $assign->{sel_mat} = $left[$i + 1];
+         last;
+      }
+   }
+
+   delete $self->{assign_ment_hl};
+
+   $self->update_assignment_highlight;
+}
+
+sub update_assignment_highlight {
+   my ($self) = @_;
+
+   my $assign = $self->{data}->{assignment};
+   my $selected = $assign->{sel_mat};
+   if ($assign->{left}->{$selected} <= 0) {
+      ($assign->{sel_mat}) = grep {
+         $assign->{left}->{$_} > 0
+      } keys %{$assign->{left}};
+      delete $self->{assign_ment_hl};
+   }
+
+   unless ($self->{assign_ment_hl}) {
+      $self->{assign_ment_hl} = 1;
+      my $mat = $assign->{sel_mat};
+
+      $self->send_client ({
+         cmd   => "model_highlight",
+         pos   => $assign->{pos},
+         model => $assign->{mat_models}->{$mat},
+         id    => "assignment",
+      });
+   }
 }
 
 sub check_assignment {
@@ -842,18 +889,6 @@ sub check_assignment {
          id => "assignment"
       });
       return;
-   }
-
-   unless ($self->{assign_ment_hl}) {
-      $self->{assign_ment_hl} = 1;
-      my $mat = $assign->{unfin_mat}->[0];
-
-      $self->send_client ({
-         cmd   => "model_highlight",
-         pos   => $assign->{pos},
-         model => $assign->{mat_models}->{2},
-         id    => "assignment",
-      });
    }
 
    $self->check_assignment_positions;
