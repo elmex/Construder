@@ -22,12 +22,50 @@ our %TYPES = (
    45 => \&ia_vaporizer,
 );
 
+our %TYPES_INSTANCIATE = (
+   45 => \&in_vaporizer,
+);
+
+our %TYPES_TIMESENSITIVE = (
+   45 => \&tmr_vaporizer,
+);
+
+our %TYPES_PERSISTENT = (
+   # for pattern storage for instance
+   # or a build agent
+);
+
 sub interact {
-   my ($player, $type, $pos) = @_;
+   my ($player, $pos, $entity, $type) = @_;
    my $cb = $TYPES{$type}
       or return;
+   $cb->($player, $pos, $entity, $type);
+}
 
-   $cb->($player, $pos);
+sub destroy {
+   my ($ent) = @_;
+   # nop for now
+}
+
+sub instance {
+   my ($type) = @_;
+
+   my $cb = $TYPES_INSTANCIATE{$type}
+      or return;
+   $cb->($type)
+}
+
+sub tick {
+   my ($pos, $entity, $type) = @_;
+   my $cb = $TYPES_TIMESENSITIVE{$type}
+      or return;
+   $cb->($pos, $entity, $type)
+}
+
+sub in_vaporizer {
+   {
+      time => 4,
+   }
 }
 
 sub ia_vaporizer {

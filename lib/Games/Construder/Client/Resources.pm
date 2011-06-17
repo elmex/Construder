@@ -94,7 +94,7 @@ sub post_proc {
    my ($self) = @_;
 
    Games::Construder::World::set_object_type (
-      0, 1, 0, 0, 0,
+      0, 1, 0, 0, 0, 0,
       0, 0, 0
    );
    my $objtype2texture = [];
@@ -138,6 +138,7 @@ sub post_proc {
             ($typeid == 0 || (@$txt == 0 && defined $model ? 1 : 0)),
             $typeid != 0,
             (@$txt != 0),
+            0, # not active in client
             @{$uv || [0,0,0,0]}
          );
          if ($model) {

@@ -278,8 +278,6 @@
       "complexity" : 35,
       "density" : 17,
       "lore" : "This is an EPM Device, which lets you destroy any drones within 6 blocks.",
-      "destroy_timeout" : 4, # 4 seconds until it destroys itself
-      "destroy_action" : "epm", # on destroy trigger epm routine
    },
    "Gold" : {
       "type" : 44,
@@ -296,8 +294,6 @@
       "complexity" : 38,
       "lore" : "This simple vaporizer vaporizes material in a certain small radius.",
       "model" : [2, 1, 42, 2, 30],
-      "destroy_timeout" : 4,           # 4 seconds until it destroys itself
-      "destroy_action" : "vaporize_1", # on destroy trigger epm routine
    },
 
    "Drone" : {

@@ -154,6 +154,7 @@ ctr_cell *ctr_world_query_cell_at (unsigned int rel_x, unsigned int rel_y, unsig
 void ctr_world_query_set_at_pl (unsigned int rel_x, unsigned int rel_y, unsigned int rel_z, AV *cell)
 {
   ctr_cell *c = ctr_world_query_cell_at (rel_x, rel_y, rel_z, 1);
+  int otype = c->type;
 
   SV **t = av_fetch (cell, 0, 0);
   if (t) c->type = SvIV (*t);
@@ -169,4 +170,10 @@ void ctr_world_query_set_at_pl (unsigned int rel_x, unsigned int rel_y, unsigned
 
   t = av_fetch (cell, 4, 0);
   if (t) c->visible = SvIV (*t);
+
+  if (ctr_world_is_active (otype) || ctr_world_is_active (c->type))
+    {
+      ctr_world_query_rel2abs (&rel_x, &rel_y, &rel_z);
+      ctr_world_emit_active_cell_change (rel_x, rel_y, rel_z, c);
+    }
 }

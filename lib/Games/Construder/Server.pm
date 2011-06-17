@@ -9,6 +9,7 @@ use Games::Construder::Protocol;
 use Games::Construder::Server::Resources;
 use Games::Construder::Server::Player;
 use Games::Construder::Server::World;
+use Games::Construder::Server::Objects;
 use Games::Construder::Server::ChunkManager;
 
 use base qw/Object::Event/;

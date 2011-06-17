@@ -208,6 +208,7 @@ void ctr_world_init (SV *change_cb, SV *cell_change_cb)
      ctr_world_init ();
      SvREFCNT_inc (change_cb);
      WORLD.chunk_change_cb = change_cb;
+     SvREFCNT_inc (cell_change_cb);
      WORLD.active_cell_change_cb = cell_change_cb;
 
 SV *
@@ -274,7 +275,7 @@ int ctr_world_is_solid_at (double x, double y, double z)
   OUTPUT:
     RETVAL
 
-void ctr_world_set_object_type (unsigned int type, unsigned int transparent, unsigned int blocking, unsigned int has_txt, double uv0, double uv1, double uv2, double uv3);
+void ctr_world_set_object_type (unsigned int type, unsigned int transparent, unsigned int blocking, unsigned int has_txt, unsigned int active, double uv0, double uv1, double uv2, double uv3);
 
 void ctr_world_set_object_model (unsigned int type, unsigned int dim, AV *blocks);
 
@@ -996,7 +997,11 @@ void vol_draw_dst_to_world (int sector_x, int sector_y, int sector_z, AV *range_
                 double av = SvNV (*a),
                        bv = SvNV (*b);
                 if (v >= av && v < bv)
-                  cur->type = SvIV (*t);
+                  {
+                    cur->type = SvIV (*t);
+                    if (ctr_world_is_active (cur->type))
+                      ctr_world_emit_active_cell_change (x, y, z, cur);
+                  }
               }
           }
 

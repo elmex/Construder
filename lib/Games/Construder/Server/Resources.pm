@@ -3,6 +3,7 @@ use common::sense;
 use AnyEvent;
 use JSON;
 use Digest::MD5 qw/md5_base64/;
+use Games::Construder::Server::Objects;
 use base qw/Object::Event/;
 
 =head1 NAME
@@ -187,12 +188,16 @@ sub load_object {
       }
    });
 
-   #d# print "Set object type $obj->{type}\n";
+   my $isact =
+      exists $Games::Construder::Server::Objects::TYPES_INSTANCIATE{$obj->{type}};
+
+   print "Set object type $obj->{type}: $isact\n";
    Games::Construder::World::set_object_type (
       $obj->{type},
       ($obj->{type} == 0 || (!$obj->{texture}  && defined $obj->{model} ? 1 : 0)),
       $obj->{type} != 0,
       $obj->{texture},
+      $isact,
       0,0,0,0 # uv coors dont care!
    );
 
@@ -271,7 +276,7 @@ sub loaded_objects : event_cb {
    my ($self) = @_;
 
    Games::Construder::World::set_object_type (
-      0, 1, 0, 0, 0,
+      0, 1, 0, 0, 0, 0,
       0, 0, 0
    );
 

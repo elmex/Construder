@@ -68,18 +68,23 @@ sub world_init {
          for (values %{$server->{players}}) {
             $_->chunk_updated ($chnk);
          }
-      }, sub {
+      },
+      sub {
          my ($x, $y, $z, $type) = @_;
-         # we have no entity at $x,$y,$z yet:
-           # and type is active => create entity at $x,$y,$z
-           # and type is not active => should not happen, active entity should be instanciated .)
-         # else
-           # type is not active: delete entity at $x,$y,$z
-           # type is active: delete entity at $x,$y,$z and instanciate $type entity here
+         warn "TEST\n";
+         my $sec = world_chnkpos2secpos ([$x, $y, $z]);
+         my $id  = world_pos2id ($sec);
+         my $eid = world_pos2id ([$x, $y, $z]);
 
-         # TODO: how is movement made? eg. entity is removed from $x,$y,$z, but should
-         #       be used later to instanciate an entity somewhere else, or even
-         #       be mvoed into the inventory of the player!
+         my $e = delete $SECTORS{$id}->{entities}->{$eid};
+         if ($e) {
+            Games::Construder::Server::Objects::destroy ($e);
+         }
+
+         warn "INSTANCE entity $eid at sector $id with type $type\n";
+         $SECTORS{$id}->{entities}->{$eid} =
+            Games::Construder::Server::Objects::instance ($type);
+         warn "inst done\n";
       }
    );
 
@@ -276,7 +281,6 @@ sub _world_save_sector {
    }
 }
 
-
 sub region_init {
    my ($cmds) = @_;
 
@@ -292,6 +296,10 @@ sub region_init {
 
    $REGION = Games::Construder::Region::new_from_vol_draw_dst ();
    warn "done, took " . (time - $t1) . " seconds.\n";
+}
+
+sub world_sector_info_at {
+   world_sector_info (world_pos2chnkpos ([@_]))
 }
 
 sub world_sector_info {
@@ -354,6 +362,17 @@ sub world_load_at_chunk {
    $cb->() if $cb;
 }
 
+sub world_at {
+   my ($poses, $cb, %arg) = @_;
+   world_mutate_at ($poses, sub {
+      my ($cell, $pos) = @_;
+      my $si = world_sector_info_at ($pos);
+      my $eid = world_pos2id ($pos);
+      $cb->($pos, $cell, $si->{$eid});
+      return 0;
+   }, %arg);
+}
+
 sub world_mutate_at {
    my ($poses, $cb, %arg) = @_;
 
@@ -383,7 +402,7 @@ sub world_mutate_at {
    for my $pos (@$poses) {
       my $b = Games::Construder::World::at (@$pos);
       print "MULT MUTATING (@$b) (AT @$pos)\n";
-      if ($cb->($b)) {
+      if ($cb->($b, $pos)) {
          print "MULT MUTATING TO => (@$b) (AT @$pos)\n";
          Games::Construder::World::query_set_at_abs (@$pos, $b);
          unless ($arg{no_light}) {

@@ -28,6 +28,7 @@ typedef struct _ctr_obj_attr {
   unsigned short blocking    : 1;
   unsigned short has_txt     : 1;
   unsigned short model       : 1;
+  unsigned short active      : 1;
   unsigned int   model_dim   : 3;
   unsigned int   model_blocks[MAX_MODEL_SIZE];
 } ctr_obj_attr;
@@ -155,7 +156,7 @@ void ctr_world_emit_chunk_change (int x, int y, int z)
 
 void ctr_world_emit_active_cell_change (int x, int y, int z, ctr_cell *c)
 {
-  if (WORLD.chunk_change_cb)
+  if (WORLD.active_cell_change_cb)
     {
       dSP;
       ENTER;
@@ -173,21 +174,27 @@ void ctr_world_emit_active_cell_change (int x, int y, int z, ctr_cell *c)
     }
 }
 
-
 ctr_obj_attr *ctr_world_get_attr (unsigned int type)
 {
   return &(OBJ_ATTR_MAP[type]);
 }
 
+int ctr_world_is_active (unsigned int type)
+{
+  ctr_obj_attr *a = ctr_world_get_attr (type);
+  return a->active;
+}
+
 void ctr_world_set_object_type (
         unsigned int type, unsigned int transparent, unsigned int blocking,
-        unsigned int has_txt,
+        unsigned int has_txt, unsigned int active,
         double uv0, double uv1, double uv2, double uv3)
 {
   ctr_obj_attr *oa = ctr_world_get_attr (type);
   oa->transparent = transparent;
   oa->blocking    = blocking;
   oa->has_txt     = has_txt;
+  oa->active      = active;
   oa->uv[0]       = uv0;
   oa->uv[1]       = uv1;
   oa->uv[2]       = uv2;

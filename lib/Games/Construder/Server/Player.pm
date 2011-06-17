@@ -508,17 +508,15 @@ sub query {
       }
       return 0;
    });
-
 }
 
 sub interact {
    my ($self, $pos) = @_;
 
-   world_mutate_at ($pos, sub {
-      my ($data) = @_;
-      print "interact position [@$pos]: @$data\n";
-      Games::Construder::Server::Objects::interact ($self, $data->[0], $pos);
-      return 0;
+   world_at ($pos, sub {
+      my ($pos, $cell, $entity) = @_;
+      print "interact position [@$pos]: @$cell\n";
+      Games::Construder::Server::Objects::interact ($self, $pos, $entity, $cell->[0]);
    });
 }
 
