@@ -433,9 +433,9 @@ sub world_mutate_at {
 
    for my $pos (@$poses) {
       my $b = Games::Construder::World::at (@$pos);
-     #d# print "MULT MUTATING (@$b) (AT @$pos)\n";
+      #d# print "MULT MUTATING (@$b) (AT @$pos)\n";
       if ($cb->($b, $pos)) {
-        #d# print "MULT MUTATING TO => (@$b) (AT @$pos)\n";
+         #d# print "MULT MUTATING TO => (@$b) (AT @$pos)\n";
          Games::Construder::World::query_set_at_abs (@$pos, $b);
          unless ($arg{no_light}) {
             my $t1 = time;

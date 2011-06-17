@@ -84,7 +84,6 @@ sub ia_vaporizer {
    my ($PL, $POS) = @_;
    my $where = {};
 
-
    my (@pl) =
       $Games::Construder::Server::World::SRV->players_near_pos ($POS);
 
@@ -100,7 +99,6 @@ sub ia_vaporizer {
       $_->highlight (vaddd ($POS, 0, 0, $z), 2, [1, 1, 0]) for @pl;
    }
 
-   warn "start makingposes\n";
    my @poses;
    for my $x (-$rad..$rad) {
       for my $y (-$rad..$rad) {
@@ -109,7 +107,6 @@ sub ia_vaporizer {
          }
       }
    }
-   warn "end makingposes\n";
 
    $where->{tout} = AE::timer 2, 0, sub {
       world_mutate_at (\@poses, sub {
