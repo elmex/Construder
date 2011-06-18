@@ -148,6 +148,7 @@ sub init {
    $self->new_ui (navigator     => "Games::Construder::Server::UI::Navigator");
    $self->new_ui (assignment      => "Games::Construder::Server::UI::Assignment");
    $self->new_ui (assignment_time => "Games::Construder::Server::UI::AssignmentTime");
+   $self->new_ui (pattern_storage => "Games::Construder::Server::UI::PatternStorage");
 
    $self->update_score;
    $self->{uis}->{slots}->show;
@@ -245,6 +246,23 @@ sub starvation {
          $bio_ui->hide;
       }
    }
+}
+
+sub inventory_space_for {
+   my ($self, $type) = @_;
+   my $spc = $Games::Construder::Server::RES->get_type_inventory_space ($type);
+   my $cnt;
+   if (exists $self->{data}->{inv}->{$type}) {
+      $cnt = $self->{data}->{inv}->{$type};
+   } else {
+      if (scalar (grep { $_ ne '' && $_ != 0 } keys %{$self->{data}->{inv}}) >= $PL_MAX_INV) {
+         $cnt = $spc;
+      }
+   }
+
+   my $dlta = $spc - $cnt;
+
+   ($dlta < 0 ? 0 : $dlta, $spc)
 }
 
 sub has_inventory_space {
@@ -515,7 +533,7 @@ sub interact {
 
    world_at ($pos, sub {
       my ($pos, $cell, $entity) = @_;
-      print "interact position [@$pos]: @$cell\n";
+      print "interact position [@$pos]: @$cell | $entity\n";
       Games::Construder::Server::Objects::interact ($self, $pos, $entity, $cell->[0]);
    });
 }
@@ -611,23 +629,6 @@ sub start_materialize {
       $self->do_materialize ($pos, $type, $time, $energy, $score);
       return 1;
    }, no_light => 1);
-}
-
-sub inventory_space_for {
-   my ($self, $type) = @_;
-   my $spc = $Games::Construder::Server::RES->get_type_inventory_space ($type);
-   my $cnt;
-   if (exists $self->{data}->{inv}->{$type}) {
-      $cnt = $self->{data}->{inv}->{$type};
-   } else {
-      if (scalar (grep { $_ ne '' && $_ != 0 } keys %{$self->{data}->{inv}}) >= $PL_MAX_INV) {
-         $cnt = $spc;
-      }
-   }
-
-   my $dlta = $spc - $cnt;
-
-   ($dlta < 0 ? 0 : $dlta, $spc)
 }
 
 sub do_dematerialize {

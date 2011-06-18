@@ -334,7 +334,7 @@ sub layout {
    my $chnk_pos = $self->{pl}->get_pos_chnk;
    my $sec_pos  = $self->{pl}->get_pos_sector;
 
-   my $sinfo = world_sector_info (@$chnk_pos);
+   my $sinfo = world_sector_info ($chnk_pos);
 
    {
       window => {
@@ -377,6 +377,51 @@ sub layout {
            [text => { align => "center", color => "#888888" }, "bio"],
         ],
       ],
+   }
+}
+
+package Games::Construder::Server::UI::StringQuery;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub init {
+}
+
+sub commands {
+   (
+      return => "enter"
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'enter') {
+      my $cnt = $arg->{txt};
+      $self->{cb}->($arg->{txt});
+
+   } elsif ($cmd eq 'cancel') {
+      $self->{cb}->();
+   }
+}
+
+sub layout {
+   my ($self) = @_;
+
+   my $msg = $self->{msg};
+
+   {
+      window => {
+         pos => [center => 'center'],
+      },
+      layout => [
+         box => { dir => "vert" },
+         [text => { color => "#ffffff", align => "center" },
+          $msg],
+         [entry => { font => 'normal', color => "#ffffff", arg => "txt",
+                     highlight => ["#111111", "#333333"] },
+          $self->{txt}]
+      ]
    }
 }
 
@@ -1238,6 +1283,63 @@ sub layout {
            "Left:\n" . join ("\n", map { "$_: $cal->{left}->{$_}" } keys %{$cal->{left}}) ],
          [ text => { color => "#ff8888", align => "center" }, 
            "Selected: " . $cal->{sel_mat} ],
+      ]
+   }
+}
+
+package Games::Construder::Server::UI::PatternStorage;
+use Games::Construder::Server::World;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   (
+      l => "label",
+      i => "from_inv",
+      t => "from_stor",
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd) = @_;
+
+   if ($cmd eq 'label') {
+      $self->new_ui (label_pattern_store =>
+         "Games::Construder::Server::UI::StringQuery",
+         msg       => "Please enter the label for this pattern storage:",
+         cb => sub {
+            my $txt = $_[0];
+            if (defined $txt) {
+               world_mutate_entity_at ($self->{pat_stor}->[0], sub {
+                  my ($pos, $cell, $ent) = @_;
+                  return 0 unless $cell->[0] == 31;
+                  $ent->{label} = $txt;
+                  warn "set label @$pos: $cell->[0], $ent | $ent->{label}\n";
+                  $self->show;
+                  1
+               });
+            }
+            $self->delete_ui ('label_pattern_store');
+         });
+      $self->hide;
+      $self->show_ui ('label_pattern_store');
+   }
+}
+
+sub layout {
+   my ($self, $pos, $entity) = @_;
+   warn "LAYOUt PSTOR $entity\n";
+   $self->{pat_stor} = [$pos, $entity] if $pos;
+   ($pos, $entity) = @{$self->{pat_stor}};
+
+   {
+      window => { pos => [ center => 'center' ] },
+      layout => [
+         box => { dir => "vert", border => { color => "#ffffff" } },
+         [text => { color => "#ffffff", font => "big" }, "Pattern Storage: $entity->{label}"],
+         [text => { color => "#ffffff" }, "[l] to label this storage"],
+         [text => { color => "#ffffff" }, "[i] to transfer from inventory"],
+         [text => { color => "#ffffff" }, "[t] to transfer from storage"],
       ]
    }
 }

@@ -188,10 +188,9 @@
      "complexity" : 30,
      "density" : 10,
    },
-   "Biogen" : {
+   "Pattern Storage" : {
      "type" : 31,
      "texture" : ["cat2.png", 320, 0, 64, 64],
-     "lore" : "The Biogen generator creates healty chunk of eatable food from a wide variety of things.",
      "complexity" : 50,
      "density" : 12,
    },

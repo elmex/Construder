@@ -3,6 +3,7 @@ use common::sense;
 use Games::Construder::Server::World;
 use Games::Construder::Vector;
 use Games::Construder;
+use Scalar::Util qw/weaken/;
 
 =head1 NAME
 
@@ -19,15 +20,18 @@ Games::Construder::Server::Objects - desc
 =cut
 
 our %TYPES = (
+   31 => \&ia_pattern_storage,
    36 => \&ia_construction_pad,
    45 => \&ia_vaporizer,
 );
 
 our %TYPES_INSTANCIATE = (
+   31 => \&in_pattern_storage,
    45 => \&in_vaporizer,
 );
 
 our %TYPES_TIMESENSITIVE = (
+   31 => \&tmr_pattern_storage,
    45 => \&tmr_vaporizer,
 );
 
@@ -55,6 +59,7 @@ sub instance {
       or return;
    my $i = $cb->($type);
    $i->{type} = $type;
+   $i->{tmp} ||= {};
    $i
 }
 
@@ -175,6 +180,20 @@ sub ia_construction_pad {
    } else {
       $PL->msg (1, "No properly built construction floor found!");
    }
+}
+
+sub in_pattern_storage {
+   {
+   }
+}
+
+sub tmr_pattern_storage {
+   my ($pos, $entity, $type, $dt) = @_;
+}
+
+sub ia_pattern_storage {
+   my ($pl, $pos, $entity) = @_;
+   $pl->{uis}->{pattern_storage}->show ($pos, $entity);
 }
 
 =back

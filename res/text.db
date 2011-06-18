@@ -8,3 +8,10 @@ obj:Iron:lore
 Probably the most useful metal found in the Construct. It's used in a wide
 range of other materials and also any techical device can't but built without
 at least on part that has some iron in it.
+
+obj:Pattern Storage:lore
+The Pattern Storage can hold the matter and energy patterns of materials. Your
+inventory is designed after this. You can use this as external storage for
+gathered materials that don't fit into your inventory. Even though your inventory
+can not hold an arbitrary number of complex materials, it can hold multiple
+Pattern Storages.

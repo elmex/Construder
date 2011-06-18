@@ -6,17 +6,20 @@ use Time::HiRes qw/time/;
 use Carp qw/confess/;
 use Compress::LZF qw/decompress compress/;
 use JSON;
+use Storable qw/dclone/;
 
 require Exporter;
 our @ISA = qw/Exporter/;
 our @EXPORT = qw/
    world_init
    world_pos2id
+   world_id2pos
    world_pos2chnkpos
    world_chnkpos2secpos
    world_secpos2chnkpos
    world_pos2relchnkpos
    world_mutate_at
+   world_mutate_entity_at
    world_load_at
    world_find_free_spot
    world_at
@@ -67,8 +70,7 @@ sub world_init {
          unless (exists $SECTORS{$id}) {
             confess "Sector which is not loaded was updated! (chunk $x,$y,$z [@$sec]) $id\n";
          }
-         $SECTORS{$id}->{dirty} = 1;
-         push @SAVE_SECTORS_QUEUE, [$id, $sec];
+         world_sector_dirty ($sec);
 
          my $chnk = [@_];
          for (values %{$server->{players}}) {
@@ -112,13 +114,20 @@ sub world_init {
          for my $eid (keys %{$s->{entities}}) {
             my $e = $s->{entities}->{$eid};
             next unless $e->{time_active};
-            my $pos = [split /,/, $eid];
+            my $pos = world_id2pos ($eid);
             Games::Construder::Server::Objects::tick ($pos, $e, $e->{type}, 0.25);
          }
       }
    };
 
    region_init ($region_cmds);
+}
+
+sub world_sector_dirty {
+   my ($sec) = @_;
+   my $id  = world_pos2id ($sec);
+   $SECTORS{$id}->{dirty} = 1;
+   push @SAVE_SECTORS_QUEUE, [$id, $sec];
 }
 
 sub _world_make_sector {
@@ -151,6 +160,7 @@ sub _world_make_sector {
       seed       => $seed,
       param      => $param,
       type       => $stype->{type},
+      entities   => { },
    };
    _world_save_sector ($sec);
 
@@ -265,6 +275,11 @@ sub _world_save_sector {
    }
 
    my ($ecnt) = scalar (keys %{$SECTORS{$id}->{entities}});
+
+   $meta = dclone ($meta);
+   for (values %{$meta->{entities}}) {
+      $_->{tmp} = {}; # don't store entity temporary data (might contain objects)
+   }
    my $meta_data = JSON->new->utf8->pretty->encode ($meta || {});
 
    my $data = join "", @chunks;
@@ -290,7 +305,7 @@ sub _world_save_sector {
          delete $SECTORS{$id}->{dirty};
          warn "saved sector $id to '$file', saved $ecnt entities, took "
               . sprintf ("%.3f seconds", time - $t1)
-              . "\n";
+              . "wrote " . length($filedata) . " bytes\n";
 
       } else {
          warn "couldn't rename '$file~' to '$file': $!\n";
@@ -319,12 +334,12 @@ sub region_init {
 }
 
 sub world_sector_info_at {
-   world_sector_info (world_pos2chnkpos ([@_]))
+   world_sector_info (world_pos2chnkpos ($_[0]))
 }
 
 sub world_sector_info {
-   my ($x, $y, $z) = @_;
-   my $sec = world_chnkpos2secpos ([$x, $y, $z]);
+   my ($chnk) = @_;
+   my $sec = world_chnkpos2secpos ($chnk);
    my $id  = world_pos2id ($sec);
    unless (exists $SECTORS{$id}) {
       return undef;
@@ -337,6 +352,10 @@ sub world_pos2id {
    join "x", map { $_ < 0 ? "N" . abs ($_) : $_ } @{vfloor ($pos)};
 }
 
+sub world_id2pos {
+   my ($id) = @_;
+   [map { s/^N/-/; $_ } split /x/, $id]
+}
 sub world_pos2chnkpos {
    vfloor (vsdiv ($_[0], $CHNK_SIZE))
 }
@@ -389,7 +408,21 @@ sub world_at {
       my ($cell, $pos) = @_;
       my $si = world_sector_info_at ($pos);
       my $eid = world_pos2id ($pos);
-      $cb->($pos, $cell, $si->{$eid});
+      $cb->($pos, $cell, $si->{entities}->{$eid});
+      return 0;
+   }, %arg);
+}
+
+sub world_mutate_entity_at {
+   my ($pos, $cb, %arg) = @_;
+
+   world_mutate_at ($pos, sub {
+      my ($cell, $pos) = @_;
+      my $si = world_sector_info_at ($pos);
+      my $eid = world_pos2id ($pos);
+      if ($cb->($pos, $cell, $si->{entities}->{$eid})) {
+         world_sector_dirty ($si->{pos});
+      }
       return 0;
    }, %arg);
 }
