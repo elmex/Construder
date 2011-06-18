@@ -173,7 +173,8 @@ void ctr_world_query_set_at_pl (unsigned int rel_x, unsigned int rel_y, unsigned
 
   if (ctr_world_is_active (otype) || ctr_world_is_active (c->type))
     {
+      t = av_fetch (cell, 5, 0);
       ctr_world_query_rel2abs (&rel_x, &rel_y, &rel_z);
-      ctr_world_emit_active_cell_change (rel_x, rel_y, rel_z, c);
+      ctr_world_emit_active_cell_change (rel_x, rel_y, rel_z, c, t ? *t : 0);
     }
 }

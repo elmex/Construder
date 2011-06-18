@@ -152,12 +152,13 @@ sub init {
    $self->new_ui (pattern_storage => "Games::Construder::Server::UI::PatternStorage");
 
    $self->{inv} =
-      Games::Construder::Server::PatStorHandle->new (data => $self->{data});
+      Games::Construder::Server::PatStorHandle->new (data => $self->{data}, slot_cnt => $PL_MAX_INV);
 
    $self->{inv}->reg_cb (changed => sub {
       if ($wself->{uis}->{inventory}->{shown}) {
          $wself->{uis}->{inventory}->show;
       }
+      warn "INVENTORY CHANGED!\n";
       $wself->{uis}->{slots}->show;
    });
 
@@ -269,14 +270,16 @@ sub try_eat_something {
    my $item = $max_e;
    if ($amount) {
       if ($item->[1] <= $amount) {
-         if ($self->{inv}->remove ($item->[0])) {
+         my ($ov) = $self->{inv}->remove ($item->[0]);
+         if ($ov) {
             $self->refill_bio ($item->[1]);
             return 1;
          }
       }
 
    } else {
-      if ($self->{inv}->remove ($item->[0])) {
+      my ($ov) = $self->{inv}->remove ($item->[0]);
+      if ($ov) {
          $self->refill_bio ($item->[1]);
          return 1;
       }

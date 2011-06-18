@@ -401,14 +401,21 @@ sub world_load_at_chunk {
    $cb->() if $cb;
 }
 
+sub world_entity_at {
+   my ($pos) = @_;
+   my $si = world_sector_info_at ($pos)
+      or return;
+   my $eid = world_pos2id ($pos);
+   $si->{entities}->{$eid}
+}
+
 sub world_at {
    my ($poses, $cb, %arg) = @_;
 
    world_mutate_at ($poses, sub {
       my ($cell, $pos) = @_;
-      my $si = world_sector_info_at ($pos);
-      my $eid = world_pos2id ($pos);
-      $cb->($pos, $cell, $si->{entities}->{$eid});
+      push @$cell, world_entity_at ($pos);
+      $cb->($pos, $cell);
       return 0;
    }, %arg);
 }
@@ -419,8 +426,8 @@ sub world_mutate_entity_at {
    world_mutate_at ($pos, sub {
       my ($cell, $pos) = @_;
       my $si = world_sector_info_at ($pos);
-      my $eid = world_pos2id ($pos);
-      if ($cb->($pos, $cell, $si->{entities}->{$eid})) {
+      push @$cell, world_entity_at ($pos);
+      if ($cb->($pos, $cell)) {
          world_sector_dirty ($si->{pos});
       }
       return 0;
@@ -466,6 +473,9 @@ sub world_mutate_at {
 
    for my $pos (@$poses) {
       my $b = Games::Construder::World::at (@$pos);
+      my $ent;
+      $ent = world_entity_at ($pos) if $arg{need_entity};
+      push @$b, $ent;
       #d# print "MULT MUTATING (@$b) (AT @$pos)\n";
       if ($cb->($b, $pos)) {
          #d# print "MULT MUTATING TO => (@$b) (AT @$pos)\n";

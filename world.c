@@ -153,7 +153,7 @@ void ctr_world_emit_chunk_change (int x, int y, int z)
     }
 }
 
-void ctr_world_emit_active_cell_change (int x, int y, int z, ctr_cell *c)
+void ctr_world_emit_active_cell_change (int x, int y, int z, ctr_cell *c, SV *sv)
 {
   if (WORLD.active_cell_change_cb)
     {
@@ -165,6 +165,8 @@ void ctr_world_emit_active_cell_change (int x, int y, int z, ctr_cell *c)
       XPUSHs(sv_2mortal(newSViv (y)));
       XPUSHs(sv_2mortal(newSViv (z)));
       XPUSHs(sv_2mortal(newSViv (c->type)));
+      if (sv)
+        XPUSHs(sv);
       PUTBACK;
       call_sv (WORLD.active_cell_change_cb, G_DISCARD | G_VOID);
       SPAGAIN;

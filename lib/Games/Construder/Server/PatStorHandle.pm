@@ -24,6 +24,8 @@ sub new {
    my $self  = { @_ };
    bless $self, $class;
 
+   $self->init_object_events;
+
    $self->{data}->{inv}->{mat} ||= {};
    $self->{data}->{inv}->{ent} ||= {};
 
@@ -61,7 +63,7 @@ sub space_for {
 
    my ($max_spc, $perm) = $Games::Construder::Server::RES->get_type_inventory_space ($type);
    my $fslots = $self->free_slots;
-   warn "SPACEFOR $max_spc | $perm: $type\n";
+   warn "SPACEFOR $max_spc | $perm: $type, $fslots\n";
 
    if ($perm) {
       return ($fslots, $fslots)
@@ -69,14 +71,15 @@ sub space_for {
    } else {
       my $cnt;
       if (exists $self->{data}->{inv}->{mat}->{$type}) {
-         $cnt = $self->{data}->{inv}->{mat}->{$type};
+         $cnt = $max_spc - $self->{data}->{inv}->{mat}->{$type};
       } else {
          if ($fslots > 0) {
             $cnt = $max_spc;
+         } else {
+            $max_spc = 0;
          }
       }
-      my $dlta = $max_spc - $cnt;
-      ($dlta < 0 ? 0 : $dlta, $max_spc)
+      ($cnt < 0 ? 0 : $cnt, $max_spc)
    }
 }
 
@@ -104,6 +107,7 @@ sub add {
 
       $cnt ||= 1;
       $cnt = $spc if $spc < $cnt;
+      warn "ADD $type: $spc | $cnt\n";
       $self->{data}->{inv}->{mat}->{$type} += $cnt;
    }
 
@@ -182,6 +186,7 @@ sub max_bio_energy_material {
 
 sub changed : event_cb {
    my ($self) = @_;
+   warn "INVCHAN\n";
 }
 
 #sub inventory_space_for {

@@ -1002,7 +1002,7 @@ void vol_draw_dst_to_world (int sector_x, int sector_y, int sector_z, AV *range_
                   {
                     cur->type = SvIV (*t);
                     if (ctr_world_is_active (cur->type))
-                      ctr_world_emit_active_cell_change (x, y, z, cur);
+                      ctr_world_emit_active_cell_change (x, y, z, cur, 0);
                   }
               }
           }

@@ -239,8 +239,7 @@ sub layout {
            [model => { color => "#00ff00", width => 40 }, $type]],
          [text => { font => "small",
                     color =>
-                       defined ($cnt) && $cnt <= 0
-                          ? "#990000" : "#999999",
+                       (!defined ($cnt) || $cnt <= 0) ? "#990000" : "#999999",
                     align => "center" },
           sprintf ("[%d] %d/%d", $i + 1, $cnt * 1, $max * 1)]
       ]];
@@ -724,11 +723,12 @@ sub handle_command {
    my ($self, $cmd, $arg) = @_;
 
    if ($cmd eq 'cheat') {
-
       my $t = $arg->{type};
-      my ($spc, $max) = $self->{pl}->{inv}->space_for ($arg->{type});
+      my ($spc, $max) =
+         $self->{pl}->{inv}->space_for ($t);
       $self->{pl}->{data}->{score} = 0;
       $self->{pl}->update_score;
+      warn "CHEAT: $t : $spc | $max\n";
       $self->{pl}->{inv}->add ($t, $spc);
       $self->hide;
    }
@@ -1303,8 +1303,9 @@ sub handle_command {
             my $txt = $_[0];
             if (defined $txt) {
                world_mutate_entity_at ($self->{pat_stor}->[0], sub {
-                  my ($pos, $cell, $ent) = @_;
+                  my ($pos, $cell) = @_;
                   return 0 unless $cell->[0] == 31;
+                  my $ent = $cell->[-1];
                   $ent->{label} = $txt;
                   warn "set label @$pos: $cell->[0], $ent | $ent->{label}\n";
                   $self->show;
