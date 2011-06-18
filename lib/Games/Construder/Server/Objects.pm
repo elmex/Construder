@@ -133,7 +133,7 @@ sub ia_construction_pad {
          my ($score, $time) =
             $Games::Construder::Server::RES->get_type_construct_values ($obj->{type});
 
-         if ($PL->has_inventory_space ($obj->{type})) {
+         if ($PL->{inv}->has_space_for ($obj->{type})) {
             my $a = Games::Construder::World::get_pattern (@$POS, 1);
 
             my @poses;
@@ -159,7 +159,8 @@ sub ia_construction_pad {
 
                my $gen_cnt = $obj->{model_cnt} || 1;
 
-               my $add_cnt = $PL->increase_inventory ($obj->{type}, $gen_cnt);
+               my $add_cnt =
+                  $PL->{inv}->add ($obj->{type}, instance ($obj->{type}) || $gen_cnt);
                if ($add_cnt > 0) {
                   $PL->push_tick_change (score => $score);
                }

@@ -520,12 +520,15 @@ sub get_type_inventory_space {
 
    my $obj = $self->get_object_by_type ($type);
    $obj or return 0;
-
-   my $dens = $obj->{density} / 100;
-
-   my $space = int (lerp ($min_carry, $max_carry, (1 - $dens)));
-   warn "invspace: $type => $dens | $space\n";
-   $space
+   my $space;
+   if ($obj->{permanent}) {
+      $space = 1;
+   } else {
+      my $dens = $obj->{density} / 100;
+      $space = int (lerp ($min_carry, $max_carry, (1 - $dens)));
+      warn "invspace: $type => $dens | $space\n";
+   }
+   ($space, $obj->{permanent})
 }
 
 sub get_type_dematerialize_values {

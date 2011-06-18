@@ -5,6 +5,7 @@ use AnyEvent;
 use Games::Construder::Server::World;
 use Games::Construder::Server::UI;
 use Games::Construder::Server::Objects;
+use Games::Construder::Server::PatStorHandle;
 use Games::Construder::Vector;
 use Time::HiRes qw/time/;
 use base qw/Object::Event/;
@@ -75,7 +76,7 @@ sub _initialize_player {
       pos       => [0, 0, 0],
       inv       => $inv,
       slots => {
-         selection => [keys %$inv],
+         selection => [],
          selected  => 0
       },
    };
@@ -149,6 +150,16 @@ sub init {
    $self->new_ui (assignment      => "Games::Construder::Server::UI::Assignment");
    $self->new_ui (assignment_time => "Games::Construder::Server::UI::AssignmentTime");
    $self->new_ui (pattern_storage => "Games::Construder::Server::UI::PatternStorage");
+
+   $self->{inv} =
+      Games::Construder::Server::PatStorHandle->new (data => $self->{data});
+
+   $self->{inv}->reg_cb (changed => sub {
+      if ($wself->{uis}->{inventory}->{shown}) {
+         $wself->{uis}->{inventory}->show;
+      }
+      $wself->{uis}->{slots}->show;
+   });
 
    $self->update_score;
    $self->{uis}->{slots}->show;
@@ -248,106 +259,26 @@ sub starvation {
    }
 }
 
-sub inventory_space_for {
-   my ($self, $type) = @_;
-   my $spc = $Games::Construder::Server::RES->get_type_inventory_space ($type);
-   my $cnt;
-   if (exists $self->{data}->{inv}->{$type}) {
-      $cnt = $self->{data}->{inv}->{$type};
-   } else {
-      if (scalar (grep { $_ ne '' && $_ != 0 } keys %{$self->{data}->{inv}}) >= $PL_MAX_INV) {
-         $cnt = $spc;
-      }
-   }
-
-   my $dlta = $spc - $cnt;
-
-   ($dlta < 0 ? 0 : $dlta, $spc)
-}
-
-sub has_inventory_space {
-   my ($self, $type, $cnt) = @_;
-   $cnt ||= 1;
-   my ($spc, $max) = $self->inventory_space_for ($type);
-   $spc >= $cnt
-}
-
-sub increase_inventory {
-   my ($self, $type, $cnt) = @_;
-
-   $cnt ||= 1;
-
-   my ($spc, $max) = $self->inventory_space_for ($type);
-   if ($spc > 0) {
-      $cnt = $spc if $spc < $cnt;
-      $self->{data}->{inv}->{$type} += $cnt;
-
-      if ($self->{uis}->{inventory}->{shown}) {
-         $self->{uis}->{inventory}->show; # update if neccesary
-      }
-
-      $self->{uis}->{slots}->show;
-
-      return $cnt;
-   }
-   0
-}
-
-sub decrease_inventory {
-   my ($self, $type, $cnt) = @_;
-
-   $cnt ||= 1;
-
-   my $old_val = 0;
-
-   if ($type eq 'all') {
-      $self->{data}->{inv} = {};
-
-   } else {
-      $old_val = $self->{data}->{inv}->{$type};
-      $self->{data}->{inv}->{$type} -= $cnt;
-      if ($self->{data}->{inv}->{$type} <= 0) {
-         delete $self->{data}->{inv}->{$type};
-      }
-   }
-
-   if ($self->{uis}->{inventory}->{shown}) {
-      $self->{uis}->{inventory}->show; # update if neccesary
-   }
-
-   $self->{uis}->{slots}->show;
-
-   $old_val > 0
-}
-
 sub try_eat_something {
    my ($self, $amount) = @_;
 
-   my (@max_e) = sort {
-      $b->[1] <=> $a->[1]
-   } grep { $_->[1] } map {
-      my $obj = $Games::Construder::Server::RES->get_object_by_type ($_);
-      [$_, $obj->{bio_energy}]
-   } keys %{$self->{data}->{inv}};
+   my $max_e = $self->{inv}->max_bio_energy_material;
 
-   return 0 unless @max_e;
+   return 0 unless $max_e;
 
+   my $item = $max_e;
    if ($amount) {
-      my $item = $max_e[0];
       if ($item->[1] <= $amount) {
-         if ($self->decrease_inventory ($item->[0])) {
+         if ($self->{inv}->remove ($item->[0])) {
             $self->refill_bio ($item->[1]);
             return 1;
          }
       }
 
    } else {
-      while (@max_e) { # eat anything!
-         my $res = shift @max_e;
-         if ($self->decrease_inventory ($res->[0])) {
-            $self->refill_bio ($res->[1]);
-            return 1;
-         }
+      if ($self->{inv}->remove ($item->[0])) {
+         $self->refill_bio ($item->[1]);
+         return 1;
       }
    }
 
@@ -369,7 +300,7 @@ sub refill_bio {
 sub kill_player {
    my ($self) = @_;
    $self->teleport ([0, 0, 0]);
-   $self->decrease_inventory ('all');
+   $self->{inv}->remove ('all');
    $self->{data}->{happyness} = 100;
    $self->{data}->{bio}       = 100;
    $self->{data}->{score}    -=
@@ -576,7 +507,7 @@ sub debug_at {
 }
 
 sub do_materialize {
-   my ($self, $pos, $type, $time, $energy, $score) = @_;
+   my ($self, $pos, $time, $energy, $score, $type, $ent) = @_;
 
    my $id = world_pos2id ($pos);
 
@@ -589,6 +520,7 @@ sub do_materialize {
    $tmr = AE::timer $time, 0, sub {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
+         # FIXME take care of $ent!
          undef $tmr;
 
          $data->[0] = $type;
@@ -600,6 +532,17 @@ sub do_materialize {
    };
 }
 
+sub get_selected_slot {
+   my ($self) = @_;
+   my $id = $self->{data}->{slots}->{selection}->[$self->{data}->{slots}->{selected}];
+   my ($type, $entid) = split /:/, $id, 2;
+   if ($entid ne '') {
+      return ($type, $id)
+   } else {
+      return ($id, $id);
+   }
+}
+
 sub start_materialize {
    my ($self, $pos) = @_;
 
@@ -608,14 +551,18 @@ sub start_materialize {
       return;
    }
 
-   my $type = $self->{data}->{slots}->{selection}->[$self->{data}->{slots}->{selected}];
+   my ($invid)
+      = $self->{data}->{slots}->{selection}->[$self->{data}->{slots}->{selected}];
+   my ($type, $invid) = $self->{inv}->split_invid ($invid);
 
    world_mutate_at ($pos, sub {
       my ($data) = @_;
 
       return 0 unless $data->[0] == 0;
 
-      return 0 unless $self->decrease_inventory ($type);
+      my ($cnt, $ent) = $self->{inv}->remove ($invid);
+
+      return 0 unless $cnt;
 
       my $obj = $Games::Construder::Server::RES->get_object_by_type ($type);
       my ($time, $energy, $score) =
@@ -626,13 +573,13 @@ sub start_materialize {
       }
 
       $data->[0] = 1;
-      $self->do_materialize ($pos, $type, $time, $energy, $score);
+      $self->do_materialize ($pos, $time, $energy, $score, $type, $ent);
       return 1;
    }, no_light => 1);
 }
 
 sub do_dematerialize {
-   my ($self, $pos, $type, $time, $energy) = @_;
+   my ($self, $pos, $time, $energy, $type, $ent) = @_;
 
    my $id = world_pos2id ($pos);
    $self->highlight ($pos, $time, [1, 0, 0]);
@@ -650,7 +597,8 @@ sub do_dematerialize {
          $data->[0] = 0;
          $data->[3] &= 0xF0; # clear color :)
          delete $self->{dematerializings}->{$id};
-         $self->increase_inventory ($type);
+         # FIXME: if unsuccessful we need to put the material back!
+         $self->{inv}->add ($type, $ent || 1);
          return 1;
       });
    };
@@ -666,6 +614,7 @@ sub start_dematerialize {
 
    world_mutate_at ($pos, sub {
       my ($data) = @_;
+      # FIXME take care of $ent!
       my $type = $data->[0];
       my $obj = $Games::Construder::Server::RES->get_object_by_type ($type);
       if ($obj->{untransformable}) {
@@ -673,7 +622,7 @@ sub start_dematerialize {
       }
       warn "DEMAT $type\n";
 
-      unless ($self->has_inventory_space ($type)) {
+      unless ($self->{inv}->has_space_for ($type)) {
          $self->msg (1, "Inventory full, no space for $obj->{name} available!");
          return;
       }
@@ -686,7 +635,7 @@ sub start_dematerialize {
       }
 
       $data->[0] = 1; # materialization!
-      $self->do_dematerialize ($pos, $type, $time, $energy);
+      $self->do_dematerialize ($pos, $time, $energy, $type);
 
       return 1;
    }, no_light => 1);

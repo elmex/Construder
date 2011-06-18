@@ -193,6 +193,7 @@
      "texture" : ["cat2.png", 320, 0, 64, 64],
      "complexity" : 50,
      "density" : 12,
+     "permanent" : 1, # this entity's data is stored permanently
    },
    "CPU" : {
      "type" : 32,

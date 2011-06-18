@@ -219,27 +219,30 @@ sub layout {
    my ($self) = @_;
 
    my $slots = $self->{pl}->{data}->{slots};
-   my $inv   = $self->{pl}->{data}->{inv};
 
    my @slots;
    for (my $i = 0; $i < 10; $i++) {
-      my $cur = $slots->{selection}->[$i];
+      my $invid = $slots->{selection}->[$i];
 
       my $border = "#0000ff";
       if ($i == $slots->{selected}) {
          $border = "#ff0000";
       }
 
-      my $o = $Games::Construder::Server::RES->get_object_by_type ($cur);
-      my ($spc, $max) = $self->{pl}->inventory_space_for ($cur);
+      my ($type, $invid) = $self->{pl}->{inv}->split_invid ($invid);
+      my ($cnt, $max) = $self->{pl}->{inv}->get_count ($invid);
 
       push @slots,
       [box => { padding => 2, aspect => 1 },
       [box => { dir => "vert", padding => 2, border => { color => $border }, aspect => 1 },
          [box => { padding => 2, align => "center" },
-           [model => { color => "#00ff00", width => 40 }, $cur]],
-         [text => { font => "small", color => $cur && $inv->{$cur} <= 0 ? "#990000" : "#999999", align => "center" },
-          sprintf ("[%d] %d/%d", $i + 1, $inv->{$cur} * 1, $cur ? $max : 0)]
+           [model => { color => "#00ff00", width => 40 }, $type]],
+         [text => { font => "small",
+                    color =>
+                       defined ($cnt) && $cnt <= 0
+                          ? "#990000" : "#999999",
+                    align => "center" },
+          sprintf ("[%d] %d/%d", $i + 1, $cnt * 1, $max * 1)]
       ]];
    }
 
@@ -488,10 +491,9 @@ use base qw/Games::Construder::Server::UI/;
 sub commands {
    my ($self) = @_;
 
-   my $type = $self->{type};
+   my ($inv_cnt) = $self->{pl}->{inv}->get_count ($self->{invid});
+   $inv_cnt or return ();
 
-   my $inv_cnt = $self->{pl}->{data}->{inv}->{$type}
-      or return ();
    (
       (map {
          $_ => "slot_" . ($_ == 0 ? 9 : $_ - 1)
@@ -525,26 +527,23 @@ sub _perc_to_word {
 sub handle_command {
    my ($self, $cmd, $arg) = @_;
 
-   my $type = $self->{type};
-   warn "HAD $cmd\n";
+   my $invid = $self->{invid};
 
    if ($cmd =~ /slot_(\d+)/) {
-      $self->{pl}->{data}->{slots}->{selection}->[$1] = $type;
+      $self->{pl}->{data}->{slots}->{selection}->[$1] = $invid;
       $self->{pl}->{data}->{slots}->{selected} = $1;
       $self->show_ui ('slots');
       $self->hide;
 
    } elsif ($cmd eq 'discard') {
       $self->hide;
-      warn "DISC $self->{pl}->{data}->{inv}->{$self->{type}}\n";
+      my ($cnt, $max) = $self->{pl}->{inv}->get_count ($invid);
       $self->new_ui (discard_material =>
          "Games::Construder::Server::UI::CountQuery",
          msg       => "Discard how many?",
-         max_count => $self->{pl}->{data}->{inv}->{$self->{type}},
+         max_count => $cnt,
          cb => sub {
-            if (defined $_[0]) {
-               $self->{pl}->decrease_inventory ($self->{type}, $_[0]);
-            }
+            $self->{pl}->remove ($invid, $_[0]) if defined $_[0];
             $self->delete_ui ('discard_material');
          });
       $self->show_ui ('discard_material');
@@ -554,28 +553,21 @@ sub handle_command {
 sub layout {
    my ($self, $type) = @_;
 
-   $self->{type} = $type;
+   $self->{invid} = $type;
+   my ($type, $invid) = $self->{pl}->{inv}->split_invid ($type);
+   my ($inv_cnt, $max) = $self->{pl}->{inv}->get_count ($invid);
 
-   my $inv_cnt = $self->{pl}->{data}->{inv}->{$type};
-
-   warn "SHOW INV SEL $type\n";
-   my $o = $Games::Construder::Server::RES->get_object_by_type ($type);
-
+   my $o =
+      $Games::Construder::Server::RES->get_object_by_type ($type);
    my @sec =
       $Games::Construder::Server::RES->get_sector_types_where_type_is_found ($type);
-
    my @destmat =
       $Games::Construder::Server::RES->get_types_where_type_is_source_material ($type);
-
    my @srcmat =
       $Games::Construder::Server::RES->get_type_source_materials ($type);
-      warn "RET\n";
-
 
    {
-      window => {
-         pos => [center => 'center'],
-      },
+      window => { pos => [center => 'center'] },
       layout => [
          box => { dir => "vert" },
           [text => { color => "#ffffff", font => "big" }, $o->{name}],
@@ -627,11 +619,11 @@ use base qw/Games::Construder::Server::UI/;
 sub build_grid {
    my ($self) = @_;
 
-   my $inv = $self->{pl}->{data}->{inv};
+   my $inv = $self->{pl}->{inv};
 
    my @grid;
 
-   my @keys = sort { $a <=> $b } keys %$inv;
+   my @invids = $inv->get_invids;
    my @shortcuts = qw/
       1 q a y 2 w s x
       3 e d c 4 r f v
@@ -642,11 +634,11 @@ sub build_grid {
    for (0..6) {
       my @row;
       for (0..3) {
-         my $i = (shift @keys) || 1;
+         my $i = (shift @invids) || 1;
          my $o = $Games::Construder::Server::RES->get_object_by_type ($i);
-         my ($spc, $max) = $self->{pl}->inventory_space_for ($i);
-                    # type, inv count, max inv, object info, shortcut
-         push @row, [$i, $inv->{$i}, $max, $o, shift @shortcuts];
+         my ($cnt, $max) = $inv->get_count ($i);
+                    # invid, inv count, max inv, object info, shortcut
+         push @row, [$i, $cnt, $max, $o, shift @shortcuts];
       }
       push @grid, \@row;
    }
@@ -734,10 +726,10 @@ sub handle_command {
    if ($cmd eq 'cheat') {
 
       my $t = $arg->{type};
-      my ($spc, $max) = $self->{pl}->inventory_space_for ($arg->{type});
+      my ($spc, $max) = $self->{pl}->{inv}->space_for ($arg->{type});
       $self->{pl}->{data}->{score} = 0;
       $self->{pl}->update_score;
-      $self->{pl}->increase_inventory ($t, $spc);
+      $self->{pl}->{inv}->add ($t, $spc);
       $self->hide;
    }
 }
