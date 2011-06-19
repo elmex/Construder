@@ -597,13 +597,15 @@ sub do_dematerialize {
 
       world_mutate_at ($pos, sub {
          my ($data) = @_;
-         warn "INCREATE $type\n";
-         $data->[0] = 0;
-         $data->[3] &= 0xF0; # clear color :)
+         if ($self->{inv}->add ($type, $ent || 1)) {
+            $data->[0] = 0;
+            $data->[3] &= 0xF0; # clear color :)
+         } else {
+            $data->[0] = $type;
+            $data->[5] = $ent;
+            $data->[3] &= 0xF0; # clear color :) FIXME: should set previous
+         }
          delete $self->{dematerializings}->{$id};
-         # FIXME: if unsuccessful we need to put the material back!
-         warn "DEMATER $type: $ent\n";
-         $self->{inv}->add ($type, $ent || 1);
          return 1;
       });
    };
@@ -619,7 +621,6 @@ sub start_dematerialize {
 
    world_mutate_at ($pos, sub {
       my ($data) = @_;
-      # FIXME take care of $ent!
       my $type = $data->[0];
       my $obj = $Games::Construder::Server::RES->get_object_by_type ($type);
       if ($obj->{untransformable}) {

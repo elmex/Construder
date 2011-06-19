@@ -231,7 +231,7 @@ sub layout {
 
       my ($cnt, $max) = $self->{pl}->{inv}->get_count ($invid);
       if ($invid =~ /:/ && $cnt == 0) {
-         $self->{selection}->[$i] = undef;
+         $slots->{selection}->[$i] = undef;
          $invid = undef;
       }
 
