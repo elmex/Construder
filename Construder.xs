@@ -741,9 +741,7 @@ void ctr_world_flow_light_at (int x, int y, int z)
           {
             // we are transparent and have the light we should have
             // so we don't need to change anything.
-            // BUT:
-            //    still force update :) FIXME: This should maybe
-            //    be done by ChunkManager
+            // XXX: BUT: still force update :)
             ctr_world_query_cell_at (x, y, z, 1);
             return; // => no change, so no change for anyone else
           }
@@ -753,7 +751,19 @@ void ctr_world_flow_light_at (int x, int y, int z)
         ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 1);
 
         // FIXME: add other lamp types here too:
-        if (cur->type == 40) // was a light: light it!
+        if (cur->type == 41) // was a light: light it!
+          {
+            cur->light = 8;
+            light_up = 1; // propagate our light!
+            ctr_world_light_enqueue_neighbours (x, y, z, cur->light - 1);
+          }
+        else if (cur->type == 35) // was a light: light it!
+          {
+            cur->light = 12;
+            light_up = 1; // propagate our light!
+            ctr_world_light_enqueue_neighbours (x, y, z, cur->light - 1);
+          }
+        else if (cur->type == 40) // was a light: light it!
           {
             cur->light = 15;
             light_up = 1; // propagate our light!

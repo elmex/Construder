@@ -718,7 +718,7 @@ sub get_look_vector {
    return $self->{cached_look_vec};
 }
 
-# TODO: move this to XS
+# TODO: move this to XS, it's a real cpu eater!
 sub get_selected_box_pos {
    my ($self) = @_;
    my $t1 = time;
@@ -793,7 +793,7 @@ sub get_selected_box_pos {
    }
 
 
-   #d# warn sprintf "%.5f selection\n", time - $t1;
+#d# warn sprintf "%.5f selection\n", time - $t1;
 
    ($select_pos, $build_box)
 }

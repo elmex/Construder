@@ -523,12 +523,11 @@ sub do_materialize {
    $tmr = AE::timer $time, 0, sub {
       world_mutate_at ($pos, sub {
          my ($data) = @_;
-         # FIXME take care of $ent!
          undef $tmr;
 
          $data->[0] = $type;
          $data->[5] = $ent if $ent;
-        #d# $data->[3] = 0x2;
+         #d# $data->[3] = 0x2;
          delete $self->{materializings}->{$id};
          $self->push_tick_change (score => $score);
          return 1;
