@@ -78,7 +78,7 @@ sub world_init {
          }
       },
       sub {
-         my ($x, $y, $z, $type) = @_;
+         my ($x, $y, $z, $type, $ent) = @_;
          warn "TEST\n";
          my $sec = world_chnkpos2secpos (world_pos2chnkpos ([$x, $y, $z]));
          my $id  = world_pos2id ($sec);
@@ -89,9 +89,13 @@ sub world_init {
             Games::Construder::Server::Objects::destroy ($e);
          }
 
-         $e = Games::Construder::Server::Objects::instance ($type);
-         warn "INSTANCE entity $eid at sector $id with type $type: $e\n";
-         $SECTORS{$id}->{entities}->{$eid} = $e if $e;
+         unless ($ent) {
+            $ent = Games::Construder::Server::Objects::instance ($type);
+            warn "INSTANCE entity $eid at sector $id with type $type: $e\n";
+         } else {
+            warn "PUT INSTANCED ENTITY $eid in sec $id with type $type: $ent\n";
+         }
+         $SECTORS{$id}->{entities}->{$eid} = $ent if $ent;
          warn "inst done\n";
       }
    );
@@ -417,7 +421,7 @@ sub world_at {
       push @$cell, world_entity_at ($pos);
       $cb->($pos, $cell);
       return 0;
-   }, %arg);
+   }, need_entity => 1, %arg);
 }
 
 sub world_mutate_entity_at {
@@ -431,7 +435,7 @@ sub world_mutate_entity_at {
          world_sector_dirty ($si->{pos});
       }
       return 0;
-   }, %arg);
+   }, need_entity => 1, %arg);
 }
 
 sub world_mutate_at {

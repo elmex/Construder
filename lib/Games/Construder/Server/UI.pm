@@ -229,8 +229,13 @@ sub layout {
          $border = "#ff0000";
       }
 
-      my ($type, $invid) = $self->{pl}->{inv}->split_invid ($invid);
       my ($cnt, $max) = $self->{pl}->{inv}->get_count ($invid);
+      if ($invid =~ /:/ && $cnt == 0) {
+         $self->{selection}->[$i] = undef;
+         $invid = undef;
+      }
+
+      my ($type, $invid) = $self->{pl}->{inv}->split_invid ($invid);
 
       push @slots,
       [box => { padding => 2, aspect => 1 },
@@ -418,11 +423,14 @@ sub layout {
       },
       layout => [
          box => { dir => "vert" },
-         [text => { color => "#ffffff", align => "center" },
+         [text => { color => "#ffffff", align => "center", wrap => 30 },
           $msg],
-         [entry => { font => 'normal', color => "#ffffff", arg => "txt",
-                     highlight => ["#111111", "#333333"] },
-          $self->{txt}]
+         [box => { dir => "hor", align => "center" },
+            [text => { font => "normal", color => "#ffffff", align => "center" }, "Entry:"],
+            [entry => { font => 'normal', color => "#ffffff", arg => "txt",
+                        highlight => ["#111111", "#333333"], align => "center" },
+             $self->{txt}]
+         ]
       ]
    }
 }
@@ -542,7 +550,10 @@ sub handle_command {
          msg       => "Discard how many?",
          max_count => $cnt,
          cb => sub {
-            $self->{pl}->remove ($invid, $_[0]) if defined $_[0];
+            if (defined $_[0]) {
+               my ($cnt, $ent) = $self->{pl}->{inv}->remove ($invid, $_[0]);
+               Games::Construder::Server::Objects::destroy ($ent) if $ent;
+            }
             $self->delete_ui ('discard_material');
          });
       $self->show_ui ('discard_material');
@@ -555,6 +566,7 @@ sub layout {
    $self->{invid} = $type;
    my ($type, $invid) = $self->{pl}->{inv}->split_invid ($type);
    my ($inv_cnt, $max) = $self->{pl}->{inv}->get_count ($invid);
+   warn "MATVOIEW $inv_cnt |$type,$invid\n";
 
    my $o =
       $Games::Construder::Server::RES->get_object_by_type ($type);
@@ -630,11 +642,12 @@ sub build_grid {
       7 u j m 8 i k ,
    /;
 
-   for (0..6) {
+   for (0..5) {
       my @row;
       for (0..3) {
          my $i = (shift @invids) || 1;
-         my $o = $Games::Construder::Server::RES->get_object_by_type ($i);
+         my ($type, $i) = $inv->split_invid ($i);
+         my $o = $Games::Construder::Server::RES->get_object_by_type ($type);
          my ($cnt, $max) = $inv->get_count ($i);
                     # invid, inv count, max inv, object info, shortcut
          push @row, [$i, $cnt, $max, $o, shift @shortcuts];
@@ -663,7 +676,7 @@ sub handle_command {
       $self->hide;
       $self->show_ui ('material_view', $arg->{item}->[0]);
 
-   } elsif ($cmd =~ /short_(\d+)/) {
+   } elsif ($cmd =~ /short_(\S+)/) {
       $self->hide;
       $self->show_ui ('material_view', $1);
    }
@@ -699,7 +712,7 @@ sub layout {
                          $_->[1] ? $_->[1] . "/$_->[2]" : "0/0"],
                         [model => { align => "center", width => 60 }, $_->[0]],
                         [text  => { font => "small", align => "center",
-                                    color => "#ffffff" },
+                                    color => "#ffffff", wrap => 10 },
                          $_->[0] == 1 ? "<empty>" : "[$_->[4]] $_->[3]->{name}"]
                      ]
 
@@ -1296,13 +1309,15 @@ sub handle_command {
    my ($self, $cmd) = @_;
 
    if ($cmd eq 'label') {
+      my ($pos, $ent) = @{$self->{pat_stor}};
       $self->new_ui (label_pattern_store =>
          "Games::Construder::Server::UI::StringQuery",
-         msg       => "Please enter the label for this pattern storage:",
-         cb => sub {
+         msg => "Please enter the label for this pattern storage:",
+         txt => $ent->{label},
+         cb  => sub {
             my $txt = $_[0];
             if (defined $txt) {
-               world_mutate_entity_at ($self->{pat_stor}->[0], sub {
+               world_mutate_entity_at ($pos, sub {
                   my ($pos, $cell) = @_;
                   return 0 unless $cell->[0] == 31;
                   my $ent = $cell->[-1];

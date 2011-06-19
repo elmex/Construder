@@ -29,7 +29,7 @@ Games::Construder::Server::Player - desc
 =cut
 
 my $PL_VIS_RAD = 3;
-my $PL_MAX_INV = 28;
+my $PL_MAX_INV = 24;
 
 sub new {
    my $this  = shift;
@@ -466,9 +466,9 @@ sub interact {
    my ($self, $pos) = @_;
 
    world_at ($pos, sub {
-      my ($pos, $cell, $entity) = @_;
-      print "interact position [@$pos]: @$cell | $entity\n";
-      Games::Construder::Server::Objects::interact ($self, $pos, $entity, $cell->[0]);
+      my ($pos, $cell) = @_;
+      print "interact position [@$pos]: @$cell\n";
+      Games::Construder::Server::Objects::interact ($self, $pos, $cell->[0], $cell->[5]);
    });
 }
 
@@ -527,6 +527,7 @@ sub do_materialize {
          undef $tmr;
 
          $data->[0] = $type;
+         $data->[5] = $ent if $ent;
         #d# $data->[3] = 0x2;
          delete $self->{materializings}->{$id};
          $self->push_tick_change (score => $score);
@@ -601,6 +602,7 @@ sub do_dematerialize {
          $data->[3] &= 0xF0; # clear color :)
          delete $self->{dematerializings}->{$id};
          # FIXME: if unsuccessful we need to put the material back!
+         warn "DEMATER $type: $ent\n";
          $self->{inv}->add ($type, $ent || 1);
          return 1;
       });
@@ -638,10 +640,10 @@ sub start_dematerialize {
       }
 
       $data->[0] = 1; # materialization!
-      $self->do_dematerialize ($pos, $time, $energy, $type);
+      $self->do_dematerialize ($pos, $time, $energy, $type, $data->[5]);
 
       return 1;
-   }, no_light => 1);
+   }, no_light => 1, need_entity => 1);
 }
 
 sub _map_value_to_material {

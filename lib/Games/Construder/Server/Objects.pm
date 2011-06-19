@@ -41,10 +41,10 @@ our %TYPES_PERSISTENT = (
 );
 
 sub interact {
-   my ($player, $pos, $entity, $type) = @_;
+   my ($player, $pos, $type, $entity) = @_;
    my $cb = $TYPES{$type}
       or return;
-   $cb->($player, $pos, $entity, $type);
+   $cb->($player, $pos, $type, $entity);
 }
 
 sub destroy {
@@ -193,7 +193,7 @@ sub tmr_pattern_storage {
 }
 
 sub ia_pattern_storage {
-   my ($pl, $pos, $entity) = @_;
+   my ($pl, $pos, $type, $entity) = @_;
    $pl->{uis}->{pattern_storage}->show ($pos, $entity);
 }
 
