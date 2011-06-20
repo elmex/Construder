@@ -187,6 +187,8 @@
      "lore" : "The Minicell is the most basic and least powerful electrical power source.",
      "complexity" : 30,
      "density" : 10,
+     "model" : [2, 1, 10, 2, 13, 5, 18],
+     "model_cnt" : 12,
    },
    "Pattern Storage" : {
      "type" : 31,
@@ -222,6 +224,8 @@
      "lore" : "Your usual light source. Does not need a lot of enery and provides cozy light for your buildings.",
      "complexity" : 40,
      "density" : 10,
+     "model" : [2, 1, 37, 2, 12, 5, 23],
+     "model_cnt" : 5,
    },
    "Transformer" : {
      "type" : 36,
@@ -236,6 +240,8 @@
      "lore" : "Much longer lasting than the Minicell, but is not much more powerful.",
      "complexity" : 45,
      "density" : 20,
+     "model" : [2, 1, 10, 2, 13, 3, 42, 5, 14],
+     "model_cnt" : 12,
    },
    "Nuclearcell" : {
      "type" : 38,
@@ -243,6 +249,8 @@
      "lore" : "Very powerful energy generator, but doesn't last that long.",
      "complexity" : 60,
      "density" : 30,
+     "model" : [3, 5, 10, 14, 25, 23, 10, 13, 42, 15, 42],
+     "model_cnt" : 6,
    },
    "Fusioncell" : {
      "type" : 39,
@@ -257,6 +265,8 @@
      "lore" : "Very bright light source. You will love it. Unfortunately it needs lots of energy.",
      "complexity" : 50,
      "density" : 13,
+     "model" : [2, 1, 38, 2, 12, 5, 23],
+     "model_cnt" : 4,
    },
    "Safelight" : {
      "type" : 41,
@@ -264,6 +274,8 @@
      "lore" : "Quite dim light source, but it lasts a long time.",
      "complexity" : 25,
      "density" : 5,
+     "model": [2, 1, 30, 2, 12, 5, 23],
+     "model_cnt" : 8
    },
    "Circuits" : {
      "type" : 42,
@@ -271,6 +283,8 @@
      "lore" : "Base component for any electronical device.",
      "complexity" : 50,
      "density" : 5,
+     "model" : [2, 1, 23, 2, 12, 5, 18],
+     "model_cnt" : 20,
    },
    "EPM" : {
       "type" : 43,
