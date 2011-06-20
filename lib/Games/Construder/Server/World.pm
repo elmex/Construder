@@ -487,7 +487,7 @@ sub world_mutate_at {
          unless ($arg{no_light}) {
             my $t1 = time;
             Games::Construder::World::flow_light_at (@{vfloor ($pos)});
-            #d#printf "mult light calc took: %f\n", time - $t1;
+            printf "mult light calc took: %f\n", time - $t1;
          }
       }
    }
