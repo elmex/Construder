@@ -713,6 +713,8 @@ sub input_key_press : event_cb {
                my @a;
                if ($_->[0] eq 'entry') {
                   (@a) = ($_->[1]->{arg} => $_->[2]);
+               } elsif ($_->[0] eq 'multiline_entry') {
+                  (@a) = ($_->[1]->{arg} => $_->[2]);
                } elsif ($_->[0] eq 'range') {
                   (@a) = ($_->[1]->{arg} => $_->[2]);
                }

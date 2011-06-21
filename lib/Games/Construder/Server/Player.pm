@@ -153,6 +153,7 @@ sub init {
    $self->new_ui (assignment_time => "Games::Construder::Server::UI::AssignmentTime");
    $self->new_ui (pattern_storage => "Games::Construder::Server::UI::PatternStorage");
    $self->new_ui (material_handbook => "Games::Construder::Server::UI::MaterialHandbook");
+   $self->new_ui (notebook      => "Games::Construder::Server::UI::Notebook");
 
    $self->{inv} =
       Games::Construder::Server::PatStorHandle->new (data => $self->{data}, slot_cnt => $PL_MAX_INV);

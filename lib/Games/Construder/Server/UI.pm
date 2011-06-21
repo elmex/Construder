@@ -291,6 +291,7 @@ sub commands {
       t   => "location_book",
       e   => "interact",
       q   => "query",
+      o   => "notebook",
       b   => "material_handbook",
    )
 }
@@ -320,6 +321,8 @@ sub handle_command {
       $self->show_ui ('assignment');
    } elsif ($cmd eq 'material_handbook') {
       $self->show_ui ('material_handbook');
+   } elsif ($cmd eq 'notebook') {
+      $self->show_ui ('notebook');
    } elsif ($cmd eq 'exit_server') {
       exit;
    }
@@ -1334,6 +1337,34 @@ sub layout {
          [text => { color => "#ffffff" }, "[l] to label this storage"],
          [text => { color => "#ffffff" }, "[i] to transfer from inventory"],
          [text => { color => "#ffffff" }, "[t] to transfer from storage"],
+      ]
+   }
+}
+
+package Games::Construder::Server::UI::Notebook;
+use Games::Construder::Server::World;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+}
+
+sub handle_command {
+}
+
+sub layout {
+   {
+      window => { pos => [ center => 'center' ] },
+      layout => [
+         box => { dir => "vert", border => { color => "#ffffff" } },
+         [text => { color => "#ffffff" }, "Notebook:"],
+         [
+            multiline_entry => {
+                  font => 'normal', color => "#ffffff", arg => "page",
+                  highlight => ["#111111", "#333333"], max_chars => 9
+            },
+            "Test\n1\n2\n3"
+         ],
       ]
    }
 }
