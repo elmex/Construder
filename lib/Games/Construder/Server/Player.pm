@@ -672,7 +672,7 @@ sub create_assignment {
    my $z = (rand () * 2) - 1;
 
    my ($desc, $size, $material_map, $distance, $time, $score) =
-      $Games::Construder::Server::RES->get_assignment_for_score ($self->{data}->{score});
+      $Games::Construder::Server::RES->get_assignment_for_score ($self->{data}->{score}, 50);
 
    print "ASSIGNMENT BASE VALUES: " . JSON->new->pretty->encode ([
       $desc, $size, $material_map, $distance, $time, $score
@@ -702,6 +702,7 @@ sub create_assignment {
          for (my $z = 0; $z < $size; $z++) {
             my $val = shift @$cube;
             my $type = _map_value_to_material ($material_map, $val);
+            next unless defined $type;
             my $model = ($materials->{$type} ||= []);
 
             my $pos = [$x, $y, $z];
@@ -820,8 +821,8 @@ sub assignment_select_next {
    }
 
    delete $self->{assign_ment_hl};
-
    $self->update_assignment_highlight;
+   $self->{uis}->{assignment_time}->show;
 }
 
 sub update_assignment_highlight {

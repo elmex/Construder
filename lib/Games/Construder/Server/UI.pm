@@ -772,13 +772,22 @@ use Math::Trig qw/deg2rad rad2deg pi tan atan/;
 use base qw/Games::Construder::Server::UI/;
 
 sub commands {
-   ( m => "close" )
+   (
+      p => "teleport",
+      m => "close"
+   )
 }
 
 sub handle_command {
    my ($self, $cmd) = @_;
    if ($cmd eq 'close') {
       $self->hide;
+   } elsif ($cmd eq 'teleport') {
+      if ($self->{nav_to_pos}) {
+         $self->{pl}->teleport ($self->{nav_to_pos});
+      } else {
+         $self->{pl}->teleport (vsmul ($self->{nav_to_sector}, 60));
+      }
    }
 }
 

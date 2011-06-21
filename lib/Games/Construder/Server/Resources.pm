@@ -703,19 +703,26 @@ sub get_type_construct_values {
 }
 
 sub get_assignment_for_score {
-   my ($self, $score) = @_;
+   my ($self, $score, $diff) = @_;
+
+   $diff ||= 1;
 
    my ($desc, $size, $material_map, $distance, $time);
 
    my $abal          = $self->{world_gen}->{balancing}->{assignments};
    my $max_ass_score = $abal->{max_score};
 
+   $score = $abal->{min_score} if $score < $abal->{min_score};
+
    # some random extra score, he might earn (also raises level):
    my $bonus_score = lerp (0, 0.005, rand ()) * $max_ass_score;
    $score += $bonus_score;
+   $score += ($max_ass_score * $diff) * 0.01;
 
    # "difficulty" level of assignment:
    my $level = $score / $max_ass_score;
+   warn "SCORE $score | max $max_ass_score => $level\n";
+   $level = 1 if $level > 1;
 
    # create shape:
    $desc = $self->get_random_assignment;
@@ -756,26 +763,28 @@ sub get_assignment_for_score {
 
    my $material_map = [];
    my $interv = 1 / @materials;
-   my $low = 0;
+   my $low = 0.0001;
    for (@materials) {
       push @$material_map,
          [ $low, $low + $interv, $_->{type} ];
+      $low += $interv;
    }
    $material_map->[-1]->[1] += 0.0001;
 
+   warn "time after material: $time\n";
    # calculate distance of assignment
    $distance = lerp ($abal->{min_distance}, $abal->{max_distance}, $level);
    $time += $distance * $abal->{time_per_pos};
    $distance *= 60;
-   $distance = 0;
+   warn "time after distance: $time\n";
 
    # include the time factor for high levels
-   my $time_fact = lerp (1, $abal->{min_score_time_fact}, $level);
+   my $time_fact = lerp (1, $abal->{max_score_time_fact}, $level);
    $time *= $time_fact;
+   warn "time after factor $time_fact: $time\n";
 
    my $ascore = lerp ($abal->{min_score}, $abal->{max_score}, $level);
    $ascore = int (($ascore / 50) + 0.5) * 50;
-
 
    ($desc, $size, $material_map, $distance, $time, $ascore)
 }
