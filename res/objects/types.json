@@ -10,7 +10,6 @@
      "texture"    : ["cat2.png", 192, 0, 64, 64],
      "complexity" : 15,
      "density"    : 30,
-     "natural"    : 1,
    },
    "Iron" : {
      "type"       : 10,
@@ -18,7 +17,6 @@
      "lore"       : "Iron is probably the most basic metal you will find.",
      "complexity" : 5,
      "density"    : 40,
-     "natural"    : 1,
    },
    "Steel" : {
      "type"    : 11,
@@ -26,7 +24,6 @@
      "lore"    : "Steel is a very sturdy build material.",
      "complexity" : 10,
      "density" : 45,
-     "natural" : 1,
      "model" : [2, 1, 10, 2, 10, 3, 10, 4, 10],
      "model_cnt" : 2
    },
@@ -36,7 +33,6 @@
      "lore"    : "Rubber can be used for a lot of things.",
      "complexity" : 7,
      "density" : 20,
-     "natural" : 1,
      "model" : [1, 1, 28],
    },
    "Aluminum" : {
@@ -45,7 +41,6 @@
      "lore" : "Not that sturdy metal, but quite light on the other hand.",
      "complexity" : 15,
      "density" : 25,
-     "natural" : 1,
    },
    "Titan" : {
      "type" : 14,
@@ -53,6 +48,8 @@
      "lore" : "A very sturdy metal.",
      "complexity" : 25,
      "density" : 70,
+     "model" : [3, 2, 11, 4, 11, 5, 13, 6, 11, 13, 11],
+     "model_cnt" : 12,
    },
    "Concrete" : {
      "type" : 15,
@@ -60,7 +57,6 @@
      "lore" : "Much sturdier than the stones and used a lot for building.",
      "complexity" : 17,
      "density" : 40,
-     "natural" : 1,
      "model" : [2, 1, 2, 2, 2, 3, 2, 4, 2],
      "model_cnt" : 8
    },
@@ -70,7 +66,6 @@
      "lore" : "Very anachronistic build material. But still used these days.",
      "complexity" : 20,
      "density" : 27,
-     "natural" : 1,
      "model" : [2, 1, 2, 2, 21, 5, 21, 6, 2],
      "model_cnt" : 10,
    },
@@ -80,7 +75,6 @@
      "lore" : "Brought to you straight from the 20th and 21st century. Back in those days it was used as ground for automobile routes. These days it still serves well as ground material.",
      "complexity" : 20,
      "density" : 20,
-     "natural" : 1,
      "model" : [2, 1, 28, 2, 12, 5, 2, 6, 2],
      "model_cnt" : 10,
    },
@@ -97,7 +91,6 @@
       "lore" : "This metal is commonly used for connections of electronic devices, but they don't help the power source much with distributing the energy.",
       "complexity" : 5,
       "density" : 35,
-      "natural" : 1,
    },
    "Dirt" : {
       "type" : 19,
@@ -106,7 +99,6 @@
       "bio_energy" : 4,
       "complexity" : 10,
       "density" : 10,
-      "natural" : 1,
    },
    "Granite" : {
       "type" : 20,
@@ -114,7 +106,6 @@
       "lore" : "You'll almost bite your teeth out on granite. But never the less, it's great stuff for building.",
       "complexity" : 15,
       "density" : 85,
-      "natural" : 1,
    },
    "Sand" : {
       "type" : 21,
@@ -122,7 +113,6 @@
       "lore" : "Sand is not great if your electronic stuff is covered in it. But you might get some silicon from it.",
       "complexity" : 10,
       "density" : 5,
-      "natural" : 1,
    },
    "Silver" : {
       "type" : 22,
@@ -130,7 +120,6 @@
       "lore" : "Silver is a useful raw material for lots of things.",
       "complexity" : 30,
       "density" : 38,
-      "natural" : 1,
    },
    "Silicon" : {
       "type" : 23,
@@ -138,7 +127,6 @@
       "lore" : "Similiar to gold, it's required for any CPU.",
       "complexity" : 12,
       "density" : 20,
-      "natural" : 1,
       "model" : [2, 1, 21, 2, 21, 3, 21, 4, 21],
       "model_cnt" : 2
    },
@@ -148,6 +136,16 @@
       "lore" : "Probably the best connection for transmitting electricity.",
       "complexity" : 50,
       "density" : 40,
+      "model" : [3,
+         5,  22,
+         11, 22,
+         13, 18,
+         14, 20,
+         15, 18,
+         17, 22,
+         23, 22,
+      ],
+      "model_cnt" : 5,
    },
    "Uran" : {
       "type" : 25,
@@ -155,7 +153,6 @@
       "lore" : "Uran, a powerful energy source. But be careful of the radiation!",
       "complexity" : 40,
       "density" : 50,
-      "natural" : 1,
    },
    "Plutonium" : {
       "type" : 26,
@@ -163,7 +160,6 @@
       "lore" : "Plutonium, a very powerful energy source. But be very careful of the radiation!",
       "complexity" : 45,
       "density" : 50,
-      "natural" : 1,
    },
    "Diamond" : {
       "type" : 27,
@@ -171,7 +167,6 @@
       "lore" : "The hardest material you will find.",
       "complexity" : 25,
       "density" : 90,
-      "natural" : 1,
    },
    "Oilsmear" : {
       "type" : 28,
@@ -179,7 +174,6 @@
       "lore" : "Oil is a very useful chemical resource. You can make lots of stuff from it.",
       "complexity" : 30,
       "density" : 15,
-      "natural" : 1,
    },
    "Minicell" : {
      "type" : 30,
@@ -203,6 +197,16 @@
      "lore" : "A CPU is used in nearly any electronical device you will build.",
      "complexity" : 75,
      "density" : 20,
+     "model" : [3,
+         1, 23, 2, 23, 3, 23,
+         4, 23, 5, 23, 6, 23,
+         7, 23, 8, 23, 9, 23,
+                 11, 44,
+         13, 44, 14, 23, 15, 44,
+                 17, 44,
+
+     ],
+     "model_cnt" : 10
    },
    "Jammer" : {
      "type" : 33,
@@ -249,7 +253,13 @@
      "lore" : "Very powerful energy generator, but doesn't last that long.",
      "complexity" : 60,
      "density" : 30,
-     "model" : [3, 5, 10, 14, 25, 23, 10, 13, 42, 15, 42],
+     "model" : [3,
+        5,  10, # iron
+        13, 42, # circuits
+        14, 25, # uran
+        15, 42, # circuits
+        23, 10, # iron
+     ],
      "model_cnt" : 6,
    },
    "Fusioncell" : {
@@ -258,6 +268,20 @@
      "lore" : "Very powerful energy generator, which lasts a fair amount of time.",
      "complexity" : 65,
      "density" : 30,
+     "model" : [3,
+        2,  14,
+        5,  14,
+        4,  14,
+        6,  14,
+        8,  14,
+        11, 42,
+        13, 42,
+        14, 26,
+        15, 42,
+        17, 42,
+        23, 27,
+      ],
+     "model_cnt" : 6,
    },
    "Floodlight" : {
      "type" : 40,
@@ -265,7 +289,7 @@
      "lore" : "Very bright light source. You will love it. Unfortunately it needs lots of energy.",
      "complexity" : 50,
      "density" : 13,
-     "model" : [2, 1, 38, 2, 12, 5, 23],
+     "model" : [2, 1, 38, 2, 12, 3, 27, 5, 23],
      "model_cnt" : 4,
    },
    "Safelight" : {
@@ -299,7 +323,6 @@
       "lore" : "Gold, as precious as it is, it's required for almost any electronic circuit.",
       "complexity" : 40,
       "density" : 33,
-      "natural" : 1,
    },
 
    "Vaporizer A" : {
@@ -361,7 +384,6 @@
       "bio_energy" : 16,
       "complexity" : 15,
       "density" : 6,
-      "natural" : 1,
       "model" : [2, 1, 19, 2, 19, 3, 19, 4, 19],
    },
    #"Test" : {

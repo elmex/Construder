@@ -147,6 +147,8 @@ sub init {
    $self->new_ui (cheat         => "Games::Construder::Server::UI::Cheat");
    $self->new_ui (sector_finder => "Games::Construder::Server::UI::SectorFinder");
    $self->new_ui (navigator     => "Games::Construder::Server::UI::Navigator");
+   $self->new_ui (navigation_programmer
+                                => "Games::Construder::Server::UI::NavigationProgrammer");
    $self->new_ui (assignment      => "Games::Construder::Server::UI::Assignment");
    $self->new_ui (assignment_time => "Games::Construder::Server::UI::AssignmentTime");
    $self->new_ui (pattern_storage => "Games::Construder::Server::UI::PatternStorage");
@@ -671,6 +673,10 @@ sub create_assignment {
 
    my ($desc, $size, $material_map, $distance, $time, $score) =
       $Games::Construder::Server::RES->get_assignment_for_score ($self->{data}->{score});
+
+   print "ASSIGNMENT BASE VALUES: " . JSON->new->pretty->encode ([
+      $desc, $size, $material_map, $distance, $time, $score
+   ]) . "\n";
 
    my $vec = vsmul (vnorm ([$x, $y, $z]), $distance);
    my $wpos = vfloor (vadd ($vec, $self->get_pos_normalized));

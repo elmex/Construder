@@ -285,6 +285,8 @@ sub loaded_objects : event_cb {
       0, 0, 0
    );
 
+   $self->calc_object_levels;
+
    #d# print "loadded objects:\n" . JSON->new->pretty->encode ($self->{objects}) . "\n";
 }
 
@@ -364,6 +366,54 @@ sub get_types_where_type_is_source_material {
    }
 
    sort { $a->{name} cmp $b->{name} } @dest
+}
+
+sub calc_object_levels {
+   my ($self) = @_;
+
+   my $objects = $self->{object_res};
+
+   my $change = 1;
+   my $pass = 1;
+   while ($change) {
+      $change = 0;
+      print "Pass $pass\n";
+      $pass++;
+      for my $o (sort { $a->{level} <=> $b->{level} } values %$objects) {
+         unless (defined $o->{level}) {
+            my (@sub) = $self->get_sector_types_where_type_is_found ($o->{type});
+            if (@sub) {
+               $o->{level} = 1;
+               $o->{natural} = 1;
+            } elsif (!$o->{model}) {
+               $o->{level} = 9999999;
+            }
+            $change = 1;
+         }
+
+         my (@smat) = $self->get_type_source_materials ($o->{type});
+         my $level = 0;
+         for (@smat) {
+            $_->[0]->{useful} = 1;
+            $level += $_->[0]->{level} * $_->[1];
+         }
+         if ($level > $o->{level}) {
+            $o->{level} = $level;
+            $change = 1;
+         }
+         printf "%-20s: %3d %s\n", $o->{name}, $o->{level}, $o->{useful} ? "useful" : "";
+      }
+   }
+
+   $self->{objects_by_level} = {};
+   $self->{max_object_level} = 0;
+
+   for my $o (values %$objects) {
+      push @{$self->{objects_by_level}->{$o->{level}}}, $o;
+      if ($o->{level} > $self->{max_object_level}) {
+         $self->{max_object_level} = $o->{level};
+      }
+   }
 }
 
 sub get_sector_types_where_type_is_found {
@@ -652,23 +702,6 @@ sub get_type_construct_values {
    ($score, $time)
 }
 
-# - linerp: level of materials (based on models and occurance in sectors of them)
-#                the level of the material determines the time the player has to
-#                to get that material. natual materials give the player few time
-#                per material item.
-# - linerp: number of different materials, needs to be within displayable colors
-#                multiplier for level of materials time.
-# - linerp: size of construct
-#                time is linerp't from two min-size-time to max-size-time
-# - linerp: time factor
-#                linerp (1, time-max-score-fact, score / max_score)
-#                mit end-zeit multipliziert
-# - linerp: entfernung vom player
-#                time from sector-manhattan-distance multiplied with
-#                travel-time-per-sector
-# - linerp in collection: shape of construct
-
-
 sub get_assignment_for_score {
    my ($self, $score) = @_;
 
@@ -692,8 +725,37 @@ sub get_assignment_for_score {
    $size = int (lerp ($abal->{min_size}, $abal->{max_size}, $level));
 
    # select materials:
-   my $mat_level = lerp (1, 100, $level); # material level
-   my $mat_num   = lerp (1, 7,   $level); # different materials
+   my $mat_level = int (lerp (1, $self->{max_object_level}, $level)); # material level
+   my $mat_num   = int (lerp (1, 7,   $level)); # different materials
+
+   # calculate materials:
+   my @materials;
+   for (my $i = 0; $i < $mat_num; $i++){
+      my $max;
+      my (@matlvl) = sort {
+         $a <=> $b
+      } grep {
+         $_ <= $mat_level
+      } keys %{$self->{objects_by_level}};
+
+      unless (@matlvl) {
+         warn "no material with level suitable for level $mat_level found!\n";
+      }
+      $mat_level--;
+      $mat_level = 1 if $mat_level <= 0;
+      my (@os) = @{$self->{objects_by_level}->{$matlvl[0]}};
+      my $mat = $os[int (rand (@os))];
+      push @materials, $mat;
+   }
+
+   my $material_map = [];
+   my $interv = 1 / @materials;
+   my $low = 0;
+   for (@materials) {
+      push @$material_map,
+         [ $low, $low + $interv, $_->{type} ];
+   }
+   $material_map->[-1]->[1] += 0.0001;
 
    # calc time based on materials and size
    $time += ($size ** 3) * (($mat_level / 5) * $mat_num) * $abal->{time_per_block};
@@ -702,7 +764,6 @@ sub get_assignment_for_score {
    $distance = lerp ($abal->{min_distance}, $abal->{max_distance}, $level);
    $time += $distance * $abal->{time_per_pos};
    $distance *= 60;
-   $distance = 0;  #d#
 
    # include the time factor for high levels
    my $time_fact = lerp (1, $abal->{min_score_time_fact}, $level);
@@ -711,10 +772,6 @@ sub get_assignment_for_score {
    my $ascore = lerp ($abal->{min_score}, $abal->{max_score}, $level);
    $ascore = int (($ascore / 50) + 0.5) * 50;
 
-   $material_map = [
-      [0,   0.2,    2],
-      [0.2, 1.001, 19],
-   ];
 
    ($desc, $size, $material_map, $distance, $time, $ascore)
 }

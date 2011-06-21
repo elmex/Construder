@@ -285,7 +285,7 @@ sub commands {
       f9  => "teleport_home",
       f12 => "exit_server",
       i   => "inventory",
-      n   => "sector_finder",
+      n   => "navigation_programmer",
       c   => "cheat",
       x   => "assignment",
       t   => "location_book",
@@ -303,8 +303,8 @@ sub handle_command {
       $self->show_ui ('inventory');
    } elsif ($cmd eq 'location_book') {
       $pl->show_location_book;
-   } elsif ($cmd eq 'sector_finder') {
-      $self->show_ui ('sector_finder');
+   } elsif ($cmd eq 'navigation_programmer') {
+      $self->show_ui ('navigation_programmer');
    } elsif ($cmd eq 'cheat') {
       $self->show_ui ('cheat');
    } elsif ($cmd eq 'help') {
@@ -786,113 +786,30 @@ sub layout {
    my ($self, $type, $pos) = @_;
 
    if ($type eq 'pos') {
-      $self->layout_pos ($pos);
-   } elsif ($type eq 'sector') {
-      $self->layout_sector ($pos);
-   } elsif ($self->{nav_to_sector}) {
-      $self->layout_sector ();
-   } else {
-      $self->layout_pos ();
-   }
-
-}
-
-sub layout_pos {
-   my ($self, $pos) = @_;
-
-   if ($pos) {
       $self->{nav_to_pos} = $pos;
+
+   } elsif ($type eq 'sector') {
+      $self->{nav_to_sector} = $pos;
+   }
+
+   my ($from, $to);
+   if ($self->{nav_to_sector}) {
+      $from = $self->{pl}->get_pos_sector;
+      $to = $self->{nav_to_sector} || [0, 0, 0];
    } else {
-      ($pos) = $self->{nav_to_pos} || [0, 0, 0];
+      $from = $self->{pl}->get_pos_normalized;
+      $to = $self->{nav_to_pos} || [0, 0, 0];
    }
 
-   my $sec_pos  = $self->{pl}->get_pos_normalized;
-   my $dest_pos = [@$pos];
-
-   my $diff = vsub ($dest_pos, $sec_pos);
-
-   my $alt =
-      $diff->[1] > 0
-         ? $diff->[1] . " above"
-         : ($diff->[1] < 0
-             ? (-$diff->[1]) . " below" : "same height");
-   my $alt_ok = $diff->[1] == 0;
-
-   my $lv = [@{$self->{pl}->{data}->{look_vec}}];
-
-   my $dist   = vlength ($diff);
-   $lv->[1]   = 0;
-   $diff->[1] = 0;
-   my $dl     = vlength ($diff);
-   my $l      = vlength ($lv) * $dl;
-
-   my $r;
-   my $dir_ok;
-   if ($l > 0.001) {
-      vinorm ($lv);
-      vinorm ($diff);
-      my $pdot = $lv->[0] * $diff->[2] - $lv->[2] * $diff->[0];
-      $r = rad2deg (atan2 ($pdot, vdot ($lv, $diff)), 1);
-      $r = int $r;
-      $dir_ok = abs ($r) < 10;
-      $r = $r < 0 ? -$r . "° left" : $r . "° right";
-   } else {
-      $r = 0;
-      if ($dl <= 0.001) { # we arrived!
-         $dir_ok = 1;
-      }
-   }
-
-   {
-      window => {
-         pos => ["right", "center"],
-         sticky => 1,
-         alpha => 0.6,
-      },
-      layout => [
-         box => {
-            dir => "vert",
-         },
-         [text => { font => "small", align => "center", color => "#888888" },
-          "Navigator"],
-         [box => {
-            dir => "hor",
-          },
-          [box => { dir => "vert", padding => 4 },
-             [text => { color => "#888888" }, "Pos"],
-             [text => { color => "#888888" }, "Dest"],
-             [text => { color => "#888888" }, "Dist"],
-             [text => { color => "#888888" }, "Alt"],
-             [text => { color => "#888888" }, "Dir"],
-          ],
-          [box => { dir => "vert", padding => 4 },
-             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @$sec_pos],
-             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @$pos],
-             [text => { color => "#ffffff" }, int ($dist)],
-             [text => { color => $alt_ok ? "#00ff00" : "#ff0000" }, $alt],
-             [text => { color => $dir_ok ? "#00ff00" : "#ff0000" }, $r],
-          ],
-         ],
-      ],
-   }
+   $self->layout_dir ($from, $to)
 }
 
+sub calc_direction_from_to {
+   my ($self, $from, $to) = @_;
 
-sub layout_sector {
-   my ($self, $pos) = @_;
+   my $diff = vsub ($to, $from);
 
-   if ($pos) {
-      $self->{nav_to_sector} = $pos;
-   } else {
-      ($pos) = $self->{nav_to_sector} || [0, 0, 0];
-   }
-
-   my $sec_pos  = $self->{pl}->get_pos_sector;
-   my $dest_pos = [@$pos];
-
-   my $diff = vsub ($dest_pos, $sec_pos);
-
-   my $alt =
+   my $alt_dir =
       $diff->[1] > 0
          ? $diff->[1] . " above"
          : ($diff->[1] < 0
@@ -907,22 +824,32 @@ sub layout_sector {
    my $dl     = vlength ($diff);
    my $l      = vlength ($lv) * $dl;
 
-   my $r;
-   my $dir_ok;
+   my $lr_dir;
+   my $lr_ok;
    if ($l > 0.001) {
       vinorm ($lv);
       vinorm ($diff);
       my $pdot = $lv->[0] * $diff->[2] - $lv->[2] * $diff->[0];
-      $r = rad2deg (atan2 ($pdot, vdot ($lv, $diff)), 1);
-      $r = int $r;
-      $dir_ok = abs ($r) < 10;
-      $r = $r < 0 ? -$r . "° left" : $r . "° right";
+      $lr_dir = rad2deg (atan2 ($pdot, vdot ($lv, $diff)), 1);
+      $lr_dir = int $lr_dir;
+      $lr_ok = abs ($lr_dir) < 10;
+      $lr_dir = $lr_dir < 0 ? -$lr_dir . "° left" : $lr_dir . "° right";
+
    } else {
-      $r = 0;
+      $lr_dir = 0;
+
       if ($dl <= 0.001) { # we arrived!
-         $dir_ok = 1;
+         $lr_ok = 1;
       }
    }
+
+   ($alt_dir, $alt_ok, $lr_dir, $lr_ok, $dist)
+}
+
+sub layout_dir {
+   my ($self, $from, $to) = @_;
+   my ($alt_dir, $alt_ok, $lr_dir, $lr_ok, $dist)
+      = $self->calc_direction_from_to ($from, $to);
 
    {
       window => {
@@ -940,18 +867,18 @@ sub layout_sector {
             dir => "hor",
           },
           [box => { dir => "vert", padding => 4 },
-             [text => { color => "#888888" }, "Pos"],
+             [text => { color => "#888888" }, $self->{nav_to_pos} ? "Pos" : "Sec"],
              [text => { color => "#888888" }, "Dest"],
              [text => { color => "#888888" }, "Dist"],
              [text => { color => "#888888" }, "Alt"],
              [text => { color => "#888888" }, "Dir"],
           ],
           [box => { dir => "vert", padding => 4 },
-             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @$sec_pos],
-             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @$pos],
+             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @$from],
+             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @$to],
              [text => { color => "#ffffff" }, int ($dist)],
-             [text => { color => $alt_ok ? "#00ff00" : "#ff0000" }, $alt],
-             [text => { color => $dir_ok ? "#00ff00" : "#ff0000" }, $r],
+             [text => { color => $alt_ok ? "#00ff00" : "#ff0000" }, $alt_dir],
+             [text => { color => $lr_ok  ? "#00ff00" : "#ff0000" }, $lr_dir],
           ],
          ],
       ],
@@ -1121,39 +1048,6 @@ sub layout {
    }
 }
 
-sub show_sector_finder {
-   my ($self) = @_;
-
-
-}
-
-
-#R# sub ui_player_location_book {
-#R#    my ($pl, $fetch, $set) = @_;
-#R# 
-#R#    $pl->displayed_uis (location_book => {
-#R#       window => {
-#R#       },
-#R#       layout => [
-#R#       ],
-#R#       commands => {
-#R#          default_keys => {
-#R#             return => "set"
-#R#          }
-#R#       }
-#R#    });
-#R# }
-sub show_location_book {
-   my ($self) = @_;
-
-   #R#ui_player_location_book ($pl, sub {
-   #R#   map { [$_, $self->{data}->{tags}] } 0..9
-   #R#}, sub {
-   #R#   my ($slot, $name) = @_;
-   #R#   $self->{data}->{tags}->[$slot] = $name, $chnk_pos, $sec_pos;
-   #R#});
-}
-
 sub show_help {
    my ($self) = @_;
    return;
@@ -1203,6 +1097,74 @@ HELP
    } });
 }
 
+package Games::Construder::Server::UI::NavigationProgrammer;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   (
+      p => "pos",
+      s => "sec",
+      t => "type"
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'pos') {
+      $self->new_ui (nav_prog_pos =>
+         "Games::Construder::Server::UI::StringQuery",
+         msg => "Please enter the absolute position to navigate to:",
+         txt => (join ", ", @{$self->{pl}->get_pos_normalized}),
+         cb  => sub {
+            $self->delete_ui ('nav_prog_pos');
+            $self->show_ui ('navigator', pos => [split /\s*,\s*/, $_[0]]);
+         });
+      $self->hide;
+      $self->show_ui ('nav_prog_pos');
+
+   } elsif ($cmd eq 'sec') {
+      $self->new_ui (nav_prog_pos =>
+         "Games::Construder::Server::UI::StringQuery",
+         msg => "Please enter the absolute sector position to navigate to:",
+         txt => (join ",", @{$self->{pl}->get_pos_sector}),
+         cb  => sub {
+            $self->delete_ui ('nav_prog_pos');
+            $self->show_ui ('navigator', sector => [split /\s*,\s*/, $_[0]]);
+         });
+      $self->hide;
+      $self->show_ui ('nav_prog_pos');
+
+   } elsif ($cmd eq 'type') {
+      $self->hide;
+      $self->show_ui ("sector_finder");
+   }
+}
+
+sub layout {
+   my ($self) = @_;
+
+   {
+      window => {
+         pos => [center => 'center'],
+      },
+      layout => [
+         box => { dir => "vert" },
+         [text => { font => "big", color => "#ffffff" },
+          "Navigation Programmer"],
+         [text => { align => "center", font => "small", color => "#888888" },
+          "Select a way to program the navigator by hitting the [key]."],
+         [text => { font => "normal", color => "#ffffff" },
+          "[p] Navigate to position."],
+         [text => { font => "normal", color => "#ffffff" },
+          "[s] Navigate to sector."],
+         [text => { font => "normal", color => "#ffffff" },
+          "[t] Navigate to nearest sector type."],
+      ]
+   }
+}
+
 package Games::Construder::Server::UI::Assignment;
 
 use base qw/Games::Construder::Server::UI/;
@@ -1211,7 +1173,7 @@ sub commands {
    (
       return => "generate",
       n => "navigate",
-      c => "cancel_assign",
+      v => "cancel_assign",
    )
 }
 

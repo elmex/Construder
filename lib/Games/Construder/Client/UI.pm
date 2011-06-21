@@ -691,7 +691,9 @@ sub input_key_press : event_cb {
       } elsif ($el->[0] eq 'entry' && $unicode ne '') {
          if (
             not ($el->[1]->{max_chars} && length ($el->[2]) >= $el->[1]->{max_chars})
-            && $unicode =~ /^([A-Za-z0-9]+)$/
+            && ($el->[1]->{allowed_chars} ne ''
+                   ? $unicode =~ /^([$el->[1]->{allowed_chars}]+)$/
+                   : 1)
          ) {
             $el->[2] .= $unicode;
          }
