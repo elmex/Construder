@@ -46,3 +46,10 @@ can vary a lot.
 .
 :obj:VapoModule:lore
 This is a base module, used for building vaporizers.
+.
+:obj:Message Beacon:lore
+A Message beacon that can be used to mark a small region and inform you or
+others with a small message. The message is shown in your HUD when you get near
+to a beacon. The location of a message beacon will be synchronized with your
+navigator for 30 minutes. The synchronized location can be used to navigate
+back to the beacon or synchronize a teleporter destination.

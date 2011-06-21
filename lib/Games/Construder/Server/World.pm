@@ -23,6 +23,7 @@ our @EXPORT = qw/
    world_load_at
    world_find_free_spot
    world_at
+   world_entity_at
    world_sector_info
 /;
 

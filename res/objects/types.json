@@ -215,12 +215,20 @@
      "complexity" : 80,
      "density" : 10,
    },
-   "Messagebox" : {
+   "Message Beacon" : {
      "type" : 34,
      "texture" : ["cat2.png", 256, 64, 64, 64],
-     "lore" : "Messageboxes are used to label things. Can be very handy to find your way and leave notes for others.",
      "complexity" : 40,
      "density" : 5,
+     "model" : [3,
+          5, 37,
+         14, 32,
+         19, 10,
+         21, 10,
+         25, 10,
+         27, 10,
+     ],
+     "model_cnt" : 4
    },
    "Light" : {
      "type" : 35,

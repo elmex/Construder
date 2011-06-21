@@ -393,6 +393,54 @@ sub layout {
    }
 }
 
+package Games::Construder::Server::UI::ListQuery;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   ( return => "select" )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'select') {
+      $self->{cb}->($self->{items}->[$arg->{item}]->[1]);
+
+   } elsif ($cmd eq 'cancel') {
+      $self->{cb}->();
+   }
+}
+
+sub layout {
+   my ($self) = @_;
+
+   my $i = 0;
+   {
+      window => {
+         pos => [center => 'center'],
+      },
+      layout => [
+         box => { dir => "vert", border => { color => "#ffffff" }, padding => 10 },
+         [text => { align => "center", font => "big", color => "#FFFFFF" },
+          "Find sector..."],
+         [text => { align => "center", font => "small", color => "#888888" },
+          "Select a sector type with up/down keys and hit return."],
+          map {
+            [select_box => {
+               dir => "vert", align => "center", arg => "item", tag => $i++,
+               padding => 2,
+               bgcolor => "#333333",
+               border => { color => "#555555", width => 2 },
+               select_border => { color => "#ffffff", width => 2 },
+               aspect => 1
+             }, [text => { font => "normal", color => "#ffffff" }, $_->[0]]
+            ]
+          } @{$self->{items}}
+      ]
+   }
+}
+
 package Games::Construder::Server::UI::StringQuery;
 
 use base qw/Games::Construder::Server::UI/;
@@ -410,7 +458,6 @@ sub handle_command {
    my ($self, $cmd, $arg) = @_;
 
    if ($cmd eq 'enter') {
-      my $cnt = $arg->{txt};
       $self->{cb}->($arg->{txt});
 
    } elsif ($cmd eq 'cancel') {
@@ -1120,7 +1167,8 @@ sub commands {
    (
       p => "pos",
       s => "sec",
-      t => "type"
+      t => "type",
+      b => "beacon",
    )
 }
 
@@ -1151,6 +1199,21 @@ sub handle_command {
       $self->hide;
       $self->show_ui ('nav_prog_pos');
 
+   } elsif ($cmd eq 'beacon') {
+      $self->new_ui (nav_prog_beacon_select =>
+         "Games::Construder::Server::UI::ListQuery",
+         msg => "Please select the synchronized beacon you want to navigate to:",
+         items => [
+            map { [$_->[1], $_->[0]] } values %{$self->{pl}->{data}->{beacons}}
+         ],
+         cb  => sub {
+            $self->delete_ui ('nav_prog_beacon_select');
+            $self->show_ui ('navigator', pos => $_[0]);
+         });
+      $self->hide;
+      $self->show_ui ('nav_prog_beacon_select');
+
+
    } elsif ($cmd eq 'type') {
       $self->hide;
       $self->show_ui ("sector_finder");
@@ -1176,6 +1239,8 @@ sub layout {
           "[s] Navigate to sector."],
          [text => { font => "normal", color => "#ffffff" },
           "[t] Navigate to nearest sector type."],
+         [text => { font => "normal", color => "#ffffff" },
+          "[b] Navigate to recently synchronized message beacon."],
       ]
    }
 }
@@ -1277,6 +1342,91 @@ sub layout {
            "Left:\n$left_txt" ],
          [ text => { color => "#ff8888", align => "center" },
            "Highlighted: " . $sel_mat->{name} ],
+      ]
+   }
+}
+
+package Games::Construder::Server::UI::MessageBeaconList;
+use Games::Construder::Server::World;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+}
+
+sub handle_command {
+}
+
+sub layout {
+   my ($self, $beacons) = @_;
+
+   my (@top) = sort {
+      $a->[2] <=> $b->[2]
+   } values %$beacons;
+   splice @top, 3;
+
+   {
+      window => { pos => [ left => "center" ], sticky => 1, alpha => 0.5 },
+      layout => [
+         box => { dir => "vert" },
+         [text => { color => "#888888", font => "small" }, "message beacons:"],
+         map {
+            [text => { color => "#ffff00" }, $_->[1]]
+         } @top
+      ]
+   }
+}
+
+package Games::Construder::Server::UI::MessageBeacon;
+use Games::Construder::Server::World;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   (
+      e => "edit",
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd) = @_;
+
+   if ($cmd eq 'edit') {
+      my ($pos, $ent) = @{$self->{entity}};
+      $self->new_ui (edit_message_beacon =>
+         "Games::Construder::Server::UI::StringQuery",
+         msg => "Please enter the message for this beacon:",
+         txt => $ent->{msg},
+         cb  => sub {
+            my $txt = $_[0];
+            if (defined $txt) {
+               world_mutate_entity_at ($pos, sub {
+                  my ($pos, $cell) = @_;
+                  return 0 unless $cell->[0] == 34;
+                  my $ent = $cell->[-1];
+                  $ent->{msg} = $txt;
+                  $self->show;
+                  1
+               });
+            }
+            $self->delete_ui ('edit_message_beacon');
+         });
+      $self->hide;
+      $self->show_ui ('edit_message_beacon');
+   }
+}
+
+sub layout {
+   my ($self, $pos, $entity) = @_;
+   $self->{entity} = [$pos, $entity] if $pos;
+   ($pos, $entity) = @{$self->{entity}};
+
+   {
+      window => { pos => [ center => 'center' ] },
+      layout => [
+         box => { dir => "vert", border => { color => "#ffffff" } },
+         [text => { color => "#ffffff", font => "big" }, "Message Beacon:\n$entity->{msg}"],
+         [text => { color => "#ffffff" }, "[e] edit message"],
       ]
    }
 }

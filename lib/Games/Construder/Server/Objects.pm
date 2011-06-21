@@ -21,6 +21,7 @@ Games::Construder::Server::Objects - desc
 
 our %TYPES = (
    31 => \&ia_pattern_storage,
+   34 => \&ia_message_beacon,
    36 => \&ia_construction_pad,
    45 => \&ia_vaporizer,
    46 => \&ia_vaporizer,
@@ -30,6 +31,7 @@ our %TYPES = (
 
 our %TYPES_INSTANCIATE = (
    31 => \&in_pattern_storage,
+   34 => \&in_message_beacon,
    45 => \&in_vaporizer,
    46 => \&in_vaporizer,
    47 => \&in_vaporizer,
@@ -238,6 +240,17 @@ sub tmr_pattern_storage {
 sub ia_pattern_storage {
    my ($pl, $pos, $type, $entity) = @_;
    $pl->{uis}->{pattern_storage}->show ($pos, $entity);
+}
+
+sub in_message_beacon {
+   {
+      msg => "<unset message>"
+   }
+}
+
+sub ia_message_beacon {
+   my ($pl, $pos, $type, $entity) = @_;
+   $pl->{uis}->{msg_beacon}->show ($pos, $entity);
 }
 
 =back

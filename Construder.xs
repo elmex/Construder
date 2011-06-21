@@ -480,7 +480,7 @@ AV *ctr_world_find_free_spot (int x, int y, int z, int with_floor)
   OUTPUT:
     RETVAL
 
-AV *ctr_world_get_types_in_cube (int x, int y, int z, int size)
+AV *ctr_world_get_types_in_cube (int x, int y, int z, int size, int type_match = 0)
   CODE:
     vec3_init (pos1, x, y, z);
     vec3_s_div (pos1, CHUNK_SIZE);
@@ -509,7 +509,18 @@ AV *ctr_world_get_types_in_cube (int x, int y, int z, int size)
         for (dz = 0; dz < size; dz++)
           {
             ctr_cell *cur = ctr_world_query_cell_at (cx + dx, cy + dy, cz + dz, 0);
-            av_push (RETVAL, newSViv (cur->type));
+            if (type_match)
+              {
+                if (cur->type == type_match)
+                  {
+                    av_push (RETVAL, newSViv (x + dx));
+                    av_push (RETVAL, newSViv (y + dy));
+                    av_push (RETVAL, newSViv (z + dz));
+                    av_push (RETVAL, newSViv (cur->type));
+                  }
+              }
+            else
+              av_push (RETVAL, newSViv (cur->type));
           }
 
     ctr_world_query_desetup (1);

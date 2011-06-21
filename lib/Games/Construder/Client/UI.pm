@@ -159,6 +159,7 @@ sub layout_text {
 
       my $max_w;
       for (@olines) {
+         next if $_ eq '';
          my ($w) = @{ SDL::TTF::size_utf8 ($font, $_) };
          $max_w = $w if $max_w < $w;
       }
@@ -168,6 +169,7 @@ sub layout_text {
 
    } else {
       for my $l (@lines) {
+         next if $l eq '';
          my ($w, $h) = @{ SDL::TTF::size_utf8 ($font, $l) };
          $txt_w = $w if $txt_w < $w;
       }
@@ -276,12 +278,13 @@ sub draw_text {
    my $curp = [@$pos];
    for my $line (@{$layout->{lines}}) {
       my ($x, $y, $txt) = @$line;
+      next if $txt eq '';
 
       my $tsurf = SDL::TTF::render_utf8_blended (
          $layout->{font}, $txt, SDL::Color->new (_clr2color ($color)));
 
       unless ($tsurf) {
-         warn "SDL::TTF::render_utf8_blended could not render \"$line\": "
+         warn "SDL::TTF::render_utf8_blended could not render \"$txt\": "
               . SDL::get_error . "\n";
          next;
       }
@@ -649,7 +652,7 @@ sub display {
 
 sub input_key_press : event_cb {
    my ($self, $key, $name, $unicode, $rhandled) = @_;
-   #d# warn "UI KP $key/$name/$unicode\n";
+   warn "UI KP $key/$name/$unicode/\n";
    my $cmd;
    if ($name eq 'escape') {
       $cmd = "cancel" unless $self->{sticky};
@@ -688,7 +691,10 @@ sub input_key_press : event_cb {
       } elsif ($self->{commands} && $self->{commands}->{default_keys}->{$name}) {
          $cmd = $self->{commands}->{default_keys}->{$name}
 
-      } elsif ($el->[0] eq 'entry' && $unicode ne '') {
+      } elsif ($el->[0] eq 'entry'
+               && $unicode =~ /(\p{IsWord}|\p{IsSpace}|\p{IsPunct}|[[:punct:]])/
+      ) {
+         warn "UNICODE ADD:'".ord ($unicode)."'\n";
          if (
             not ($el->[1]->{max_chars} && length ($el->[2]) >= $el->[1]->{max_chars})
             && ($el->[1]->{allowed_chars} ne ''

@@ -131,10 +131,19 @@ sub init {
    my $wself = $self;
    weaken $wself;
    my $tick_time = time;
+   my $msg_beacon_upd = 0;
+
    $self->{tick_timer} = AE::timer 0.25, 0.25, sub {
       my $cur = time;
+      my $dt = $cur - $tick_time;
       $wself->player_tick ($cur - $tick_time);
       $tick_time = $cur;
+      $msg_beacon_upd += $dt;
+      if ($msg_beacon_upd > 2)
+         {
+            $msg_beacon_upd = 0;
+            $self->check_message_beacons;
+         }
    };
 
    $self->new_ui (bio_warning   => "Games::Construder::Server::UI::BioWarning");
@@ -154,6 +163,8 @@ sub init {
    $self->new_ui (pattern_storage => "Games::Construder::Server::UI::PatternStorage");
    $self->new_ui (material_handbook => "Games::Construder::Server::UI::MaterialHandbook");
    $self->new_ui (notebook      => "Games::Construder::Server::UI::Notebook");
+   $self->new_ui (msg_beacon    => "Games::Construder::Server::UI::MessageBeacon");
+   $self->new_ui (msg_beacon_list => "Games::Construder::Server::UI::MessageBeaconList");
 
    $self->{inv} =
       Games::Construder::Server::PatStorHandle->new (data => $self->{data}, slot_cnt => $PL_MAX_INV);
@@ -321,6 +332,7 @@ sub logout {
    delete $self->{uis};
    delete $self->{upd_score_hl_tmout};
    delete $self->{death_timer};
+   delete $self->{tick_timer};
    warn "player $self->{name} logged out\n";
    print Devel::FindRef::track $self;
 }
@@ -663,6 +675,28 @@ sub _map_value_to_material {
       return $t if $val >= $a && $val < $b;
    }
    undef
+}
+
+sub check_message_beacons {
+   my ($self) = @_;
+
+   my $msgboxes =
+      Games::Construder::World::get_types_in_cube (
+         @{vsubd ($self->get_pos_normalized, 15, 15, 15)}, 30, 34);
+
+   my $cur_beacons = {};
+   while (@$msgboxes) {
+      my ($pos, $type) = (
+         [shift @$msgboxes, shift @$msgboxes, shift @$msgboxes], shift @$msgboxes
+      );
+      my $e = world_entity_at ($pos);
+      my $id = world_pos2id ($pos);
+      $cur_beacons->{$id} = $self->{data}->{beacons}->{$id} = [
+         $pos, $e->{msg}, time
+      ];
+   }
+
+   $self->{uis}->{msg_beacon_list}->show ($cur_beacons);
 }
 
 sub create_assignment {
