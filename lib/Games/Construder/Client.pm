@@ -61,7 +61,7 @@ sub new {
       }
    );
 
-   $self->connect (localhost => 9364);
+   $self->connect ($ARGV[1] || localhost => $ARGV[2] || 9364);
 
    return $self
 }
