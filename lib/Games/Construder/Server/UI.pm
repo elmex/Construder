@@ -1603,7 +1603,7 @@ use base qw/Games::Construder::Server::UI/;
 sub commands {
    (
       return => "teleport",
-      d      => "redirect",
+      r      => "redirect",
    )
 }
 
@@ -1611,12 +1611,11 @@ sub handle_command {
    my ($self, $cmd) = @_;
 
    if ($cmd eq 'teleport') {
-      my ($pos, $ent) = @{$self->{entity}};
+      my $ent = world_entity_at ($self->{tele_pos});
       $self->hide;
       $self->{pl}->teleport ($ent->{pos});
 
    } elsif ($cmd eq 'redirect') {
-      $self->hide;
       $self->new_ui (tele_redirect =>
          "Games::Construder::Server::UI::ListQuery",
          msg => "Please select the synchronized beacon you want to redirect the teleporter to:",
@@ -1631,14 +1630,14 @@ sub handle_command {
          ],
          cb  => sub {
             $self->delete_ui ('tele_redirect');
-            my ($pos, $msg) = @{$_[0]};
-            warn "TELE REDIRECT @$pos : $msg\n";
-            world_mutate_entity_at ($pos, sub {
+            my ($tpos, $msg) = @{$_[0]};
+            world_mutate_entity_at ($self->{tele_pos}, sub {
                my ($pos, $cell) = @_;
                return 0 unless $cell->[0] == 62;
                my $ent = $cell->[-1];
                $ent->{msg} = $msg;
-               $ent->{pos} = [@$pos];
+               $ent->{pos} = [@$tpos];
+               $self->show;
                1
             });
          });
@@ -1648,17 +1647,18 @@ sub handle_command {
 }
 
 sub layout {
-   my ($self, $pos, $entity) = @_;
-   $self->{entity} = [$pos, $entity] if $pos;
-   ($pos, $entity) = @{$self->{entity}};
+   my ($self, $pos) = @_;
+   $self->{tele_pos} = [@$pos] if $pos;
+   $pos = $self->{tele_pos};
+   my $ent = world_entity_at ($pos);
 
    {
       window => { pos => [ center => 'center' ] },
       layout => [
          box => { dir => "vert", border => { color => "#ffffff" } },
-         [text => { color => "#ffffff", font => "big" }, "Teleporter to $entity->{msg}"],
+         [text => { color => "#ffffff", font => "big" }, "Teleporter to $ent->{msg}"],
          [text => { color => "#ffffff" }, "[return] teleport"],
-         [text => { color => "#ffffff" }, "[d] redirect teleporter"],
+         [text => { color => "#ffffff" }, "[r] redirect teleporter"],
       ]
    }
 }

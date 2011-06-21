@@ -256,11 +256,14 @@ sub ia_message_beacon {
 }
 
 sub in_teleporter {
+   {
+      msg => "<no destination>",
+   }
 }
 
 sub ia_teleporter {
    my ($pl, $pos, $type, $entity) = @_;
-   $pl->{uis}->{teleporter}->show ($pos, $entity);
+   $pl->{uis}->{teleporter}->show ($pos);
 }
 
 =back
