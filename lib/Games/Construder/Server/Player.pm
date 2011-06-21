@@ -727,6 +727,7 @@ sub create_assignment {
 
    $self->{uis}->{assignment}->show;
 
+   delete $self->{assign_ment_hl};
    $self->check_assignment;
 
    # generate random sector position
@@ -770,7 +771,7 @@ sub check_assignment_positions {
    my $typ    =
       Games::Construder::World::get_types_in_cube (@{$assign->{pos}}, $assign->{size});
 
-   printf "CHECK TIME 1 %f\n", $t - time;
+   printf "CHECK TIME 1 %f\n", time - $t;
 
    for (my $x = 0; $x < $assign->{size}; $x++) {
       for (my $y = 0; $y < $assign->{size}; $y++) {
@@ -793,9 +794,14 @@ sub check_assignment_positions {
    }
    $assign->{left} = \%tleft;
 
+   printf "CHECK TIME 2 %f\n", time - $t;
+
    $self->update_assignment_highlight;
 
-   printf "CHECK TIME 2 %f\n", $t - time;
+   unless (grep { $_ != 0 } values %tleft) {
+      warn "ASSIGNMENt FINISHED!\n";
+      $self->finished_assignmenet;
+   }
 }
 
 sub assignment_select_next {
@@ -872,9 +878,18 @@ sub check_assignment {
    };
 }
 
+sub finished_assignmenet {
+   my ($self) = @_;
+   $self->push_tick_change (score => $self->{data}->{assignment}->{score});
+   $self->{data}->{assignment} = undef;
+   delete $self->{assign_timer};
+   $self->check_assignment;
+}
+
 sub cancel_assignment {
    my ($self) = @_;
    $self->{data}->{assignment} = undef;
+   delete $self->{assign_timer};
    $self->check_assignment;
 }
 

@@ -728,6 +728,12 @@ sub get_assignment_for_score {
    my $mat_level = int (lerp (1, $self->{max_object_level}, $level)); # material level
    my $mat_num   = int (lerp (1, 7,   $level)); # different materials
 
+   # calc time based on materials and size
+   $time +=
+      ($size ** 3)
+      * lerp ($mat_num / 2, $mat_num, ($mat_level / $self->{max_object_level}))
+      * $abal->{time_per_block};
+
    # calculate materials:
    my @materials;
    for (my $i = 0; $i < $mat_num; $i++){
@@ -757,13 +763,11 @@ sub get_assignment_for_score {
    }
    $material_map->[-1]->[1] += 0.0001;
 
-   # calc time based on materials and size
-   $time += ($size ** 3) * (($mat_level / 5) * $mat_num) * $abal->{time_per_block};
-
    # calculate distance of assignment
    $distance = lerp ($abal->{min_distance}, $abal->{max_distance}, $level);
    $time += $distance * $abal->{time_per_pos};
    $distance *= 60;
+   $distance = 0;
 
    # include the time factor for high levels
    my $time_fact = lerp (1, $abal->{min_score_time_fact}, $level);

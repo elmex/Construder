@@ -286,7 +286,7 @@ sub commands {
       f12 => "exit_server",
       i   => "inventory",
       n   => "navigation_programmer",
-      c   => "cheat",
+      h   => "cheat",
       x   => "assignment",
       t   => "location_book",
       e   => "interact",
@@ -1241,15 +1241,27 @@ sub layout {
       $color = "#ff0000";
    }
 
+   my $time = $cal->{time};
+   my $minutes = int ($time / 60);
+   $time -= $minutes * 60;
+
+   my $sel_mat =
+      $Games::Construder::Server::RES->get_object_by_type ($cal->{sel_mat});
+   my $left_txt = join ("\n", map {
+      my $o = $Games::Construder::Server::RES->get_object_by_type ($_);
+      sprintf "%-15s: %3d", $o->{name}, $cal->{left}->{$_}
+   } keys %{$cal->{left}});
+
    {
       window => { pos => [ left => "up", 0.1, 0 ], sticky => 1 },
       layout => [
          box => { dir => "vert" },
-         [ text => { color => $color, align => "center" }, "Assignment:\n$cal->{time}s" ],
-         [ text => { color => "#888888", align => "center" }, 
-           "Left:\n" . join ("\n", map { "$_: $cal->{left}->{$_}" } keys %{$cal->{left}}) ],
-         [ text => { color => "#ff8888", align => "center" }, 
-           "Selected: " . $cal->{sel_mat} ],
+         [ text => { color => $color, align => "center" },
+            "Assignment: " . sprintf ("%2dm %2ds", $minutes, $time) ],
+         [ text => { color => "#888888", align => "center" },
+           "Left:\n$left_txt" ],
+         [ text => { color => "#ff8888", align => "center" },
+           "Highlighted: " . $sel_mat->{name} ],
       ]
    }
 }
