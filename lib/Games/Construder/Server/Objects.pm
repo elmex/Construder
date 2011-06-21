@@ -27,6 +27,7 @@ our %TYPES = (
    46 => \&ia_vaporizer,
    47 => \&ia_vaporizer,
    48 => \&ia_vaporizer,
+   62 => \&ia_teleporter,
 );
 
 our %TYPES_INSTANCIATE = (
@@ -36,6 +37,7 @@ our %TYPES_INSTANCIATE = (
    46 => \&in_vaporizer,
    47 => \&in_vaporizer,
    48 => \&in_vaporizer,
+   62 => \&in_teleporter,
 );
 
 our %TYPES_TIMESENSITIVE = (
@@ -251,6 +253,14 @@ sub in_message_beacon {
 sub ia_message_beacon {
    my ($pl, $pos, $type, $entity) = @_;
    $pl->{uis}->{msg_beacon}->show ($pos, $entity);
+}
+
+sub in_teleporter {
+}
+
+sub ia_teleporter {
+   my ($pl, $pos, $type, $entity) = @_;
+   $pl->{uis}->{teleporter}->show ($pos, $entity);
 }
 
 =back

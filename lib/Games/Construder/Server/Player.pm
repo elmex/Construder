@@ -166,6 +166,7 @@ sub init {
    $self->new_ui (notebook      => "Games::Construder::Server::UI::Notebook");
    $self->new_ui (msg_beacon    => "Games::Construder::Server::UI::MessageBeacon");
    $self->new_ui (msg_beacon_list => "Games::Construder::Server::UI::MessageBeaconList");
+   $self->new_ui (teleporter    => "Games::Construder::Server::UI::Teleporter");
 
    $self->{inv} =
       Games::Construder::Server::PatStorHandle->new (data => $self->{data}, slot_cnt => $PL_MAX_INV);
