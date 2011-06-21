@@ -97,9 +97,7 @@ sub in_vaporizer {
 
 sub tmr_vaporizer {
    my ($pos, $entity, $type, $dt) = @_;
-   warn "vapo tick: $dt\n";
-   my (@pl) =
-      $Games::Construder::Server::World::SRV->players_near_pos ($pos);
+   warn "vapo tick: $dt ($type, $entity)\n";
 
    $entity->{tmp}->{accumtime} += $dt;
    if ($entity->{tmp}->{accumtime} >= $entity->{time}) {
@@ -118,6 +116,13 @@ sub tmr_vaporizer {
       world_mutate_at (\@poses, sub {
          my ($d) = @_;
          $d->[0] = 0;
+         $d->[3] &= 0xF0; # clear color :)
+         my $ent = $d->[5]; # kill entity
+         $d->[5] = undef;
+         if ($ent) {
+            Games::Construder::Server::Objects::destroy ($ent);
+         }
+         warn "VAP@$d\n";
          1
       });
    }
@@ -126,8 +131,6 @@ sub tmr_vaporizer {
 sub ia_vaporizer {
    my ($PL, $POS, $type, $entity) = @_;
 
-   my (@pl) =
-      $Games::Construder::Server::World::SRV->players_near_pos ($POS);
 
    my $rad = 1; # type == 45
    if ($type ==  46) {
@@ -138,8 +141,9 @@ sub ia_vaporizer {
       $rad = rand (100) > 70 ? 10 : int (rand () * 9) + 1;
    }
 
-
    my $time = $entity->{time};
+   my (@pl) =
+      $Games::Construder::Server::World::SRV->players_near_pos ($POS);
    for my $x (-$rad..$rad) {
       $_->highlight (vaddd ($POS, $x, 0, 0), $time, [1, 1, 0]) for @pl;
    }
@@ -179,6 +183,12 @@ sub ia_construction_pad {
             world_mutate_at (\@poses, sub {
                my ($data) = @_;
                $data->[0] = 1;
+               $data->[3] &= 0xF0; # clear color :)
+               my $ent = $data->[5]; # kill entity
+               $data->[5] = undef;
+               if ($ent) {
+                  Games::Construder::Server::Objects::destroy ($ent);
+               }
                1
             }, no_light => 1);
 

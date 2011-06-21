@@ -79,7 +79,7 @@ sub world_init {
       },
       sub {
          my ($x, $y, $z, $type, $ent) = @_;
-         warn "TEST\n";
+         warn "ACTIVE CHANGE: $type ($x,$y,$z) ($ent)\n";
          my $sec = world_chnkpos2secpos (world_pos2chnkpos ([$x, $y, $z]));
          my $id  = world_pos2id ($sec);
          my $eid = world_pos2id ([$x, $y, $z]);

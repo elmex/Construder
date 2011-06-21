@@ -596,9 +596,13 @@ sub do_dematerialize {
 
       world_mutate_at ($pos, sub {
          my ($data) = @_;
+
          if ($self->{inv}->add ($type, $ent || 1)) {
             $data->[0] = 0;
             $data->[3] &= 0xF0; # clear color :)
+            if ($ent) {
+               Games::Construder::Server::Objects::destroy ($ent);
+            }
          } else {
             $data->[0] = $type;
             $data->[5] = $ent;
@@ -640,7 +644,9 @@ sub start_dematerialize {
       }
 
       $data->[0] = 1; # materialization!
-      $self->do_dematerialize ($pos, $time, $energy, $type, $data->[5]);
+      my $ent = $data->[5];
+      $data->[5] = undef;
+      $self->do_dematerialize ($pos, $time, $energy, $type, $ent);
 
       return 1;
    }, no_light => 1, need_entity => 1);

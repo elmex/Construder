@@ -307,30 +307,35 @@
       "density" : 22,
       "complexity" : 38,
       "model" : [2, 1, 49, 2, 30],
+      "model_cnt" : 8,
    },
    "Vaporizer B" : {
       "type" : 46,
       "density" : 22,
       "complexity" : 42,
       "model" : [2, 1, 49, 2, 37],
+      "model_cnt" : 6,
    },
    "Vaporizer C" : {
       "type" : 47,
       "density" : 30,
       "complexity" : 50,
       "model" : [2, 1, 49, 2, 38],
+      "model_cnt" : 4,
    },
    "Vaporizer D" : {
       "type" : 48,
       "density" : 35,
       "complexity" : 60,
       "model" : [2, 1, 49, 5, 39],
+      "model_cnt" : 2,
    },
    "VapoModule" : {
       "type" : 49,
       "density" : 20,
       "complexity" : 18,
       "model" : [2, 1, 30, 2, 13, 3, 11, 4, 42],
+      "model_cnt" : 10,
    },
 
    "Drone" : {
