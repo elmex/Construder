@@ -101,19 +101,24 @@ sub load_text_db {
    my $txt = _get_file ("res/text.db");
    my $db = {};
 
-   my @records = split /\r?\n\r?\n/, $txt;
+   my @records = split /\r?\n\.\r?\n/, $txt;
 
    for (@records) {
-      if (/^(\S+)\s*\n(.*)$/s) {
+      if (/^((?::[^\r\n]+\s*\r?\n)+)\s*(.*)$/s) {
+         my $keys = $1;
+
          my $txt = $2;
-         my (@keys) = split /:/, $1;
-         my $last = pop @keys;
-         my $d = $db;
-         for (@keys) {
-            $d = $d->{$_} ||= {};
-         }
          $txt =~ s/\r?\n/ /sg;
-         $d->{$last} = $txt;
+
+         for my $k (split /\r?\n/, $keys) {
+            my ($dummy, @keys) = split /:/, $k;
+            my $last = pop @keys;
+            my $d = $db;
+            for (@keys) {
+               $d = $d->{$_} ||= {};
+            }
+            $d->{$last} .= $txt;
+         }
       }
    }
 

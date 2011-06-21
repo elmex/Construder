@@ -23,16 +23,25 @@ our %TYPES = (
    31 => \&ia_pattern_storage,
    36 => \&ia_construction_pad,
    45 => \&ia_vaporizer,
+   46 => \&ia_vaporizer,
+   47 => \&ia_vaporizer,
+   48 => \&ia_vaporizer,
 );
 
 our %TYPES_INSTANCIATE = (
    31 => \&in_pattern_storage,
    45 => \&in_vaporizer,
+   46 => \&in_vaporizer,
+   47 => \&in_vaporizer,
+   48 => \&in_vaporizer,
 );
 
 our %TYPES_TIMESENSITIVE = (
    31 => \&tmr_pattern_storage,
    45 => \&tmr_vaporizer,
+   46 => \&tmr_vaporizer,
+   47 => \&tmr_vaporizer,
+   48 => \&tmr_vaporizer,
 );
 
 our %TYPES_PERSISTENT = (
@@ -71,9 +80,18 @@ sub tick {
 }
 
 sub in_vaporizer {
+   my ($type) = @_;
+   my $time = 1;
+   if ($type == 46) {
+      $time = 2;
+   } elsif ($type == 47) {
+      $time = 4;
+   } elsif ($type == 48) {
+      $time = 8;
+   }
+
    {
-      time_active => 1,
-      time => 4,
+      time => $time,
    }
 }
 
@@ -82,45 +100,60 @@ sub tmr_vaporizer {
    warn "vapo tick: $dt\n";
    my (@pl) =
       $Games::Construder::Server::World::SRV->players_near_pos ($pos);
-   warn "palyersnear: @pl\n";
-}
 
-sub ia_vaporizer {
-   my ($PL, $POS) = @_;
-   my $where = {};
+   $entity->{tmp}->{accumtime} += $dt;
+   if ($entity->{tmp}->{accumtime} >= $entity->{time}) {
+      my $rad = $entity->{tmp}->{rad};
+      my $pos = $entity->{tmp}->{pos};
 
-   my (@pl) =
-      $Games::Construder::Server::World::SRV->players_near_pos ($POS);
-
-   my $rad = 10;
-
-   for my $x (-$rad..$rad) {
-      $_->highlight (vaddd ($POS, $x, 0, 0), 2, [1, 1, 0]) for @pl;
-   }
-   for my $y (-$rad..$rad) {
-      $_->highlight (vaddd ($POS, 0, $y, 0), 2, [1, 1, 0]) for @pl;
-   }
-   for my $z (-$rad..$rad) {
-      $_->highlight (vaddd ($POS, 0, 0, $z), 2, [1, 1, 0]) for @pl;
-   }
-
-   my @poses;
-   for my $x (-$rad..$rad) {
-      for my $y (-$rad..$rad) {
-         for my $z (-$rad..$rad) {
-            push @poses, my $p = vaddd ($POS, $x, $y, $z);
+      my @poses;
+      for my $x (-$rad..$rad) {
+         for my $y (-$rad..$rad) {
+            for my $z (-$rad..$rad) {
+               push @poses, my $p = vaddd ($pos, $x, $y, $z);
+            }
          }
       }
-   }
 
-   $where->{tout} = AE::timer 2, 0, sub {
       world_mutate_at (\@poses, sub {
          my ($d) = @_;
          $d->[0] = 0;
          1
       });
-      undef $where;
-   };
+   }
+}
+
+sub ia_vaporizer {
+   my ($PL, $POS, $type, $entity) = @_;
+
+   my (@pl) =
+      $Games::Construder::Server::World::SRV->players_near_pos ($POS);
+
+   my $rad = 1; # type == 45
+   if ($type ==  46) {
+      $rad = 2;
+   } elsif ($type ==  47) {
+      $rad = rand (100) > 50 ? 5 : 0;
+   } elsif ($type ==  48) {
+      $rad = rand (100) > 70 ? 10 : int (rand () * 9) + 1;
+   }
+
+
+   my $time = $entity->{time};
+   for my $x (-$rad..$rad) {
+      $_->highlight (vaddd ($POS, $x, 0, 0), $time, [1, 1, 0]) for @pl;
+   }
+   for my $y (-$rad..$rad) {
+      $_->highlight (vaddd ($POS, 0, $y, 0), $time, [1, 1, 0]) for @pl;
+   }
+   for my $z (-$rad..$rad) {
+      $_->highlight (vaddd ($POS, 0, 0, $z), $time, [1, 1, 0]) for @pl;
+   }
+
+   $entity->{time_active} = 1;
+   $entity->{tmp}->{rad} = $rad;
+   $entity->{tmp}->{pos} = [@$POS];
+
 }
 
 sub ia_construction_pad {

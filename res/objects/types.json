@@ -302,12 +302,35 @@
       "natural" : 1,
    },
 
-   "Simple Vaporizer" : {
+   "Vaporizer A" : {
       "type" : 45,
       "density" : 22,
       "complexity" : 38,
-      "lore" : "This simple vaporizer vaporizes material in a certain small radius.",
-      "model" : [2, 1, 42, 2, 30],
+      "model" : [2, 1, 49, 2, 30],
+   },
+   "Vaporizer B" : {
+      "type" : 46,
+      "density" : 22,
+      "complexity" : 42,
+      "model" : [2, 1, 49, 2, 37],
+   },
+   "Vaporizer C" : {
+      "type" : 47,
+      "density" : 30,
+      "complexity" : 50,
+      "model" : [2, 1, 49, 2, 38],
+   },
+   "Vaporizer D" : {
+      "type" : 48,
+      "density" : 35,
+      "complexity" : 60,
+      "model" : [2, 1, 49, 5, 39],
+   },
+   "VapoModule" : {
+      "type" : 49,
+      "density" : 20,
+      "complexity" : 18,
+      "model" : [2, 1, 30, 2, 13, 3, 11, 4, 42],
    },
 
    "Drone" : {

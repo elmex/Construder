@@ -1,17 +1,47 @@
-obj:Stones:lore
+:obj:Stones:lore
 Stones are probably the most basic material found in the Construct.
 They were collected by the nano bot probes from asteroids and planets
 of the starsystem Anthymarsio. It proved to be a good foundation for
 the Construct but eventually it was processed into further materials.
-
-obj:Iron:lore
+.
+:obj:Iron:lore
 Probably the most useful metal found in the Construct. It's used in a wide
 range of other materials and also any techical device can't but built without
 at least on part that has some iron in it.
-
-obj:Pattern Storage:lore
+.
+:obj:Pattern Storage:lore
 The Pattern Storage can hold the matter and energy patterns of materials. Your
 inventory is designed after this. You can use this as external storage for
 gathered materials that don't fit into your inventory. Even though your inventory
 can not hold an arbitrary number of complex materials, it can hold multiple
 Pattern Storages.
+.
+:obj:Vaporizer A:lore
+:obj:Vaporizer B:lore
+:obj:Vaporizer C:lore
+:obj:Vaporizer D:lore
+A Vaporizer vaporizes materials in a certain Radius around it. It's much faster
+than dematerialization, as the atom bondings are dissolved in a destructive
+way. You use it by building it in a place you want to vaporize blocks,
+and apply it after it is built.
+
+There are multiple types of Vaporizers with different characteristics.
+.
+:obj:Vaporizer A:lore
+The basic and simplest type is the Vaporizer A, which destructs in a radius of
+1 blocks around it (which are all 8 blocks).
+.
+:obj:Vaporizer B:lore
+The type B, which destructs in a radius of 2.
+.
+:obj:Vaporizer C:lore
+The type C vaporizes in a radius of 4 blocks. But it's slightly unreliable
+due to the higher energy output, which means that it sometimes does not work.
+.
+:obj:Vaporizer D:lore
+Type D vaporizers are the most destructive ones, they can vaporize blocks in
+a radius up to 10 around them. But they are so unreliable, that their radius
+can vary a lot.
+.
+:obj:VapoModule:lore
+This is a base module, used for building vaporizers.
