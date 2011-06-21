@@ -422,10 +422,10 @@ sub layout {
       },
       layout => [
          box => { dir => "vert", border => { color => "#ffffff" }, padding => 10 },
-         [text => { align => "center", font => "big", color => "#FFFFFF" },
-          "Find sector..."],
+         [text => { align => "center", font => "big", color => "#FFFFFF", wrap => 25 },
+          $self->{msg}],
          [text => { align => "center", font => "small", color => "#888888" },
-          "Select a sector type with up/down keys and hit return."],
+          "Select a list item with [up]/[down] keys and hit [return]."],
           map {
             [select_box => {
                dir => "vert", align => "center", arg => "item", tag => $i++,
@@ -433,7 +433,6 @@ sub layout {
                bgcolor => "#333333",
                border => { color => "#555555", width => 2 },
                select_border => { color => "#ffffff", width => 2 },
-               aspect => 1
              }, [text => { font => "normal", color => "#ffffff" }, $_->[0]]
             ]
           } @{$self->{items}}
@@ -748,7 +747,7 @@ sub layout {
          box => { dir => "vert", border => { color => "#ffffff" } },
          [text => { font => "big", color => "#FFFFFF", align => "center" }, "Inventory"],
          [text => { font => "small", color => "#888888", wrap => 40, align => "center" },
-          "(Select a resource directly by [shortcut key] or up/down and hit return.)"],
+          "(Select a resource directly by [shortcut key] or [up]/[down] and hit [return].)"],
          [box => { },
             (map {
                [box => { dir => "vert", padding => 4 },
@@ -1088,7 +1087,7 @@ sub layout {
          [text => { align => "center", font => "big", color => "#FFFFFF" },
           "Find sector..."],
          [text => { align => "center", font => "small", color => "#888888" },
-          "Select a sector type with up/down keys and hit return."],
+          "Select a sector type with [up]/[down] keys and hit [return]."],
          [box => { align => "center", dir => "vert" },
          (map {
             my $row = $_;
@@ -1204,7 +1203,12 @@ sub handle_command {
          "Games::Construder::Server::UI::ListQuery",
          msg => "Please select the synchronized beacon you want to navigate to:",
          items => [
-            map { [$_->[1], $_->[0]] } values %{$self->{pl}->{data}->{beacons}}
+            map {
+               my ($secs, $beacon) = @$_;
+               [$beacon->[1] . " sync " . int ($secs / 60) . "m ago", $beacon->[0]]
+            } sort { $a->[0] <=> $b->[0] } map {
+               [int ($self->{pl}->now - $_->[2]), $_]
+            } values %{$self->{pl}->{data}->{beacons}}
          ],
          cb  => sub {
             $self->delete_ui ('nav_prog_beacon_select');

@@ -139,6 +139,7 @@ sub init {
       $wself->player_tick ($cur - $tick_time);
       $tick_time = $cur;
       $msg_beacon_upd += $dt;
+      $self->{data}->{time} += $dt;
       if ($msg_beacon_upd > 2)
          {
             $msg_beacon_upd = 0;
@@ -183,6 +184,8 @@ sub init {
    $self->teleport ();
    $self->check_assignment;
 }
+
+sub now { $_[0]->{data}->{time} }
 
 sub push_tick_change {
    my ($self, $key, $amt) = @_;
@@ -692,8 +695,16 @@ sub check_message_beacons {
       my $e = world_entity_at ($pos);
       my $id = world_pos2id ($pos);
       $cur_beacons->{$id} = $self->{data}->{beacons}->{$id} = [
-         $pos, $e->{msg}, time
+         $pos, $e->{msg}, $self->now
       ];
+   }
+
+   my $now = $self->now;
+
+   for (keys %{$self->{data}->{beacons}}) {
+      if (($now - $self->{data}->{beacons}->{$_}->[2]) > 120) {
+         delete $self->{data}->{beacons}->{$_};
+      }
    }
 
    $self->{uis}->{msg_beacon_list}->show ($cur_beacons);
