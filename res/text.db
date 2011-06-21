@@ -61,3 +61,8 @@ the sizes 1x1, 2x2, 3x3 or 4x4. On these you can construct the patterns found
 in the material handbook to form other pieces of equipment and material. When
 you constructed the pattern, you have to hit the interaction key [e] and the
 transformer will do it's job or complain if the pattern is not recognized.
+.
+:obj:Teleporter:lore
+Teleporters can bring you instantly from one place to another in the Construct.
+You can direct a teleporter to the position of any synchronized message beacon
+and travel there at free will by invoking the teleporter.
