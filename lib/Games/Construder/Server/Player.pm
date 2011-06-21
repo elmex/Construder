@@ -691,7 +691,6 @@ sub create_assignment {
    );
 
    my $cube = Games::Construder::VolDraw::to_perl ();
-   warn "CUBE @$cube\n";
    shift @$cube;
 
    my $materials = {};
@@ -730,37 +729,6 @@ sub create_assignment {
 
    delete $self->{assign_ment_hl};
    $self->check_assignment;
-
-   # generate random sector position
-   #      parameter: distance
-   #
-   # determine form of construct: wire-frame cube, cube, platform
-   #
-   # determine size (count of source) of construct
-   #
-   # determine how many different materials need to be used:
-   #   generate source materials:
-   #      depends on score of player,
-   #      metrics need to come from the world_gen.json for this
-   #      (metrics ala which score means which source materials)
-   #      level of source materials is computed from
-   #      types.json
-   #        - calculation calculates distance from root-materials
-   #        - root-materials get some value that indicates whether
-   #          they are rated as "rare" or not. => this can probably be done
-   #          easier manually than by looking at their actual occurance in the sectors.
-   #
-   # determine how long the player has
-   #   - use some world_gen base value as measurement how long a player has
-   #     to cover the distance 1
-   #   - on high levels this can be shrunken, player should use teleporters!
-   #
-   # determine punishment for player: how much score he loses
-   #
-   # => make assignment description, display assignment, start counter
-   #    store assignment in player data
-   #    time counter should be on player, and counted down in 10 sec intervals
-   #    on player load assignment timers have to be restarted
 }
 
 sub check_assignment_positions {
@@ -772,7 +740,7 @@ sub check_assignment_positions {
    my $typ    =
       Games::Construder::World::get_types_in_cube (@{$assign->{pos}}, $assign->{size});
 
-   printf "CHECK TIME 1 %f\n", time - $t;
+   #d#printf "CHECK TIME 1 %f\n", time - $t;
 
    for (my $x = 0; $x < $assign->{size}; $x++) {
       for (my $y = 0; $y < $assign->{size}; $y++) {
@@ -795,12 +763,11 @@ sub check_assignment_positions {
    }
    $assign->{left} = \%tleft;
 
-   printf "CHECK TIME 2 %f\n", time - $t;
+   #d#printf "CHECK TIME 2 %f\n", time - $t;
 
    $self->update_assignment_highlight;
 
    unless (grep { $_ != 0 } values %tleft) {
-      warn "ASSIGNMENt FINISHED!\n";
       $self->finished_assignmenet;
    }
 }
