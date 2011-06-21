@@ -96,12 +96,17 @@ sub add {
    my ($spc, $max) = $self->space_for ($type);
 
    my $obj = $Games::Construder::Server::RES->get_object_by_type ($type);
-   if ($obj->{permanent} && !ref $cnt) {
-      unless ($cnt == 1) {
-         warn "adding more than 1 permanent entity to a patstore does not work ($type)\n";
-         $cnt = 1;
+   if ($obj->{permanent}) {
+      if (!ref $cnt) {
+         unless ($cnt == 1) {
+            warn "adding more than 1 permanent entity to a patstore does not work ($type)\n";
+            $cnt = 1;
+         }
+         $cnt = Games::Construder::Server::Objects::instance ($type);
       }
-      $cnt = Games::Construder::Server::Objects::instance ($type);
+
+   } elsif (ref $cnt) { # non permanent entity => don't store!
+      $cnt = 1;
    }
 
    if (ref $cnt) { # permanent entity
