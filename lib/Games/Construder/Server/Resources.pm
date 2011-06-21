@@ -416,6 +416,15 @@ sub calc_object_levels {
    }
 }
 
+sub get_handbook_types {
+   my ($self) = @_;
+   map {
+      $self->{object_res}->{$_}
+   } grep {
+      $self->{object_res}->{$_}->{level} < 9999999
+   } keys %{$self->{object_res}}
+}
+
 sub get_sector_types_where_type_is_found {
    my ($self, $type) = @_;
 

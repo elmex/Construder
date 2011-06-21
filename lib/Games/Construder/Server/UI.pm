@@ -291,6 +291,7 @@ sub commands {
       t   => "location_book",
       e   => "interact",
       q   => "query",
+      b   => "material_handbook",
    )
 }
 
@@ -317,6 +318,8 @@ sub handle_command {
       $pl->query ($pos->[0]);
    } elsif ($cmd eq 'assignment') {
       $self->show_ui ('assignment');
+   } elsif ($cmd eq 'material_handbook') {
+      $self->show_ui ('material_handbook');
    } elsif ($cmd eq 'exit_server') {
       exit;
    }
@@ -1331,6 +1334,78 @@ sub layout {
          [text => { color => "#ffffff" }, "[l] to label this storage"],
          [text => { color => "#ffffff" }, "[i] to transfer from inventory"],
          [text => { color => "#ffffff" }, "[t] to transfer from storage"],
+      ]
+   }
+}
+
+package Games::Construder::Server::UI::MaterialHandbook;
+use Games::Construder::Server::World;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   (
+      down => "down",
+      'page down' => "down",
+      up => "up",
+      'page up' => "up",
+      return => "select",
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'select') {
+      $self->hide;
+      $self->show_ui ('material_view', $arg->{type});
+
+   } elsif ($cmd eq 'down') {
+      $self->{page}++;
+      $self->show;
+
+   } elsif ($cmd eq 'up') {
+      $self->{page}--;
+      $self->show;
+   }
+}
+
+sub layout {
+   my ($self, $page) = @_;
+
+   my (@objs) =
+      $Games::Construder::Server::RES->get_handbook_types;
+   (@objs) = sort { $a->{name} cmp $b->{name} } @objs;
+
+   my $lastpage = ((@objs % 10 != 0 ? 1 : 0) + int (@objs / 10));
+
+   $self->{page} = $page     if defined $page;
+   $self->{page} = 0         if $self->{page} < 0;
+   $self->{page} = $lastpage if $self->{page} > $lastpage;
+   $page = $self->{page};
+
+   my (@thispage) = splice @objs, $page * 10, 10;
+
+   {
+      window => { pos => [ center => 'center' ] },
+      layout => [
+         box => { dir => "vert", border => { color => "#ffffff" } },
+         [text => { font => "big", color => "#ffffff" }, "Material Handbook"],
+         [text => { font => "normal", color => "#ffffff" },
+          "Materials " . (($page * 10) + 1) . " to " . ((($page + 1) * 10) + 1)],
+         [text => { font => "small", color => "#888888" },
+          "[page up] previous page\n[page down] next page"],
+         (map {
+            [select_box => {
+               dir => "hor", align => "center", arg => "type", tag => $_->{type},
+               padding => 2, bgcolor => "#333333",
+               border => { color => "#555555", width => 2 },
+               select_border => { color => "#ffffff", width => 2 },
+             },
+             [model => { width => 40, align => "center" }, $_->{type}],
+             [text => { font => "normal", align => "center", color => "#ffffff" }, $_->{name}],
+            ]
+         } @thispage),
       ]
    }
 }

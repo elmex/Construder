@@ -136,9 +136,9 @@ sub ia_vaporizer {
    if ($type ==  46) {
       $rad = 2;
    } elsif ($type ==  47) {
-      $rad = rand (100) > 50 ? 5 : 0;
+      $rad = rand (100) > 20 ? 5 : 0;
    } elsif ($type ==  48) {
-      $rad = rand (100) > 70 ? 10 : int (rand () * 9) + 1;
+      $rad = rand (100) > 60 ? 10 : int (rand () * 9) + 1;
    }
 
    my $time = $entity->{time};
