@@ -735,14 +735,10 @@ sub get_assignment_for_score {
    my $mat_level = int (lerp (1, $self->{max_object_level}, $level)); # material level
    my $mat_num   = int (lerp (1, 7,   $level)); # different materials
 
-   # calc time based on materials and size
-   $time +=
-      ($size ** 3)
-      * lerp ($mat_num / 2, $mat_num, ($mat_level / $self->{max_object_level}))
-      * $abal->{time_per_block};
 
    # calculate materials:
    my @materials;
+   my $avg_mat_lvl;
    for (my $i = 0; $i < $mat_num; $i++){
       my $max;
       my (@matlvl) = sort {
@@ -754,12 +750,21 @@ sub get_assignment_for_score {
       unless (@matlvl) {
          warn "no material with level suitable for level $mat_level found!\n";
       }
-      $mat_level--;
-      $mat_level = 1 if $mat_level <= 0;
+      $avg_mat_lvl += $matlvl[0];
       my (@os) = @{$self->{objects_by_level}->{$matlvl[0]}};
       my $mat = $os[int (rand (@os))];
       push @materials, $mat;
+
+      $mat_level--;
+      $mat_level = 1 if $mat_level <= 0;
    }
+
+   $avg_mat_lvl /= $mat_num;
+   # calc time based on materials and size
+   $time +=
+      ($size ** 3)
+      * lerp (0.5, 1, $avg_mat_lvl / $self->{max_object_level})
+      * $abal->{time_per_block};
 
    my $material_map = [];
    my $interv = 1 / @materials;

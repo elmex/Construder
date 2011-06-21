@@ -672,7 +672,7 @@ sub create_assignment {
    my $z = (rand () * 2) - 1;
 
    my ($desc, $size, $material_map, $distance, $time, $score) =
-      $Games::Construder::Server::RES->get_assignment_for_score ($self->{data}->{score}, 50);
+      $Games::Construder::Server::RES->get_assignment_for_score ($self->{data}->{score});
 
    print "ASSIGNMENT BASE VALUES: " . JSON->new->pretty->encode ([
       $desc, $size, $material_map, $distance, $time, $score
