@@ -144,6 +144,8 @@ sub init {
          {
             $msg_beacon_upd = 0;
             $self->check_message_beacons;
+
+            $self->check_assignment_offers (2);
          }
    };
 
@@ -223,6 +225,10 @@ sub player_tick {
             $self->{data}->{score} += $a;
             $self->{data}->{score} = int $self->{data}->{score};
          }
+      }  elsif ($k eq 'score_punishment') {
+         $self->update_score (-$a);
+         $self->{data}->{score} -= $a;
+         $self->{data}->{score} = 0 if $self->{data}->{score} < 0;
       }
    }
 
@@ -703,7 +709,7 @@ sub check_message_beacons {
    my $now = $self->now;
 
    for (keys %{$self->{data}->{beacons}}) {
-      if (($now - $self->{data}->{beacons}->{$_}->[2]) > 120) {
+      if (($now - $self->{data}->{beacons}->{$_}->[2]) > 30 * 60) {
          delete $self->{data}->{beacons}->{$_};
       }
    }
@@ -711,36 +717,95 @@ sub check_message_beacons {
    $self->{uis}->{msg_beacon_list}->show ($cur_beacons);
 }
 
-sub create_assignment {
-   my ($self) = @_;
+our @OFFER_TIMES = (
+   5  * 60,
+   7  * 60,
+   10 * 60,
+   15 * 60,
+   20 * 60,
+);
+
+our @DIFF_PUNSH_FACT = (
+   0.05,
+   0.1,
+   0.2,
+   0.5,
+   0.7,
+   0.9
+);
+
+sub check_assignment_offers {
+   my ($self, $dt) = @_;
+;
+   for (my $d = 0; $d < 5; $d++) {
+      my $offer = $self->{data}->{offers}->[$d];
+      if ($offer) {
+         $offer->{offer_time} -= $dt;
+         if ($offer->{offer_time} <= 0) {
+            undef $offer;
+         }
+      }
+
+      unless ($offer) {
+         my ($desc, $size, $material_map, $distance, $time, $score) =
+            $Games::Construder::Server::RES->get_assignment_for_score (
+               $self->{data}->{score}, $d * 2);
+         $offer = {
+            diff         => $d,
+            cmds         => $desc,
+            size         => $size,
+            material_map => $material_map,
+            distance     => $distance,
+            time         => $time,
+            score        => $score,
+            offer_time   => $OFFER_TIMES[$d],
+            punishment   => int ($DIFF_PUNSH_FACT[$d] * $score),
+         };
+      }
+
+      $self->{data}->{offers}->[$d] = $offer;
+   }
+
+   if ($self->{uis}->{assignment}->{shown}) {
+      $self->{uis}->{assignment}->show;
+   }
+}
+
+sub take_assignment {
+   my ($self, $nr) = @_;
+
+   my $offer = $self->{data}->{offers}->[$nr];
+   $self->{data}->{offers}->[$nr] = undef;
+
+   #my ($desc, $size, $material_map, $distance, $time, $score) =
+   #   $Games::Construder::Server::RES->get_assignment_for_score ($self->{data}->{score});
+
+   #print "ASSIGNMENT BASE VALUES: " . JSON->new->pretty->encode ([
+   #   $desc, $size, $material_map, $distance, $time, $score
+   #]) . "\n";
 
    # random direction:
    my $x = (rand () * 2) - 1;
    my $y = (rand () * 2) - 1;
    my $z = (rand () * 2) - 1;
 
-   my ($desc, $size, $material_map, $distance, $time, $score) =
-      $Games::Construder::Server::RES->get_assignment_for_score ($self->{data}->{score});
-
-   print "ASSIGNMENT BASE VALUES: " . JSON->new->pretty->encode ([
-      $desc, $size, $material_map, $distance, $time, $score
-   ]) . "\n";
-
-   my $vec = vsmul (vnorm ([$x, $y, $z]), $distance);
+   my $vec  = vsmul (vnorm ([$x, $y, $z]), $offer->{distance});
    my $wpos = vfloor (vadd ($vec, $self->get_pos_normalized));
 
    warn "assignment at @$vec => @$wpos\n";
 
+   my $size = $offer->{size};
    Games::Construder::VolDraw::alloc ($size);
 
    Games::Construder::VolDraw::draw_commands (
-     $desc,
-     { size => $size, seed => $score, param => 1 }
+     $offer->{cmds},
+     { size => $size, seed => $offer->{score}, param => 1 }
    );
 
    my $cube = Games::Construder::VolDraw::to_perl ();
    shift @$cube;
 
+   my $material_map = $offer->{material_map};
    my $materials = {};
    my $positions = {};
 
@@ -761,16 +826,12 @@ sub create_assignment {
       }
    }
 
-   my $cal = $self->{data}->{assignment} = {
-      pos        => $wpos,
-      size       => $size,
-      score      => $score,
-      time       => $time,
-      materials  => [sort keys %$materials],
-   };
-   $cal->{sel_mat} = $cal->{materials}->[0];
+   my $cal = $self->{data}->{assignment} = $offer;
+   $cal->{pos}        = $wpos;
+   $cal->{materials}  = [sort keys %$materials];
+   $cal->{sel_mat}    = $cal->{materials}->[0];
    print "ASSIGNMENT : " . JSON->new->pretty->encode ($cal) . "\n";
-   $cal->{pos_types} = $positions;
+   $cal->{pos_types}  = $positions;
    $cal->{mat_models} = $materials;
 
    $self->{uis}->{assignment}->show;
@@ -904,6 +965,8 @@ sub finished_assignmenet {
 
 sub cancel_assignment {
    my ($self) = @_;
+   my $ass = $self->{data}->{assignment};
+   $self->push_tick_change (score_punishment => $ass->{punishment});
    $self->{data}->{assignment} = undef;
    delete $self->{assign_timer};
    $self->check_assignment;

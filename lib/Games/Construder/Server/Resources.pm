@@ -795,6 +795,7 @@ sub get_assignment_for_score {
    # include the time factor for high levels
    my $time_fact = lerp (1, $abal->{max_score_time_fact}, $level);
    $time *= $time_fact;
+   $time = int $time;
    warn "time after factor $time_fact: $time\n";
 
    my $ascore = lerp ($abal->{min_score}, $abal->{max_score}, $level);

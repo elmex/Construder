@@ -2,7 +2,7 @@
 use EV;
 use common::sense;
 use Games::Construder::Server;
-my $server;
+our $server;
 $server = Games::Construder::Server->new;
 $server->init;
 $server->listen;

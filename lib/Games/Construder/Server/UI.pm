@@ -60,6 +60,11 @@ sub show_ui {
    $self->{pl}->{uis}->{$name}->show (@arg);
 }
 
+sub hide_ui {
+   my ($self, $name) = @_;
+   $self->{pl}->{uis}->{$name}->hide;
+}
+
 sub delete_ui {
    my ($self, @args) = @_;
    $self->{pl}->delete_ui (@args);
@@ -138,7 +143,7 @@ sub layout {
          [text => {
             font  => "big",
             color => $hl ? "#ff0000" : "#aa8800",
-          }, ($score . ($hl ? "+$hl" : ""))]
+          }, ($score . ($hl ? ($hl > 0 ? "+$hl" : "$hl") : ""))]
       ]
    }
 }
@@ -286,6 +291,7 @@ sub commands {
       f12 => "exit_server",
       i   => "inventory",
       n   => "navigation_programmer",
+      m   => "toggle_navigator",
       h   => "cheat",
       x   => "assignment",
       t   => "location_book",
@@ -323,6 +329,12 @@ sub handle_command {
       $self->show_ui ('material_handbook');
    } elsif ($cmd eq 'notebook') {
       $self->show_ui ('notebook');
+   } elsif ($cmd eq 'toggle_navigator') {
+      if ($self->{pl}->{uis}->{navigator}->{shown}) {
+         $self->hide_ui ('navigator');
+      } else {
+         $self->show_ui ('navigator');
+      }
    } elsif ($cmd eq 'exit_server') {
       exit;
    }
@@ -826,7 +838,6 @@ use base qw/Games::Construder::Server::UI/;
 sub commands {
    (
       p => "teleport",
-      m => "close"
    )
 }
 
@@ -848,9 +859,11 @@ sub layout {
 
    if ($type eq 'pos') {
       $self->{nav_to_pos} = $pos;
+      delete $self->{nav_to_sector};
 
    } elsif ($type eq 'sector') {
       $self->{nav_to_sector} = $pos;
+      delete $self->{nav_to_sector};
    }
 
    my ($from, $to);
@@ -1254,18 +1267,30 @@ package Games::Construder::Server::UI::Assignment;
 use base qw/Games::Construder::Server::UI/;
 
 sub commands {
-   (
-      return => "generate",
-      n => "navigate",
-      v => "cancel_assign",
-   )
+   my ($self) = @_;
+
+   if ($self->{pl}->{data}->{assignment}) {
+      return (
+         n => "navigate",
+         z => "cancel_assign",
+      )
+   } else {
+      return (
+         o => "reset_offers",
+         1 => "offer_0",
+         2 => "offer_1",
+         3 => "offer_2",
+         4 => "offer_3",
+         5 => "offer_4",
+      )
+   }
 }
 
 sub handle_command {
    my ($self, $cmd) = @_;
 
-   if ($cmd eq 'generate') {
-      $self->{pl}->create_assignment;
+   if ($cmd eq 'reset_offers') {
+      $self->{pl}->{data}->{offers} = [];
       $self->show;
 
    } elsif ($cmd eq 'navigate') {
@@ -1274,23 +1299,141 @@ sub handle_command {
 
    } elsif ($cmd eq 'cancel_assign') {
       $self->{pl}->cancel_assignment;
+      $self->show;
+
+   } elsif ($cmd =~ /offer_(\d+)/) {
+      $self->{pl}->take_assignment ($1);
+      $self->show;
    }
 }
 
 sub layout {
    my ($self) = @_;
 
-   my $cal = $self->{pl}->{data}->{assignment} || {};
-   my $mcal = { %$cal };
-   delete $mcal->{pos_types};
-   delete $mcal->{mat_models};
+   if ($self->{pl}->{data}->{assignment}) {
+      return $self->layout_assignment;
+   } else {
+      return $self->layout_offers;
+   }
+}
+
+my %DIFFMAP = (
+   0 => "very easy",
+   1 => "easy",
+   2 => "mediocre",
+   3 => "hard",
+   4 => "very hard",
+);
+
+sub time2str {
+   my $m = int ($_[0] / 60);
+   sprintf "%2dm %2ds", $m, $_[0] - ($m * 60)
+}
+
+sub layout_offers {
+   my ($self) = @_;
+
+   my $off = $self->{pl}->{data}->{offers};
 
    {
       window => { pos => [ center => 'center' ] },
       layout => [
          box => { dir => "vert", border => { color => "#ffffff" } },
+         [text => { color => "#ffffff", font => "big" }, "Assignment Offers"],
+         [box => { dir => "hor" },
+          [box => { dir => "vert", padding => 4 },
+           [text => { color => "#888888" }, "Key"],
+           map {
+            [text => { color => "#ffffff" },
+               "[" . ($_->{diff} + 1) . "]"]
+           } @$off
+          ],
+          [box => { dir => "vert", padding => 4 },
+           [text => { color => "#888888" }, "Type"],
+           map {
+            [text => { color => "#ffffff" },
+               "Constr."]
+           } @$off
+          ],
+          [box => { dir => "vert", padding => 4 },
+           [text => { color => "#888888" }, "Time"],
+           map {
+            [text => { color => "#ffffff" },
+               time2str ($_->{time})]
+           } @$off
+          ],
+          [box => { dir => "vert", padding => 4 },
+           [text => { color => "#888888" }, "Materials"],
+           map {
+            [text => { color => "#ffffff", wrap => 10 },
+               join ",\n",
+               map {
+                  my $o =
+                     $Games::Construder::Server::RES->get_object_by_type ($_->[2]);
+                  $o->{name}
+               } @{$_->{material_map}}]
+           } @$off
+          ],
+          [box => { dir => "vert", padding => 4 },
+           [text => { color => "#888888" }, "Score"],
+           map {
+            [text => { color => "#ffffff" },
+               $_->{score}]
+           } @$off
+          ],
+          [box => { dir => "vert", padding => 4 },
+           [text => { color => "#888888" }, "Expiration"],
+           map {
+            [text => { color => "#ffffff" },
+               time2str ($_->{offer_time})]
+           } @$off
+          ],
+          [box => { dir => "vert", padding => 4 },
+           [text => { color => "#888888" }, "Punishment"],
+           map {
+            [text => { color => "#ffffff" }, -$_->{punishment}]
+           } @$off
+          ],
+         ],
+      ]
+   }
+
+}
+
+sub layout_assignment {
+   my ($self) = @_;
+
+   my $cal = $self->{pl}->{data}->{assignment} || {};
+
+   {
+      window => { pos => [ center => 'center' ] },
+      layout => [
+         box => { dir => "vert", border => { color => "#ffffff" } },
+         [text => { color => "#ffffff", font => "big" }, "Assignment"],
+         [text => { color => "#888888", font => "small" },
+          "(You are currently on assignment)"],
+         [box => { dir => "hor" },
+          [box => { dir => "vert" },
+           [text => { color => "#888888" }, "Type:"],
+           [text => { color => "#888888" }, "Time left:"],
+           [text => { color => "#888888" }, "Score:"],
+           [text => { color => "#888888" }, "Difficulty:"],
+           [text => { color => "#888888" }, "Punishment on\nfailure/cancellation:"],
+          ],
+          [box => { dir => "vert" },
+           [text => { color => "#ffffff" }, $cal->{type} || "Construction"],
+           [text => { color => "#ffffff" }, $cal->{time}],
+           [text => { color => "#ffffff" }, $cal->{score}],
+           [text => { color => "#ffffff" }, $DIFFMAP{$cal->{diff}}],
+           [text => { color => "#ffffff" }, $cal->{punishment}],
+          ],
+         ],
          [text => { color => "#ffffff" },
-           JSON->new->pretty->encode ($mcal)],
+          "[n] Navigate to assignment"],
+         [text => { color => "#ffffff" },
+          "[c] Cycle highlighted material\n   (also works globally from the HUD)"],
+         [text => { color => "#ffffff" },
+          "[z] Cancel assignment (you will lose score!)"],
       ]
    }
 }
