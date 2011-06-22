@@ -179,6 +179,7 @@ sub init {
    $self->new_ui (msg_beacon    => "Games::Construder::Server::UI::MessageBeacon");
    $self->new_ui (msg_beacon_list => "Games::Construder::Server::UI::MessageBeaconList");
    $self->new_ui (teleporter    => "Games::Construder::Server::UI::Teleporter");
+   $self->new_ui (color_select  => "Games::Construder::Server::UI::ColorSelector");
 
    $self->{inv} =
       Games::Construder::Server::PatStorHandle->new (data => $self->{data}, slot_cnt => $PL_MAX_INV);
@@ -570,7 +571,7 @@ sub do_materialize {
 
          $data->[0] = $type;
          $data->[5] = $ent if $ent;
-         #d# $data->[3] = 0x2;
+         $data->[3] = $self->{colorifyer} & 0x0f;
          delete $self->{materializings}->{$id};
          $self->push_tick_change (score => $score);
          return 1;

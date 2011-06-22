@@ -370,8 +370,9 @@ ctr_render_add_face (unsigned int face, unsigned int type, unsigned short color,
       geom->geom[geom->geom_len++] = ((vert[1] + yoffs) * scale) + ysoffs;
       geom->geom[geom->geom_len++] = ((vert[2] + zoffs) * scale) + zsoffs;
 
-      for (j = 0; j < 3; j++)
-        geom->geom[geom->geom_len++] = light;
+      geom->geom[geom->geom_len++] = clr_map[(color & 0xF)][0] * light;
+      geom->geom[geom->geom_len++] = clr_map[(color & 0xF)][1] * light;
+      geom->geom[geom->geom_len++] = clr_map[(color & 0xF)][2] * light;
 
       if (h == 0)
         {

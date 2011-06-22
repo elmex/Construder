@@ -299,6 +299,7 @@ sub commands {
       q   => "query",
       o   => "notebook",
       b   => "material_handbook",
+      r   => "color_select",
    )
 }
 
@@ -329,6 +330,8 @@ sub handle_command {
       $self->show_ui ('material_handbook');
    } elsif ($cmd eq 'notebook') {
       $self->show_ui ('notebook');
+   } elsif ($cmd eq 'color_select') {
+      $self->show_ui ('color_select');
    } elsif ($cmd eq 'toggle_navigator') {
       if ($self->{pl}->{uis}->{navigator}->{shown}) {
          $self->hide_ui ('navigator');
@@ -687,15 +690,14 @@ sub layout {
    }
 }
 
-
-package Games::Construder::Server::UI::Inventory;
+package Games::Construder::Server::UI::QueryPatternStorage;
 
 use base qw/Games::Construder::Server::UI/;
 
 sub build_grid {
    my ($self) = @_;
 
-   my $inv = $self->{pl}->{inv};
+   my $inv = $self->{pat_store};
 
    my @grid;
 
@@ -739,11 +741,14 @@ sub handle_command {
 
    if ($cmd eq 'select') {
       $self->hide;
-      $self->show_ui ('material_view', $arg->{item}->[0]);
+      $self->{cb}->($arg->{item}->[0]);
 
    } elsif ($cmd =~ /short_(\S+)/) {
       $self->hide;
-      $self->show_ui ('material_view', $1);
+      $self->{cb}->($1);
+
+   } elsif ($cmd eq 'cancel') {
+      $self->{cb}->();
    }
 }
 
@@ -758,7 +763,7 @@ sub layout {
       },
       layout => [
          box => { dir => "vert", border => { color => "#ffffff" } },
-         [text => { font => "big", color => "#FFFFFF", align => "center" }, "Inventory"],
+         [text => { font => "big", color => "#FFFFFF", align => "center" }, $self->{title}],
          [text => { font => "small", color => "#888888", wrap => 40, align => "center" },
           "(Select a resource directly by [shortcut key] or [up]/[down] and hit [return].)"],
          [box => { },
@@ -787,6 +792,26 @@ sub layout {
          ]
       ],
    }
+}
+
+package Games::Construder::Server::UI::Inventory;
+
+use base qw/Games::Construder::Server::UI::QueryPatternStorage/;
+
+sub init {
+   my ($self) = @_;
+   $self->{title} = "Inventory";
+   $self->{cb} = sub {
+      my ($type) = @_;
+      defined $type or return;
+      $self->show_ui ('material_view', $type);
+   };
+}
+
+sub layout {
+   my ($self, @arg) = @_;
+   $self->{pat_store} = $self->{pl}->{inv};
+   $self->SUPER::layout (@arg);
 }
 
 package Games::Construder::Server::UI::Cheat;
@@ -1584,6 +1609,7 @@ sub layout {
 
 package Games::Construder::Server::UI::PatternStorage;
 use Games::Construder::Server::World;
+use Games::Construder::Server::Player;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -1591,12 +1617,26 @@ sub commands {
    (
       l => "label",
       i => "from_inv",
-      t => "from_stor",
+      p => "from_stor",
    )
 }
 
 sub handle_command {
    my ($self, $cmd) = @_;
+
+   my ($pos, $ent) = @{$self->{pat_stor}};
+   my $ps_hdl =
+      Games::Construder::Server::PatStorHandle->new (
+         data => $ent, slot_cnt => 24);#$Games::Construder::Server::Player::PL_MAX_INV);
+
+   $ps_hdl->reg_cb (changed => sub {
+      # force update:
+      world_mutate_entity_at ($pos, sub {
+         my ($pos, $cell) = @_;
+         return 0 unless $cell->[0] == 31;
+         1
+      });
+   });
 
    if ($cmd eq 'label') {
       my ($pos, $ent) = @{$self->{pat_stor}};
@@ -1621,6 +1661,62 @@ sub handle_command {
          });
       $self->hide;
       $self->show_ui ('label_pattern_store');
+
+   } elsif ($cmd eq 'from_inv') {
+      $self->new_ui (pat_store_inv_selector =>
+         "Games::Construder::Server::UI::QueryPatternStorage",
+         title => "Transfer from Inventory",
+         pat_store => $self->{pl}->{inv},
+         cb  => sub {
+            my $invid = $_[0];
+            if (defined $invid) {
+               my $o = $Games::Construder::Server::RES->get_object_by_type ($invid);
+               my ($num) = $self->{pl}->{inv}->get_count ($invid);
+               my ($cnt, $ent) = $self->{pl}->{inv}->remove ($invid, $num);
+               if ($cnt) {
+                  warn "OK TRANSFE $invid : $ent  | $num\n";
+                  if ($ps_hdl->add ($invid, $ent ? $ent : $num)) {
+                     $self->{pl}->msg (
+                        0, "Transfered $num $o->{name} into the pattern storage.");
+                  } else {
+                  warn "TRANSFER FAILED\n";
+                     $self->{pl}->{inv}->add ($invid, $ent ? $ent : $num);
+                     $self->{pl}->msg (
+                        1, "$num $o->{name} does not fit into the pattern storage.");
+                  }
+               }
+            }
+            $self->delete_ui ('label_pattern_store');
+         });
+      $self->hide;
+      $self->show_ui ('pat_store_inv_selector');
+
+   } elsif ($cmd eq 'from_stor') {
+      $self->new_ui (pat_store_inv_selector =>
+         "Games::Construder::Server::UI::QueryPatternStorage",
+         title => "Transfer from Pattern Storage",
+         pat_store => $ps_hdl,
+         cb  => sub {
+            my $invid = $_[0];
+            if (defined $invid) {
+               my $o = $Games::Construder::Server::RES->get_object_by_type ($invid);
+               my ($num) = $ps_hdl->get_count ($invid);
+               my ($cnt, $ent) = $ps_hdl->remove ($invid, $num);
+               if ($cnt) {
+                  if ($self->{pl}->{inv}->add ($invid, $ent ? $ent : $num)) {
+                     $self->{pl}->msg (
+                        0, "Transfered $num $o->{name} into your inventory.");
+                  } else {
+                     $ps_hdl->add ($invid, $ent ? $ent : $num);
+                     $self->{pl}->msg (
+                        1, "$num $o->{name} does not fit into your inventory.");
+                  }
+               }
+            }
+            $self->delete_ui ('label_pattern_store');
+         });
+      $self->hide;
+      $self->show_ui ('pat_store_inv_selector');
    }
 }
 
@@ -1637,7 +1733,7 @@ sub layout {
          [text => { color => "#ffffff", font => "big" }, "Pattern Storage: $entity->{label}"],
          [text => { color => "#ffffff" }, "[l] to label this storage"],
          [text => { color => "#ffffff" }, "[i] to transfer from inventory"],
-         [text => { color => "#ffffff" }, "[t] to transfer from storage"],
+         [text => { color => "#ffffff" }, "[p] to transfer from storage"],
       ]
    }
 }
@@ -1806,6 +1902,76 @@ sub layout {
          [text => { color => "#ffffff", font => "big" }, "Teleporter to $ent->{msg}"],
          [text => { color => "#ffffff" }, "[return] teleport"],
          [text => { color => "#ffffff" }, "[r] redirect teleporter"],
+      ]
+   }
+}
+
+
+package Games::Construder::Server::UI::ColorSelector;
+use Games::Construder::Server::World;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   (
+      return => "select"
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'select') {
+      $self->{pl}->{colorifyer} = $arg->{color};
+      warn "SET COLOr $arg->{color}\n";
+      $self->hide;
+   }
+}
+
+my @CLRMAP = (
+   [ 1,   1,   1   ],
+   [ 0.6, 0.6, 0.6 ],
+   [ 0.3, 0.3, 0.3 ],
+
+   [ 0,   0,   1   ],
+   [ 0,   1,   0   ],
+   [ 1,   0,   0   ],
+
+   [ 0.3, 0.3, 1   ],
+   [ 0.3, 1,   0.3 ],
+   [ 0.3, 1,   1   ],
+   [ 1,   0.3, 1   ],
+   [ 1,   1,   0.3 ],
+
+   [ 0.6, 0.6, 1   ],
+   [ 0.6, 1,   0.6 ],
+   [ 0.6, 1,   1   ],
+   [ 1,   0.6, 1   ],
+   [ 1,   1,   0.6 ],
+
+);
+
+sub layout {
+   my $nr = 0;
+   {
+      window => { pos => [ center => 'center' ] },
+      layout => [
+         box => { dir => "vert", border => { color => "#ffffff" } },
+         [text => { color => "#ffffff", font => "big" }, "Select color"],
+         map {
+            $nr++;
+            my $clr = "#" . join '', map {
+               sprintf "%02x", $_ * 255
+            } @$_;
+            [select_box => {
+               dir => "hor", align => "center", arg => "color", tag => ($nr - 1),
+               padding => 2, bgcolor => "#333333",
+               border => { color => "#555555", width => 2 },
+               select_border => { color => "#ffffff", width => 2 },
+             },
+               [text => { color => $clr }, "##"]
+            ]
+         } @CLRMAP
       ]
    }
 }

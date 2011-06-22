@@ -61,6 +61,7 @@ sub free_slots {
 sub space_for {
    my ($self, $type) = @_;
 
+   my ($type, $invid) = $self->split_invid ($type);
    my ($max_spc, $perm) = $Games::Construder::Server::RES->get_type_inventory_space ($type);
    my $fslots = $self->free_slots;
    warn "SPACEFOR $max_spc | $perm: $type, $fslots\n";
@@ -93,6 +94,7 @@ sub has_space_for {
 sub add {
    my ($self, $type, $cnt) = @_;
 
+   my ($type, $invid) = $self->split_invid ($type);
    my ($spc, $max) = $self->space_for ($type);
 
    my $obj = $Games::Construder::Server::RES->get_object_by_type ($type);

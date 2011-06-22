@@ -237,6 +237,10 @@ sub ia_construction_pad {
 
 sub in_pattern_storage {
    {
+      inv => {
+         ent => {},
+         mat => {},
+      },
    }
 }
 
