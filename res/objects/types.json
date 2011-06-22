@@ -220,13 +220,13 @@
      ],
      "model_cnt" : 10
    },
-   "Jammer" : {
-     "type" : 33,
-     "texture" : ["cat2.png", 448, 0, 64, 64],
-     "lore" : "The Jammer jams navigation signals of robots.",
-     "complexity" : 80,
-     "density" : 10,
-   },
+#   "Jammer" : {
+#     "type" : 33,
+#     "texture" : ["cat2.png", 448, 0, 64, 64],
+#     "lore" : "The Jammer jams navigation signals of robots.",
+#     "complexity" : 80,
+#     "density" : 10,
+#   },
    "Message Beacon" : {
      "type" : 34,
      "texture" : ["cat2.png", 256, 64, 64, 64],
@@ -338,13 +338,13 @@
      "model" : [2, 1, 23, 2, 12, 5, 18],
      "model_cnt" : 20,
    },
-   "EPM" : {
-      "type" : 43,
-      "model" : [2, 1, 10, 2, 30, 5, 10],
-      "complexity" : 35,
-      "density" : 17,
-      "lore" : "This is an EPM Device, which lets you destroy any drones within 6 blocks.",
-   },
+#   "EPM" : {
+#      "type" : 43,
+#      "model" : [2, 1, 10, 2, 30, 5, 10],
+#      "complexity" : 35,
+#      "density" : 17,
+#      "lore" : "This is an EPM Device, which lets you destroy any drones within 6 blocks.",
+#   },
    "Gold" : {
       "type" : 44,
       "texture" : ["cat2.png", 192, 192, 64, 64],
@@ -390,12 +390,12 @@
       "model_cnt" : 10,
    },
 
-   "Drone" : {
-     "type" : 50,
-     "texture" : ["cat2.png", 64, 128, 64, 64],
-     "lore" : "A building Drone. Usually only annoying, due to their bad programming they still teleport everyone who seems to got lost to their home.",
-      "untransformable" : true
-   },
+#   "Drone" : {
+#     "type" : 50,
+#     "texture" : ["cat2.png", 64, 128, 64, 64],
+#     "lore" : "A building Drone. Usually only annoying, due to their bad programming they still teleport everyone who seems to got lost to their home.",
+#      "untransformable" : true
+#   },
 
    "Soylent Blue" : {
       "type" : 60,
