@@ -58,7 +58,11 @@ sub new {
             cmd => "pos_action", pos => $pos,
             build_pos => $build_pos, action => $btn
          });
-      }
+      },
+      visibility_radius => sub {
+         my ($front, $radius) = @_;
+         $self->send_server ({ cmd => "visibility_radius", radius => $radius });
+      },
    );
 
    $self->connect ($ARGV[1] || localhost => $ARGV[2] || 9364);

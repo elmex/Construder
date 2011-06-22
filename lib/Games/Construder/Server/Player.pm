@@ -128,6 +128,8 @@ sub init {
    my ($self) = @_;
    $self->load;
    $self->save;
+   $self->set_vis_rad;
+
    my $wself = $self;
    weaken $wself;
    my $tick_time = time;
@@ -349,18 +351,25 @@ sub logout {
 
 my $world_c = 0;
 
-sub _visible_chunks {
-   my ($from, $chnk) = @_;
+sub set_vis_rad {
+   my ($self, $rad) = @_;
+   $self->{vis_rad} = $rad || $PL_VIS_RAD;
+}
+
+sub visible_chunks {
+   my ($self, $from, $chnk) = @_;
 
    my $plchnk = world_pos2chnkpos ($from);
    $chnk ||= $plchnk;
 
+   my $rad = $self->{vis_rad};
+
    my @c;
-   for my $dx (-$PL_VIS_RAD..$PL_VIS_RAD) {
-      for my $dy (-$PL_VIS_RAD..$PL_VIS_RAD) {
-         for my $dz (-$PL_VIS_RAD..$PL_VIS_RAD) {
+   for my $dx (-$rad..$rad) {
+      for my $dy (-$rad..$rad) {
+         for my $dz (-$rad..$rad) {
             my $cur = [$chnk->[0] + $dx, $chnk->[1] + $dy, $chnk->[2] + $dz];
-            next if vlength (vsub ($cur, $plchnk)) >= $PL_VIS_RAD;
+            next if vlength (vsub ($cur, $plchnk)) >= $rad;
             push @c, $cur;
          }
       }
@@ -399,7 +408,7 @@ sub update_pos {
    # send whats available for now
    my $last_vis = $self->{last_vis} || {};
    my $next_vis = {};
-   my @chunks   = _visible_chunks ($pos);
+   my @chunks   = $self->visible_chunks ($pos);
    my @new_chunks;
    for (@chunks) {
       my $id = world_pos2id ($_);
@@ -437,7 +446,7 @@ sub chunk_updated {
 
    my $plchnk = world_pos2chnkpos ($self->{data}->{pos});
    my $divvec = vsub ($chnk, $plchnk);
-   return if vlength ($divvec) >= $PL_VIS_RAD;
+   return if vlength ($divvec) >= $self->{vis_rad};
 
    $self->send_chunk ($chnk);
 }
@@ -447,7 +456,7 @@ sub send_visible_chunks {
 
    $self->send_client ({ cmd => "chunk_upd_start" });
 
-   my @chnks = _visible_chunks ($self->{data}->{pos});
+   my @chnks = $self->visible_chunks ($self->{data}->{pos});
    $self->send_chunk ($_) for @chnks;
 
    warn "done sending " . scalar (@chnks) . " visible chunks.\n";

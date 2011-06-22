@@ -863,7 +863,7 @@ sub layout {
 
    } elsif ($type eq 'sector') {
       $self->{nav_to_sector} = $pos;
-      delete $self->{nav_to_sector};
+      delete $self->{nav_to_pos};
    }
 
    my ($from, $to);

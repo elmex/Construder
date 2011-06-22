@@ -155,8 +155,8 @@ sub init_app {
    glFogfv_p (GL_FOG_COLOR, 0.15, 0.15, 0.15, 1);
    glFogf (GL_FOG_DENSITY, 0.45);
    glHint (GL_FOG_HINT, GL_FASTEST);
-   glFogf (GL_FOG_START, $FAR_PLANE - 20);
-   glFogf (GL_FOG_END,   $FAR_PLANE - 1);
+
+   $self->visibility_radius ($PL_VIS_RAD);
 
    glViewport (0, 0, $WIDTH, $HEIGHT);
 }
@@ -1189,6 +1189,10 @@ sub input_key_down : event_cb {
    } elsif ($name eq 'd') {
       $self->{movement}->{right} =
          $self->{movement}->{left} + 1;
+   } elsif ($name eq 'f5') {
+      $self->visibility_radius ($PL_VIS_RAD - 1);
+   } elsif ($name eq 'f6') {
+      $self->visibility_radius ($PL_VIS_RAD + 1);
    }
    $self->{change} = 1;
 }
@@ -1228,6 +1232,15 @@ sub input_mouse_button : event_cb {
 
 sub update_player_pos : event_cb {
    my ($self, $pos) = @_;
+}
+
+sub visibility_radius : event_cb {
+   my ($self, $radius) = @_;
+   $PL_VIS_RAD = $radius;
+   $FAR_PLANE = ($radius * 12) * 0.7;
+   glFogf (GL_FOG_START, $FAR_PLANE - 20);
+   glFogf (GL_FOG_END,   $FAR_PLANE - 1);
+   warn "RADIUS $PL_VIS_RAD\n";
 }
 
 =back
