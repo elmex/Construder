@@ -651,14 +651,14 @@ sub layout {
           [text => { color => "#ffffff", font => "big" }, $o->{name}],
           [box => { dir => "hor", align => "left" },
              [text => { align => "left", color => "#ffffff", font => "normal", wrap => 35 }, $o->{lore}],
-             [model => { align => "left", animated => 0, width => 90 }, $o->{type}],
+             [model => { align => "left", animated => 0, width => 80 }, $o->{type}],
              (@srcmat
                ? [box => { dir => "vert", align => "left" },
                   [text => { color => "#999999", font => "small", align => "center" },
                    "Build Pattern:\n"
                    . join ("\n", map { $_->[1] . "x " . $_->[0]->{name} } @srcmat)
                    . "\nYields " . ($o->{model_cnt} || 1) . " $o->{name}"],
-                  [model => { animated => 1, width => 90, align => "center" }, $o->{type}],
+                  [model => { animated => 1, width => 120, align => "center" }, $o->{type}],
                  ]
                : ()),
           ],
