@@ -1539,7 +1539,7 @@ sub layout {
    splice @top, 3;
 
    {
-      window => { pos => [ left => "center" ], sticky => 1, alpha => 0.5 },
+      window => { pos => [ left => "up", 0, 0.05 ], sticky => 1, alpha => 0.5 },
       layout => [
          box => { dir => "vert" },
          @top
