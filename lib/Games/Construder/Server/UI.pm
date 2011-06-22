@@ -653,7 +653,8 @@ sub layout {
                ? [box => { dir => "vert", align => "left" },
                   [text => { color => "#999999", font => "small", align => "center" },
                    "Build Pattern:\n"
-                   . join ("\n", map { $_->[1] . "x " . $_->[0]->{name} } @srcmat)],
+                   . join ("\n", map { $_->[1] . "x " . $_->[0]->{name} } @srcmat)
+                   . "\nYields " . ($o->{model_cnt} || 1) . " $o->{name}"],
                   [model => { animated => 1, width => 90, align => "center" }, $o->{type}],
                  ]
                : ()),
@@ -1516,10 +1517,13 @@ sub layout {
       window => { pos => [ left => "center" ], sticky => 1, alpha => 0.5 },
       layout => [
          box => { dir => "vert" },
-         [text => { color => "#888888", font => "small" }, "message beacons:"],
-         map {
-            [text => { color => "#ffff00" }, $_->[1]]
-         } @top
+         @top
+            ? (
+               [text => { color => "#888888", font => "small" }, "message beacons:"],
+               map {
+                  [text => { color => "#ffff00" }, $_->[1]]
+               } @top
+            ) : ()
       ]
    }
 }

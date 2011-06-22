@@ -206,8 +206,13 @@ sub ia_construction_pad {
 
                my $gen_cnt = $obj->{model_cnt} || 1;
 
+               my $cnt =
+                  $obj->{permanent}
+                     ? instance ($obj->{type})
+                     : $gen_cnt;
+
                my $add_cnt =
-                  $PL->{inv}->add ($obj->{type}, instance ($obj->{type}) || $gen_cnt);
+                  $PL->{inv}->add ($obj->{type}, $cnt);
                if ($add_cnt > 0) {
                   $PL->push_tick_change (score => $score);
                }

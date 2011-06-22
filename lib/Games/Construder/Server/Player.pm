@@ -134,6 +134,7 @@ sub init {
    weaken $wself;
    my $tick_time = time;
    my $msg_beacon_upd = 0;
+   my $save_tmr = 0;
 
    $self->{tick_timer} = AE::timer 0.25, 0.25, sub {
       my $cur = time;
@@ -141,6 +142,7 @@ sub init {
       $wself->player_tick ($cur - $tick_time);
       $tick_time = $cur;
       $msg_beacon_upd += $dt;
+      $save_tmr += $dt;
       $self->{data}->{time} += $dt;
       if ($msg_beacon_upd > 2)
          {
@@ -148,6 +150,12 @@ sub init {
             $self->check_message_beacons;
 
             $self->check_assignment_offers (2);
+         }
+
+      if ($save_tmr >= 30)
+         {
+            $save_tmr = 0;
+            $self->save;
          }
    };
 

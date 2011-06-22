@@ -41,6 +41,14 @@
      "lore" : "Not that sturdy metal, but quite light on the other hand.",
      "complexity" : 15,
      "density" : 25,
+     "model" : [3,
+        1, 21, 2, 10, 3, 21,
+        4, 10,        6, 10,
+        7, 21, 8, 10, 9, 21,
+              14, 10,
+              23, 21,
+     ],
+     "model_cnt" : 3
    },
    "Titan" : {
      "type" : 14,
@@ -167,6 +175,11 @@
       "lore" : "The hardest material you will find.",
       "complexity" : 25,
       "density" : 90,
+      "model" : [2,
+         1, 20, 2, 20, 3, 20, 4, 20,
+         5, 20, 6, 20, 7, 20, 8, 20,
+      ],
+      "model_cnt" : 1,
    },
    "Oilsmear" : {
       "type" : 28,
@@ -181,7 +194,7 @@
      "lore" : "The Minicell is the most basic and least powerful electrical power source.",
      "complexity" : 30,
      "density" : 10,
-     "model" : [2, 1, 10, 2, 13, 5, 18],
+     "model" : [2, 1, 10, 5, 18],
      "model_cnt" : 12,
    },
    "Pattern Storage" : {
@@ -260,7 +273,7 @@
      "lore" : "Much longer lasting than the Minicell, but is not much more powerful.",
      "complexity" : 45,
      "density" : 20,
-     "model" : [2, 1, 10, 2, 13, 3, 42, 5, 14],
+     "model" : [2, 1, 10, 3, 42, 5, 13],
      "model_cnt" : 12,
    },
    "Nuclearcell" : {

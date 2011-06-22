@@ -66,7 +66,7 @@ double clr_map[16][3] = {
 // BUT: VBOs help when only a part of the buffers are updated per frame!
 
 #define USE_VBO 1
-#define USE_SINGLE_BUFFER 0
+#define USE_SINGLE_BUFFER 1
 
 #define VERT_P_PRIM 6
 
@@ -111,7 +111,8 @@ void ctr_dyn_buf_free (ctr_dyn_buf *db)
 
 typedef struct _ctr_render_geom {
 #if USE_SINGLE_BUFFER
-  GLfloat  geom      [GEOM_SIZE];
+  ctr_dyn_buf db_geom;
+  GLfloat *geom;
 #else
   ctr_dyn_buf db_vertexes;
   ctr_dyn_buf db_colors;
@@ -182,6 +183,7 @@ void *ctr_render_new_geom ()
 #if USE_VBO
 
 #if USE_SINGLE_BUFFER
+      ctr_dyn_buf_init (&c->db_geom, (void **) &c->geom, 10, sizeof (GLfloat));
       glGenBuffers (1, &c->geom_buf);
 
       glBindBuffer (GL_ARRAY_BUFFER, c->geom_buf);
@@ -215,7 +217,7 @@ void *ctr_render_new_geom ()
 
   c->dl_dirty = 1;
 
-  printf ("geoms allocated: %d x %d (prealloc %d)\n", cgeom, sizeof (ctr_render_geom), geom_last_free);
+  //d// printf ("geoms allocated: %d x %d (prealloc %d)\n", cgeom, sizeof (ctr_render_geom), geom_last_free);
   return c;
 }
 
@@ -229,6 +231,7 @@ void ctr_render_free_geom (void *c)
       glDeleteLists (geom->dl, 1);
 #if USE_VBO
 # if USE_SINGLE_BUFFER
+      ctr_dyn_buf_free (&geom->db_geom);
       glDeleteBuffers (1, &geom->geom_buf);
 # else
       ctr_dyn_buf_free (&geom->db_vertexes);
@@ -304,7 +307,7 @@ void ctr_render_draw_geom (void *c)
   ctr_render_geom *geom = c;
 
 #if USE_VBO
-#if USE_SINGLE_BUFFER
+# if USE_SINGLE_BUFFER
   glBindBuffer (GL_ARRAY_BUFFER, geom->geom_buf);
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_COLOR_ARRAY);
@@ -312,7 +315,7 @@ void ctr_render_draw_geom (void *c)
   glVertexPointer   (3, GL_FLOAT, 8 * sizeof (GLfloat), 0);
   glColorPointer    (3, GL_FLOAT, 8 * sizeof (GLfloat), (void *) (3 * sizeof (GLfloat)));
   glTexCoordPointer (2, GL_FLOAT, 8 * sizeof (GLfloat), (void *) (6 * sizeof (GLfloat)));
-#else
+# else
   glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_verts);
   glEnableClientState(GL_VERTEX_ARRAY);
   glVertexPointer (3, GL_FLOAT, 0, 0);
@@ -324,7 +327,7 @@ void ctr_render_draw_geom (void *c)
   glBindBuffer (GL_ARRAY_BUFFER, geom->vbo_uvs);
   glEnableClientState(GL_TEXTURE_COORD_ARRAY);
   glTexCoordPointer (2, GL_FLOAT, 0, 0);
-#endif
+# endif
 
   glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, geom->vbo_vert_idxs);
   glDrawElements (GL_TRIANGLES, geom->vertex_idxs, GL_UNSIGNED_INT, 0);
@@ -353,7 +356,9 @@ ctr_render_add_face (unsigned int face, unsigned int type, unsigned short color,
   double *uv = &(oa->uv[0]);
 
   int h, j, k;
-#if !USE_SINGLE_BUFFER
+#if USE_SINGLE_BUFFER
+  ctr_dyn_buf_grow (&geom->db_geom, geom->geom_len + 12 * 3 + 6 * 2);
+#else
   ctr_dyn_buf_grow (&geom->db_vertexes, geom->vertexes_len + 6 * 3);
 #endif
   for (h = 0; h < 6; h++)
