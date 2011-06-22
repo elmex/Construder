@@ -66,14 +66,9 @@ double clr_map[16][3] = {
 // BUT: VBOs help when only a part of the buffers are updated per frame!
 
 #define USE_VBO 1
-#define USE_TRIANGLES 1
 #define USE_SINGLE_BUFFER 0
 
-#if USE_TRIANGLES
-#  define VERT_P_PRIM 6
-#else
-#  define VERT_P_PRIM 4
-#endif
+#define VERT_P_PRIM 6
 
 #define VERTEXES_SIZE (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * VERT_P_PRIM * 3)
 #define COLORS_SIZE VERTEXES_SIZE
@@ -81,13 +76,49 @@ double clr_map[16][3] = {
 #define IDX_SIZE (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * VERT_P_PRIM)
 #define GEOM_SIZE (VERTEXES_SIZE + COLORS_SIZE + UVS_SIZE)
 
+typedef struct _ctr_dyn_buf {
+    void **ptr;
+    unsigned int alloc;
+    unsigned int item;
+} ctr_dyn_buf;
+
+void ctr_dyn_buf_init (ctr_dyn_buf *db, void **ptr, unsigned int pa_items, unsigned int item_size)
+{
+  db->ptr = ptr;
+  *(db->ptr) = malloc (pa_items * item_size);
+  db->item = item_size;
+  db->alloc = pa_items;
+}
+
+void ctr_dyn_buf_grow (ctr_dyn_buf *db, unsigned int items)
+{
+  if (db->alloc >= items)
+    return;
+
+  items *= 2;
+
+  void *nb = malloc (items * db->item);
+  memcpy (nb, *(db->ptr), db->alloc * db->item);
+  free (*(db->ptr));
+  *(db->ptr) = nb;
+  db->alloc = items;
+}
+
+void ctr_dyn_buf_free (ctr_dyn_buf *db)
+{
+  free (*(db->ptr));
+}
+
 typedef struct _ctr_render_geom {
 #if USE_SINGLE_BUFFER
   GLfloat  geom      [GEOM_SIZE];
 #else
-  GLfloat  vertexes  [VERTEXES_SIZE];
-  GLfloat  colors    [COLORS_SIZE];
-  GLfloat  uvs       [UVS_SIZE];
+  ctr_dyn_buf db_vertexes;
+  ctr_dyn_buf db_colors;
+  ctr_dyn_buf db_uvs;
+  GLfloat *vertexes;
+  GLfloat *colors;
+  GLfloat *uvs;
 #endif
   GLuint    vertex_idx[IDX_SIZE];
   int       vertex_idxs;
@@ -122,7 +153,9 @@ void ctr_render_clear_geom (void *c)
 
 static int cgeom = 0;
 
-#define GEOM_PRE_ALLOC 20
+// FIXME: this should be dependend on the visible radisu, so we maybe want to change
+//        this value dynamically adaptively to the current usage.
+#define GEOM_PRE_ALLOC 150 // enought for radius of 3 (~93 visible chunks)
 static ctr_render_geom *geom_pre_alloc[GEOM_PRE_ALLOC];
 static int              geom_last_free = 0;
 
@@ -138,6 +171,7 @@ void *ctr_render_new_geom ()
   else
     {
       c = malloc (sizeof (ctr_render_geom));
+      cgeom++;
       memset (c, 0, sizeof (ctr_render_geom));
       c->dl = glGenLists (1);
 
@@ -153,6 +187,10 @@ void *ctr_render_new_geom ()
       glBindBuffer (GL_ARRAY_BUFFER, c->geom_buf);
       glBufferData(GL_ARRAY_BUFFER, GEOM_SIZE, NULL, GL_DYNAMIC_DRAW);
 #else
+      ctr_dyn_buf_init (&c->db_vertexes, (void **) &c->vertexes, 10, sizeof (GLfloat));
+      ctr_dyn_buf_init (&c->db_colors,   (void **) &c->colors,   10, sizeof (GLfloat));
+      ctr_dyn_buf_init (&c->db_uvs,      (void **) &c->uvs,      10, sizeof (GLfloat));
+
       glGenBuffers (1, &c->vbo_verts);
       glGenBuffers (1, &c->vbo_colors);
       glGenBuffers (1, &c->vbo_uvs);
@@ -177,7 +215,7 @@ void *ctr_render_new_geom ()
 
   c->dl_dirty = 1;
 
-  cgeom++;
+  printf ("geoms allocated: %d x %d (prealloc %d)\n", cgeom, sizeof (ctr_render_geom), geom_last_free);
   return c;
 }
 
@@ -193,6 +231,9 @@ void ctr_render_free_geom (void *c)
 # if USE_SINGLE_BUFFER
       glDeleteBuffers (1, &geom->geom_buf);
 # else
+      ctr_dyn_buf_free (&geom->db_vertexes);
+      ctr_dyn_buf_free (&geom->db_colors);
+      ctr_dyn_buf_free (&geom->db_uvs);
       glDeleteBuffers (1, &geom->vbo_verts);
       glDeleteBuffers (1, &geom->vbo_colors);
       glDeleteBuffers (1, &geom->vbo_uvs);
@@ -200,9 +241,8 @@ void ctr_render_free_geom (void *c)
       glDeleteBuffers (1, &geom->vbo_vert_idxs);
 #endif
       free (geom);
+      cgeom--;
     }
-
-  cgeom--;
 }
 
 void ctr_render_init ()
@@ -245,11 +285,7 @@ void ctr_render_compile_geom (void *c)
       glColorPointer    (3, GL_FLOAT, 0, geom->colors);
       glTexCoordPointer (2, GL_FLOAT, 0, geom->uvs);
 
-# if USE_TRIANGLES
       glDrawElements (GL_TRIANGLES, geom->vertex_idxs, GL_UNSIGNED_INT, geom->vertex_idx);
-# else
-      glDrawElements (GL_QUADS, geom->vertex_idxs, GL_UNSIGNED_INT, geom->vertex_idx);
-# endif
 
       glDisableClientState(GL_TEXTURE_COORD_ARRAY);
       glDisableClientState(GL_COLOR_ARRAY);
@@ -291,11 +327,7 @@ void ctr_render_draw_geom (void *c)
 #endif
 
   glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, geom->vbo_vert_idxs);
-# if USE_TRIANGLES
   glDrawElements (GL_TRIANGLES, geom->vertex_idxs, GL_UNSIGNED_INT, 0);
-# else
-  glDrawElements (GL_QUADS, geom->vertex_idxs, GL_UNSIGNED_INT, 0);
-# endif
 
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   glDisableClientState(GL_COLOR_ARRAY);
@@ -321,11 +353,14 @@ ctr_render_add_face (unsigned int face, unsigned int type, unsigned short color,
   double *uv = &(oa->uv[0]);
 
   int h, j, k;
-#if USE_TRIANGLES
+#if !USE_SINGLE_BUFFER
+  ctr_dyn_buf_grow (&geom->db_vertexes, geom->vertexes_len + 6 * 3);
+#endif
   for (h = 0; h < 6; h++)
     {
       double *vert = &(quad_vert[quad_vert_idx_tri[face][h]][0]);
-# if USE_SINGLE_BUFFER
+
+#if USE_SINGLE_BUFFER
       geom->geom[geom->geom_len++] = ((vert[0] + xoffs) * scale) + xsoffs;
       geom->geom[geom->geom_len++] = ((vert[1] + yoffs) * scale) + ysoffs;
       geom->geom[geom->geom_len++] = ((vert[2] + zoffs) * scale) + zsoffs;
@@ -351,7 +386,6 @@ ctr_render_add_face (unsigned int face, unsigned int type, unsigned short color,
           geom->geom[geom->geom_len++] = uv[1];
         }
 
-#  if USE_TRIANGLES
       if (h == 3)
         {
           geom->geom[geom->geom_len++] = uv[0];
@@ -369,11 +403,6 @@ ctr_render_add_face (unsigned int face, unsigned int type, unsigned short color,
           geom->geom[geom->geom_len++] = uv[2];
           geom->geom[geom->geom_len++] = uv[3];
         }
-#  else
-      geom->geom[geom->geom_len++] = uv[0];
-      geom->geom[geom->geom_len++] = uv[3];
-#  endif
-
 # else
       geom->vertexes[geom->vertexes_len++] = ((vert[0] + xoffs) * scale) + xsoffs;
       geom->vertexes[geom->vertexes_len++] = ((vert[1] + yoffs) * scale) + ysoffs;
@@ -383,27 +412,17 @@ ctr_render_add_face (unsigned int face, unsigned int type, unsigned short color,
       geom->vertex_idxs++;
     }
 
-#else
-  for (h = 0; h < 4; h++)
-    {
-      double *vert = &(quad_vert[quad_vert_idx[face][h]][0]);
-      geom->vertexes[geom->vertexes_len++] = ((vert[0] + xoffs) * scale) + xsoffs;
-      geom->vertexes[geom->vertexes_len++] = ((vert[1] + yoffs) * scale) + ysoffs;
-      geom->vertexes[geom->vertexes_len++] = ((vert[2] + zoffs) * scale) + zsoffs;
-      geom->vertex_idxs++;
-    }
-#endif
-
 #if !USE_SINGLE_BUFFER
+  ctr_dyn_buf_grow (&geom->db_colors, geom->colors_len + VERT_P_PRIM * 3);
+  ctr_dyn_buf_grow (&geom->db_uvs,    geom->uvs_len    + VERT_P_PRIM * 2);
+
   for (h = 0; h < VERT_P_PRIM; h++)
     {
       geom->colors[geom->colors_len++] = clr_map[(color & 0xF)][0] * light;
       geom->colors[geom->colors_len++] = clr_map[(color & 0xF)][1] * light;
       geom->colors[geom->colors_len++] = clr_map[(color & 0xF)][2] * light;
     }
-#endif
 
-#if !USE_SINGLE_BUFFER
   geom->uvs[geom->uvs_len++] = uv[2];
   geom->uvs[geom->uvs_len++] = uv[3];
 
@@ -413,7 +432,6 @@ ctr_render_add_face (unsigned int face, unsigned int type, unsigned short color,
   geom->uvs[geom->uvs_len++] = uv[0];
   geom->uvs[geom->uvs_len++] = uv[1];
 
-# if USE_TRIANGLES
   geom->uvs[geom->uvs_len++] = uv[0];
   geom->uvs[geom->uvs_len++] = uv[1];
 
@@ -422,10 +440,6 @@ ctr_render_add_face (unsigned int face, unsigned int type, unsigned short color,
 
   geom->uvs[geom->uvs_len++] = uv[2];
   geom->uvs[geom->uvs_len++] = uv[3];
-# else
-  geom->uvs[geom->uvs_len++] = uv[0];
-  geom->uvs[geom->uvs_len++] = uv[3];
-# endif
 
 #endif
 }
@@ -499,8 +513,8 @@ ctr_render_model (unsigned int type, double light, double xo, double yo, double 
 double ctr_cell_light (ctr_cell *c)
 {
   double light = (double) c->light / 15;
-  if (light < 0.08)
-    light = 0.08;
+  if (light < 0.1) // ambient light
+    light = 0.1;
   return light;
 }
 

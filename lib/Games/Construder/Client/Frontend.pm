@@ -218,19 +218,6 @@ sub _render_highlight {
    glPopMatrix;
 }
 
-sub build_chunk_arrays {
-   my ($self) = @_;
-   my @verts;
-
-   for my $dx (0..$Games::Construder::Client::World::CHNK_SIZE) {
-      for my $dy (0..$Games::Construder::Client::World::CHNK_SIZE) {
-         for my $dz (0..$Games::Construder::Client::World::CHNK_SIZE) {
-            push @verts, [$dx, $dy, $dz];
-         }
-      }
-   }
-}
-
 sub free_compiled_chunk {
    my ($self, $cx, $cy, $cz) = @_;
    my $l = delete $self->{compiled_chunks}->{$cx}->{$cy}->{$cz};
@@ -288,6 +275,7 @@ sub get_visible_chunks {
    for (my $i = 0; $i < @$chnks; $i += 3) {
       push @o, [$chnks->[$i], $chnks->[$i + 1], $chnks->[$i + 2]];
    }
+   #d#warn "visible chunks: " . scalar (@o) . "\n";
    return @o
 }
 
@@ -718,7 +706,6 @@ sub get_look_vector {
    return $self->{cached_look_vec};
 }
 
-# TODO: move this to XS, it's a real cpu eater!
 sub get_selected_box_pos {
    my ($self) = @_;
    my $t1 = time;
