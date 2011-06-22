@@ -2,7 +2,7 @@
    "Materialization" : {
      "type"            : 1,
      "texture"         : ["cat2.png", 128, 64, 64, 64],
-     "lore"            : "This is the whirl of materialization",
+     "lore"            : "This is the whirl of materialization, the colorful appearance is created by the nano bots at work.",
      "untransformable" : true,
    },
    "Stones" : {
@@ -118,7 +118,7 @@
    "Silver" : {
       "type" : 22,
       "texture" : ["cat2.png", 128, 192, 64, 64],
-      "lore" : "Silver is a useful raw material for lots of things.",
+      "lore" : "Silver is not as precious as Gold, but still useful for some applications.",
       "complexity" : 30,
       "density" : 38,
    },
@@ -177,7 +177,7 @@
    "Oilsmear" : {
       "type" : 28,
       "texture" : ["cat2.png", 320, 256, 64, 64],
-      "lore" : "Oil is a very useful chemical resource. You can make lots of stuff from it.",
+      "lore" : "Oil is a very useful chemical resource.",
       "complexity" : 30,
       "density" : 15,
    },
@@ -206,7 +206,7 @@
    "CPU" : {
      "type" : 32,
      "texture" : ["cat2.png", 384, 0, 64, 64],
-     "lore" : "A CPU is used in nearly any electronical device you will build.",
+     "lore" : "A CPU is used in nearly any advanced electronical device you will build.",
      "complexity" : 75,
      "density" : 20,
      "model" : [3,
@@ -269,7 +269,7 @@
    "Hydrogencell" : {
      "type" : 37,
      "texture" : ["cat2.png", 448, 64, 64, 64],
-     "lore" : "Much longer lasting than the Minicell, but is not much more powerful.",
+     "lore" : "If you need more power than a Minicell provides, your next option is the Hydrogencell.",
      "complexity" : 45,
      "density" : 20,
      "model" : [2, 1, 10, 3, 42, 5, 13],
@@ -278,7 +278,7 @@
    "Nuclearcell" : {
      "type" : 38,
      "texture" : ["cat2.png", 0, 256, 64, 64],
-     "lore" : "Very powerful energy generator, but doesn't last that long.",
+     "lore" : "A powerful energy generator, but not as powerful as a Fusioncell.",
      "complexity" : 60,
      "density" : 30,
      "model" : [3,
@@ -293,7 +293,7 @@
    "Fusioncell" : {
      "type" : 39,
      "texture" : ["cat2.png", 64, 256, 64, 64],
-     "lore" : "Very powerful energy generator, which lasts a fair amount of time.",
+     "lore" : "Probably the most powerful energy generator.",
      "complexity" : 65,
      "density" : 30,
      "model" : [3,
@@ -323,7 +323,7 @@
    "Safelight" : {
      "type" : 41,
      "texture" : ["cat2.png", 192, 256, 64, 64],
-     "lore" : "Quite dim light source, but it lasts a long time.",
+     "lore" : "Quite dim light source, but it's easy to build.",
      "complexity" : 25,
      "density" : 5,
      "model": [2, 1, 30, 2, 12, 5, 23],
@@ -348,7 +348,7 @@
    "Gold" : {
       "type" : 44,
       "texture" : ["cat2.png", 192, 192, 64, 64],
-      "lore" : "Gold, as precious as it is, it's required for almost any electronic circuit.",
+      "lore" : "Gold, as precious as it is, it's required for almost any electronic circuit that consists of a CPU.",
       "complexity" : 40,
       "density" : 33,
    },
@@ -400,7 +400,7 @@
    "Soylent Blue" : {
       "type" : 60,
       "texture" : ["cat2.png", 320, 128, 64, 64],
-      "lore" : "Your only source for nutrition. Lucky you have a generator handy that generates it for you.",
+      "lore" : "Your most tasty source for nutrition, besides Moss and Dirt.",
       "bio_energy" : 36,
       "complexity" : 35,
       "density" : 7,
@@ -409,7 +409,7 @@
    "Moss" : {
       "type" : 61,
       "texture" : ["cat2.png", 384, 128, 64, 64],
-      "lore" : "Moss, the main problem of this century. Much stuff is overgrown by moss. You can convert it to proteins.",
+      "lore" : "Moss, the main problem of this century. Much stuff is overgrown by moss...",
       "bio_energy" : 16,
       "complexity" : 15,
       "density" : 6,
