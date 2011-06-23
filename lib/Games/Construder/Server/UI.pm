@@ -234,7 +234,7 @@ sub layout {
          $border = "#ff0000";
       }
 
-      my ($cnt, $max) = $self->{pl}->{inv}->get_count ($invid);
+      my ($cnt) = $self->{pl}->{inv}->get_count ($invid);
       if ($invid =~ /:/ && $cnt == 0) {
          $slots->{selection}->[$i] = undef;
          $invid = undef;
@@ -251,7 +251,7 @@ sub layout {
                     color =>
                        (!defined ($cnt) || $cnt <= 0) ? "#990000" : "#999999",
                     align => "center" },
-          sprintf ("[%d] %d/%d", $i + 1, $cnt * 1, $max * 1)]
+          sprintf ("[%d] %d", $i + 1, $cnt * 1)]
       ]];
    }
 
@@ -611,7 +611,7 @@ sub handle_command {
 
    } elsif ($cmd eq 'discard') {
       $self->hide;
-      my ($cnt, $max) = $self->{pl}->{inv}->get_count ($invid);
+      my ($cnt) = $self->{pl}->{inv}->get_count ($invid);
       $self->new_ui (discard_material =>
          "Games::Construder::Server::UI::CountQuery",
          msg       => "Discard how many?",
@@ -632,7 +632,7 @@ sub layout {
 
    $self->{invid} = $type;
    my ($type, $invid) = $self->{pl}->{inv}->split_invid ($type);
-   my ($inv_cnt, $max) = $self->{pl}->{inv}->get_count ($invid);
+   my ($inv_cnt) = $self->{pl}->{inv}->get_count ($invid);
    warn "MATVOIEW $inv_cnt |$type,$invid\n";
 
    my $o =
@@ -715,9 +715,9 @@ sub build_grid {
          my $i = (shift @invids) || 1;
          my ($type, $i) = $inv->split_invid ($i);
          my $o = $Games::Construder::Server::RES->get_object_by_type ($type);
-         my ($cnt, $max) = $inv->get_count ($i);
-                    # invid, inv count, max inv, object info, shortcut
-         push @row, [$i, $cnt, $max, $o, shift @shortcuts];
+         my ($cnt) = $inv->get_count ($i);
+                    # invid, inv count, object info, shortcut
+         push @row, [$i, $cnt, $o, shift @shortcuts];
       }
       push @grid, \@row;
    }
@@ -731,7 +731,7 @@ sub commands {
 
    (
       return => "select",
-      map { $_->[4] => "short_" . $_->[0] }
+      map { $_->[3] => "short_" . $_->[0] }
          map { @$_ } @$grid
    )
 }
@@ -757,6 +757,15 @@ sub layout {
 
    $self->build_grid;
 
+   my $inv = $self->{pat_store};
+   my ($free, $max) = $inv->free_density;
+   my $cap = int (100 * (1 - ($free / $max)));
+
+   my $cap_clr =
+        $cap >= 90 ? "#ff0000"
+      : $cap >= 70 ? "#ffff00"
+      : "#00ff00";
+
    {
       window => {
          pos => [center => 'center'],
@@ -764,6 +773,8 @@ sub layout {
       layout => [
          box => { dir => "vert", border => { color => "#ffffff" } },
          [text => { font => "big", color => "#FFFFFF", align => "center" }, $self->{title}],
+         [text => { font => "big", color => $cap_clr, align => "center" },
+          "Used capacity: $cap%"],
          [text => { font => "small", color => "#888888", wrap => 40, align => "center" },
           "(Select a resource directly by [shortcut key] or [up]/[down] and hit [return].)"],
          [box => { },
@@ -779,11 +790,11 @@ sub layout {
                         aspect => 1
                       },
                         [text => { align => "center", color => "#ffffff" },
-                         $_->[1] ? $_->[1] . "/$_->[2]" : "0/0"],
+                         $_->[1] ? $_->[1] : "0"],
                         [model => { align => "center", width => 60 }, $_->[0]],
                         [text  => { font => "small", align => "center",
                                     color => "#ffffff", wrap => 10 },
-                         $_->[0] == 1 ? "<empty>" : "[$_->[4]] $_->[3]->{name}"]
+                         $_->[0] == 1 ? "<empty>" : "[$_->[3]] $_->[2]->{name}"]
                      ]
 
                   } @$_

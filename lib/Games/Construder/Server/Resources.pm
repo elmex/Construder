@@ -611,24 +611,9 @@ sub get_initial_inventory {
    $i
 }
 
-sub get_type_inventory_space {
-   my ($self, $type) = @_;
-
-   my $bal = $self->{world_gen}->{balancing};
-   my $max_carry = $bal->{max_inventory_space_per_type};
-   my $min_carry = $bal->{min_inventory_space_per_type};
-
-   my $obj = $self->get_object_by_type ($type);
-   $obj or return 0;
-   my $space;
-   if ($obj->{permanent}) {
-      $space = 1;
-   } else {
-      my $dens = $obj->{density} / 100;
-      $space = int (lerp ($min_carry, $max_carry, (1 - $dens)));
-      warn "invspace: $type => $dens | $space\n";
-   }
-   ($space, $obj->{permanent})
+sub get_inventory_max_dens {
+   my ($self) = @_;
+   $self->{world_gen}->{balancing}->{max_inventory_density}
 }
 
 sub get_type_dematerialize_values {

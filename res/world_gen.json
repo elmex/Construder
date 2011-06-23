@@ -24,8 +24,7 @@
       "max_construction_score" : 250,        # for most complex item
       "max_construction_clear_time" : 15,    # for most complex item
       "score_per_happyness"    : 10,         # 20 score points are 1 happyness
-      "max_inventory_space_per_type" : 80,   # max cnt of item in inv => should be much higher!
-      "min_inventory_space_per_type" : 5,    # min cnt of item in inv
+      "max_inventory_density"  : 30000,      # max sum of densities of items in inventory
       "player" : {
          "unhappy_rate" : 0.25,  # 0.25% per second
          "bio_unhappy"  : 0.84,  # he has 120 seconds to get happy
@@ -45,8 +44,9 @@
    },
    "initial_inventory" : {
       "mat" : {
-         "36" : 9,
-         "60" : 20,
+         "36" : 10,
+         "60" : 10,
+         "35" : 10,
       },
       "ent" : { },
    },

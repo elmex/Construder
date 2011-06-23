@@ -404,7 +404,8 @@
       "bio_energy" : 36,
       "complexity" : 35,
       "density" : 7,
-      "model" : [1, 1, 61],
+      "model" : [2, 1, 61, 2, 61, 3, 61, 4, 61],
+      "model_cnt" : 10
    },
    "Moss" : {
       "type" : 61,
