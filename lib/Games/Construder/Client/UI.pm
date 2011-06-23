@@ -139,17 +139,38 @@ sub layout_text {
 
    my $txt_w;
 
-   if ($wrap) {
+   if ($wrap > 0) { # word wrapping
       my @olines;
       for (@lines) {
-         my @words = split /\b/, $_;
+         my @words = split /\s+/, $_;
          my $line = "";
          while (@words) {
             if (length ($line) >= $wrap) {
                push @olines, $line;
                $line = "";
             }
-            $line .= (shift @words);
+            $line .= (shift @words) . " ";
+         }
+         push @olines, $line;
+      }
+      (@olines) = map { s/\s*$//; $_ } @olines;
+
+      my $max_w;
+      for (@olines) {
+         next if $_ eq '';
+         my ($w) = @{ SDL::TTF::size_utf8 ($font, $_) };
+         $max_w = $w if $max_w < $w;
+      }
+      $txt_w = $max_w;
+
+      (@lines) = @olines;
+
+   } elsif ($wrap < 0) { # character wrapping
+      $wrap = -$wrap;
+      my @olines;
+      for my $line (@lines) {
+         while (length ($line) > $wrap) {
+            push @olines, substr $line, 0, $wrap, "";
          }
          push @olines, $line;
       }

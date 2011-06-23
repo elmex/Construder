@@ -1770,7 +1770,7 @@ sub layout {
             multiline => {
                   font => 'normal', color => "#ffffff", arg => "page",
                   highlight => ["#111111", "#333333"],
-                  max_chars => 20, wrap => 20,
+                  max_chars => 20, wrap => -20,
                   height => 25,
             },
             ""
