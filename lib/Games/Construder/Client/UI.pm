@@ -134,7 +134,7 @@ sub layout_text {
       font => $font
    };
 
-   my @lines     = split /\n/, $text;
+   my @lines     = split /\n/, $text, -1;
    my $line_skip = SDL::TTF::font_line_skip ($font);
 
    my $txt_w;
@@ -142,18 +142,16 @@ sub layout_text {
    if ($wrap) {
       my @olines;
       for (@lines) {
-         my @words = split /\s+/, $_;
+         my @words = split /\b/, $_;
          my $line = "";
          while (@words) {
             if (length ($line) >= $wrap) {
                push @olines, $line;
                $line = "";
             }
-            $line .= (shift @words) . " ";
+            $line .= (shift @words);
          }
-         if (length ($line)) {
-            push @olines, $line;
-         }
+         push @olines, $line;
       }
       (@olines) = map { s/\s*$//; $_ } @olines;
 
@@ -248,8 +246,12 @@ sub setup_sizes {
       $attr->{inner_size} = [$mw, $mh];
       return $attr->{size};
 
-   } elsif ($type eq 'text' || $type eq 'entry' || $type eq 'range') {
-      if ($type eq 'entry' || $type eq 'range') {
+   } elsif ($type eq 'text' || $type eq 'entry' || $type eq 'range' || $type eq 'multiline') {
+      if ($type eq 'entry' || $type eq 'range' || $type eq 'multiline') {
+         if ($type eq 'multiline') {
+            $self->do_multiline ($el);
+            ($type, $attr, @childs) = @$el;
+         }
          $self->add_active ($el);
       }
 
@@ -377,6 +379,7 @@ sub draw_element {
 
             if ($_->[1]->{align} eq 'center') {
                $pos->[1] += ($isize->[1] - $size->[1]) / 2;
+
             } elsif ($_->[1]->{align} eq 'right') {
                $pos->[1] += $isize->[1] - $size->[1];
             }
@@ -394,6 +397,14 @@ sub draw_element {
          $self->draw_box (
             $offs, $attr->{size},
             ($self->{anim_state} ? $attr->{highlight}->[0] : $attr->{highlight}->[1]));
+      }
+      $self->draw_text ($offs, $attr->{layout}, $attr->{color});
+
+   } elsif ($type eq 'multiline') {
+      if ($self->{active_element} eq $el) {
+         $self->draw_box ($offs, $attr->{size}, $attr->{highlight}->[1]);
+      } else {
+         $self->draw_box ($offs, $attr->{size}, $attr->{highlight}->[0]);
       }
       $self->draw_text ($offs, $attr->{layout}, $attr->{color});
 
@@ -650,6 +661,86 @@ sub display {
    glPopMatrix;
 }
 
+sub do_multiline {
+   my ($self, $el, $key, $name, $unicode) = @_;
+
+   my $ml = ($el->[3]      ||= { text => $el->[2], l_offs => 0 });
+   my $c  = ($ml->{cursor} ||= []);
+
+   my (@lines) = split /\r?\n/, $ml->{text}, -1;
+
+   my $hdl = 0;
+
+   if ($name eq 'up') {
+      $c->[0]--;
+      $hdl = 1;
+   } elsif ($name eq 'down') {
+      $c->[0]++;
+      $hdl = 1;
+   } elsif ($name eq 'left') {
+      $c->[1]--;
+      $hdl = 1;
+   } elsif ($name eq 'right') {
+      $c->[1]++;
+      $hdl = 1;
+   } elsif ($name eq 'home') {
+      $c->[1] = 0;
+      $hdl = 1;
+   } elsif ($name eq 'end') {
+      $c->[1] = 99999;
+      $hdl = 1;
+   } elsif ($name eq 'backspace') {
+      if ($c->[1] > 0) {
+         substr $lines[$c->[0]], $c->[1] - 1, 1, '';
+         $c->[1]--;
+
+      } elsif ($c->[0] > 0) {
+         my $pl = length $lines[$c->[0] - 1];
+         $lines[$c->[0] - 1] .= splice @lines, $c->[0], 1, ();
+         $c->[0]--;
+         $c->[1] = $pl;
+      }
+      $hdl = 1;
+
+   } elsif ($name eq 'delete') {
+      if ($c->[1] == length ($lines[$c->[0]])) {
+         $lines[$c->[0]] .= splice @lines, $c->[0] + 1, 1, ();
+      } else {
+         substr $lines[$c->[0]], $c->[1], 1, '';
+      }
+      $hdl = 1;
+
+   } elsif ($name eq 'return') {
+      my $rest = substr $lines[$c->[0]], $c->[1];
+      $lines[$c->[0]] = substr $lines[$c->[0]], 0, $c->[1];
+      splice @lines, $c->[0] + 1, 0, $rest;
+      $c->[0]++;
+      $c->[1] = 0;
+      $hdl = 1;
+
+   } elsif ($unicode =~ /(\p{IsWord}|\p{IsSpace}|\p{IsPunct}|[[:punct:]])/) {
+      substr $lines[$c->[0]], $c->[1], 0, $unicode;
+      $c->[1]++;
+      $hdl = 1;
+   }
+
+   $c->[0] = 0 if $c->[0] < 0;
+   if (@lines) {
+      $c->[0] = (@lines - 1) if $c->[0] >= @lines;
+   } else {
+      $c->[0] = 0;
+   }
+
+   $c->[1] = 0 if $c->[1] < 0;
+   $c->[1] = length ($lines[$c->[0]]) if $c->[1] > length ($lines[$c->[0]]);
+
+   $ml->{text} = join "\n", @lines;
+   substr $lines[$c->[0]], $c->[1], 0, "|";
+   $el->[2] = join "\n", @lines;
+
+   $hdl
+}
+
 sub input_key_press : event_cb {
    my ($self, $key, $name, $unicode, $rhandled) = @_;
    warn "UI KP $key/$name/$unicode/\n";
@@ -660,7 +751,12 @@ sub input_key_press : event_cb {
    } elsif (defined $self->{active_element}) {
       my $el = $self->{active_element};
 
-      if ($el->[0] eq 'entry' && ($name eq 'backspace' || $name eq 'delete')) {
+      if ($el->[0] eq 'multiline' && $self->do_multiline ($el, $key, $name, $unicode)) {
+         $$rhandled = 1;
+         $self->update;
+         return;
+
+      } elsif ($el->[0] eq 'entry' && ($name eq 'backspace' || $name eq 'delete')) {
          chop $el->[2];
          $self->update;
          $$rhandled = 1;
@@ -719,7 +815,7 @@ sub input_key_press : event_cb {
                my @a;
                if ($_->[0] eq 'entry') {
                   (@a) = ($_->[1]->{arg} => $_->[2]);
-               } elsif ($_->[0] eq 'multiline_entry') {
+               } elsif ($_->[0] eq 'multiline') {
                   (@a) = ($_->[1]->{arg} => $_->[2]);
                } elsif ($_->[0] eq 'range') {
                   (@a) = ($_->[1]->{arg} => $_->[2]);

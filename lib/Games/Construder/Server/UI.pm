@@ -1756,9 +1756,11 @@ sub layout {
          box => { dir => "vert", border => { color => "#ffffff" } },
          [text => { color => "#ffffff" }, "Notebook:"],
          [
-            multiline_entry => {
+            multiline => {
                   font => 'normal', color => "#ffffff", arg => "page",
-                  highlight => ["#111111", "#333333"], max_chars => 9
+                  highlight => ["#111111", "#333333"],
+                  max_chars => 20, wrap => 20,
+                  height => 25,
             },
             "Test\n1\n2\n3"
          ],
