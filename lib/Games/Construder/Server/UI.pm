@@ -286,7 +286,7 @@ sub commands {
    $self->{cmd_need_select_boxes} = 1;
 
    (
-      f1  => "help",
+      f1  => "contact",
       f9  => "teleport_home",
       f12 => "exit_server",
       i   => "inventory",
@@ -316,8 +316,8 @@ sub handle_command {
       $self->show_ui ('navigation_programmer');
    } elsif ($cmd eq 'cheat') {
       $self->show_ui ('cheat');
-   } elsif ($cmd eq 'help') {
-      $pl->show_help;
+   } elsif ($cmd eq 'contact') {
+      $self->show_ui ('ship_transmission');
    } elsif ($cmd eq 'teleport_home') {
       $pl->teleport ([0, 0, 0]);
    } elsif ($cmd eq 'interact') {
@@ -1976,6 +1976,60 @@ sub layout {
          } @CLRMAP
       ]
    }
+}
+
+package Games::Construder::Server::UI::ShipTransmission;
+use Games::Construder::Server::World;
+
+use base qw/Games::Construder::Server::UI/;
+
+my @keys = qw/1 2 3 4 5 6 7 8 9 a b c d e/;
+
+sub commands {
+   my $i = 0;
+   (
+      map { $_ => "resp_" . ($i++) } @keys
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd) = @_;
+
+   if ($cmd =~ /resp_(\d+)/) {
+      $self->{node} = $self->{resp}->[$1]->[2];
+      $self->update;
+   }
+}
+
+sub layout {
+   my ($self) = @_;
+
+   my $inode = $self->{node}
+               || $Games::Construder::Server::RES->get_ship_tree_at ("gen_i");
+   $self->{node} = $inode;
+   my $i = 0;
+   my ($title, $text, @responses) = (
+      $inode->{title},
+      $inode->{text},
+      map { [$i++, @$_] } @{$inode->{childs}}
+   );
+
+   $self->{resp} = \@responses;
+
+   {
+      window => { pos => [ center => 'center' ] },
+      layout => [
+         box => { dir => "vert", border => { color => "#ffffff" } },
+         [text => { color => "#ffffff", font => "big" },
+          "Ship Interaction: $title"],
+         [text => { color => "#ffffff", font => "normal", wrap => 45, align => "center" }, $text],
+         map {
+            [text => { color => "#ffffff", font => "normal" },
+             "[$keys[$_->[0]]] $_->[1]"],
+         } @responses
+      ]
+   }
+
 }
 
 =back

@@ -96,6 +96,40 @@ sub load_region_file {
    $self->{region_cmds} = _get_file ("res/region_noise.cmds");
 }
 
+sub construct_ship_query {
+   my ($self) = @_;
+   my $shpdb = $self->{txt_db}->{ship};
+   print "TEXT TREE FROM: " . JSON->new->pretty->encode ($shpdb) . "\n";
+
+   my %nodes;
+
+   for (keys %$shpdb) {
+      my $con = delete $shpdb->{$_}->{content};
+      my ($l, $r) = split /\n/, $con, 2;
+      $nodes{$_} = {
+         title => $l,
+         text  => $r,
+      };
+   }
+
+   for my $k (keys %$shpdb) {
+      for (keys %{$shpdb->{$k}}) {
+         push @{$nodes{$k}->{childs}}, [
+            $shpdb->{$k}->{$_},
+            $nodes{$_}
+         ];
+      }
+   }
+
+   print "TEXT TREE: " . JSON->new->pretty->encode (\%nodes) . "\n";
+   $self->{ship_tree} = \%nodes;
+}
+
+sub get_ship_tree_at {
+   my ($self, $key) = @_;
+   $self->{ship_tree}->{$key}
+}
+
 sub load_text_db {
    my ($self) = @_;
    my $txt = _get_file ("res/text.db");
@@ -108,7 +142,7 @@ sub load_text_db {
          my $keys = $1;
 
          my $txt = $2;
-         $txt =~ s/\r?\n/ /sg;
+         $txt =~ s/(?<!\n)\r?\n/ /sg;
 
          for my $k (split /\r?\n/, $keys) {
             my ($dummy, @keys) = split /:/, $k;
@@ -123,6 +157,8 @@ sub load_text_db {
    }
 
    $self->{txt_db} = $db;
+
+   $self->construct_ship_query;
 }
 
 sub load_objects {

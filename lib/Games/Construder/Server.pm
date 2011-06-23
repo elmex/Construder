@@ -200,6 +200,13 @@ sub handle_player_packet : event_cb {
 sub login {
    my ($self, $cid, $name) = @_;
 
+   if (grep { $_->{name} eq $name } values %{$self->{players}}) {
+      $self->send_client ($cid, {
+         cmd => "msg", msg => "Couldn't login as '$name', already logged in!"
+      });
+      return;
+   }
+
    my $pl = $self->{players}->{$cid}
       = Games::Construder::Server::Player->new (
            cid => $cid, name => $name);

@@ -180,6 +180,7 @@ sub init {
    $self->new_ui (msg_beacon_list => "Games::Construder::Server::UI::MessageBeaconList");
    $self->new_ui (teleporter    => "Games::Construder::Server::UI::Teleporter");
    $self->new_ui (color_select  => "Games::Construder::Server::UI::ColorSelector");
+   $self->new_ui (ship_transmission => "Games::Construder::Server::UI::ShipTransmission");
 
    $self->{inv} =
       Games::Construder::Server::PatStorHandle->new (data => $self->{data}, slot_cnt => $PL_MAX_INV);

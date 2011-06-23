@@ -211,6 +211,9 @@ sub handle_packet : event_cb {
    } elsif ($hdr->{cmd} eq 'chunk_upd_done') {
       delete $self->{in_chunk_upd};
       $self->{front}->update_chunks (delete $self->{upd_chunks});
+
+   } elsif ($hdr->{cmd} eq 'msg') {
+      $self->{front}->msg ("Server: " . $hdr->{msg});
    }
 }
 

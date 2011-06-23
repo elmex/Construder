@@ -66,3 +66,19 @@ transformer will do it's job or complain if the pattern is not recognized.
 Teleporters can bring you instantly from one place to another in the Construct.
 You can direct a teleporter to the position of any synchronized message beacon
 and travel there at free will by invoking the teleporter.
+.
+:ship:gen_i:content
+Generic Inquiry
+
+... Hello, here generation ship Anthymarsi 1.
+
+What is your inquiry?
+.
+:ship:gen_i:where_am_i
+Where am I?
+.
+:ship:where_am_i:content
+Where you are?
+
+You are in "The Construct".
+.
