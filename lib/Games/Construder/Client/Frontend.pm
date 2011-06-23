@@ -71,7 +71,7 @@ sub new {
 sub init_physics {
    my ($self) = @_;
 
-   $self->{ghost_mode} = 1;
+   $self->{ghost_mode} = 0;
 
    $self->{phys_obj}->{player} = {
       pos => [5.5, 3.5, 5.5],#-25, -50, -25),
