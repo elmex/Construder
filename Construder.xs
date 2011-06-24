@@ -576,7 +576,7 @@ AV *ctr_world_get_pattern (int x, int y, int z, int mutate)
 
     // find out how large the floor is
     int dim;
-    for (dim = 4; dim >= 1; dim--)
+    for (dim = 5; dim >= 1; dim--)
       {
         int no_floor = 0;
 

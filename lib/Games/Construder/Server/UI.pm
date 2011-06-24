@@ -652,7 +652,7 @@ sub layout {
           [box => { dir => "hor", align => "left" },
              [text => { align => "left", color => "#ffffff", font => "normal", wrap => 35 }, $o->{lore}],
              [model => { align => "left", animated => 0, width => 80 }, $o->{type}],
-             (@srcmat
+             (@srcmat && $o->{model_cnt} > 0
                ? [box => { dir => "vert", align => "left" },
                   [text => { color => "#999999", font => "small", align => "center" },
                    "Build Pattern:\n"
@@ -838,11 +838,10 @@ sub handle_command {
 
    if ($cmd eq 'cheat') {
       my $t = $arg->{type};
-      my ($spc, $max) =
-         $self->{pl}->{inv}->space_for ($t);
+      my $spc = $self->{pl}->{inv}->space_for ($t);
       $self->{pl}->{data}->{score} = 0;
       $self->{pl}->update_score;
-      warn "CHEAT: $t : $spc | $max\n";
+      warn "CHEAT: $t : $spc\n";
       $self->{pl}->{inv}->add ($t, $spc);
       $self->hide;
    }
@@ -1770,7 +1769,7 @@ sub layout {
             multiline => {
                   font => 'normal', color => "#ffffff", arg => "page",
                   highlight => ["#111111", "#333333"],
-                  max_chars => 20, wrap => -20,
+                  max_chars => 32, wrap => -32,
                   height => 25,
             },
             ""

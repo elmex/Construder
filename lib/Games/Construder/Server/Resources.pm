@@ -493,37 +493,7 @@ sub get_object_by_pattern {
       my ($nr, $type) = (shift @a, shift @a);
       $pat[$nr] = $type;
    }
-# z 0-3 * x 0-3
-#   x 0 1 2 3
-# z
-# 0   X Y
-# 1       Z
-# 2         L
-# 3   A
 
-# x 0-3 * z 3-0
-#   x 0 1 2 3
-# z
-# 0       L
-# 1     Z
-# 2   Y
-# 3   X     A
-
-# z 3-0 * x 3-0
-#   x 0 1 2 3
-# z
-# 0         A
-# 1   L
-# 2     Z
-# 3       Y X
-
-# x 3-0 * z 3-0
-#   x 0 1 2 3
-# z
-# 0   A     X
-# 1         Y
-# 2       Z
-# 3     L
    my $matrix = [];
    my $blk = 1;
    for (my $y = 0; $y < $dim; $y++) {
@@ -588,6 +558,7 @@ sub get_object_by_pattern {
    warn "Patterns: " . join ("\n", @str_coll) . "\n";
 
    for my $o (values %{$self->{object_res}}) {
+      next if $o->{model_cnt} == 0;
       warn "SEARCH $o->{model_str} <=> @str_coll\n";
       if (grep { $o->{model_str} eq $_ } @str_coll) {
          warn "Found Model $o->{model_str}! => $o->{type}\n";

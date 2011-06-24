@@ -34,6 +34,7 @@
      "complexity" : 7,
      "density" : 20,
      "model" : [1, 1, 28],
+     "model_cnt" : 1
    },
    "Aluminum" : {
      "type" : 13,
@@ -201,7 +202,8 @@
          4, 42, 5, 38, 6, 42,
                 8, 42,
                14, 32,
-     ]
+     ],
+     "model_cnt" : 1
    },
    "CPU" : {
      "type" : 32,
@@ -415,6 +417,7 @@
       "complexity" : 15,
       "density" : 6,
       "model" : [2, 1, 19, 2, 19, 3, 19, 4, 19],
+      "model_cnt" : 1
    },
    "Teleporter" : {
       "type" : 62,
@@ -445,30 +448,11 @@
      "model" : [1, 1, 20],
      "model_cnt" : 8,
    },
-   #"Test" : {
-   #   "type" : 801,
-   #   "complexity" : 50,
-   #   "density" : 50,
-   #   "model" : [2, 1, 44, 8, 44],
-   #},
-   #"Test2" : {
-   #   "type" : 802,
-   #   "complexity" : 60,
-   #   "density" : 45,
-   #   "model" : [2, 1, 801, 8, 801],
-   #},
-   #"Test3" : {
-   #   "type" : 803,
-   #   "complexity" : 65,
-   #   "density" : 40,
-   #   "model" : [2, 1, 801, 2, 801, 3, 801, 4, 801, 5, 2, 6, 802],
-   #}
-
-   #"gravity_pusher" : {
-   #   "type" : 90,
-   #   # dimensions work by counting the lower plane, then walk up Y
-   #   "model" : [2, 1, 10, 2, 10, 3, 11, 4, 12],
-   #   "lore" : "Some advanced tech, that pushes you from the floor",
-   #   "untransformable" : true
-   #},
+   "Trophy" : {
+      "type" : 500,
+      "model" : [5,8,44,12,44,13,44,14,44,18,44,38,44,57,44,58,44,59,44,62,44,64,44,67,44,68,44,69,44,78,44,82,44,84,44,86,44,90,44,92,44,94,44,98,44,107,44,109,44,117,44,119,44],
+      "model_cnt" : 0,
+      "density" : 30,
+      "complexity" : 55,
+   },
 }

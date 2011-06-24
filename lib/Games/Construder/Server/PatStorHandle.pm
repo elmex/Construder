@@ -74,7 +74,6 @@ sub free_density {
       $sum += $o->{density} * 1;
    }
    my $free_dens = $max_dens - $sum;
-   $free_dens -= $sum;
    $free_dens = 0 if $free_dens < 0;
    ($free_dens, $max_dens)
 }
@@ -87,16 +86,24 @@ sub space_for {
    my ($fdens) = $self->free_density;
    my $o = $Games::Construder::Server::RES->get_object_by_type ($type);
 
-   my $cnt = not ($o) || $o->{density} <= 0 ? 0 : int ($fdens / $o->{density});
+   my $cnt = (not ($o) || $o->{density} <= 0) ? 0 : int ($fdens / $o->{density});
    warn "SPACEFOR $fdens | $cnt: $type, $fslots\n";
+   if ($o->{permanent}) {
+      $cnt = 0 if $fslots <= 0;
+      $cnt = 1; # hmmm
+   } else {
+      if ($fslots <= 0 && not exists $self->{data}->{inv}->{mat}->{$type}) {
+         $cnt = 0;
+      }
+   }
 
-   return ($cnt, $fslots < $cnt ? $fslots : $cnt)
+   $cnt
 }
 
 sub has_space_for {
    my ($self, $type, $cnt) = @_;
    $cnt ||= 1;
-   my ($spc, $max) = $self->space_for ($type);
+   my $spc = $self->space_for ($type);
    $spc >= $cnt
 }
 
@@ -104,7 +111,7 @@ sub add {
    my ($self, $type, $cnt) = @_;
 
    my ($type, $invid) = $self->split_invid ($type);
-   my ($spc, $max) = $self->space_for ($type);
+   my $spc = $self->space_for ($type);
 
    my $obj = $Games::Construder::Server::RES->get_object_by_type ($type);
    if ($obj->{permanent}) {
@@ -189,14 +196,14 @@ sub get_count { # should be renamed to count() and also count permanent types ev
    if ($invid =~ /:/) {
       my $ent = $self->{data}->{inv}->{ent}->{$invid};
       if ($ent) {
-         return (1, 1);
+         return 1
       } else {
-         return ();
+         return undef;
       }
    } else {
-      my ($spc, $max) = $self->space_for ($invid);
+      my $spc = $self->space_for ($invid);
       my $cnt = $self->{data}->{inv}->{mat}->{$invid};
-      return ($cnt, $max);
+      return $cnt;
    }
 }
 

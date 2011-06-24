@@ -204,7 +204,7 @@ sub ia_construction_pad {
                   1
                });
 
-               my $gen_cnt = $obj->{model_cnt} || 1;
+               my $gen_cnt = $obj->{model_cnt} || 1; # || 1 shouldn't happen... but u never know
 
                my $cnt =
                   $obj->{permanent}
