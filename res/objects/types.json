@@ -222,13 +222,18 @@
      ],
      "model_cnt" : 10
    },
-#   "Jammer" : {
-#     "type" : 33,
-#     "texture" : ["cat2.png", 448, 0, 64, 64],
-#     "lore" : "The Jammer jams navigation signals of robots.",
-#     "complexity" : 80,
-#     "density" : 10,
-#   },
+   "Jammer" : {
+     "type" : 33,
+     "texture" : ["cat2.png", 448, 0, 64, 64],
+     "lore" : "This is a jamming device. It jams your bio signature from the drones in the construct, which may cause harm to you.",
+     "complexity" : 80,
+     "density" : 10,
+     "model" : [3,
+        1, 11, 3, 11, 5, 42, 7, 11, 9, 11,
+        14, 30,
+        20, 42, 22, 42, 23, 11, 24, 42, 26, 42],
+     "model_cnt" : 2
+   },
    "Message Beacon" : {
      "type" : 34,
      "texture" : ["cat2.png", 256, 64, 64, 64],

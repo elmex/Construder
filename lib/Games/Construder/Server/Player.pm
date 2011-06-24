@@ -140,10 +140,21 @@ sub init {
    $self->{tick_timer} = AE::timer 0.25, 0.25, sub {
       my $cur = time;
       my $dt = $cur - $tick_time;
-      $wself->player_tick ($cur - $tick_time);
-      $tick_time = $cur;
+
       $msg_beacon_upd += $dt;
-      $save_tmr += $dt;
+      if ($msg_beacon_upd > 2)
+         {
+            $msg_beacon_upd = 0;
+            $self->check_message_beacons;
+
+            $self->check_assignment_offers (2);
+
+            $self->check_signal_jamming;
+         }
+
+      $wself->player_tick ($dt);
+      $tick_time = $cur;
+      $save_tmr       += $dt;
       $self->{data}->{time} += $dt;
 
       if (defined $self->{data}->{next_encounter}) {
@@ -153,14 +164,6 @@ sub init {
             $self->create_encounter;
          }
       }
-
-      if ($msg_beacon_upd > 2)
-         {
-            $msg_beacon_upd = 0;
-            $self->check_message_beacons;
-
-            $self->check_assignment_offers (2);
-         }
 
       if ($save_tmr >= 30)
          {
@@ -1019,6 +1022,16 @@ sub create_encounter {
             50, int ($dist * 1.5 * (3 + rand (5))));
       return 1;
    });
+}
+
+sub check_signal_jamming {
+   my ($self) = @_;
+   my $jammers =
+      Games::Construder::World::get_types_in_cube (
+         @{vsubd ($self->get_pos_normalized, 15, 15, 15)}, 30, 33);
+
+   my $pre = $self->{data}->{signal_jammed};
+   $self->{data}->{signal_jammed} = @$jammers ? 1 : 0;
 }
 
 sub send_client : event_cb {

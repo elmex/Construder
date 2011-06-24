@@ -351,9 +351,11 @@ sub tmr_drone {
       return;
    }
 
-   my @pl =
+   my (@pl) =
       sort {
          $a->[1] <=> $b->[1]
+      } grep {
+         not $_->[0]->{data}->{signal_jammed}
       } $Games::Construder::Server::World::SRV->players_near_pos ($pos);
 
    return unless @pl;

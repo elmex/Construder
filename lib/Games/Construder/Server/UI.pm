@@ -407,6 +407,13 @@ sub layout {
               sprintf ("%d%%", $self->{pl}->{data}->{bio})],
            [text => { align => "center", color => "#888888" }, "bio"],
         ],
+        [box => { },
+           [text => { align => "right",
+                      color => $self->{pl}->{data}->{signal_jammed}
+                         ? "#00ff00" : "#ff0000" },
+              $self->{pl}->{data}->{signal_jammed} ? "Jammed" : "Clear"],
+           [text => { align => "center", color => "#888888" }, " signal"],
+        ],
       ],
    }
 }
