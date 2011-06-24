@@ -75,6 +75,7 @@ sub _initialize_player {
       score     => 0,
       pos       => [0, 0, 0],
       inv       => $inv,
+      next_encounter => 10 * 60, # 10 minutes newbie safety
       slots => {
          selection => [],
          selected  => 0
@@ -144,6 +145,15 @@ sub init {
       $msg_beacon_upd += $dt;
       $save_tmr += $dt;
       $self->{data}->{time} += $dt;
+
+      if (defined $self->{data}->{next_encounter}) {
+         $self->{data}->{next_encounter} -= $dt;
+         #d# warn "next encounter in $self->{data}->{next_encounter} seconds!\n";
+         if ($self->{data}->{next_encounter} <= 0) {
+            $self->create_encounter;
+         }
+      }
+
       if ($msg_beacon_upd > 2)
          {
             $msg_beacon_upd = 0;
@@ -998,6 +1008,9 @@ sub create_encounter {
    viadd ($pos, $self->{data}->{pos});
    my $new_pos = world_find_free_spot ($pos, 0);
 
+   # give him some peace for at least 4 minutes
+   $self->{data}->{next_encounter} = (4 + rand (10)) * 60;
+
    world_mutate_at ($new_pos, sub {
       my ($data) = @_;
       $data->[0] = 50;
@@ -1021,6 +1034,16 @@ sub teleport {
       unless ($new_pos) {
          $new_pos = world_find_free_spot ($pos, 0); # without floor on second try
       }
+
+      unless (@$new_pos) {
+         warn "new position for player at @$pos had no free spot! moving him up!\n";
+         viaddd ($pos, 0, 10, 0);
+         my $t; $t = AE::timer 0, 0, sub {
+            $self->teleport ($pos);
+            undef $t;
+         };
+      }
+
       $new_pos = vaddd ($new_pos, 0.5, 0.5, 0.5);
       $self->send_client ({ cmd => "place_player", pos => $new_pos });
    });

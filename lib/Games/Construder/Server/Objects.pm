@@ -287,22 +287,29 @@ sub in_drone {
    }
 }
 
+sub drone_kill {
+   my ($pos, $entity) = @_;
+   world_mutate_at ($pos, sub {
+      my ($data) = @_;
+      #d#warn "CHECK AT @$pos: $data->[0]\n";
+      if ($data->[0] == 50) {
+         warn "DRONE $entity DIED at @$pos\n";
+         $data->[0] = 0;
+         return 1;
+      } else {
+         warn "ERROR: DRONE $entity should have been at @$pos and dead. But couldn't find it!\n";
+      }
+      return 0;
+   });
+}
+
 sub tmr_drone {
    my ($pos, $entity, $type, $dt) = @_;
 
    #d#warn "DRONE $entity LIFE $entity->{lifetime} from $entity->{orig_lifetime} at @$pos\n";
    $entity->{lifetime}--;
    if ($entity->{lifetime} <= 0) {
-      warn "DRONE $entity DIED at @$pos\n";
-      world_mutate_at ($pos, sub {
-         my ($data) = @_;
-         #d#warn "CHECK AT @$pos: $data->[0]\n";
-         if ($data->[0] == 50) {
-            $data->[0] = 0;
-            return 1;
-         }
-         return 0;
-      });
+      drone_kill ($pos, $entity);
       return;
    }
 
@@ -353,6 +360,16 @@ sub tmr_drone {
    my $pl = $pl[0]->[0];
    my $new_pos = $pos;
 
+   if (vlength (vsub ($pl->{data}->{pos}, $new_pos)) <= 2) {
+      # throw player from 4 upto 14 sectors
+      my $dist = int ((4 * 60) + rand (10 * 60));
+      my $new_pl_pos = vsmul (vnorm (vrand ()), $dist);
+      $pl->teleport ($new_pl_pos);
+      $pl->msg (1, "A Drone displaced you by $dist.");
+      drone_kill ($pos, $entity);
+      return;
+   }
+
    my $empty =
       Games::Construder::World::get_types_in_cube (
          @{vsubd ($new_pos, 1, 1, 1)}, 3, 0);
@@ -398,9 +415,9 @@ sub tmr_drone {
 
    my $lightness = $entity->{lifetime} / $entity->{orig_lifetime};
 
-   $pl->highlight ($new_pos, 3 * $dt, [$lightness, $lightness, $lightness]);
+   $pl->highlight ($new_pos, 1.5 * $dt, [$lightness, $lightness, $lightness]);
    $entity->{in_transition} = 1;
-   $entity->{transition_time} = 3 * $dt;
+   $entity->{transition_time} = 1.5 * $dt;
    $entity->{transistion_dest} = $new_pos;
    $pl->msg (1, "Proximity alert!\nDistance " . int ($min->[0]));
 }
