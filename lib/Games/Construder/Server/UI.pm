@@ -1754,26 +1754,41 @@ use Games::Construder::Server::World;
 use base qw/Games::Construder::Server::UI/;
 
 sub commands {
+   ( f4 => "clear" )
 }
 
 sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'save_text') {
+      $self->{pl}->{data}->{notebook}->{main} = $arg->{page};
+
+   } elsif ($cmd eq 'clear') {
+      $self->{pl}->{data}->{notebook}->{main} = "";
+      $self->show;
+   }
 }
 
 sub layout {
+   my ($self) = @_;
+   my $txt = $self->{pl}->{data}->{notebook}->{main};
    {
       window => { pos => [ center => 'center' ] },
       layout => [
          box => { dir => "vert", border => { color => "#ffffff" } },
          [text => { color => "#ffffff" }, "Notebook:"],
+         [box => { dir => "hor", padding => 3 },
          [
             multiline => {
                   font => 'normal', color => "#ffffff", arg => "page",
-                  highlight => ["#111111", "#333333"],
+                  highlight => ["#111111", "#333333", "#663333"],
                   max_chars => 32, wrap => -32,
                   height => 25,
             },
-            ""
-         ],
+            $txt
+         ]],
+         [text => { color => "#888888", font => "small" },
+          "[f4] clears all text"],
       ]
    }
 }

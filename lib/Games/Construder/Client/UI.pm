@@ -423,7 +423,11 @@ sub draw_element {
 
    } elsif ($type eq 'multiline') {
       if ($self->{active_element} eq $el) {
-         $self->draw_box ($offs, $attr->{size}, $attr->{highlight}->[1]);
+         if ($attr->{active_input}) {
+            $self->draw_box ($offs, $attr->{size}, $attr->{highlight}->[2]);
+         } else {
+            $self->draw_box ($offs, $attr->{size}, $attr->{highlight}->[1]);
+         }
       } else {
          $self->draw_box ($offs, $attr->{size}, $attr->{highlight}->[0]);
       }
@@ -766,13 +770,28 @@ sub input_key_press : event_cb {
    my ($self, $key, $name, $unicode, $rhandled) = @_;
    warn "UI KP $key/$name/$unicode/\n";
    my $cmd;
-   if ($name eq 'escape') {
+
+   my $el = $self->{active_element};
+   if ($el && $el->[1]->{active_input} && $name eq 'escape') {
+      warn "DEACV\n";
+      $el->[1]->{active_input} = 0;
+      $$rhandled = 1;
+      $self->update;
+      $cmd = "save_text";
+
+   } elsif ($name eq 'escape') {
       $cmd = "cancel" unless $self->{sticky};
 
    } elsif (defined $self->{active_element}) {
       my $el = $self->{active_element};
 
-      if ($el->[0] eq 'multiline' && $self->do_multiline ($el, $key, $name, $unicode)) {
+      if ($el->[0] eq 'multiline' && $el->[1]->{active_input} && $self->do_multiline ($el, $key, $name, $unicode)) {
+         $$rhandled = 1;
+         $self->update;
+         return;
+
+      } elsif ($el->[0] eq 'multiline' && not ($el->[1]->{active_input}) && $name eq 'return') {
+         $el->[1]->{active_input} = 1;
          $$rhandled = 1;
          $self->update;
          return;
@@ -837,7 +856,7 @@ sub input_key_press : event_cb {
                if ($_->[0] eq 'entry') {
                   (@a) = ($_->[1]->{arg} => $_->[2]);
                } elsif ($_->[0] eq 'multiline') {
-                  (@a) = ($_->[1]->{arg} => $_->[2]);
+                  (@a) = ($_->[1]->{arg} => $_->[3]->{text});
                } elsif ($_->[0] eq 'range') {
                   (@a) = ($_->[1]->{arg} => $_->[2]);
                }
