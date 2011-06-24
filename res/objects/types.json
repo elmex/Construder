@@ -392,12 +392,12 @@
       "model_cnt" : 10,
    },
 
-#   "Drone" : {
-#     "type" : 50,
-#     "texture" : ["cat2.png", 64, 128, 64, 64],
-#     "lore" : "A building Drone. Usually only annoying, due to their bad programming they still teleport everyone who seems to got lost to their home.",
-#      "untransformable" : true
-#   },
+   "Drone" : {
+     "type" : 50,
+     "texture" : ["cat2.png", 64, 128, 64, 64],
+     "lore" : "A building Drone. Usually only annoying, due to their bad programming they still teleport everyone who seems to got lost away.",
+      "untransformable" : true
+   },
 
    "Soylent Blue" : {
       "type" : 60,

@@ -300,6 +300,7 @@ sub commands {
       o   => "notebook",
       b   => "material_handbook",
       r   => "color_select",
+      l   => "encounter"
    )
 }
 
@@ -332,6 +333,8 @@ sub handle_command {
       $self->show_ui ('notebook');
    } elsif ($cmd eq 'color_select') {
       $self->show_ui ('color_select');
+   } elsif ($cmd eq 'encounter') {
+      $self->{pl}->create_encounter;
    } elsif ($cmd eq 'toggle_navigator') {
       if ($self->{pl}->{uis}->{navigator}->{shown}) {
          $self->hide_ui ('navigator');

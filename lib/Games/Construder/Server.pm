@@ -155,8 +155,9 @@ sub players_near_pos {
    my @p;
    for (values %{$self->{players}}) {
       my $d = vsub ($pos, $_->get_pos_normalized);
-      if (vlength ($d) < 60) {
-         push @p, $_;
+      my $dist = vlength ($d);
+      if ($dist < 60) {
+         push @p, [$_, $dist];
       }
    }
    @p

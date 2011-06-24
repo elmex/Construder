@@ -644,6 +644,7 @@ sub do_dematerialize {
 
          if ($self->{inv}->add ($type, $ent || 1)) {
             $data->[0] = 0;
+            $data->[5] = undef;
             $data->[3] &= 0xF0; # clear color :)
             if ($ent) {
                Games::Construder::Server::Objects::destroy ($ent);
@@ -655,7 +656,7 @@ sub do_dematerialize {
          }
          delete $self->{dematerializings}->{$id};
          return 1;
-      });
+      }, need_entity => 1);
    };
 }
 
@@ -803,12 +804,7 @@ sub take_assignment {
    #   $desc, $size, $material_map, $distance, $time, $score
    #]) . "\n";
 
-   # random direction:
-   my $x = (rand () * 2) - 1;
-   my $y = (rand () * 2) - 1;
-   my $z = (rand () * 2) - 1;
-
-   my $vec  = vsmul (vnorm ([$x, $y, $z]), $offer->{distance});
+   my $vec  = vsmul (vnorm (vrand ()), $offer->{distance});
    my $wpos = vfloor (vadd ($vec, $self->get_pos_normalized));
 
    warn "assignment at @$vec => @$wpos\n";
@@ -989,6 +985,27 @@ sub cancel_assignment {
    $self->{data}->{assignment} = undef;
    delete $self->{assign_timer};
    $self->check_assignment;
+}
+
+sub create_encounter {
+   my ($self) = @_;
+   my $dir = [0,0,0];
+   while (vlength ($dir) < 1) {
+      $dir = vnorm (vrand ());
+   }
+   my $dist = 10 + rand (40);
+   my $pos = vsmul ($dir, $dist);
+   viadd ($pos, $self->{data}->{pos});
+   my $new_pos = world_find_free_spot ($pos, 0);
+
+   world_mutate_at ($new_pos, sub {
+      my ($data) = @_;
+      $data->[0] = 50;
+      $data->[5] =
+         Games::Construder::Server::Objects::instance (
+            50, int ($dist * 1.5 * (3 + rand (5))));
+      return 1;
+   });
 }
 
 sub send_client : event_cb {

@@ -15,6 +15,7 @@ our @EXPORT = qw/
    vplane
    vfloor vifloor
    vstr
+   vrand
 
    vadd_2d vaddd_2d viadd_2d viaddd_2d
    vsub_2d vsubd_2d visub_2d visubd_2d
@@ -106,6 +107,12 @@ sub vstr {
    @{$_[0]} > 2
       ? sprintf "[%9.4f %9.4f %9.4f]", @{$_[0]}
       : sprintf "[%9.4f %9.4f]", @{$_[0]}
+}
+
+sub vrand {
+   [(rand () * 2) - 1,
+    (rand () * 2) - 1,
+    (rand () * 2) - 1]
 }
 
 # 2D Vector math:

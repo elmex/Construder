@@ -37,6 +37,7 @@ our %TYPES_INSTANCIATE = (
    46 => \&in_vaporizer,
    47 => \&in_vaporizer,
    48 => \&in_vaporizer,
+   50 => \&in_drone,
    62 => \&in_teleporter,
 );
 
@@ -46,6 +47,7 @@ our %TYPES_TIMESENSITIVE = (
    46 => \&tmr_vaporizer,
    47 => \&tmr_vaporizer,
    48 => \&tmr_vaporizer,
+   50 => \&tmr_drone,
 );
 
 our %TYPES_PERSISTENT = (
@@ -66,11 +68,11 @@ sub destroy {
 }
 
 sub instance {
-   my ($type) = @_;
+   my ($type, @arg) = @_;
 
    my $cb = $TYPES_INSTANCIATE{$type}
       or return;
-   my $i = $cb->($type);
+   my $i = $cb->($type, @arg);
    $i->{type} = $type;
    $i->{tmp} ||= {};
    $i
@@ -121,11 +123,12 @@ sub tmr_vaporizer {
          my ($d) = @_;
          $d->[0] = 0;
          $d->[3] &= 0xF0; # clear color :)
-         my $ent = $d->[5]; # kill entity
-         $d->[5] = undef;
-         if ($ent) {
-            Games::Construder::Server::Objects::destroy ($ent);
-         }
+         # should be automatic:
+         #my $ent = $d->[5]; # kill entity
+         #$d->[5] = undef;
+         #if ($ent) {
+         #   Games::Construder::Server::Objects::destroy ($ent);
+         #}
          warn "VAP@$d\n";
          1
       });
@@ -149,13 +152,13 @@ sub ia_vaporizer {
    my (@pl) =
       $Games::Construder::Server::World::SRV->players_near_pos ($POS);
    for my $x (-$rad..$rad) {
-      $_->highlight (vaddd ($POS, $x, 0, 0), $time, [1, 1, 0]) for @pl;
+      $_->[0]->highlight (vaddd ($POS, $x, 0, 0), $time, [1, 1, 0]) for @pl;
    }
    for my $y (-$rad..$rad) {
-      $_->highlight (vaddd ($POS, 0, $y, 0), $time, [1, 1, 0]) for @pl;
+      $_->[0]->highlight (vaddd ($POS, 0, $y, 0), $time, [1, 1, 0]) for @pl;
    }
    for my $z (-$rad..$rad) {
-      $_->highlight (vaddd ($POS, 0, 0, $z), $time, [1, 1, 0]) for @pl;
+      $_->[0]->highlight (vaddd ($POS, 0, 0, $z), $time, [1, 1, 0]) for @pl;
    }
 
    $entity->{time_active} = 1;
@@ -273,6 +276,133 @@ sub in_teleporter {
 sub ia_teleporter {
    my ($pl, $pos, $type, $entity) = @_;
    $pl->{uis}->{teleporter}->show ($pos);
+}
+
+sub in_drone {
+   my ($type, $lifeticks) = @_;
+   {
+      time_active   => 1,
+      orig_lifetime => $lifeticks,
+      lifetime      => $lifeticks
+   }
+}
+
+sub tmr_drone {
+   my ($pos, $entity, $type, $dt) = @_;
+
+   #d#warn "DRONE $entity LIFE $entity->{lifetime} from $entity->{orig_lifetime} at @$pos\n";
+   $entity->{lifetime}--;
+   if ($entity->{lifetime} <= 0) {
+      warn "DRONE $entity DIED at @$pos\n";
+      world_mutate_at ($pos, sub {
+         my ($data) = @_;
+         #d#warn "CHECK AT @$pos: $data->[0]\n";
+         if ($data->[0] == 50) {
+            $data->[0] = 0;
+            return 1;
+         }
+         return 0;
+      });
+      return;
+   }
+
+   if ($entity->{in_transition}) {
+      $entity->{transition_time} -= $dt;
+
+      if ($entity->{transition_time} <= 0) {
+         delete $entity->{in_transition};
+
+         my $new_pos = $entity->{transistion_dest};
+         world_mutate_at ($pos, sub {
+            my ($data) = @_;
+
+            if ($data->[0] == 50) {
+               $data->[0] = 0;
+               my $ent = $data->[5];
+               $data->[5] = undef;
+
+               my $t; $t = AE::timer 0, 0, sub {
+                  world_mutate_at ($new_pos, sub {
+                     my ($data) = @_;
+                     $data->[0] = 50;
+                     $data->[5] = $ent;
+                     warn "drone $ent moved from @$pos to @$new_pos\n";
+                     return 1;
+                  });
+                  undef $t;
+               };
+
+               return 1;
+
+            } else {
+               warn "warning: drone $entity at @$pos is not where is hsould be, stopped!\n";
+            }
+
+            0
+         }, need_entity => 1);
+      }
+      return;
+   }
+
+   my @pl =
+      sort {
+         $a->[1] <=> $b->[1]
+      } $Games::Construder::Server::World::SRV->players_near_pos ($pos);
+
+   return unless @pl;
+   my $pl = $pl[0]->[0];
+   my $new_pos = $pos;
+
+   my $empty =
+      Games::Construder::World::get_types_in_cube (
+         @{vsubd ($new_pos, 1, 1, 1)}, 3, 0);
+
+   my @empty;
+   while (@$empty) {
+      my ($pos, $type) = (
+         [shift @$empty, shift @$empty, shift @$empty], shift @$empty
+      );
+      push @empty, $pos;
+   }
+
+   if (!@empty) {
+      warn "debug: drone $entity is locked in (thats ok :)!\n";
+      return;
+   }
+
+   my $min = [999999, $empty[0]];
+   for my $dlt (
+      [0, 0, 1],
+      [0, 0, -1],
+      [0, 1, 0],
+      [0, -1, 0],
+      [1, 0, 0],
+      [-1, 0, 0]
+   ) {
+      my $np = vadd ($new_pos, $dlt);
+
+      next unless grep {
+         $_->[0] == $np->[0]
+         && $_->[1] == $np->[1]
+         && $_->[2] == $np->[2]
+      } @empty;
+
+      my $diff = vsub ($pl->{data}->{pos}, $np);
+      my $dist = vlength ($diff);
+      if ($min->[0] > $dist) {
+         $min = [$dist, $np];
+      }
+   }
+
+   $new_pos = $min->[1];
+
+   my $lightness = $entity->{lifetime} / $entity->{orig_lifetime};
+
+   $pl->highlight ($new_pos, 3 * $dt, [$lightness, $lightness, $lightness]);
+   $entity->{in_transition} = 1;
+   $entity->{transition_time} = 3 * $dt;
+   $entity->{transistion_dest} = $new_pos;
+   $pl->msg (1, "Proximity alert!\nDistance " . int ($min->[0]));
 }
 
 =back

@@ -87,6 +87,7 @@ sub world_init {
 
          my $e = delete $SECTORS{$id}->{entities}->{$eid};
          if ($e) {
+            warn "ENTITY $e DESTROY at sector $id ent $eid\n";
             Games::Construder::Server::Objects::destroy ($e);
          }
 
@@ -114,13 +115,13 @@ sub world_init {
       }
    };
 
-   $TICK_TMR = AE::timer 0, 0.25, sub {
+   $TICK_TMR = AE::timer 0, 0.15, sub {
       for my $s (values %SECTORS) {
          for my $eid (keys %{$s->{entities}}) {
             my $e = $s->{entities}->{$eid};
             next unless $e->{time_active};
             my $pos = world_id2pos ($eid);
-            Games::Construder::Server::Objects::tick ($pos, $e, $e->{type}, 0.25);
+            Games::Construder::Server::Objects::tick ($pos, $e, $e->{type}, 0.15);
          }
       }
    };
