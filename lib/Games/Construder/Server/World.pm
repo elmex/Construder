@@ -175,15 +175,20 @@ sub _world_make_sector {
    };
    _world_save_sector ($sec);
 
+   my $pospos = Games::Construder::World::query_possible_light_positions ();
+
    Games::Construder::World::query_desetup ();
 
-#   for (my $i = 0; $i < 120; $i++) {
-#      my $pos = vsmul ($sec, 60);
-#      my $np = vfloor (vadd ($pos, vsmul (vnorm (vaddd (vrand (), 1, 1, 1)), 1 + rand (58))));
-#      warn "NEWLIGHt @$sec AT @$np\n";
-#      world_place_light_forced ($np);
-#      warn "NEWLIGHT FINISH\n";
-#   }
+   my $cnt = 0;
+   while (@$pospos) {
+      my $p = [shift @$pospos, shift @$pospos, shift @$pospos];
+#     warn "NEWLIGHt @$sec AT @$p\n";
+      if ($cnt % 3 == 0) {
+         world_place_light_forced ($p);
+      }
+      $cnt++;
+   }
+   warn "PLACED $cnt lights!\n";
 }
 
 sub _world_load_sector {

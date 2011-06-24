@@ -422,6 +422,54 @@ void ctr_world_query_setup (int x, int y, int z, int ex, int ey, int ez);
 
 int ctr_world_query_desetup (int no_update = 0);
 
+AV *ctr_world_query_possible_light_positions ()
+  CODE:
+    int xw = QUERY_CONTEXT.x_w * CHUNK_SIZE,
+        yw = QUERY_CONTEXT.y_w * CHUNK_SIZE,
+        zw = QUERY_CONTEXT.z_w * CHUNK_SIZE;
+
+    RETVAL = newAV ();
+    sv_2mortal ((SV *)RETVAL);
+
+    int x, y, z;
+    for (x = 0; x < xw; x += 6)
+      for (y = 0; y < yw; y += 6)
+        for (z = 0; z < zw; z += 6)
+           {
+             int ix, iy, iz;
+             int rad, found = 0;
+             ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 0);
+             if (cur->type != 0)
+               continue;
+
+             for (rad = 1; !found && rad < 3; rad++)
+               for (ix = -rad; !found && ix <= rad; ix++)
+                 for (iy = -rad; !found && iy <= rad; iy++)
+                   for (iz = -rad; !found && iz <= rad; iz++)
+                     {
+                       if ((x + ix) < 0 || (y + iy) < 0 || (z + iz) < 0)
+                         continue;
+                       if ((x + ix) >= xw || (y + iy) >= yw || (z + iz) >= zw)
+                         continue;
+
+                       ctr_cell *cur = ctr_world_query_cell_at (x + ix, y + iy, z + iz, 0);
+                       if (cur->type != 0)
+                         {
+                           found = 1;
+                           break;
+                         }
+                     }
+
+              if (found)
+                {
+                  av_push (RETVAL, newSViv (x + QUERY_CONTEXT.chnk_x * CHUNK_SIZE));
+                  av_push (RETVAL, newSViv (y + QUERY_CONTEXT.chnk_y * CHUNK_SIZE));
+                  av_push (RETVAL, newSViv (z + QUERY_CONTEXT.chnk_z * CHUNK_SIZE));
+                }
+           }
+  OUTPUT:
+    RETVAL
+
 AV *ctr_world_find_free_spot (int x, int y, int z, int with_floor)
   CODE:
     vec3_init (pos, x, y, z);
