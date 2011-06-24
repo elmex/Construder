@@ -69,7 +69,12 @@ sub world_init {
          my $sec = world_chnkpos2secpos ([$x, $y, $z]);
          my $id  = world_pos2id ($sec);
          unless (exists $SECTORS{$id}) {
-            confess "Sector which is not loaded was updated! (chunk $x,$y,$z [@$sec]) $id\n";
+            # this might happen either due to bugs or when sectors are loaded
+            # and light is calculated.
+            warn "updated sector which is not loaded "
+                 . "(chunk $x,$y,$z [@$sec]) $id. "
+                 . "but this should be okay :-)\n";
+            return; # don't set dirty
          }
          world_sector_dirty ($sec);
 
@@ -171,6 +176,14 @@ sub _world_make_sector {
    _world_save_sector ($sec);
 
    Games::Construder::World::query_desetup ();
+
+#   for (my $i = 0; $i < 120; $i++) {
+#      my $pos = vsmul ($sec, 60);
+#      my $np = vfloor (vadd ($pos, vsmul (vnorm (vaddd (vrand (), 1, 1, 1)), 1 + rand (58))));
+#      warn "NEWLIGHt @$sec AT @$np\n";
+#      world_place_light_forced ($np);
+#      warn "NEWLIGHT FINISH\n";
+#   }
 }
 
 sub _world_load_sector {
@@ -438,6 +451,14 @@ sub world_mutate_entity_at {
       }
       return 0;
    }, need_entity => 1, %arg);
+}
+
+sub world_place_light_forced {
+   my ($pos) = @_;
+   Games::Construder::World::flow_light_query_setup (@$pos, @$pos);
+   Games::Construder::World::query_set_at_abs (@$pos, [40, 0, 0, 0, 0]);
+   Games::Construder::World::flow_light_at (@{vfloor ($pos)});
+   Games::Construder::World::query_desetup ();
 }
 
 sub world_mutate_at {
