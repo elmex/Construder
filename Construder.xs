@@ -428,44 +428,58 @@ AV *ctr_world_query_possible_light_positions ()
         yw = QUERY_CONTEXT.y_w * CHUNK_SIZE,
         zw = QUERY_CONTEXT.z_w * CHUNK_SIZE;
 
+    static int offsets[6][3] = {
+        {  0,  0,  1 },
+        {  0,  0, -1 },
+        {  0,  1,  0 },
+        {  0, -1,  0 },
+        {  1,  0,  0 },
+        { -1,  0,  0 },
+    };
+
     RETVAL = newAV ();
     sv_2mortal ((SV *)RETVAL);
 
     int x, y, z;
-    for (x = 0; x < xw; x += 5)
-      for (y = 0; y < yw; y += 5)
-        for (z = 0; z < zw; z += 5)
+    for (x = 2; x < (xw - 2); x += 6)
+      for (y = 2; y < (yw - 2); y += 6)
+        for (z = 2; z < (zw - 2); z += 6)
            {
              int ix, iy, iz;
              int rad, found = 0;
-             ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 0);
-             if (cur->type != 0)
-               continue;
+             int i;
+             int fnd = 0;
+             for (i = 0; !fnd && i < 6; i++)
+               {
+                 int m;
+                 for (m = 1; m <= 2; m++)
+                   {
+                     int px = x + offsets[i][0] * (m - 1),
+                         py = y + offsets[i][1] * (m - 1),
+                         pz = z + offsets[i][2] * (m - 1);
 
-             for (rad = 1; !found && rad < 3; rad++)
-               for (ix = -rad; !found && ix <= rad; ix++)
-                 for (iy = -rad; !found && iy <= rad; iy++)
-                   for (iz = -rad; !found && iz <= rad; iz++)
-                     {
-                       if ((x + ix) < 0 || (y + iy) < 0 || (z + iz) < 0)
-                         continue;
-                       if ((x + ix) >= xw || (y + iy) >= yw || (z + iz) >= zw)
-                         continue;
+                     ctr_cell *cur = ctr_world_query_cell_at (px, py, pz, 0);
+                     if (cur->type != 0)
+                       continue;
 
-                       ctr_cell *cur = ctr_world_query_cell_at (x + ix, y + iy, z + iz, 0);
-                       if (cur->type != 0)
-                         {
-                           found = 1;
-                           break;
-                         }
-                     }
-
-              if (found)
-                {
-                  av_push (RETVAL, newSViv (x + QUERY_CONTEXT.chnk_x * CHUNK_SIZE));
-                  av_push (RETVAL, newSViv (y + QUERY_CONTEXT.chnk_y * CHUNK_SIZE));
-                  av_push (RETVAL, newSViv (z + QUERY_CONTEXT.chnk_z * CHUNK_SIZE));
-                }
+                     cur = ctr_world_query_cell_at (
+                       x + offsets[i][0] * m,
+                       y + offsets[i][1] * m,
+                       z + offsets[i][2] * m,
+                       0);
+                     if (cur->type != 0)
+                       {
+                         av_push (RETVAL,
+                                  newSViv (px + QUERY_CONTEXT.chnk_x * CHUNK_SIZE));
+                         av_push (RETVAL,
+                                  newSViv (py + QUERY_CONTEXT.chnk_y * CHUNK_SIZE));
+                         av_push (RETVAL,
+                                  newSViv (pz + QUERY_CONTEXT.chnk_z * CHUNK_SIZE));
+                         fnd = 1;
+                         break;
+                       }
+                   }
+               }
            }
   OUTPUT:
     RETVAL
@@ -755,41 +769,6 @@ void ctr_world_flow_light_query_setup (int minx, int miny, int minz, int maxx, i
     );
 
     ctr_world_query_load_chunks ();
-
-void ctr_world_query_calc_light_flow ()
-  CODE:
-  int change = 1;
-
-  int pass = 0;
-  while (change)
-    {
-      pass++;
-      change = 0;
-
-      int xw = QUERY_CONTEXT.x_w * CHUNK_SIZE,
-          yw = QUERY_CONTEXT.y_w * CHUNK_SIZE,
-          zw = QUERY_CONTEXT.z_w * CHUNK_SIZE;
-
-      int x, y, z;
-      for (x = 1; x < (xw - 1); x++)
-        for (y = 1; y < (yw - 1); y++)
-          for (z = 1; z < (zw - 1); z++)
-            {
-              ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 0);
-              if (!ctr_world_cell_transparent (cur))
-                continue;
-
-              unsigned char l = ctr_world_query_get_max_light_of_neighbours (x, y, z);
-              if (l > 0) l--;
-              if (cur->light < l)
-                {
-                  cur = ctr_world_query_cell_at (x, y, z, 1);
-                  cur->light = l;
-                  change = 1;
-                }
-            }
-    }
-  printf ("query_calc_light_done in %d passes\n", pass);
 
 void ctr_world_flow_light_at (int x, int y, int z)
   CODE:

@@ -71,9 +71,9 @@ sub world_init {
          unless (exists $SECTORS{$id}) {
             # this might happen either due to bugs or when sectors are loaded
             # and light is calculated.
-            warn "updated sector which is not loaded "
-                 . "(chunk $x,$y,$z [@$sec]) $id. "
-                 . "but this should be okay :-)\n";
+#            warn "updated sector which is not loaded "
+#                 . "(chunk $x,$y,$z [@$sec]) $id. "
+#                 . "but this should be okay :-)\n";
             return; # don't set dirty
          }
          world_sector_dirty ($sec);
@@ -186,7 +186,6 @@ sub _world_make_sector {
 
    my $t1 = time;
 
-   my $cnt = 0;
    my $plcnt = 0;
    my $tsum;
    my @poses;
@@ -194,9 +193,11 @@ sub _world_make_sector {
       push @poses,
          [shift @$pospos, shift @$pospos, shift @$pospos];
    }
+   my $cnt = scalar @poses;
    my @types = qw/40 41 35/;
    my $rnd_type = Games::Construder::Random::rnd_xor ($seed);
-   my $type = $types[int rand (Games::Construder::Random::rnd_float ($rnd_type) * 2.99999)];
+   my $flot = Games::Construder::Random::rnd_float ($rnd_type) * 2.99999;
+   my $type = $types[int $flot];
 
    my $nxt = $rnd_type;
    for (my $i = 0; $i < 50; $i++) {
@@ -208,9 +209,6 @@ sub _world_make_sector {
 
       my $p = splice @poses, $idx, 1, ();
       last unless $p;
-      (@poses) = grep {
-         vlength (vsub ($_, $p)) > 8
-      } @poses;
 
       Games::Construder::World::query_set_at_abs (
          @$p, [$type, 0, 0, 0, 0]);
@@ -219,7 +217,7 @@ sub _world_make_sector {
    }
    $tsum += time - $t1;
    Games::Construder::World::query_desetup ();
-   warn "PLACED $cnt / $plcnt lights in $tsum!\n";
+   warn "PLACED $cnt / $plcnt lights $type ($flot) in $tsum!\n";
 }
 
 sub _world_load_sector {
