@@ -432,9 +432,9 @@ AV *ctr_world_query_possible_light_positions ()
     sv_2mortal ((SV *)RETVAL);
 
     int x, y, z;
-    for (x = 0; x < xw; x += 6)
-      for (y = 0; y < yw; y += 6)
-        for (z = 0; z < zw; z += 6)
+    for (x = 0; x < xw; x += 5)
+      for (y = 0; y < yw; y += 5)
+        for (z = 0; z < zw; z += 5)
            {
              int ix, iy, iz;
              int rad, found = 0;
@@ -756,6 +756,41 @@ void ctr_world_flow_light_query_setup (int minx, int miny, int minz, int maxx, i
 
     ctr_world_query_load_chunks ();
 
+void ctr_world_query_calc_light_flow ()
+  CODE:
+  int change = 1;
+
+  int pass = 0;
+  while (change)
+    {
+      pass++;
+      change = 0;
+
+      int xw = QUERY_CONTEXT.x_w * CHUNK_SIZE,
+          yw = QUERY_CONTEXT.y_w * CHUNK_SIZE,
+          zw = QUERY_CONTEXT.z_w * CHUNK_SIZE;
+
+      int x, y, z;
+      for (x = 1; x < (xw - 1); x++)
+        for (y = 1; y < (yw - 1); y++)
+          for (z = 1; z < (zw - 1); z++)
+            {
+              ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 0);
+              if (!ctr_world_cell_transparent (cur))
+                continue;
+
+              unsigned char l = ctr_world_query_get_max_light_of_neighbours (x, y, z);
+              if (l > 0) l--;
+              if (cur->light < l)
+                {
+                  cur = ctr_world_query_cell_at (x, y, z, 1);
+                  cur->light = l;
+                  change = 1;
+                }
+            }
+    }
+  printf ("query_calc_light_done in %d passes\n", pass);
+
 void ctr_world_flow_light_at (int x, int y, int z)
   CODE:
     ctr_world_query_abs2rel (&x, &y, &z);
@@ -990,6 +1025,17 @@ void vol_draw_dst_to_world (int sector_x, int sector_y, int sector_z, AV *range_
                   }
               }
           }
+
+MODULE = Games::Construder PACKAGE = Games::Construder::Random PREFIX = random_
+
+unsigned int rnd_xor (unsigned int x);
+
+double rnd_float (unsigned int x)
+  CODE:
+    double val = (double) x / (double) 0xFFFFFFFF;
+    RETVAL = val;
+  OUTPUT:
+    RETVAL
 
 MODULE = Games::Construder PACKAGE = Games::Construder::Region PREFIX = region_
 

@@ -179,16 +179,47 @@ sub _world_make_sector {
 
    Games::Construder::World::query_desetup ();
 
+   my $lower_left  = vsmul ($sec, $CHNK_SIZE * $CHNKS_P_SEC);
+   my $upper_right = vaddd ($lower_left, $CHNKS_P_SEC * $CHNK_SIZE, $CHNKS_P_SEC * $CHNK_SIZE, $CHNKS_P_SEC * $CHNK_SIZE);
+
+   Games::Construder::World::flow_light_query_setup (@$lower_left, @$upper_right);
+
+   my $t1 = time;
+
    my $cnt = 0;
+   my $plcnt = 0;
+   my $tsum;
+   my @poses;
    while (@$pospos) {
-      my $p = [shift @$pospos, shift @$pospos, shift @$pospos];
-#     warn "NEWLIGHt @$sec AT @$p\n";
-      if ($cnt % 3 == 0) {
-         world_place_light_forced ($p);
-      }
-      $cnt++;
+      push @poses,
+         [shift @$pospos, shift @$pospos, shift @$pospos];
    }
-   warn "PLACED $cnt lights!\n";
+   my @types = qw/40 41 35/;
+   my $rnd_type = Games::Construder::Random::rnd_xor ($seed);
+   my $type = $types[int rand (Games::Construder::Random::rnd_float ($rnd_type) * 2.99999)];
+
+   my $nxt = $rnd_type;
+   for (my $i = 0; $i < 50; $i++) {
+      $nxt        = Games::Construder::Random::rnd_xor ($nxt);
+      my $nxt_flt = Games::Construder::Random::rnd_float ($nxt) - 0.00000001;
+      $nxt_flt    = 0 if $nxt_flt < 0;
+      my $idx     = int ($nxt_flt * @poses);
+#d# print "INDEX $nxt_flt | $idx from " . scalar (@poses) . "\n";
+
+      my $p = splice @poses, $idx, 1, ();
+      last unless $p;
+      (@poses) = grep {
+         vlength (vsub ($_, $p)) > 8
+      } @poses;
+
+      Games::Construder::World::query_set_at_abs (
+         @$p, [$type, 0, 0, 0, 0]);
+      Games::Construder::World::flow_light_at (@{vfloor ($p)});
+      $plcnt++;
+   }
+   $tsum += time - $t1;
+   Games::Construder::World::query_desetup ();
+   warn "PLACED $cnt / $plcnt lights in $tsum!\n";
 }
 
 sub _world_load_sector {
