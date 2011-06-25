@@ -4,6 +4,7 @@ typedef struct _ctr_queue {
     unsigned int  item_size;
     unsigned int  alloc_items;
     void *start, *end;
+    void *freeze_start, *freeze_end;
 } ctr_queue;
 
 void ctr_queue_clear (ctr_queue *q)
@@ -46,6 +47,18 @@ void ctr_queue_enqueue (ctr_queue *q, void *item)
       q->end = q->data;
       assert (q->start != q->end);
     }
+}
+
+void ctr_queue_freeze (ctr_queue *q)
+{
+  q->freeze_start = q->start;
+  q->freeze_end   = q->end;
+}
+
+void ctr_queue_thaw (ctr_queue *q)
+{
+  q->start = q->freeze_start;
+  q->end   = q->freeze_end;
 }
 
 int ctr_queue_dequeue (ctr_queue *q, void **item)

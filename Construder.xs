@@ -840,7 +840,14 @@ void ctr_world_flow_light_at (int x, int y, int z)
 
     // extra pass for light-down, to reflow other light sources light
 
-    int cur_queue = 0;
+    ctr_world_light_select_queue (1);
+    ctr_world_light_freeze_queue ();
+
+    while (ctr_world_light_dequeue (&x, &y, &z, &upd_radius))
+      {
+        cur = ctr_world_query_cell_at (x, y, z, 1);
+        cur->light = 0;
+      }
 
     // select queue for light-re-distribution
     int change = 1;
@@ -852,41 +859,23 @@ void ctr_world_flow_light_at (int x, int y, int z)
 #if DEBUG_LIGHT
         printf ("START RELIGHT PASS %d\n", pass);
 #endif
-        // swap queue
-        ctr_world_light_select_queue (cur_queue = !cur_queue);
+        ctr_world_light_thaw_queue ();
         // recompute light for every cell in the queue
         while (ctr_world_light_dequeue (&x, &y, &z, &upd_radius))
           {
-            if (upd_radius) // first pass: set all found lights to 0
+            cur = ctr_world_query_cell_at (x, y, z, 0);
+            unsigned char l = ctr_world_query_get_max_light_of_neighbours (x, y, z);
+            if (l > 0) l--;
+#if DEBUG_LIGHT
+            printf ("[%d] relight at %d,%d,%d, me: %d, cur neigh: %d\n", pass, x, y, z, cur->light, l);
+#endif
+            // if the current cell is too dark, relight it
+            if (cur->light < l)
               {
                 cur = ctr_world_query_cell_at (x, y, z, 1);
-                cur->light = 0;
+                cur->light = l;
                 change = 1;
               }
-            else // next passes: reflow light
-              {
-                cur = ctr_world_query_cell_at (x, y, z, 0);
-                unsigned char l = ctr_world_query_get_max_light_of_neighbours (x, y, z);
-                if (l > 0) l--;
-#if DEBUG_LIGHT
-                printf ("[%d] relight at %d,%d,%d, me: %d, cur neigh: %d\n", pass, x, y, z, cur->light, l);
-#endif
-                // if the current cell is too dark, relight it
-                if (cur->light < l)
-                  {
-                    cur = ctr_world_query_cell_at (x, y, z, 1);
-                    cur->light = l;
-                    change = 1;
-                  }
-              }
-
-            // we are in an iterative process, to re-add all cells
-            // right back to the other queue for the next pass.
-            // just because our cell didn't change doesn't mean it won't
-            // in the next pass.
-            ctr_world_light_select_queue (!cur_queue);
-            ctr_world_light_enqueue (x, y, z, 0);
-            ctr_world_light_select_queue (cur_queue);
           }
       }
 

@@ -288,6 +288,7 @@ sub commands {
    (
       f1  => "contact",
       f9  => "teleport_home",
+      f11 => "text_script",
       f12 => "exit_server",
       i   => "inventory",
       n   => "navigation_programmer",
@@ -333,6 +334,8 @@ sub handle_command {
       $self->show_ui ('notebook');
    } elsif ($cmd eq 'color_select') {
       $self->show_ui ('color_select');
+   } elsif ($cmd eq 'text_script') {
+      $self->show_ui ('text_script');
    } elsif ($cmd eq 'encounter') {
       $self->{pl}->create_encounter;
    } elsif ($cmd eq 'toggle_navigator') {
@@ -2065,6 +2068,32 @@ sub layout {
       ]
    }
 
+}
+
+package Games::Construder::Server::UI::TextScript;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub layout {
+   my ($self) = @_;
+
+   my (@records) = split /\n/, $self->{pl}->{data}->{notebook}->{main};
+
+   $self->{idx}++;
+   if ($self->{idx} >= @records) {
+      $self->{idx} = 0;
+   }
+
+   my $txt = $records[$self->{idx}];
+   $txt =~ s/\\n/\n/g;
+
+   {
+      window => { pos => [ center => "center", 0, -0.3 ] },
+      layout => [
+         text => { color => "#FFFF00", font => "big" },
+         $txt
+      ]
+   }
 }
 
 =back

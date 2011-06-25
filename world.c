@@ -108,6 +108,16 @@ void ctr_world_light_enqueue (int x, int y, int z, unsigned char light)
   //d// printf ("light upd enqueue %d,%d,%d: %d\n", x, y, z, light);
 }
 
+void ctr_world_light_freeze_queue ()
+{
+  ctr_queue_freeze (light_upd_queue);
+}
+
+void ctr_world_light_thaw_queue ()
+{
+  ctr_queue_thaw (light_upd_queue);
+}
+
 void ctr_world_light_enqueue_neighbours (int x, int y, int z, unsigned char light)
 {
   ctr_world_light_enqueue (x + 1, y, z, light);
