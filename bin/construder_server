@@ -1,7 +1,11 @@
 #!/opt/perl/bin/perl
 use EV;
 use common::sense;
+use Games::Construder;
 use Games::Construder::Server;
+
+Games::Construder::Debug::init ("server");
+
 our $server;
 $server = Games::Construder::Server->new;
 $server->init;

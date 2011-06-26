@@ -3,7 +3,6 @@ use common::sense;
 use AnyEvent;
 use AnyEvent::Handle;
 use AnyEvent::Socket;
-use AnyEvent::Debug;
 use JSON;
 
 use Games::Construder::Protocol;
@@ -50,11 +49,6 @@ sub new {
 
 sub init {
    my ($self) = @_;
-
-   $SHELL = AnyEvent::Debug::shell "unix/", "/tmp/construder_server_shell";
-   if ($SHELL) {
-      warn "started shell in /tmp/construder_server_shell, use with: 'socat readline /tmp/construder_server_shell'\n";
-   }
 
    $RES = Games::Construder::Server::Resources->new;
    $RES->init_directories;

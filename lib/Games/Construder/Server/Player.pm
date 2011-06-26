@@ -494,7 +494,11 @@ sub send_chunk {
    # be sent by the chunk_changed-callback by the server (when it checks
    # whether any player might be interested in that chunk).
    my $data = Games::Construder::World::get_chunk_data (@$chnk);
-   return unless defined $data;
+   unless (defined $data) {
+      warn "send_chunk: @$chnk was not yet allocated!\n";
+      return;
+   }
+
    $self->send_client ({ cmd => "chunk", pos => $chnk }, compress ($data));
 }
 

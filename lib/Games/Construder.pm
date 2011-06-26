@@ -212,6 +212,41 @@ sub draw_commands {
    }
 }
 
+package Games::Construder::Debug;
+use AnyEvent::Debug;
+
+our $SHELL;
+
+sub init {
+   my ($name) = @_;
+
+   $Data::Dumper::Indent = 2;
+
+   my $sock = "/tmp/construder_shell_$name";
+
+   $SHELL = AnyEvent::Debug::shell "unix/", $sock;
+   if ($SHELL) {
+      warn "started shell at $sock, use with: 'socat readline $sock'\n";
+   }
+}
+
+package AnyEvent::Debug::shell;
+use common::sense;
+use Data::Dumper;
+
+sub d {
+   my ($d) = @_;
+   Dumper ($d)
+}
+
+sub wf {
+   my ($name, $data) = @_;
+   open my $fh, ">", "/tmp/$name.debug"
+      or die "Couldn't open /tmp/$name.debug: $!\n";
+   binmode $fh;
+   print $fh $data;
+}
+
 =back
 
 =head1 AUTHOR

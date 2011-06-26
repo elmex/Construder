@@ -2,10 +2,11 @@
 use Math::VectorReal;
 $Math::VectorReal::FORMAT = "[ %9.4f, %9.4f, %9.4f ]";
 use common::sense;
+use Games::Construder;
 use Games::Construder::Client;
 
-my $game = Games::Construder::Client->new (auto_login => $ARGV[0]);
+Games::Construder::Debug::init ("client");
 
-my $scene = "XXX XXX\nXXX XXX\nX X X X\n";
+our $game = Games::Construder::Client->new (auto_login => $ARGV[0]);
 
 $game->start;

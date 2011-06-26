@@ -364,7 +364,10 @@ sub tmr_drone {
                      $data->[0] = 50;
                      $data->[5] = $ent;
                      warn "drone $ent moved from @$pos to @$new_pos\n";
-                     drone_check_player_hit ($new_pos, $ent);
+                     my $t; $t = AE::timer 0, 0, sub {
+                        drone_check_player_hit ($new_pos, $ent);
+                        undef $t;
+                     };
                      return 1;
                   });
                   undef $t;

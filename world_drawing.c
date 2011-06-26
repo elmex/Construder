@@ -13,7 +13,7 @@ typedef struct _ctr_world_query {
 
 static ctr_world_query QUERY_CONTEXT;
 
-int ctr_world_query_desetup (int no_update)
+int ctr_world_query_desetup (int no_update) // no_update == 2 means: force update
 {
   int cnt = 0;
   int x, y, z;
@@ -21,6 +21,15 @@ int ctr_world_query_desetup (int no_update)
     for (y = 0; y < QUERY_CONTEXT.y_w; y++)
       for (x = 0; x < QUERY_CONTEXT.x_w; x++)
         {
+          if (no_update == 2)
+            {
+              ctr_world_emit_chunk_change (
+                x + QUERY_CONTEXT.chnk_x,
+                y + QUERY_CONTEXT.chnk_y,
+                z + QUERY_CONTEXT.chnk_z);
+              continue;
+            }
+
           ctr_chunk *chnk = QUERY_CHUNK(x, y, z);
           if (!chnk->dirty)
             continue;
@@ -28,7 +37,7 @@ int ctr_world_query_desetup (int no_update)
           chnk->dirty = 0;
           cnt++;
 
-          if (!no_update)
+          if (no_update == 0)
             ctr_world_emit_chunk_change (
               x + QUERY_CONTEXT.chnk_x,
               y + QUERY_CONTEXT.chnk_y,

@@ -109,7 +109,7 @@ sub world_init {
 
    Games::Construder::VolDraw::init ();
 
-   $STORE_SCHED_TMR = AE::timer 0, 2, sub {
+   $STORE_SCHED_TMR = AE::timer 0, 1, sub {
       NEXT:
       my $s = shift @SAVE_SECTORS_QUEUE
          or return;
@@ -168,10 +168,14 @@ sub _world_make_sector {
 
    my $pospos = Games::Construder::World::query_possible_light_positions ();
 
-   Games::Construder::World::query_desetup ();
+   Games::Construder::World::query_desetup (1);
 
    my $lower_left  = vsmul ($sec, $CHNK_SIZE * $CHNKS_P_SEC);
-   my $upper_right = vaddd ($lower_left, $CHNKS_P_SEC * $CHNK_SIZE, $CHNKS_P_SEC * $CHNK_SIZE, $CHNKS_P_SEC * $CHNK_SIZE);
+   my $upper_right =
+      vaddd ($lower_left,
+             $CHNKS_P_SEC * $CHNK_SIZE,
+             $CHNKS_P_SEC * $CHNK_SIZE,
+             $CHNKS_P_SEC * $CHNK_SIZE);
 
    Games::Construder::World::flow_light_query_setup (@$lower_left, @$upper_right);
 
@@ -191,7 +195,7 @@ sub _world_make_sector {
    my $type = $types[int $flot];
 
    my $nxt = $rnd_type;
-   for (my $i = 0; $i < 50; $i++) {
+   for (my $i = 0; $i < 3; $i++) {
       $nxt        = Games::Construder::Random::rnd_xor ($nxt);
       my $nxt_flt = Games::Construder::Random::rnd_float ($nxt) - 0.00000001;
       $nxt_flt    = 0 if $nxt_flt < 0;
@@ -223,7 +227,7 @@ sub _world_make_sector {
    _world_save_sector ($sec);
    warn "created sector @$sec in $smeta->{creation_time} seconds\n";
 
-   Games::Construder::World::query_desetup ();
+   Games::Construder::World::query_desetup (2);
    warn "PLACED $cnt / $plcnt lights $type ($flot) in $tsum!\n";
 }
 
