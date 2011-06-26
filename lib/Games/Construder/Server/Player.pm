@@ -1007,20 +1007,23 @@ sub create_encounter {
    while (vlength ($dir) < 1) {
       $dir = vnorm (vrand ());
    }
-   my $dist = 10 + rand (40);
+   my $dist = 10 + rand (40); # hardcoded, if farther than 60, drone will not detect player
    my $pos = vsmul ($dir, $dist);
    viadd ($pos, $self->{data}->{pos});
    my $new_pos = world_find_free_spot ($pos, 0);
 
-   # give him some peace for at least 4 minutes
-   $self->{data}->{next_encounter} = (4 + rand (10)) * 60;
+   my ($teledist, $nxttime, $lifetime) =
+      $Games::Construder::Server::RES->encounter_values ();
+
+   warn "NEXT ENC $nxttime ($teledist, $lifetime)\n";
+   $self->{data}->{next_encounter} = $nxttime;
 
    world_mutate_at ($new_pos, sub {
       my ($data) = @_;
       $data->[0] = 50;
       $data->[5] =
          Games::Construder::Server::Objects::instance (
-            50, int ($dist * 1.5 * (3 + rand (5))));
+            50, int ($dist * 1.5 + $lifetime), $teledist);
       return 1;
    });
 }

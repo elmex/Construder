@@ -279,11 +279,12 @@ sub ia_teleporter {
 }
 
 sub in_drone {
-   my ($type, $lifeticks) = @_;
+   my ($type, $lifeticks, $teledist) = @_;
    {
       time_active   => 1,
       orig_lifetime => $lifeticks,
-      lifetime      => $lifeticks
+      lifetime      => $lifeticks,
+      teleport_dist => $teledist,
    }
 }
 
@@ -301,6 +302,35 @@ sub drone_kill {
       }
       return 0;
    });
+}
+
+sub drone_visible_players {
+   my ($pos, $entity) = @_;
+
+   sort {
+      $a->[1] <=> $b->[1]
+   } grep {
+      not $_->[0]->{data}->{signal_jammed}
+   } $Games::Construder::Server::World::SRV->players_near_pos ($pos);
+}
+
+sub drone_check_player_hit {
+   my ($pos, $entity, $pl) = @_;
+
+   unless ($pl) {
+      my (@pl) = drone_visible_players ($pos, $entity)
+         or return;
+      $pl = $pl[0]->[0];
+   }
+
+   if (vlength (vsub ($pl->{data}->{pos}, $pos)) <= 2) {
+      my $dist = $entity->{teleport_dist} * 60;
+      my $new_pl_pos = vsmul (vnorm (vrand ()), $dist);
+      $pl->teleport ($new_pl_pos);
+      $pl->push_tick_change (happyness => -100);
+      $pl->msg (1, "A Drone displaced you by $dist.");
+      drone_kill ($pos, $entity);
+   }
 }
 
 sub tmr_drone {
@@ -334,6 +364,7 @@ sub tmr_drone {
                      $data->[0] = 50;
                      $data->[5] = $ent;
                      warn "drone $ent moved from @$pos to @$new_pos\n";
+                     drone_check_player_hit ($new_pos, $ent);
                      return 1;
                   });
                   undef $t;
@@ -347,30 +378,20 @@ sub tmr_drone {
 
             0
          }, need_entity => 1);
+      } else {
+         drone_check_player_hit ($pos, $entity);
       }
+
       return;
    }
 
-   my (@pl) =
-      sort {
-         $a->[1] <=> $b->[1]
-      } grep {
-         not $_->[0]->{data}->{signal_jammed}
-      } $Games::Construder::Server::World::SRV->players_near_pos ($pos);
+   my (@pl) = drone_visible_players ($pos, $entity);
 
    return unless @pl;
    my $pl = $pl[0]->[0];
    my $new_pos = $pos;
 
-   if (vlength (vsub ($pl->{data}->{pos}, $new_pos)) <= 2) {
-      # throw player from 4 upto 14 sectors
-      my $dist = int ((4 * 60) + rand (10 * 60));
-      my $new_pl_pos = vsmul (vnorm (vrand ()), $dist);
-      $pl->teleport ($new_pl_pos);
-      $pl->msg (1, "A Drone displaced you by $dist.");
-      drone_kill ($pos, $entity);
-      return;
-   }
+   drone_check_player_hit ($pos, $entity, $pl);
 
    my $empty =
       Games::Construder::World::get_types_in_cube (

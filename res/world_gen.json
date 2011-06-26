@@ -30,6 +30,14 @@
          "bio_unhappy"  : 0.84,  # he has 120 seconds to get happy
          "bio_happy"    : 0.055, # he can live happily for 30 minutes
       },
+      "encounters" : {
+         "teleport_min_dist" : 4,  # sectors
+         "teleport_max_dist" : 10,
+         "time_min_next" : 4,      # minimum 4 minutes to next encounter
+         "time_max_next" : 6,      # max 6 min to next enounter
+         "lifetime_min" : 480,     # min additional lifetime (in ticks)
+         "lifetime_max" : 960,     # max additional lifetime (in ticks)
+      },
       "assignments" : {
          "max_score"    : 1000000,
          "min_score"    : 1000,

@@ -144,6 +144,8 @@ sub world_sector_dirty {
 sub _world_make_sector {
    my ($sec) = @_;
 
+   my $tcreate = time;
+
    my $val = Games::Construder::Region::get_sector_value ($REGION, @$sec);
 
    my ($stype, $param) =
@@ -163,17 +165,6 @@ sub _world_make_sector {
    );
 
    Games::Construder::VolDraw::dst_to_world (@$sec, $stype->{ranges} || []);
-
-   $SECTORS{world_pos2id ($sec)} = {
-      created    => time,
-      pos        => [@$sec],
-      region_val => $val,
-      seed       => $seed,
-      param      => $param,
-      type       => $stype->{type},
-      entities   => { },
-   };
-   _world_save_sector ($sec);
 
    my $pospos = Games::Construder::World::query_possible_light_positions ();
 
@@ -216,6 +207,22 @@ sub _world_make_sector {
       $plcnt++;
    }
    $tsum += time - $t1;
+
+   my $smeta = $SECTORS{world_pos2id ($sec)} = {
+      created    => time,
+      pos        => [@$sec],
+      region_val => $val,
+      seed       => $seed,
+      param      => $param,
+      light_type => $type,
+      light_cnt  => $cnt,
+      creation_time => (time - $tcreate),
+      type       => $stype->{type},
+      entities   => { },
+   };
+   _world_save_sector ($sec);
+   warn "created sector @$sec in $smeta->{creation_time} seconds\n";
+
    Games::Construder::World::query_desetup ();
    warn "PLACED $cnt / $plcnt lights $type ($flot) in $tsum!\n";
 }

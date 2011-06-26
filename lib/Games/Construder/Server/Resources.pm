@@ -811,6 +811,19 @@ sub player_values {
    $self->{world_gen}->{balancing}->{player};
 }
 
+sub encounter_values {
+   my ($self) = @_;
+   my $enc = $self->{world_gen}->{balancing}->{encounters};
+   my $tele_dist =
+      lerp ($enc->{teleport_min_dist}, $enc->{teleport_max_dist}, rand ());
+   my $time_to_next =
+      60 * lerp ($enc->{time_min_next}, $enc->{time_max_next}, rand ());
+   my $lifetime =
+      lerp ($enc->{lifetime_min}, $enc->{lifetime_max}, rand ());
+
+   ($tele_dist, $time_to_next, $lifetime)
+}
+
 
 =back
 
