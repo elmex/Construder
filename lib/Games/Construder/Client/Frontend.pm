@@ -122,13 +122,13 @@ sub init_app {
       resizeable => 1
    );
 
-   my $init = SDL::Mixer::init (SDL::Mixer::MIX_INIT_OGG);
-   unless ($init & SDL::Mixer::MIX_INIT_OGG) {
-      die "Couldn't initialize SDL Mixer for OGG!\n";
-   }
+   #d#my $init = SDL::Mixer::init (SDL::Mixer::MIX_INIT_OGG);
+   #d#unless ($init & SDL::Mixer::MIX_INIT_OGG) {
+   #d#   die "Couldn't initialize SDL Mixer for OGG!\n";
+   #d#}
 
-   SDL::Mixer::open_audio( 44100, SDL::Mixer::AUDIO_S16SYS, 2, 4096 );
-   SDL::Mixer::Music::volume_music ($self->{res}->{config}->{volume_music});
+   #d#SDL::Mixer::open_audio( 44100, SDL::Mixer::AUDIO_S16SYS, 2, 4096 );
+   #d#SDL::Mixer::Music::volume_music ($self->{res}->{config}->{volume_music});
 
    SDL::Events::enable_unicode (1);
    $self->{sdl_event} = SDL::Event->new;

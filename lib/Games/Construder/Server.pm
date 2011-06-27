@@ -10,7 +10,6 @@ use Games::Construder::Server::Resources;
 use Games::Construder::Server::Player;
 use Games::Construder::Server::World;
 use Games::Construder::Server::Objects;
-use Games::Construder::Server::ChunkManager;
 use Games::Construder::Vector;
 
 use base qw/Object::Event/;

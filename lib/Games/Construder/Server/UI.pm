@@ -661,7 +661,10 @@ sub layout {
       window => { pos => [center => 'center'] },
       layout => [
          box => { dir => "vert" },
-          [text => { color => "#ffffff", font => "big" }, $o->{name}],
+          [box => { dir => "hor" },
+           [text => { color => "#ffffff", font => "big"   }, $o->{name}],
+           [text => { color => "#666666", font => "small" }, "(" . $o->{type} . ")"],
+          ],
           [box => { dir => "hor", align => "left" },
              [text => { align => "left", color => "#ffffff", font => "normal", wrap => 35 }, $o->{lore}],
              [model => { align => "left", animated => 0, width => 80 }, $o->{type}],
