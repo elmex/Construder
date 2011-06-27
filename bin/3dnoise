@@ -269,7 +269,6 @@ use Inline C =>
           => INC  => Alien::SDL->config ('cflags');#`sdl-config --cflags`;
 use Inline 'C';
 use common::sense;
-use GD;
 
 sub save_model {
    my $slen = shift;
