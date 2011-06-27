@@ -8,7 +8,6 @@ use Games::Construder;
 use AnyEvent;
 use AnyEvent::Socket;
 use AnyEvent::Handle;
-use Math::VectorReal;
 use Benchmark qw/:all/;
 
 use base qw/Object::Event/;

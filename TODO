@@ -1,2 +1,3 @@
 - the ugly AE::timer 0, 0, hacks w.r.t. mutate_... should be fixed!
 - recursive mutates should be handled somehow
+- change #!/opt/perl.. to something more portable.
