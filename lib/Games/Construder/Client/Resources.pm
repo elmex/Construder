@@ -62,7 +62,9 @@ sub load_config {
       $self->{config} = JSON->new->pretty->utf8->decode (_get_file ("$VARDIR/$CLCONFIG"));
 
    } else {
-      $self->{config} = { };
+      $self->{config} = {
+         mouse_sens => 1,
+      };
    }
 }
 

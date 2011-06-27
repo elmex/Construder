@@ -921,6 +921,36 @@ sub input_key_up : event_cb {
 
 }
 
+sub show_mouse_settings {
+   my ($self) = @_;
+
+   $self->activate_ui (audio_settings => {
+      window => { pos => [center => 'center'] },
+      layout => [ box => { dir => "vert" },
+         [text => { align => "center", font => "big", color => "#ffffff" },
+          "Mouse Settings"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "Mouse sensitivity: " . sprintf "%0.2f", $self->{res}->{config}->{mouse_sens}],
+         [range => { align => "center", color => "#ffffff", font => "normal", arg => "sens", step => 0.05, range => [0.05, 7], highlight => ["#111111", "#333333"] },
+          sprintf "%0.2f", $self->{res}->{config}->{mouse_sens}],
+      ],
+      commands => {
+         default_keys => { return => "change" }
+      },
+      command_cb => sub {
+         my ($cmd, $arg, $need_selection) = @_;
+
+         if ($cmd eq 'change') {
+            $self->{res}->{config}->{mouse_sens} = $arg->{sens};
+            $self->{res}->save_config;
+            $self->show_mouse_settings;
+            return 1;
+         }
+      }
+   });
+}
+
+
 sub show_audio_settings {
    my ($self) = @_;
 
@@ -993,6 +1023,8 @@ sub esc_menu {
          [text => { align => "center", color => "#ffffff", font => "normal" },
           "[a] Audio Options"],
          [text => { align => "center", color => "#ffffff", font => "normal" },
+          "[m] Mouse Options"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
           "[f] Toggle Fullscreen"],
 #         [text => { align => "center", color => "#ffffff", font => "normal" },
 #          "[v] Video Options"],
@@ -1006,6 +1038,7 @@ sub esc_menu {
             q => "exit",
             t => "credits",
             f => "fullscreen",
+            m => "mouse",
 #            v => "video",
             a => "audio",
          }
@@ -1026,6 +1059,11 @@ sub esc_menu {
          } elsif ($cmd eq 'audio') {
             $self->deactivate_ui ('esc_menu');
             $self->show_audio_settings;
+            return 1;
+
+         } elsif ($cmd eq 'mouse') {
+            $self->deactivate_ui ('esc_menu');
+            $self->show_mouse_settings;
             return 1;
 
          } elsif ($cmd eq 'fullscreen') {
@@ -1184,8 +1222,9 @@ sub input_mouse_motion : event_cb {
    if ($self->{look_lock}) {
       my ($xc, $yc) = ($WIDTH / 2, $HEIGHT / 2);
       my ($xr, $yr) = (($mx - $xc), ($my - $yc));
-      $self->{yrotate} += ($xr / $WIDTH) * 15;
-      $self->{xrotate} += ($yr / $HEIGHT) * 15;
+      my $sens = $self->{res}->{config}->{mouse_sens};
+      $self->{yrotate} += ($xr / $WIDTH) * 15 * $sens;
+      $self->{xrotate} += ($yr / $HEIGHT) * 15 * $sens;
       $self->{xrotate} = Math::Trig::deg2deg ($self->{xrotate});
       $self->{xrotate} = -90 if $self->{xrotate} < -90;
       $self->{xrotate} = 90 if $self->{xrotate} > 90;
