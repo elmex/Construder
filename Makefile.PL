@@ -16,6 +16,7 @@ WriteMakefile(
     test                => { TESTS => "t/*.t t/methds/*.t" },
     PREREQ_PM => {
         'Test::More'    => 0,
+        'Object::Event' => 0,
         'common::sense' => 0,
         'AnyEvent'      => 0,
         'JSON'          => 0,
