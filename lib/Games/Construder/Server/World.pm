@@ -195,7 +195,7 @@ sub _world_make_sector {
    my $type = $types[int $flot];
 
    my $nxt = $rnd_type;
-   for (my $i = 0; $i < 3; $i++) {
+   for (my $i = 0; $i < 50; $i++) {
       $nxt        = Games::Construder::Random::rnd_xor ($nxt);
       my $nxt_flt = Games::Construder::Random::rnd_float ($nxt) - 0.00000001;
       $nxt_flt    = 0 if $nxt_flt < 0;

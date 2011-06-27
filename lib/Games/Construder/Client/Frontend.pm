@@ -267,16 +267,8 @@ sub set_player_pos {
 
 sub get_visible_chunks {
    my ($self) = @_;
-
-   my $chnks =
-      Games::Construder::Math::calc_visible_chunks_at (
-         @{$self->{phys_obj}->{player}->{pos}}, $PL_VIS_RAD);
-   my @o;
-   for (my $i = 0; $i < @$chnks; $i += 3) {
-      push @o, [$chnks->[$i], $chnks->[$i + 1], $chnks->[$i + 2]];
-   }
-   #d#warn "visible chunks: " . scalar (@o) . "\n";
-   return @o
+   Games::Construder::Util::visible_chunks_at (
+      $self->{phys_obj}->{player}->{pos}, $PL_VIS_RAD);
 }
 
 sub can_see_chunk {

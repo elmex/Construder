@@ -381,25 +381,8 @@ sub set_vis_rad {
 }
 
 sub visible_chunks {
-   my ($self, $from, $chnk) = @_;
-
-   my $plchnk = world_pos2chnkpos ($from);
-   $chnk ||= $plchnk;
-
-   my $rad = $self->{vis_rad};
-
-   my @c;
-   for my $dx (-$rad..$rad) {
-      for my $dy (-$rad..$rad) {
-         for my $dz (-$rad..$rad) {
-            my $cur = [$chnk->[0] + $dx, $chnk->[1] + $dy, $chnk->[2] + $dz];
-            next if vlength (vsub ($cur, $plchnk)) >= $rad;
-            push @c, $cur;
-         }
-      }
-   }
-
-   @c
+   my ($self, $from) = @_;
+   Games::Construder::Util::visible_chunks_at ($from, $self->{vis_rad});
 }
 
 sub update_pos {

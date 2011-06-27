@@ -32,6 +32,21 @@ sub new {
    return $self
 }
 
+package Games::Construder::Util;
+
+sub visible_chunks_at {
+   my ($pos, $rad) = @_;
+
+   my $chnks =
+      Games::Construder::Math::calc_visible_chunks_at (@$pos, $rad);
+   my @o;
+   for (my $i = 0; $i < @$chnks; $i += 3) {
+      push @o, [$chnks->[$i], $chnks->[$i + 1], $chnks->[$i + 2]];
+   }
+   #d#warn "visible chunks: " . scalar (@o) . "\n";
+   return @o
+}
+
 package Games::Construder::VolDraw;
 
 sub _get_file {
