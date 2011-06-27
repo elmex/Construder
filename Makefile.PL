@@ -24,6 +24,7 @@ WriteMakefile(
         'SDL'           => 0,
         'Math::Trig'    => 0,
         'Compress::LZF' => 0,
+        'EV'            => 0,
     },
     depend => {
        "Construder.c" => "vectorlib.c world.c world_data_struct.c render.c world_drawing.c noise_3d.c volume_draw.c"
