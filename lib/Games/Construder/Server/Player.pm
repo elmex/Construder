@@ -1,5 +1,5 @@
 package Games::Construder::Server::Player;
-use Devel::FindRef;
+#d#use Devel::FindRef;
 use common::sense;
 use AnyEvent;
 use Games::Construder::Server::World;
@@ -370,7 +370,7 @@ sub logout {
    delete $self->{death_timer};
    delete $self->{tick_timer};
    warn "player $self->{name} logged out\n";
-   print Devel::FindRef::track $self;
+   #d# print Devel::FindRef::track $self;
 }
 
 my $world_c = 0;
