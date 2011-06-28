@@ -46,8 +46,9 @@ void *mk_3d_noise (unsigned int slen, unsigned int seed)
 {
    int x, y, z;
 
+   printf ("MK3dnoise seed: %d\n", seed);
    seed = hash32int (seed);
-   printf ("MK3dnoise seed: %d\n");
+   printf ("MK3dnoise seed: %d\n", seed);
 
    slen++; // sample one more at the edge
 
