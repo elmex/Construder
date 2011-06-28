@@ -658,7 +658,7 @@ sub setup_event_poller {
          $accum_time -= $dt;
       }
 
-      if ($upd_pos++ > 5) {
+      if ($upd_pos++ > 8) {
          $self->update_player_pos (
             $self->{phys_obj}->{player}->{pos},
             $self->get_look_vector
