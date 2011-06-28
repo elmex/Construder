@@ -57,6 +57,11 @@ void *mk_3d_noise (unsigned int slen, unsigned int seed)
 
    noise_arr[0] = slen;
 
+   printf ("rnd_xor: %u\n", seed, rnd_xor (seed));
+   seed = rnd_xor (seed);
+   printf ("rnd_xor: %u\n", seed, rnd_xor (seed));
+   seed = rnd_xor (seed);
+
    for (x = 0; x < slen; x++)
      for (y = 0; y < slen; y++)
        for (z = 0; z < slen; z++)
