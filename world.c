@@ -6,7 +6,7 @@
 
 #define CHUNK_SIZE      12
 #define CHUNKS_P_SECTOR  5
-#define MAX_LIGHT_RADIUS 12
+#define MAX_LIGHT_RADIUS 18 // should be enough :)
 #define MAX_LIGHT_RADIUS_CHUNKS ( 6 * ((MAX_LIGHT_RADIUS + 1) * 2) * ((MAX_LIGHT_RADIUS + 1) * 2) * ((MAX_LIGHT_RADIUS + 1) * 2))
 // => 26^3 * 6 neighbors => ~1.3Mb ringbuffer for queue - should be enough :)
 
