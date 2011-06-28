@@ -22,7 +22,7 @@ unsigned int hash32int (unsigned int i)
 
 unsigned int map_coord2int (unsigned int x, unsigned int y, unsigned int z)
 {
-  unsigned long out = 0;
+  unsigned int out = 0;
   unsigned int i = 0;
   while (x > 0 || y > 0 || z > 0)
     {
@@ -42,38 +42,6 @@ unsigned int map_coord2int (unsigned int x, unsigned int y, unsigned int z)
 
 #define NOISE_ARR_OFFS(slen,x,y,z) (1 + (x) + (y) * slen + (z) * (slen * slen))
 
-void *mk_3d_noise (unsigned int slen, unsigned int seed)
-{
-   int x, y, z;
-
-   printf ("MK3dnoise seed: %d\n", seed);
-   seed = hash32int (seed);
-   printf ("MK3dnoise seed: %d\n", seed);
-
-   slen++; // sample one more at the edge
-
-   unsigned long *noise_arr =
-      malloc (sizeof (unsigned long) * (slen * slen * slen + 1));
-
-   noise_arr[0] = slen;
-
-   printf ("rnd_xor: %u\n", seed, rnd_xor (seed));
-   seed = rnd_xor (seed);
-   printf ("rnd_xor: %u\n", seed, rnd_xor (seed));
-   seed = rnd_xor (seed);
-
-   for (x = 0; x < slen; x++)
-     for (y = 0; y < slen; y++)
-       for (z = 0; z < slen; z++)
-         {
-           seed = noise_arr[NOISE_ARR_OFFS(slen,x,y,z)] = rnd_xor (seed);
-         }
-   printf ("intsze %d %d\n", sizeof (unsigned long), sizeof (unsigned int));
-   printf ("noise samples: %u\n", noise_arr[300]);
-
-   return noise_arr;
-}
-
 unsigned int linerp_int (unsigned int a, unsigned int b, unsigned int x)
 {
    unsigned long i =
@@ -91,6 +59,44 @@ unsigned int smoothstep_int (unsigned int a, unsigned int b, unsigned int x)
         + ((unsigned long) b * xs);
    i /= INTSCALE3;
    return i;
+}
+
+void *mk_3d_noise (unsigned int slen, unsigned int seed)
+{
+   int x, y, z;
+
+   printf ("MK3dnoise seed: %d\n", seed);
+   seed = hash32int (seed);
+   printf ("MK3dnoise seed: %d\n", seed);
+
+   slen++; // sample one more at the edge
+
+   unsigned int *noise_arr =
+      malloc (sizeof (unsigned int) * (slen * slen * slen + 1));
+
+   noise_arr[0] = slen;
+
+   printf ("rnd_xor: %u\n", seed, rnd_xor (seed));
+   seed = rnd_xor (seed);
+   printf ("rnd_xor: %u\n", seed, rnd_xor (seed));
+   seed = rnd_xor (seed);
+
+   for (x = 0; x < slen; x++)
+     for (y = 0; y < slen; y++)
+       for (z = 0; z < slen; z++)
+         {
+           seed = noise_arr[NOISE_ARR_OFFS(slen,x,y,z)] = rnd_xor (seed);
+         }
+   printf ("intsze %d %d\n", sizeof (unsigned int), sizeof (unsigned int));
+   printf ("noise samples: %u\n", noise_arr[300]);
+
+   printf ("interp %u %u %u %u %u\n",
+           noise_arr[300],
+           noise_arr[301],
+           smoothstep_int (noise_arr[300], noise_arr[301], INTSCALE),
+           smoothstep_int (noise_arr[300], noise_arr[301], 0),
+           smoothstep_int (noise_arr[300], noise_arr[301], INTSCALE / 2));
+   return noise_arr;
 }
 
 unsigned long sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, unsigned int z, unsigned int scale)
