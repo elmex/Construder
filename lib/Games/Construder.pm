@@ -180,6 +180,14 @@ sub draw_commands {
          # hist_equalize <number of buckets> <range from> <range to>
          histogram_equalize ($arg[0] || 1, $arg[1], $arg[2]);
 
+      } elsif ($cmd eq 'coords') {
+         ($env->{coords_x}, $env->{coords_y}, $env->{coords_z},
+          $env->{coords_sx}, $env->{coords_sy}, $env->{coords_sz}) = (@arg);
+
+      } elsif ($cmd eq 'mandelbox') {
+         # mandelbox <s> <r> <f> <it> <coordscale>
+         mandel_box ($env->{coords_x}, $env->{coords_y}, $env->{coords_z}, $env->{coords_sx}, $env->{coords_sy}, $env->{coords_sz}, $arg[0], $arg[1], $arg[2], $arg[3], $arg[4]);
+
       } elsif ($cmd eq 'show_region_sectors') {
          # show_region_sectors
          my %sectors;

@@ -909,6 +909,8 @@ void vol_draw_subdiv (int type, float x, float y, float z, float size, float shr
 
 void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves, double factor, double persistence);
 
+void vol_draw_mandel_box (double xc, double yc, double zc, double xsc, double ysc, double zsc, double s, double r, double f, int it, double cfact);
+
 void vol_draw_menger_sponge_box (float x, float y, float z, float size, unsigned short lvl);
 
 void vol_draw_cantor_dust_box (float x, float y, float z, float size, unsigned short lvl);

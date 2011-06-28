@@ -553,6 +553,70 @@ void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves
         DRAW_DST(x,y,z) /= amp_correction;
 }
 
+double _vol_draw_mandel_box_equation (double *v, double s, double r, double f, double *c)
+{
+  //printf ("TEST %lf %lf %lf: %lf %lf %lf, %lf %lf %lf\n", v[0], v[1], v[2], s, r, f, c[0], c[1], c[2]);
+  vec3_clone (fold, v);
+  int i;
+  for (i = 0; i < 3; i++)
+    {
+      if (fold[i] > 1)       fold[i] = (double) 2.0 - fold[i];
+      else if (fold[i] < -1) fold[i] = (double) -2.0 - fold[i];
+    }
+
+  vec3_s_mul (fold, f);
+  double m = vec3_len (fold);
+  if (m < r)      { vec3_s_mul (fold, 4); }
+  else if (m < 1) { vec3_s_div (fold, m * m); }
+  vec3_assign (v, fold);
+  vec3_s_mul (v, s);
+  vec3_add (v, c);
+
+  return vec3_len (v);
+}
+
+void vol_draw_mandel_box (double xc, double yc, double zc, double xsc, double ysc, double zsc, double s, double r, double f, int it, double cfact)
+{
+
+  int x, y, z;
+  for (z = 0; z < DRAW_CTX.size; z++)
+    for (y = 0; y < DRAW_CTX.size; y++)
+      for (x = 0; x < DRAW_CTX.size; x++)
+        {
+          vec3_init (c, x, y, z);
+          vec3_s_div (c, DRAW_CTX.size);
+          c[0] += xsc;
+          c[1] += ysc;
+          c[2] += zsc;
+          vec3_s_mul (c, cfact);
+
+          c[0] += -xsc * cfact;
+          c[1] += -ysc * cfact;
+          c[2] += -zsc * cfact;
+          c[0] += xc;
+          c[1] += yc;
+          c[2] += zc;
+
+          int i;
+          int escape = 0;
+          vec3_init (v, 0, 0, 0);
+          for (i = 0; i < it; i++)
+            {
+              double d = _vol_draw_mandel_box_equation (v, s, r, f, c);
+              if (d > 1024)
+                {
+ //             printf ("esc %lf\n", d);
+                  escape = 1;
+                  break;
+                }
+            }
+
+          if (!escape)
+            vol_draw_op (x, y, z, 0.5);
+        }
+}
+
+
 void vol_draw_menger_sponge_box (float x, float y, float z, float size, unsigned short lvl)
 {
   if (lvl == 0)
