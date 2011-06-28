@@ -60,7 +60,12 @@ void *mk_3d_noise (unsigned int slen, unsigned int seed)
    for (x = 0; x < slen; x++)
      for (y = 0; y < slen; y++)
        for (z = 0; z < slen; z++)
-         seed = noise_arr[NOISE_ARR_OFFS(slen,x,y,z)] = rnd_xor (seed);
+         {
+           seed = noise_arr[NOISE_ARR_OFFS(slen,x,y,z)] = rnd_xor (seed);
+         }
+   printf ("noise samples: %ld\n", noise_arr[100]);
+   printf ("noise samples: %ld\n", noise_arr[200]);
+   printf ("noise samples: %ld\n", noise_arr[300]);
 
    return noise_arr;
 }
