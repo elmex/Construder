@@ -66,9 +66,7 @@ void *mk_3d_noise (unsigned int slen, unsigned int seed)
 {
    int x, y, z;
 
-   printf ("MK3dnoise seed: %d\n", seed);
    seed = hash32int (seed);
-   printf ("MK3dnoise seed: %d\n", seed);
 
    slen++; // sample one more at the edge
 
@@ -77,26 +75,11 @@ void *mk_3d_noise (unsigned int slen, unsigned int seed)
 
    noise_arr[0] = slen;
 
-   printf ("rnd_xor: %u\n", seed, rnd_xor (seed));
-   seed = rnd_xor (seed);
-   printf ("rnd_xor: %u\n", seed, rnd_xor (seed));
-   seed = rnd_xor (seed);
-
    for (x = 0; x < slen; x++)
      for (y = 0; y < slen; y++)
        for (z = 0; z < slen; z++)
-         {
-           seed = noise_arr[NOISE_ARR_OFFS(slen,x,y,z)] = rnd_xor (seed);
-         }
-   printf ("intsze %d %d\n", sizeof (unsigned int), sizeof (unsigned int));
-   printf ("noise samples: %u\n", noise_arr[300]);
+         seed = noise_arr[NOISE_ARR_OFFS(slen,x,y,z)] = rnd_xor (seed);
 
-   printf ("interp %u %u %u %u %u\n",
-           noise_arr[300],
-           noise_arr[301],
-           smoothstep_int (noise_arr[300], noise_arr[301], INTSCALE),
-           smoothstep_int (noise_arr[300], noise_arr[301], 0),
-           smoothstep_int (noise_arr[300], noise_arr[301], INTSCALE / 2));
    return noise_arr;
 }
 
