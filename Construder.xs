@@ -201,6 +201,10 @@ ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int
 
 void ctr_render_init ();
 
+void ctr_render_set_ambient_light (double l)
+  CODE:
+     ctr_ambient_light = l;
+
 MODULE = Games::Construder PACKAGE = Games::Construder::World PREFIX = ctr_world_
 
 void ctr_world_init (SV *change_cb, SV *cell_change_cb)

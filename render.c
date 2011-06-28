@@ -1,5 +1,7 @@
 #include <SDL_opengl.h>
 
+double ctr_ambient_light = 0.1;
+
 unsigned int quad_vert_idx_tri[6][6] = {
   {0, 1, 2,  2, 3, 0},
   {1, 5, 6,  6, 2, 1},
@@ -519,8 +521,8 @@ ctr_render_model (unsigned int type, double light, double xo, double yo, double 
 double ctr_cell_light (ctr_cell *c)
 {
   double light = (double) c->light / 15;
-  if (light < 0.07) // ambient light
-    light = 0.07;
+  if (light < ctr_ambient_light)
+    light = ctr_ambient_light;
   return light;
 }
 

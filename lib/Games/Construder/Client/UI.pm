@@ -277,7 +277,11 @@ sub setup_sizes {
       }
 
       my ($fnt) = element_font ($el);
-      my $txt = $type eq 'range' ? "< $childs[0] >" : $childs[0];
+      my $fmt = $attr->{fmt} ne '' ? $attr->{fmt} : "%s";
+      my $txt =
+         $type eq 'range'
+            ? "< " . sprintf ($fmt, $childs[0]) . " >" 
+            : sprintf ($fmt, $childs[0]);
       my $lyout =
          layout_text ($fnt, $txt, $attr->{wrap},
                       $attr->{align}, $attr->{line_range},

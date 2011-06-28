@@ -130,6 +130,8 @@ sub init_app {
    #d#SDL::Mixer::open_audio( 44100, SDL::Mixer::AUDIO_S16SYS, 2, 4096 );
    #d#SDL::Mixer::Music::volume_music ($self->{res}->{config}->{volume_music});
 
+   $self->set_ambient_light ($self->{res}->{config}->{ambient_light});
+
    SDL::Events::enable_unicode (1);
    $self->{sdl_event} = SDL::Event->new;
    SDL::Video::GL_set_attribute (SDL::Constants::SDL_GL_SWAP_CONTROL, 1);
@@ -216,6 +218,19 @@ sub _render_highlight {
    _render_quad ([0, 0, 0]);
    glEnd;
    glPopMatrix;
+}
+
+sub set_ambient_light {
+   my ($self, $l) = @_;
+   Games::Construder::Renderer::set_ambient_light ($l);
+   for my $cx (keys %{$self->{compiled_chunks}}) {
+      for my $cy (keys %{$self->{compiled_chunks}->{$cx}}) {
+         for my $cz (keys %{$self->{compiled_chunks}->{$cx}->{$cy}}) {
+            Games::Construder::Renderer::chunk ($cx, $cy, $cz, $self->{compiled_chunks}->{$cx}->{$cy}->{$cz});
+         }
+      }
+   }
+
 }
 
 sub free_compiled_chunk {
@@ -931,7 +946,7 @@ sub show_mouse_settings {
           "Mouse Settings"],
          [text => { align => "center", color => "#ffffff", font => "normal" },
           "Mouse sensitivity: " . sprintf "%0.2f", $self->{res}->{config}->{mouse_sens}],
-         [range => { align => "center", color => "#ffffff", font => "normal", arg => "sens", step => 0.05, range => [0.05, 7], highlight => ["#111111", "#333333"] },
+         [range => { align => "center", fmt => "%0.2f", color => "#ffffff", font => "normal", arg => "sens", step => 0.05, range => [0.05, 20], highlight => ["#111111", "#333333"] },
           sprintf "%0.2f", $self->{res}->{config}->{mouse_sens}],
       ],
       commands => {
