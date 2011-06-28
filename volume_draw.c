@@ -539,7 +539,7 @@ void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves
         for (y = 0; y < DRAW_CTX.size; y++)
           for (x = 0; x < DRAW_CTX.size; x++)
             {
-              unsigned long s = sample_3d_noise_at (noise, x, y, z, scale);
+              unsigned int s = sample_3d_noise_at (noise, x, y, z, scale);
               double val = (double) s / (double) 0xFFFFFFFF;
               DRAW_DST(x,y,z) += val * amp;
             }

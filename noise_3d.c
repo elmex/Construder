@@ -1,5 +1,6 @@
 #define INTSCALE  (128ul)
 #define INTSCALE3 (INTSCALE * INTSCALE * INTSCALE)
+#include <stdint.h>
 
 unsigned int rnd_xor (unsigned int x)
 {
@@ -44,19 +45,19 @@ unsigned int map_coord2int (unsigned int x, unsigned int y, unsigned int z)
 
 unsigned int linerp_int (unsigned int a, unsigned int b, unsigned int x)
 {
-   unsigned long i =
-        ((unsigned long) a * (INTSCALE - x)) + ((unsigned long) b * x);
+   uint64_t i =
+        ((uint64_t) a * (INTSCALE - x)) + ((uint64_t) b * x);
    i /= INTSCALE;
    return i;
 }
 
 unsigned int smoothstep_int (unsigned int a, unsigned int b, unsigned int x)
 {
-   unsigned long xs = x;
+   uint64_t xs = x;
    xs = xs * xs * ((3 * INTSCALE) - 2 * xs);
-   unsigned long i =
-          ((unsigned long) a * (INTSCALE3 - xs))
-        + ((unsigned long) b * xs);
+   uint64_t i =
+          ((uint64_t) a * (INTSCALE3 - xs))
+        + ((uint64_t) b * xs);
    i /= INTSCALE3;
    return i;
 }
@@ -99,9 +100,9 @@ void *mk_3d_noise (unsigned int slen, unsigned int seed)
    return noise_arr;
 }
 
-unsigned long sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, unsigned int z, unsigned int scale)
+unsigned int sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, unsigned int z, unsigned int scale)
 {
-   unsigned long *noise_3d = noise;
+   unsigned int *noise_3d = noise;
 
    if (scale <= 0)
      return 0;
