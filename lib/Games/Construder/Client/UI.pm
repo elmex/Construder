@@ -7,7 +7,7 @@ use SDL::TTF;
 use OpenGL qw(:all);
 use JSON;
 use Games::Construder::Vector;
-use File::ShareDir;
+use File::ShareDir::PAR;
 
 use base qw/Object::Event/;
 
@@ -45,7 +45,7 @@ sub init_ui {
    }
 
    my $fnt =
-      File::ShareDir::dist_file ('Games-Construder', 'font/FreeMonoBold.ttf');
+      File::ShareDir::PAR::dist_file ('Games-Construder', 'font/FreeMonoBold.ttf');
 
    $BIG_FONT   = SDL::TTF::open_font ($fnt, 35)
       or die "Couldn't load font from $fnt: " . SDL::get_error . "\n";

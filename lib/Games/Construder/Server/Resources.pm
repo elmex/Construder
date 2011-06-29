@@ -4,7 +4,7 @@ use AnyEvent;
 use JSON;
 use Digest::MD5 qw/md5_base64/;
 use Games::Construder::Server::Objects;
-use File::ShareDir;
+use File::ShareDir::PAR;
 use base qw/Object::Event/;
 
 =head1 NAME
@@ -70,7 +70,7 @@ sub _get_file {
 
 sub _get_shared_file {
    my ($file) = @_;
-   _get_file (File::ShareDir::dist_file ('Games-Construder', $file))
+   _get_file (File::ShareDir::PAR::dist_file ('Games-Construder', $file))
 }
 
 sub load_content_file {

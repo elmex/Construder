@@ -17,23 +17,25 @@ makemaker_args (
     },
 );
 
-requires 'Test::More'      => 0;
-requires 'Object::Event'   => 0;
-requires 'common::sense'   => 0;
-requires 'AnyEvent'        => 0;
-requires 'JSON'            => 0;
-requires 'OpenGL'          => 0;
-requires 'OpenGL::List'    => 0;
-requires 'SDL'             => 0;
-requires 'Math::Trig'      => 0;
-requires 'Compress::LZF'   => 0;
-requires 'EV'              => 0;
-requires 'File::ShareDir'  => 0;
+requires 'Test::More'          => 0;
+requires 'Object::Event'       => 0;
+requires 'common::sense'       => 0;
+requires 'AnyEvent'            => 0;
+requires 'JSON'                => 0;
+requires 'OpenGL'              => 0;
+requires 'OpenGL::List'        => 0;
+requires 'SDL'                 => 0;
+requires 'Math::Trig'          => 0;
+requires 'Compress::LZF'       => 0;
+requires 'EV'                  => 0;
+requires 'File::ShareDir::PAR' => 0;
 
 install_script 'bin/construder_server';
 install_script 'bin/construder_client';
 
 install_share 'res';
+
+#make_par ();
 
 WriteAll;
 
