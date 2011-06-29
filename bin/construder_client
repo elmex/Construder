@@ -1,6 +1,4 @@
 #!/opt/perl/bin/perl
-use Math::VectorReal;
-$Math::VectorReal::FORMAT = "[ %9.4f, %9.4f, %9.4f ]";
 use common::sense;
 use Games::Construder;
 use Games::Construder::Client;
