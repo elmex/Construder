@@ -427,6 +427,8 @@ void ctr_world_get_chunk_data (ctr_chunk *chnk, unsigned char *data)
         }
 }
 
+static int chnk_alloc = 0;
+
 ctr_chunk *ctr_world_chunk (int x, int y, int z, int alloc)
 {
   ctr_axis_array *xn = (ctr_axis_array *) ctr_axis_get (WORLD.y, y);
@@ -458,6 +460,8 @@ ctr_chunk *ctr_world_chunk (int x, int y, int z, int alloc)
     {
       c = malloc (sizeof (ctr_chunk));
       memset (c, 0, sizeof (ctr_chunk));
+      chnk_alloc++;
+      printf ("ALLOC CHUNK %d %d %d (%d)\n", x, y, z, chnk_alloc);
       c->x = x;
       c->y = y;
       c->z = z;
@@ -477,6 +481,7 @@ ctr_chunk *ctr_world_chunk_at (double x, double y, double z, int alloc)
 
 void ctr_world_purge_chunk (int x, int y, int z)
 {
+  //printf ("PURGE CHUNK %d %d %d\n", x, y, z);
   ctr_axis_array *xn = (ctr_axis_array *) ctr_axis_get (WORLD.y, y);
   if (!xn)
     return;
@@ -487,7 +492,10 @@ void ctr_world_purge_chunk (int x, int y, int z)
 
   ctr_chunk *c = (ctr_chunk *) ctr_axis_remove (zn, z);
   if (c)
-    free (c);
+    {
+      chnk_alloc--;
+      free (c);
+    }
   // FIXME: we need probably feedback in query_context, in
   //        case this chunk is loaded there!
 }

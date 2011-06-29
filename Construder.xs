@@ -20,12 +20,12 @@ unsigned char ctr_world_query_get_max_light_of_neighbours (x, y, z)
   ctr_cell *front = ctr_world_query_cell_at (x, y, z - 1, 0);
   ctr_cell *back  = ctr_world_query_cell_at (x, y, z + 1, 0);
   unsigned char l = 0;
-  if (above->light > l) l = above->light;
-  if (below->light > l) l = below->light;
-  if (left->light > l) l = left->light;
-  if (right->light > l) l = right->light;
-  if (front->light > l) l = front->light;
-  if (back->light > l) l = back->light;
+  if (above && above->light > l) l = above->light;
+  if (below && below->light > l) l = below->light;
+  if (left  && left->light  > l) l = left->light;
+  if (right && right->light > l) l = right->light;
+  if (front && front->light > l) l = front->light;
+  if (back  && back->light  > l) l = back->light;
   return l;
 }
 
@@ -229,6 +229,7 @@ ctr_world_get_chunk_data (int x, int y, int z)
     ctr_world_get_chunk_data (chnk, data);
 
     RETVAL = newSVpv (data, len);
+    free (data);
   OUTPUT:
     RETVAL
 
@@ -264,6 +265,8 @@ void ctr_world_set_chunk_data (int x, int y, int z, unsigned char *data, unsigne
           }
       }
     */
+
+void ctr_world_purge_chunk (int x, int y, int z);
 
 int ctr_world_is_solid_at (double x, double y, double z)
   CODE:
@@ -409,7 +412,7 @@ ctr_world_test_binsearch ()
     ctr_world_dump ();
 
 
-void ctr_world_query_load_chunks ();
+void ctr_world_query_load_chunks (int alloc = 0);
 
 void ctr_world_query_set_at (unsigned int rel_x, unsigned int rel_y, unsigned int rel_z, AV *cell)
   CODE:
@@ -463,7 +466,7 @@ AV *ctr_world_query_possible_light_positions ()
                          pz = z + offsets[i][2] * (m - 1);
 
                      ctr_cell *cur = ctr_world_query_cell_at (px, py, pz, 0);
-                     if (cur->type != 0)
+                     if (!cur || cur->type != 0)
                        continue;
 
                      cur = ctr_world_query_cell_at (
@@ -471,7 +474,7 @@ AV *ctr_world_query_possible_light_positions ()
                        y + offsets[i][1] * m,
                        z + offsets[i][2] * m,
                        0);
-                     if (cur->type != 0)
+                     if (cur && cur->type != 0)
                        {
                          av_push (RETVAL,
                                   newSViv (px + QUERY_CONTEXT.chnk_x * CHUNK_SIZE));
@@ -502,7 +505,7 @@ AV *ctr_world_find_free_spot (int x, int y, int z, int with_floor)
       chnk_x + 2, chnk_y + 2, chnk_z + 2
     );
 
-    ctr_world_query_load_chunks ();
+    ctr_world_query_load_chunks (0);
 
     int cx = x, cy = y, cz = z;
     ctr_world_query_abs2rel (&cx, &cy, &cz);
@@ -523,16 +526,22 @@ AV *ctr_world_find_free_spot (int x, int y, int z, int with_floor)
                   dz = iz + cz;
 
               ctr_cell *cur = ctr_world_query_cell_at (dx, dy, dz, 0);
+              if (!cur)
+                continue;
               ctr_obj_attr *attr = ctr_world_get_attr (cur->type);
               if (attr->blocking)
                 continue;
 
               cur = ctr_world_query_cell_at (dx, dy + 1, dz, 0);
+              if (!cur)
+                continue;
               attr = ctr_world_get_attr (cur->type);
               if (attr->blocking)
                 continue;
 
               cur = ctr_world_query_cell_at (dx, dy - 1, dz, 0);
+              if (!cur)
+                continue;
               attr = ctr_world_get_attr (cur->type);
               if (with_floor && !attr->blocking)
                 continue;
@@ -561,7 +570,7 @@ AV *ctr_world_get_types_in_cube (int x, int y, int z, int size, int type_match =
       (int) pos2[0], (int) pos2[1], (int) pos2[2]
     );
 
-    ctr_world_query_load_chunks ();
+    ctr_world_query_load_chunks (0);
 
     int cx = x, cy = y, cz = z;
     ctr_world_query_abs2rel (&cx, &cy, &cz);
@@ -575,6 +584,9 @@ AV *ctr_world_get_types_in_cube (int x, int y, int z, int size, int type_match =
         for (dz = 0; dz < size; dz++)
           {
             ctr_cell *cur = ctr_world_query_cell_at (cx + dx, cy + dy, cz + dz, 0);
+            if (!cur)
+              continue;
+
             if (type_match >= 0)
               {
                 if (cur->type == type_match)
@@ -608,7 +620,7 @@ AV *ctr_world_get_pattern (int x, int y, int z, int mutate)
       chnk_x + 1, chnk_y + 1, chnk_z + 1
     );
 
-    ctr_world_query_load_chunks ();
+    ctr_world_query_load_chunks (0);
 
     RETVAL = newAV ();
     sv_2mortal ((SV *)RETVAL);
@@ -621,7 +633,7 @@ AV *ctr_world_get_pattern (int x, int y, int z, int mutate)
 
     // find lowest cx/cz coord with constr. floor
     ctr_cell *cur = ctr_world_query_cell_at (cx, cy, cz, 0);
-    while (cur->type == 36)
+    while (cur && cur->type == 36)
       {
         cx--;
         printf ("CX %d\n", cx);
@@ -630,7 +642,7 @@ AV *ctr_world_get_pattern (int x, int y, int z, int mutate)
 
     cx++;
     cur = ctr_world_query_cell_at (cx, cy, cz, 0);
-    while (cur->type == 36)
+    while (cur && cur->type == 36)
       {
         cz--;
         printf ("CZ %d\n", cz);
@@ -652,7 +664,7 @@ AV *ctr_world_get_pattern (int x, int y, int z, int mutate)
             {
               ctr_cell *cur = ctr_world_query_cell_at (cx + dx, cy, cz + dz, 0);
               printf ("TXT[%d] %d %d %d: %d\n", dim, cx + dx, cy, cz + dz, cur->type);
-              if (cur->type != 36)
+              if (!cur || cur->type != 36)
                 no_floor = 1;
             }
         if (!no_floor)
@@ -678,7 +690,7 @@ AV *ctr_world_get_pattern (int x, int y, int z, int mutate)
                 iy = dy + cy,
                 iz = dz + cz;
             cur = ctr_world_query_cell_at (ix, iy, iz, 0);
-            if (cur->type != 0)
+            if (cur && cur->type != 0)
               {
                 if (min_x > ix) min_x = ix;
                 if (min_y > iy) min_y = iy;
@@ -694,7 +706,7 @@ AV *ctr_world_get_pattern (int x, int y, int z, int mutate)
                 iy = dy + cy,
                 iz = dz + cz;
             cur = ctr_world_query_cell_at (ix, iy, iz, 0);
-            if (cur->type != 0)
+            if (cur && cur->type != 0)
               {
                 if (max_x < ix) max_x = ix;
                 if (max_y < iy) max_y = iy;
@@ -732,7 +744,7 @@ AV *ctr_world_get_pattern (int x, int y, int z, int mutate)
               }
 
             cur = ctr_world_query_cell_at (ix, iy, iz, 0);
-            if (cur->type != 0)
+            if (cur && cur->type != 0)
               {
                 if (mutate == 1)
                   {
@@ -772,7 +784,7 @@ void ctr_world_flow_light_query_setup (int minx, int miny, int minz, int maxx, i
       max_pos[0] + 2, max_pos[1] + 2, max_pos[2] + 2
     );
 
-    ctr_world_query_load_chunks ();
+    ctr_world_query_load_chunks (0);
 
 void ctr_world_flow_light_at (int x, int y, int z)
   CODE:
@@ -781,6 +793,9 @@ void ctr_world_flow_light_at (int x, int y, int z)
     ctr_world_light_upd_start ();
 
     ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 0);
+    if (!cur)
+      return;
+
     unsigned char l = ctr_world_query_get_max_light_of_neighbours (x, y, z);
 
     if (ctr_world_cell_transparent (cur)) // a transparent cell has changed
@@ -809,6 +824,8 @@ void ctr_world_flow_light_at (int x, int y, int z)
     else // oh, a (light) blocking cell has been set!
       {
         ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 1);
+        if (!cur)
+          return;
 
         if (cur->type == 41) // was a light: light it!
           cur->light = 8;
@@ -830,10 +847,12 @@ void ctr_world_flow_light_at (int x, int y, int z)
     while (ctr_world_light_dequeue (&x, &y, &z, &upd_radius))
       {
         cur = ctr_world_query_cell_at (x, y, z, 0);
-        if (!ctr_world_cell_transparent (cur) || cur->light == 255)
+        if (!cur || !ctr_world_cell_transparent (cur) || cur->light == 255)
           continue; // ignore blocks that can't be lit or were already visited
 
         cur = ctr_world_query_cell_at (x, y, z, 1);
+        assert (cur);
+
         cur->light = 255; // insert "visited" marker
         ctr_world_light_select_queue (1);
         ctr_world_light_enqueue (x, y, z, 1);
@@ -850,6 +869,8 @@ void ctr_world_flow_light_at (int x, int y, int z)
     while (ctr_world_light_dequeue (&x, &y, &z, &upd_radius))
       {
         cur = ctr_world_query_cell_at (x, y, z, 1);
+        if (!cur)
+          continue;
         cur->light = 0;
       }
 
@@ -868,6 +889,9 @@ void ctr_world_flow_light_at (int x, int y, int z)
         while (ctr_world_light_dequeue (&x, &y, &z, &upd_radius))
           {
             cur = ctr_world_query_cell_at (x, y, z, 0);
+            if (!cur)
+              continue;
+
             unsigned char l = ctr_world_query_get_max_light_of_neighbours (x, y, z);
             if (l > 0) l--;
 #if DEBUG_LIGHT
@@ -877,6 +901,8 @@ void ctr_world_flow_light_at (int x, int y, int z)
             if (cur->light < l)
               {
                 cur = ctr_world_query_cell_at (x, y, z, 1);
+                assert (cur);
+
                 cur->light = l;
                 change = 1;
               }
@@ -970,13 +996,14 @@ void vol_draw_dst_to_world (int sector_x, int sector_y, int sector_z, AV *range_
       cz + (CHUNKS_P_SECTOR - 1)
     );
 
-    ctr_world_query_load_chunks ();
+    ctr_world_query_load_chunks (1);
     int x, y, z;
     for (x = 0; x < DRAW_CTX.size; x++)
       for (y = 0; y < DRAW_CTX.size; y++)
         for (z = 0; z < DRAW_CTX.size; z++)
           {
             ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 1);
+            assert (cur);
             double v = DRAW_DST(x, y, z);
 
             int al = av_len (range_map);

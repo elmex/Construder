@@ -382,7 +382,13 @@ sub set_vis_rad {
 
 sub visible_chunks {
    my ($self, $from) = @_;
-   Games::Construder::Util::visible_chunks_at ($from, $self->{vis_rad});
+   delete $self->{visible_sectors};
+   my @chnks = Games::Construder::Util::visible_chunks_at ($from, $self->{vis_rad});
+   for (@chnks) {
+      my $id = world_pos2id (world_chnkpos2secpos ($_));
+      $self->{visible_sectors}->{$id} = 1;
+   }
+   @chnks
 }
 
 sub update_pos {

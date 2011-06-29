@@ -104,7 +104,7 @@ void vol_draw_set_op (unsigned int op)
 void vol_draw_alloc (unsigned int size)
 {
   int i;
-  if (DRAW_CTX.src)
+  if (DRAW_CTX.buffers[0])
     {
       for (i = 0; i < 4; i++)
         free (DRAW_CTX.buffers[i]);

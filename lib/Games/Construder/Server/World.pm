@@ -25,6 +25,7 @@ our @EXPORT = qw/
    world_at
    world_entity_at
    world_sector_info
+   world_touch_sector
 /;
 
 
@@ -52,6 +53,7 @@ our $REGION;
 our %SECTORS;
 
 our $STORE_SCHED_TMR;
+our $FREE_TMR;
 our $TICK_TMR;
 our @SAVE_SECTORS_QUEUE;
 
@@ -88,6 +90,7 @@ sub world_init {
          warn "ACTIVE CHANGE: $type ($x,$y,$z) ($ent)\n";
          my $sec = world_chnkpos2secpos (world_pos2chnkpos ([$x, $y, $z]));
          my $id  = world_pos2id ($sec);
+         return unless exists $SECTORS{$id};
          my $eid = world_pos2id ([$x, $y, $z]);
 
          my $e = delete $SECTORS{$id}->{entities}->{$eid};
@@ -113,11 +116,32 @@ sub world_init {
       NEXT:
       my $s = shift @SAVE_SECTORS_QUEUE
          or return;
+      return unless exists $SECTORS{$s->[0]};
       if ($SECTORS{$s->[0]}->{dirty}) {
          _world_save_sector ($s->[1]);
       } else {
          goto NEXT;
       }
+   };
+
+   $FREE_TMR = AE::timer 10, 5, sub {
+      my (@invisible_sectors) = grep {
+         my $s = $_;
+         my $vis = 0;
+         for (values %{$SRV->{players}}) {
+            if ($_->{visible_sectors}->{$s}) {
+               $vis = 1;
+               last;
+            }
+         }
+         not $vis
+      } keys %SECTORS;
+
+      for (@invisible_sectors) {
+         warn "freeing invisible sector $_\n";
+         world_free_sector ($_);
+      }
+      warn "SECTORS LOADED ON FREE: " . scalar (keys %SECTORS) . "\n";
    };
 
    $TICK_TMR = AE::timer 0, 0.15, sub {
@@ -137,8 +161,43 @@ sub world_init {
 sub world_sector_dirty {
    my ($sec) = @_;
    my $id  = world_pos2id ($sec);
+   return unless exists $SECTORS{$id};
    $SECTORS{$id}->{dirty} = 1;
    push @SAVE_SECTORS_QUEUE, [$id, $sec];
+}
+
+# still unused:
+#sub world_touch_sector {
+#   my ($self, $sec) = @_;
+#   my $id = world_pos2id ($sec);
+#   my $s = $SECTORS{$id}
+#      or return;
+#   $s->{last_touch} = time;
+#}
+
+sub world_free_sector {
+   my ($id) = @_;
+   my $sec = world_id2pos ($id);
+   my $s = $SECTORS{$id}
+      or return;
+   if ($s->{dirty}) {
+      _world_save_sector ($sec);
+   }
+   return if $s->{dirty};
+   delete $SECTORS{$id};
+   my $fchunk = world_secpos2chnkpos ($sec);
+   for my $x (0..4) {
+      for my $y (0..4) {
+         for my $z (0..4) {
+            Games::Construder::World::purge_chunk (
+               $fchunk->[0] + $x,
+               $fchunk->[1] + $y,
+               $fchunk->[2] + $z
+            );
+         }
+      }
+   }
+   warn "chunks from @$fchunk purged!\n";
 }
 
 sub _world_make_sector {
@@ -449,18 +508,21 @@ sub world_load_at_chunk {
    for my $dx (-2, 0, 2) {
       for my $dy (-2, 0, 2) {
          for my $dz (-2, 0, 2) {
-            my $sec   = world_chnkpos2secpos (vaddd ($chnk, $dx, $dy, $dz));
+            my $chnk2 = vaddd ($chnk, $dx, $dy, $dz);
+            my $sec   = world_chnkpos2secpos ($chnk2);
             my $secid = world_pos2id ($sec);
             unless ($SECTORS{$secid}) {
                warn "LOAD SECTOR $secid\n";
-               my $r = _world_load_sector ($sec);
-               if ($r == 0) {
+               #my $r = _world_load_sector ($sec);
+               #if ($r == 0) {
                   _world_make_sector ($sec);
-               }
+               #}
             }
          }
       }
    }
+
+   warn "SECTORS LOADED: " . scalar (keys %SECTORS) . "\n";
 
    $cb->() if $cb;
 }

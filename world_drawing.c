@@ -88,7 +88,7 @@ void ctr_world_query_unallocated_chunks (AV *chnkposes)
         }
 }
 
-void ctr_world_query_load_chunks ()
+void ctr_world_query_load_chunks (int alloc)
 {
   int x, y, z;
   for (z = QUERY_CONTEXT.chnk_z; z <= QUERY_CONTEXT.end_chnk_z; z++)
@@ -98,8 +98,9 @@ void ctr_world_query_load_chunks ()
           int ox = x - QUERY_CONTEXT.chnk_x;
           int oy = y - QUERY_CONTEXT.chnk_y;
           int oz = z - QUERY_CONTEXT.chnk_z;
-          ctr_chunk *c = QUERY_CHUNK(ox, oy, oz) = ctr_world_chunk (x, y, z, 1);
-          ctr_chunk_clear_changes (c);
+          ctr_chunk *c = QUERY_CHUNK(ox, oy, oz) = ctr_world_chunk (x, y, z, alloc);
+          if (c)
+            ctr_chunk_clear_changes (c);
         }
   QUERY_CONTEXT.loaded = 1;
 }
@@ -151,6 +152,9 @@ ctr_cell *ctr_world_query_cell_at (unsigned int rel_x, unsigned int rel_y, unsig
   assert (chnk_z < QUERY_CONTEXT.z_w);
 
   ctr_chunk *chnk = QUERY_CHUNK(chnk_x, chnk_y, chnk_z);
+  if (!chnk)
+    return 0;
+
   ctr_cell *c =
     ctr_chunk_cell_at_rel (chnk, chnk_rel_x, chnk_rel_y, chnk_rel_z);
 
@@ -163,6 +167,9 @@ ctr_cell *ctr_world_query_cell_at (unsigned int rel_x, unsigned int rel_y, unsig
 void ctr_world_query_set_at_pl (unsigned int rel_x, unsigned int rel_y, unsigned int rel_z, AV *cell)
 {
   ctr_cell *c = ctr_world_query_cell_at (rel_x, rel_y, rel_z, 1);
+  if (!c)
+    return;
+
   int otype = c->type;
 
   SV **t = av_fetch (cell, 0, 0);
