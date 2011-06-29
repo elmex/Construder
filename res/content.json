@@ -284,7 +284,7 @@
         "complexity" : 45,
         "density" : 20,
         "model" : [2, 1, 10, 3, 42, 5, 13],
-        "model_cnt" : 12,
+        "model_cnt" : 8,
       },
       "Nuclearcell" : {
         "type" : 38,
