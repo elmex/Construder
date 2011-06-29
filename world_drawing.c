@@ -62,6 +62,7 @@ void ctr_world_query_setup (int x, int y, int z, int ex, int ey, int ez)
   QUERY_CONTEXT.end_chnk_y = ey;
   QUERY_CONTEXT.end_chnk_z = ez;
 
+
   QUERY_CONTEXT.x_w = (ex - x) + 1;
   QUERY_CONTEXT.y_w = (ey - y) + 1;
   QUERY_CONTEXT.z_w = (ez - z) + 1;
@@ -98,7 +99,7 @@ void ctr_world_query_load_chunks ()
           int oy = y - QUERY_CONTEXT.chnk_y;
           int oz = z - QUERY_CONTEXT.chnk_z;
           ctr_chunk *c = QUERY_CHUNK(ox, oy, oz) = ctr_world_chunk (x, y, z, 1);
-          c->dirty = 0;
+          ctr_chunk_clear_changes (c);
         }
   QUERY_CONTEXT.loaded = 1;
 }
@@ -140,6 +141,9 @@ ctr_cell *ctr_world_query_cell_at (unsigned int rel_x, unsigned int rel_y, unsig
   int chnk_x = rel_x / CHUNK_SIZE,
       chnk_y = rel_y / CHUNK_SIZE,
       chnk_z = rel_z / CHUNK_SIZE;
+  int chnk_rel_x = rel_x - chnk_x * CHUNK_SIZE,
+      chnk_rel_y = rel_y - chnk_y * CHUNK_SIZE,
+      chnk_rel_z = rel_z - chnk_z * CHUNK_SIZE;
 
   assert (QUERY_CONTEXT.loaded);
   assert (chnk_x < QUERY_CONTEXT.x_w);
@@ -147,15 +151,11 @@ ctr_cell *ctr_world_query_cell_at (unsigned int rel_x, unsigned int rel_y, unsig
   assert (chnk_z < QUERY_CONTEXT.z_w);
 
   ctr_chunk *chnk = QUERY_CHUNK(chnk_x, chnk_y, chnk_z);
-  if (modify)
-    chnk->dirty = 1;
-
   ctr_cell *c =
-    ctr_chunk_cell_at_rel (
-      chnk,
-      rel_x - chnk_x * CHUNK_SIZE,
-      rel_y - chnk_y * CHUNK_SIZE,
-      rel_z - chnk_z * CHUNK_SIZE);
+    ctr_chunk_cell_at_rel (chnk, chnk_rel_x, chnk_rel_y, chnk_rel_z);
+
+  if (modify)
+    ctr_chunk_cell_changed (chnk, chnk_rel_x, chnk_rel_y, chnk_rel_z);
 
   return c;
 }

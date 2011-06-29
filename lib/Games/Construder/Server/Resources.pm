@@ -4,6 +4,7 @@ use AnyEvent;
 use JSON;
 use Digest::MD5 qw/md5_base64/;
 use Games::Construder::Server::Objects;
+use File::ShareDir;
 use base qw/Object::Event/;
 
 =head1 NAME
@@ -67,39 +68,45 @@ sub _get_file {
    do { local $/; <$f> }
 }
 
-sub load_world_gen_file {
-   my ($self) = @_;
-   $self->{world_gen} = JSON->new->relaxed->utf8->decode (my $f = _get_file ("res/world_gen.json"));
+sub _get_shared_file {
+   my ($file) = @_;
+   _get_file (File::ShareDir::dist_file ('Games-Construder', $file))
+}
 
-   my $stypes = $self->{world_gen}->{sector_types}
-     or die "No sector types defined in world_gen.json!\n";
+sub load_content_file {
+   my ($self) = @_;
+   $self->{content} =
+      JSON->new->relaxed->utf8->decode (my $f = _get_shared_file ("content.json"));
+
+   my $stypes = $self->{content}->{sector_types}
+     or die "No sector types defined in content.json!\n";
    for (keys %$stypes) {
       $stypes->{$_}->{type} = $_;
-      $stypes->{$_}->{cmds} = _get_file ("res/$stypes->{$_}->{file}");
+      $stypes->{$_}->{cmds} = _get_shared_file ("$stypes->{$_}->{file}");
    }
 
-   my $atypes = $self->{world_gen}->{assign_types};
+   my $atypes = $self->{content}->{assign_types};
    for (keys %$atypes) {
       $atypes->{$_}->{type} = $_;
-      $atypes->{$_}->{cmds} = _get_file ("res/$atypes->{$_}->{file}");
+      $atypes->{$_}->{cmds} = _get_shared_file ("$atypes->{$_}->{file}");
    }
 
-   my $music = $self->{world_gen}->{music};
+   my $music = $self->{content}->{music};
    $self->{music} = {};
    for (keys %$music) {
       $self->load_music ($_, $music->{$_});
    }
-}
 
-sub load_region_file {
-   my ($self) = @_;
-   $self->{region_cmds} = _get_file ("res/region_noise.cmds");
+   $self->{region_cmds} =
+      _get_shared_file ("$self->{content}->{region}->{file}");
+
+   $self->load_text_db;
 }
 
 sub construct_ship_query {
    my ($self) = @_;
    my $shpdb = $self->{txt_db}->{ship};
-   print "TEXT TREE FROM: " . JSON->new->pretty->encode ($shpdb) . "\n";
+   #d#print "TEXT TREE FROM: " . JSON->new->pretty->encode ($shpdb) . "\n";
 
    my %nodes;
 
@@ -121,7 +128,7 @@ sub construct_ship_query {
       }
    }
 
-   print "TEXT TREE: " . JSON->new->pretty->encode (\%nodes) . "\n";
+   #d#print "TEXT TREE: " . JSON->new->pretty->encode (\%nodes) . "\n";
    $self->{ship_tree} = \%nodes;
 }
 
@@ -132,7 +139,7 @@ sub get_ship_tree_at {
 
 sub load_text_db {
    my ($self) = @_;
-   my $txt = _get_file ("res/text.db");
+   my $txt = _get_shared_file ("$self->{content}->{text_db}->{file}");
    my $db = {};
 
    my @records = split /\r?\n\.\r?\n/, $txt;
@@ -163,16 +170,8 @@ sub load_text_db {
 
 sub load_objects {
    my ($self) = @_;
-   $self->load_text_db;
-
-   my $objects = JSON->new->relaxed->utf8->decode (_get_file ("res/objects/types.json"));
-   $self->{objects} = $objects;
-
-   for (keys %$objects) {
-      my $ob = $objects->{$_};
-      $self->load_object ($_, $objects->{$_});
-   }
-
+   my $objects = $self->{content}->{types};
+   $self->load_object ($_, $objects->{$_}) for keys %$objects;
    $self->loaded_objects;
 }
 
@@ -190,7 +189,7 @@ sub load_texture_file {
 
    my $tex;
    unless ($self->{texture_data}->{$file}) {
-      my $data = _get_file ("res/objects/" . $file);
+      my $data = _get_shared_file ("$file");
       my $md5  = md5_base64 ($tex->{data});
       my $rid = $self->add_res ({
          type => "texture",
@@ -275,7 +274,7 @@ sub load_music {
 
    $self->{music}->{$name} = $mentry;
 
-   my $data  = _get_file ("res/music/" . $mentry->{file});
+   my $data  = _get_shared_file ("music/" . $mentry->{file});
 
    my $md5  = md5_base64 ($data);
    $self->{music}->{$name}->{res}
@@ -322,22 +321,20 @@ sub loaded_objects : event_cb {
    );
 
    $self->calc_object_levels;
-
-   #d# print "loadded objects:\n" . JSON->new->pretty->encode ($self->{objects}) . "\n";
 }
 
 sub get_random_assignment {
    my ($self) = @_;
-   my @atypes = keys %{$self->{world_gen}->{assign_types}};
+   my @atypes = keys %{$self->{content}->{assign_types}};
    my $at = $atypes[int (rand (@atypes))];
-   $self->{world_gen}->{assign_types}->{$at}
+   $self->{content}->{assign_types}->{$at}
 }
 
 sub get_sector_types {
    my ($self) = @_;
    my @sec;
 
-   my $stypes = $self->{world_gen}->{sector_types};
+   my $stypes = $self->{content}->{sector_types};
    for (sort keys %$stypes) {
       push @sec, [$_, @{$stypes->{$_}->{region_range}}];
    }
@@ -347,7 +344,7 @@ sub get_sector_types {
 
 sub get_sector_desc_for_region_value {
    my ($self, $val) = @_;
-   my $stypes = $self->{world_gen}->{sector_types};
+   my $stypes = $self->{content}->{sector_types};
    for (keys %$stypes) {
       my $s = $stypes->{$_};
       my ($a, $b) = @{$s->{region_range}};
@@ -464,7 +461,7 @@ sub get_handbook_types {
 sub get_sector_types_where_type_is_found {
    my ($self, $type) = @_;
 
-   my $stypes = $self->{world_gen}->{sector_types};
+   my $stypes = $self->{content}->{sector_types};
    my @out;
 
    for my $stype (keys %$stypes) {
@@ -576,7 +573,7 @@ sub lerp {
 
 sub get_initial_inventory {
    my ($self) = @_;
-   my $inv = $self->{world_gen}->{initial_inventory};
+   my $inv = $self->{content}->{initial_inventory};
    my $i = {};
    (%$i) = (%$inv);
    $i
@@ -584,13 +581,13 @@ sub get_initial_inventory {
 
 sub get_inventory_max_dens {
    my ($self) = @_;
-   $self->{world_gen}->{balancing}->{max_inventory_density}
+   $self->{content}->{balancing}->{max_inventory_density}
 }
 
 sub get_type_dematerialize_values {
    my ($self, $type) = @_;
 
-   my $bal = $self->{world_gen}->{balancing};
+   my $bal = $self->{content}->{balancing};
    my $max_time   = $bal->{max_dematerialize_time};
    my $max_energy = $bal->{max_dematerialize_bio};
 
@@ -623,7 +620,7 @@ sub get_type_dematerialize_values {
 sub _cplx_dens_2_score {
    my ($self, $cplx, $dens) = @_;
 
-   my $bal       = $self->{world_gen}->{balancing};
+   my $bal       = $self->{content}->{balancing};
    my $max_score = $bal->{max_materialize_score};
 
    $cplx = $cplx ** 1.5; # exponential spread of complexity
@@ -646,7 +643,7 @@ sub _cplx_dens_2_score {
 sub get_type_materialize_values {
    my ($self, $type) = @_;
 
-   my $bal = $self->{world_gen}->{balancing};
+   my $bal = $self->{content}->{balancing};
    my $max_time   = $bal->{max_materialize_time};
    my $max_energy = $bal->{max_materialize_bio};
    my $max_score  = $bal->{max_materialize_score};
@@ -685,7 +682,7 @@ sub get_type_construct_values {
    my ($self, $type) = @_;
 
    my $obj       = $self->get_object_by_type ($type);
-   my $bal       = $self->{world_gen}->{balancing};
+   my $bal       = $self->{content}->{balancing};
    my $max_score = $bal->{max_construction_score};
    my $max_time  = $bal->{max_construction_clear_time};
 
@@ -710,7 +707,7 @@ sub get_assignment_for_score {
 
    my ($desc, $size, $material_map, $distance, $time);
 
-   my $abal          = $self->{world_gen}->{balancing}->{assignments};
+   my $abal          = $self->{content}->{balancing}->{assignments};
    my $max_ass_score = $abal->{max_score};
 
    $score = $abal->{min_score} if $score < $abal->{min_score};
@@ -798,7 +795,7 @@ sub get_assignment_for_score {
 
 sub score2happyness {
    my ($self, $score) = @_;
-   my $bal     = $self->{world_gen}->{balancing};
+   my $bal     = $self->{content}->{balancing};
    my $s_per_h = $bal->{score_per_happyness};
 
    my $s = $score / $s_per_h;
@@ -808,12 +805,12 @@ sub score2happyness {
 
 sub player_values {
    my ($self) = @_;
-   $self->{world_gen}->{balancing}->{player};
+   $self->{content}->{balancing}->{player};
 }
 
 sub encounter_values {
    my ($self) = @_;
-   my $enc = $self->{world_gen}->{balancing}->{encounters};
+   my $enc = $self->{content}->{balancing}->{encounters};
    my $tele_dist =
       lerp ($enc->{teleport_min_dist}, $enc->{teleport_max_dist}, rand ());
    my $time_to_next =

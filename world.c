@@ -40,10 +40,18 @@ typedef struct _ctr_cell {
    unsigned char  pad     : 7; // some padding, for 6 bytes
 } ctr_cell;
 
+#define MAX_CHUNK_CHANGES 200
+
+typedef struct _ctr_chunk_changed_cell {
+    int rx, ry, rz;
+} ctr_chunk_changed_cell;
+
 typedef struct _ctr_chunk {
     int x, y, z;
     ctr_cell cells[CHUNK_ALEN];
     int dirty;
+    ctr_chunk_changed_cell changed_cells[MAX_CHUNK_CHANGES];
+    int changes;
 } ctr_chunk;
 
 typedef struct _ctr_world {
@@ -258,6 +266,24 @@ void ctr_get_data_from_cell (ctr_cell *c, unsigned char *ptr)
   ptr++;
   *ptr = c->add;
  //d//printf ("CELL GET DATA %p: %02x %02x %02x %02x\n", c, *optr, *(optr + 1), *(optr + 2), *(optr + 3));
+}
+
+void ctr_chunk_clear_changes (ctr_chunk *chnk)
+{
+  chnk->changes = 0;
+}
+
+void ctr_chunk_cell_changed (ctr_chunk *chnk, unsigned int x, unsigned int y, unsigned int z) 
+{
+  if (chnk->changes < MAX_CHUNK_CHANGES)
+    {
+      ctr_chunk_changed_cell *cc = &(chnk->changed_cells[chnk->changes++]);
+      cc->rx = x;
+      cc->ry = y;
+      cc->rz = z;
+    }
+
+  chnk->dirty = 1;
 }
 
 ctr_cell *ctr_chunk_cell_at_rel (ctr_chunk *chnk, unsigned int x, unsigned int y, unsigned int z)

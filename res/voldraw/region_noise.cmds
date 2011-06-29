@@ -20,4 +20,4 @@ src_dst 0 1
    src_blend 1
    fill
 
-   show_region_sectors
+   #show_region_sectors

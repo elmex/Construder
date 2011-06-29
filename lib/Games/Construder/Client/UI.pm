@@ -7,6 +7,7 @@ use SDL::TTF;
 use OpenGL qw(:all);
 use JSON;
 use Games::Construder::Vector;
+use File::ShareDir;
 
 use base qw/Object::Event/;
 
@@ -37,21 +38,21 @@ sub init_ui {
       Carp::cluck("SDL_ttf support has not been compiled");
    }
 
-   my $font = 'res/FreeMonoBold.ttf';
-
    unless (SDL::TTF::was_init()) {
       SDL::TTF::init () == 0
          or Carp::cluck "SDL::TTF could not be initialized: "
             . SDL::get_error . "\n";
    }
 
-   warn "INIT UI\n";
-   $BIG_FONT   = SDL::TTF::open_font ('res/FreeMonoBold.ttf', 35)
-      or die "Couldn't load font from res/FreeMonoBold.ttf: " . SDL::get_error . "\n";
-   $NORM_FONT = SDL::TTF::open_font ('res/FreeMonoBold.ttf', 20)
-      or die "Couldn't load font from res/FreeMonoBold.ttf: " . SDL::get_error . "\n";
-   $SMALL_FONT = SDL::TTF::open_font ('res/FreeMonoBold.ttf', 12)
-      or die "Couldn't load font from res/FreeMonoBold.ttf: " . SDL::get_error . "\n";
+   my $fnt =
+      File::ShareDir::dist_file ('Games-Construder', 'font/FreeMonoBold.ttf');
+
+   $BIG_FONT   = SDL::TTF::open_font ($fnt, 35)
+      or die "Couldn't load font from $fnt: " . SDL::get_error . "\n";
+   $NORM_FONT = SDL::TTF::open_font ($fnt, 20)
+      or die "Couldn't load font from $fnt: " . SDL::get_error . "\n";
+   $SMALL_FONT = SDL::TTF::open_font ($fnt, 12)
+      or die "Couldn't load font from $fnt: " . SDL::get_error . "\n";
 }
 
 sub new {

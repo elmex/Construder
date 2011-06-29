@@ -51,8 +51,7 @@ sub init {
 
    $RES = Games::Construder::Server::Resources->new;
    $RES->init_directories;
-   $RES->load_region_file;
-   $RES->load_world_gen_file;
+   $RES->load_content_file;
 
    world_init ($self, $RES->{region_cmds});
 
