@@ -997,6 +997,43 @@ sub show_audio_settings {
    });
 }
 
+sub show_key_help {
+   my ($self) = @_;
+
+   my $key = sub {
+      [box => { dir => "hor" },
+         [text => { align => "left", color => "#888888", font => "normal" },
+          $_[0]],
+         [text => { align => "left", color => "#ffffff", font => "normal", wrap => 40 },
+          " => " . $_[1]]
+      ]
+   };
+
+   $self->activate_ui (credits => {
+      window => { pos => [center => 'center'] },
+      layout => [ box => { dir => "vert" },
+          [text => { align => "left", font => "big", color => "#ffffff" },
+           "Client Keybindings"],
+          [text => { align => "center", font => "normal", color => "#ffaaaa" },
+           "(For more key bindings hit [F2] to bring up the server menu!)"],
+          $key->(
+             "[w]/[s] [a]/[d]", "Move forward / backward, left / right."),
+          $key->(
+             "[left shift]",    "Hold to speedup [w/s/a/d] movement."),
+          $key->(
+             "[space]",
+             "Jump / Give upward boost (you can fly by repeatedly hitting this)."),
+          $key->(
+             "[f]",
+             "Toggle mouse look."),
+          $key->(
+             "[left ctrl]",
+             "Hold to move highlight into the free air (for building for example)."),
+          $key->("[g]",         "Toggle ghost mode (developer stuff)."),
+          $key->("[F5] / [F6]", "De-/Increase visibility radius."),
+      ],
+   });
+}
 sub show_credits {
    my ($self) = @_;
 
@@ -1017,7 +1054,6 @@ sub show_credits {
           "Game Design: Robin Redeker"],
       ],
    });
-
 }
 
 sub esc_menu {
@@ -1030,6 +1066,8 @@ sub esc_menu {
           "Construder Client Menu"],
          [text => { align => "center", color => "#999999", font => "small" },
           "(To select the menu item, press the key in the square brackets)"],
+         [text => { align => "center", color => "#ffffff", font => "normal" },
+          "[F1] Keybindings Help (Client)"],
          [text => { align => "center", color => "#ffffff", font => "normal" },
           "[s] Connection Settings"],
          [text => { align => "center", color => "#ffffff", font => "normal" },
@@ -1185,6 +1223,10 @@ sub input_key_down : event_cb {
    if ($name eq 'escape') {
       $self->esc_menu;
       return;
+
+   } elsif ($name eq 'f1') {
+      $self->show_key_help;
+      return;
    }
 
    warn "Key down $key ($name)\n";
@@ -1198,10 +1240,6 @@ sub input_key_down : event_cb {
    #-135 -180/180  135
    if ($name eq 'space') {
       viaddd ($self->{phys_obj}->{player}->{vel}, 0, 5, 0);
-   } elsif ($name eq 'y') {
-      viaddd ($self->{phys_obj}->{player}->{pos}, 0, -0.1, 0);
-   } elsif ($name eq 'x') {
-      viaddd ($self->{phys_obj}->{player}->{pos}, 0, 0.1, 0);
    } elsif ($name eq 'g') {
       $self->{ghost_mode} = not $self->{ghost_mode};
    } elsif ($name eq 'f') {
