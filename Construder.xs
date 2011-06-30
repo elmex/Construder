@@ -782,7 +782,7 @@ void ctr_world_query_reflow_every_light ()
            {
              ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 0);
              if (cur && (cur->type == 35 || cur->type == 40 || cur->type == 41))
-               0;//ctr_world_query_reflow_light (x, y, z);
+               ctr_world_query_reflow_light (x, y, z);
            }
 
 void ctr_world_flow_light_at (int x, int y, int z)

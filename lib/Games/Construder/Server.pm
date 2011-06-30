@@ -142,6 +142,14 @@ sub client_disconnected : event_cb {
    warn "client disconnected: $cid\n";
 }
 
+sub check_players_uptodate {
+   my ($self) = @_;
+
+   for (values %{$self->{players}}) {
+      $_->check_visible_chunks_uptodate;
+   }
+}
+
 sub players_near_pos {
    my ($self, $pos) = @_;
    my @p;

@@ -21,6 +21,10 @@ int ctr_world_query_desetup (int no_update) // no_update == 2 means: force updat
     for (y = 0; y < QUERY_CONTEXT.y_w; y++)
       for (x = 0; x < QUERY_CONTEXT.x_w; x++)
         {
+          ctr_chunk *chnk = QUERY_CHUNK(x, y, z);
+          if (!chnk)
+            continue;
+
           if (no_update == 2)
             {
               ctr_world_emit_chunk_change (
@@ -30,7 +34,6 @@ int ctr_world_query_desetup (int no_update) // no_update == 2 means: force updat
               continue;
             }
 
-          ctr_chunk *chnk = QUERY_CHUNK(x, y, z);
           if (!chnk->dirty)
             continue;
 

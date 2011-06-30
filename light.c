@@ -18,6 +18,8 @@ unsigned char ctr_world_query_get_max_light_of_neighbours (x, y, z)
 
 void ctr_world_query_reflow_light (int x, int y, int z)
 {
+  int query_w = QUERY_CONTEXT.x_w * CHUNK_SIZE;
+
   ctr_world_light_upd_start ();
 
   ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 0);
@@ -74,6 +76,13 @@ void ctr_world_query_reflow_light (int x, int y, int z)
   unsigned char upd_radius = 0;
   while (ctr_world_light_dequeue (&x, &y, &z, &upd_radius))
     {
+      // leave a margin, so we can reflow light from the outside...
+      if (x <= 0 || y <= 0 || z <= 0
+          || x >= (query_w - 1)
+          || y >= (query_w - 1)
+          || z >= (query_w - 1))
+        continue;
+
       cur = ctr_world_query_cell_at (x, y, z, 0);
       if (!cur || !ctr_world_cell_transparent (cur) || cur->light == 255)
         continue; // ignore blocks that can't be lit or were already visited

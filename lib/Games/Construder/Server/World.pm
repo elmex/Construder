@@ -26,6 +26,7 @@ our @EXPORT = qw/
    world_entity_at
    world_sector_info
    world_touch_sector
+   world_load_at_player
 /;
 
 
@@ -57,6 +58,8 @@ our $FREE_TMR;
 our $TICK_TMR;
 our @SAVE_SECTORS_QUEUE;
 
+our $INHIBIT_CHUNK_UPTODATE_CHECK = 0;
+
 our $SRV;
 
 sub world_init {
@@ -83,6 +86,9 @@ sub world_init {
          my $chnk = [@_];
          for (values %{$server->{players}}) {
             $_->chunk_updated ($chnk);
+            unless ($INHIBIT_CHUNK_UPTODATE_CHECK) {
+               $_->check_visible_chunks_uptodate;
+            }
          }
       },
       sub {
@@ -141,7 +147,7 @@ sub world_init {
          warn "freeing invisible sector $_\n";
          world_free_sector ($_);
       }
-      warn "SECTORS LOADED ON FREE: " . scalar (keys %SECTORS) . "\n";
+      warn "SECTORS LOADED ON FREE: " . scalar (keys %SECTORS) . ": " . join (", ", keys %SECTORS) . "\n";
    };
 
    $TICK_TMR = AE::timer 0, 0.15, sub {
@@ -287,8 +293,14 @@ sub _world_make_sector {
    _world_save_sector ($sec);
    warn "created sector @$sec in $smeta->{creation_time} seconds\n";
 
-   Games::Construder::World::query_desetup (2);
+   {
+      local $INHIBIT_CHUNK_UPTODATE_CHECK = 1;
+      Games::Construder::World::query_desetup (2);
+   }
+
    warn "PLACED $cnt / $plcnt lights $type ($flot) in $tsum!\n";
+
+   $SRV->check_players_uptodate;
 }
 
 sub _world_load_sector {
@@ -341,33 +353,38 @@ sub _world_load_sector {
       $SECTORS{$id} = $meta;
       $meta->{load_time} = time;
 
-      my $offs;
-      my $first_chnk = world_secpos2chnkpos ($sec);
-      my @chunks;
-      for my $dx (0..($CHNKS_P_SEC - 1)) {
-         for my $dy (0..($CHNKS_P_SEC - 1)) {
-            for my $dz (0..($CHNKS_P_SEC - 1)) {
-               my $chnk = vaddd ($first_chnk, $dx, $dy, $dz);
+      {
+         local $INHIBIT_CHUNK_UPTODATE_CHECK = 1;
 
-               my $len = shift @lens;
-               my $chunk = substr $data, $offs, $len;
-               Games::Construder::World::set_chunk_data (
-                  @$chnk, $chunk, length ($chunk));
-               $offs += $len;
+         my $offs;
+         my $first_chnk = world_secpos2chnkpos ($sec);
+         my @chunks;
+         for my $dx (0..($CHNKS_P_SEC - 1)) {
+            for my $dy (0..($CHNKS_P_SEC - 1)) {
+               for my $dz (0..($CHNKS_P_SEC - 1)) {
+                  my $chnk = vaddd ($first_chnk, $dx, $dy, $dz);
+
+                  my $len = shift @lens;
+                  my $chunk = substr $data, $offs, $len;
+                  Games::Construder::World::set_chunk_data (
+                     @$chnk, $chunk, length ($chunk));
+                  $offs += $len;
+               }
             }
          }
+
+         my $lower_left  = vsmul ($sec, $CHNK_SIZE * $CHNKS_P_SEC);
+         my $upper_right =
+            vaddd ($lower_left,
+                   $CHNKS_P_SEC * $CHNK_SIZE,
+                   $CHNKS_P_SEC * $CHNK_SIZE,
+                   $CHNKS_P_SEC * $CHNK_SIZE);
+
+         Games::Construder::World::flow_light_query_setup (@$lower_left, @$upper_right);
+         Games::Construder::World::query_reflow_every_light ();
+         Games::Construder::World::query_desetup (2);
       }
 
-      my $lower_left  = vsmul ($sec, $CHNK_SIZE * $CHNKS_P_SEC);
-      my $upper_right =
-         vaddd ($lower_left,
-                $CHNKS_P_SEC * $CHNK_SIZE,
-                $CHNKS_P_SEC * $CHNK_SIZE,
-                $CHNKS_P_SEC * $CHNK_SIZE);
-
-      Games::Construder::World::flow_light_query_setup (@$lower_left, @$upper_right);
-      Games::Construder::World::query_reflow_every_light ();
-      Games::Construder::World::query_desetup (2);
 
       my ($ecnt) = scalar (keys %{$SECTORS{$id}->{entities}});
 
@@ -375,6 +392,8 @@ sub _world_load_sector {
       warn "loaded sector $id from '$file', got $ecnt entities, took "
            . sprintf ("%.3f seconds", time - $t1)
            . ".\n";
+
+      $SRV->check_players_uptodate;
 
    } else {
       warn "couldn't open map sector '$file': $!\n";
@@ -509,6 +528,26 @@ sub world_pos2relchnkpos {
    vsub ($pos, vsmul ($chnk, $CHNK_SIZE))
 }
 
+sub world_load_at_player {
+   my ($pl, $cb) = @_;
+
+   my $cnt = 0;
+   for (keys %{$pl->{visible_sectors}}) {
+#d#warn "VISIBLESEC $_\n";
+      $cnt++;
+      unless ($SECTORS{$_}) {
+         world_load_sector (world_id2pos ($_), sub {
+            $cnt--;
+            $cb->() if $cnt <= 0;
+         });
+      } else {
+         $cnt--;
+         $cb->() if $cnt <= 0;
+#d#     warn "SECTOR $_ IS THERE!\n";
+      }
+   }
+}
+
 sub world_load_at {
    my ($pos, $cb) = @_;
    world_load_at_chunk (world_pos2chnkpos ($pos), $cb);
@@ -516,27 +555,24 @@ sub world_load_at {
 
 sub world_load_at_chunk {
    my ($chnk, $cb) = @_;
+   my $sec = world_chnkpos2secpos ($chnk);
+   world_load_sector ($sec, $cb);
+}
 
-   for my $dx (-2, 0, 2) {
-      for my $dy (-2, 0, 2) {
-         for my $dz (-2, 0, 2) {
-            my $chnk2 = vaddd ($chnk, $dx, $dy, $dz);
-            my $sec   = world_chnkpos2secpos ($chnk2);
-            my $secid = world_pos2id ($sec);
-            unless ($SECTORS{$secid}) {
-               warn "LOAD SECTOR $secid\n";
-               my $r = _world_load_sector ($sec);
-               if ($r == 0) {
-                  _world_make_sector ($sec);
-               }
-            }
-         }
-      }
+sub world_load_sector {
+   my ($sec, $cb) = @_;
+   my $secid = world_pos2id ($sec);
+   unless ($SECTORS{$secid}) {
+      warn "LOAD SECTOR $secid\n";
+#     my $r = _world_load_sector ($sec);
+#      if ($r == 0) {
+         _world_make_sector ($sec);
+#     }
    }
-
-   warn "SECTORS LOADED: " . scalar (keys %SECTORS) . "\n";
-
    $cb->() if $cb;
+
+   warn "SECTORS LOADED: " . scalar (keys %SECTORS) . ": "
+                           . join (", ", keys %SECTORS) . " \n";
 }
 
 sub world_entity_at {
@@ -570,14 +606,6 @@ sub world_mutate_entity_at {
       }
       return 0;
    }, need_entity => 1, %arg);
-}
-
-sub world_place_light_forced {
-   my ($pos) = @_;
-   Games::Construder::World::flow_light_query_setup (@$pos, @$pos);
-   Games::Construder::World::query_set_at_abs (@$pos, [40, 0, 0, 0, 0]);
-   Games::Construder::World::flow_light_at (@{vfloor ($pos)});
-   Games::Construder::World::query_desetup ();
 }
 
 sub world_mutate_at {
@@ -634,7 +662,11 @@ sub world_mutate_at {
       }
    }
 
-   Games::Construder::World::query_desetup ();
+   {
+      local $INHIBIT_CHUNK_UPTODATE_CHECK = 1;
+      Games::Construder::World::query_desetup ();
+   }
+   $SRV->check_players_uptodate;
 }
 
 sub world_find_free_spot {

@@ -375,22 +375,6 @@ sub logout {
 
 my $world_c = 0;
 
-sub set_vis_rad {
-   my ($self, $rad) = @_;
-   $self->{vis_rad} = $rad || $PL_VIS_RAD;
-}
-
-sub visible_chunks {
-   my ($self, $from) = @_;
-   delete $self->{visible_sectors};
-   my @chnks = Games::Construder::Util::visible_chunks_at ($from, $self->{vis_rad});
-   for (@chnks) {
-      my $id = world_pos2id (world_chnkpos2secpos ($_));
-      $self->{visible_sectors}->{$id} = 1;
-   }
-   @chnks
-}
-
 sub update_pos {
    my ($self, $pos, $lv) = @_;
 
@@ -414,29 +398,24 @@ sub update_pos {
 
    return unless $new_pos;
 
-   # just trigger this, if new chunks are generated or loaded they
-   # will be automatically sent if visible by chunk_updated.
-   world_load_at ($pos); # fixme: still blocks for now :)
+#   # send whats available for now
+#   my $last_vis = $self->{last_vis} || {};
+#   my $next_vis = {};
+#   my @chunks   = $self->visible_chunks ($pos);
+#   my @new_chunks;
+#   for (@chunks) {
+#      my $id = world_pos2id ($_);
+#      unless ($last_vis->{$id}) {
+#         push @new_chunks, $_;
+#      }
+#      $next_vis->{$id} = 1;
+#   }
+#   $self->{last_vis} = $next_vis;
 
-   # send whats available for now
-   my $last_vis = $self->{last_vis} || {};
-   my $next_vis = {};
-   my @chunks   = $self->visible_chunks ($pos);
-   my @new_chunks;
-   for (@chunks) {
-      my $id = world_pos2id ($_);
-      unless ($last_vis->{$id}) {
-         push @new_chunks, $_;
-      }
-      $next_vis->{$id} = 1;
-   }
-   $self->{last_vis} = $next_vis;
-
-   if (@new_chunks) {
-      $self->send_client ({ cmd => "chunk_upd_start" });
-      $self->send_chunk ($_) for @new_chunks;
-      $self->send_client ({ cmd => "chunk_upd_done" });
-   }
+   $self->calc_visible_chunks;
+   world_load_at_player ($self, sub {
+      $self->check_visible_chunks_uptodate;
+   });
 }
 
 sub get_pos_normalized {
@@ -454,26 +433,66 @@ sub get_pos_sector {
    world_chnkpos2secpos (world_pos2chnkpos ($self->{data}->{pos}))
 }
 
-sub chunk_updated {
-   my ($self, $chnk) = @_;
-
-   my $plchnk = world_pos2chnkpos ($self->{data}->{pos});
-   my $divvec = vsub ($chnk, $plchnk);
-   return if vlength ($divvec) >= $self->{vis_rad};
-
-   $self->send_chunk ($chnk);
+sub set_vis_rad {
+   my ($self, $rad) = @_;
+   $self->{vis_rad} = $rad || $PL_VIS_RAD;
 }
 
-sub send_visible_chunks {
+sub calc_visible_chunks {
    my ($self) = @_;
 
-   $self->send_client ({ cmd => "chunk_upd_start" });
+   my $pos = $self->{data}->{pos};
 
-   my @chnks = $self->visible_chunks ($self->{data}->{pos});
-   $self->send_chunk ($_) for @chnks;
+   delete $self->{visible_sectors};
+   delete $self->{visible_chunk_ids};
+   delete $self->{visible_chunks};
 
-   warn "done sending " . scalar (@chnks) . " visible chunks.\n";
-   $self->send_client ({ cmd => "chunk_upd_done" });
+   my @chnks = Games::Construder::Util::visible_chunks_at ($pos, $self->{vis_rad});
+   for (@chnks) {
+      my $chnkid = world_pos2id ($_);
+      $self->{visible_chunk_ids}->{$chnkid} = 1;
+   }
+
+   my $plchnk = world_pos2chnkpos ($pos);
+   for my $x (-2, 0, 2) {
+      for my $y (-2, 0, 2) {
+         for my $z (-2, 0, 2) {
+            my $id = world_pos2id (world_chnkpos2secpos (vaddd ($plchnk, $x, $y, $z)));
+            $self->{visible_sectors}->{$id} = 1;
+         }
+      }
+   }
+
+   $self->{visible_chunks} = \@chnks;
+
+   for (keys %{$self->{chunk_uptodate}}) {
+      unless ($self->{visible_chunk_ids}->{$_}) {
+         delete $self->{chunk_uptodate}->{$_};
+      }
+   }
+}
+
+sub chunk_updated {
+   my ($self, $chnk) = @_;
+   delete $self->{chunk_uptodate}->{world_pos2id ($chnk)};
+}
+
+sub check_visible_chunks_uptodate {
+   my ($self) = @_;
+
+   my @upds;
+   for (keys %{$self->{visible_chunk_ids}}) {
+      unless ($self->{chunk_uptodate}->{$_}) {
+         push @upds, world_id2pos ($_);
+      }
+   }
+
+   if (@upds) {
+      $self->send_client ({ cmd => "chunk_upd_start" });
+      $self->send_chunk ($_) for @upds;
+      warn "done sending " . scalar (@upds) . " chunk updates.\n";
+      $self->send_client ({ cmd => "chunk_upd_done" });
+   }
 }
 
 sub send_chunk {
@@ -489,6 +508,7 @@ sub send_chunk {
    }
 
    $self->send_client ({ cmd => "chunk", pos => $chnk }, compress ($data));
+   $self->{chunk_uptodate}->{world_pos2id ($chnk)} = 1;
 }
 
 sub msg {
