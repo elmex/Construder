@@ -484,7 +484,7 @@ sub send_chunk {
    # whether any player might be interested in that chunk).
    my $data = Games::Construder::World::get_chunk_data (@$chnk);
    unless (defined $data) {
-      warn "send_chunk: @$chnk was not yet allocated!\n";
+      #d# warn "send_chunk: @$chnk was not yet allocated!\n";
       return;
    }
 

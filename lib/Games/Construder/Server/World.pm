@@ -266,9 +266,10 @@ sub _world_make_sector {
 
       Games::Construder::World::query_set_at_abs (
          @$p, [$type, 0, 0, 0, 0]);
-      Games::Construder::World::flow_light_at (@{vfloor ($p)});
       $plcnt++;
    }
+
+   Games::Construder::World::query_reflow_every_light ();
    $tsum += time - $t1;
 
    my $smeta = $SECTORS{world_pos2id ($sec)} = {
@@ -356,6 +357,17 @@ sub _world_load_sector {
             }
          }
       }
+
+      my $lower_left  = vsmul ($sec, $CHNK_SIZE * $CHNKS_P_SEC);
+      my $upper_right =
+         vaddd ($lower_left,
+                $CHNKS_P_SEC * $CHNK_SIZE,
+                $CHNKS_P_SEC * $CHNK_SIZE,
+                $CHNKS_P_SEC * $CHNK_SIZE);
+
+      Games::Construder::World::flow_light_query_setup (@$lower_left, @$upper_right);
+      Games::Construder::World::query_reflow_every_light ();
+      Games::Construder::World::query_desetup (2);
 
       my ($ecnt) = scalar (keys %{$SECTORS{$id}->{entities}});
 
@@ -513,10 +525,10 @@ sub world_load_at_chunk {
             my $secid = world_pos2id ($sec);
             unless ($SECTORS{$secid}) {
                warn "LOAD SECTOR $secid\n";
-               #my $r = _world_load_sector ($sec);
-               #if ($r == 0) {
+               my $r = _world_load_sector ($sec);
+               if ($r == 0) {
                   _world_make_sector ($sec);
-               #}
+               }
             }
          }
       }

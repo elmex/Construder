@@ -13,7 +13,7 @@ makemaker_args (
     (INC  => Alien::SDL->config('cflags')),
     depend => {
        "Construder.c" => "vectorlib.c world.c world_data_struct.c render.c "
-                       . "world_drawing.c noise_3d.c volume_draw.c"
+                       . "world_drawing.c noise_3d.c volume_draw.c light.c"
     },
 );
 

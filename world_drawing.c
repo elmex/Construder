@@ -139,6 +139,10 @@ void ctr_world_query_abs2rel (int *x, int *y, int *z)
 
 ctr_cell *ctr_world_query_cell_at (unsigned int rel_x, unsigned int rel_y, unsigned int rel_z, int modify)
 {
+  if (rel_x < 0) return 0;
+  if (rel_y < 0) return 0;
+  if (rel_z < 0) return 0;
+
   int chnk_x = rel_x / CHUNK_SIZE,
       chnk_y = rel_y / CHUNK_SIZE,
       chnk_z = rel_z / CHUNK_SIZE;
@@ -147,9 +151,10 @@ ctr_cell *ctr_world_query_cell_at (unsigned int rel_x, unsigned int rel_y, unsig
       chnk_rel_z = rel_z - chnk_z * CHUNK_SIZE;
 
   assert (QUERY_CONTEXT.loaded);
-  assert (chnk_x < QUERY_CONTEXT.x_w);
-  assert (chnk_y < QUERY_CONTEXT.y_w);
-  assert (chnk_z < QUERY_CONTEXT.z_w);
+
+  if (chnk_x >= QUERY_CONTEXT.x_w) return 0;
+  if (chnk_y >= QUERY_CONTEXT.y_w) return 0;
+  if (chnk_z >= QUERY_CONTEXT.z_w) return 0;
 
   ctr_chunk *chnk = QUERY_CHUNK(chnk_x, chnk_y, chnk_z);
   if (!chnk)
