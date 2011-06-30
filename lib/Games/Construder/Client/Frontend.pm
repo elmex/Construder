@@ -277,6 +277,7 @@ sub step_animations {
 
 sub set_player_pos {
    my ($self, $pos) = @_;
+   warn "NEW PLAYER POS: @$pos\n";
    $self->{phys_obj}->{player}->{pos} = $pos;
 }
 

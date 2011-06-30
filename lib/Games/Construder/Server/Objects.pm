@@ -121,16 +121,12 @@ sub tmr_vaporizer {
 
       world_mutate_at (\@poses, sub {
          my ($d) = @_;
-         $d->[0] = 0;
-         $d->[3] &= 0xF0; # clear color :)
-         # should be automatic:
-         #my $ent = $d->[5]; # kill entity
-         #$d->[5] = undef;
-         #if ($ent) {
-         #   Games::Construder::Server::Objects::destroy ($ent);
-         #}
-         warn "VAP@$d\n";
-         1
+         if ($d->[0] != 0) {
+            $d->[0] = 0;
+            $d->[3] &= 0xF0; # clear color :)
+            return 1
+         }
+         0
       });
    }
 }

@@ -27,6 +27,7 @@ our @EXPORT = qw/
    world_sector_info
    world_touch_sector
    world_load_at_player
+   world_load_around_at
 /;
 
 
@@ -394,6 +395,7 @@ sub _world_load_sector {
            . ".\n";
 
       $SRV->check_players_uptodate;
+      return 1;
 
    } else {
       warn "couldn't open map sector '$file': $!\n";
@@ -531,10 +533,9 @@ sub world_pos2relchnkpos {
 sub world_load_at_player {
    my ($pl, $cb) = @_;
 
-   my $cnt = 0;
+   my $cnt = scalar keys %{$pl->{visible_sectors}};
    for (keys %{$pl->{visible_sectors}}) {
 #d#warn "VISIBLESEC $_\n";
-      $cnt++;
       unless ($SECTORS{$_}) {
          world_load_sector (world_id2pos ($_), sub {
             $cnt--;
@@ -544,6 +545,25 @@ sub world_load_at_player {
          $cnt--;
          $cb->() if $cnt <= 0;
 #d#     warn "SECTOR $_ IS THERE!\n";
+      }
+   }
+}
+
+sub world_load_around_at {
+   my ($pos, $cb) = @_;
+
+   my $chnk = world_pos2chnkpos ($pos);
+   my $cnt = 3 ** 3;
+   for my $x (-2, 0, 2) {
+      for my $y (-2, 0, 2) {
+         for my $z (-2, 0, 2) {
+            my $ch = vaddd ($chnk, $x, $y, $z);
+            world_load_at_chunk ($ch, sub {
+               if (--$cnt <= 0) {
+                  $cb->();
+               }
+            });
+         }
       }
    }
 }
@@ -564,10 +584,10 @@ sub world_load_sector {
    my $secid = world_pos2id ($sec);
    unless ($SECTORS{$secid}) {
       warn "LOAD SECTOR $secid\n";
-#     my $r = _world_load_sector ($sec);
-#      if ($r == 0) {
+      my $r = _world_load_sector ($sec);
+      if ($r == 0) {
          _world_make_sector ($sec);
-#     }
+      }
    }
    $cb->() if $cb;
 

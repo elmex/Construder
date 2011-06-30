@@ -165,6 +165,7 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'place_player') {
       $self->{front}->set_player_pos ($hdr->{pos});
+      $self->send_server ({ cmd => 'set_player_pos_ok', id => $hdr->{id} });
 
    } elsif ($hdr->{cmd} eq 'activate_ui') {
       my $desc = $hdr->{desc};

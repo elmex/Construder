@@ -178,6 +178,9 @@ sub handle_player_packet : event_cb {
    } elsif ($hdr->{cmd} eq 'player_pos') {
       $player->update_pos ($hdr->{pos}, $hdr->{look_vec});
 
+   } elsif ($hdr->{cmd} eq 'set_player_pos_ok') {
+      $player->unfreeze_update_pos ($hdr->{id});
+
    } elsif ($hdr->{cmd} eq 'visibility_radius') {
       $player->set_vis_rad ($hdr->{radius});
 

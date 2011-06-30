@@ -24,6 +24,7 @@ lib/Games/Construder/Server/UI.pm
 lib/Games/Construder/Server/World.pm
 lib/Games/Construder/Vector.pm
 noise_3d.c
+light.c
 queue.c
 render.c
 TODO

@@ -209,7 +209,6 @@ sub init {
 
    $self->update_score;
    $self->{uis}->{slots}->show;
-   $self->send_visible_chunks;
    $self->teleport ();
    $self->check_assignment;
 }
@@ -378,6 +377,11 @@ my $world_c = 0;
 sub update_pos {
    my ($self, $pos, $lv) = @_;
 
+   if ($self->{freeze_update_pos} ne '') {
+      warn "update_pos thrown away, awaiting teleport confirmation!\n";
+      return;
+   }
+
    my $opos = $self->{data}->{pos};
    $self->{data}->{pos} = $pos;
    my $olv = $self->{data}->{look_vec} || [0,0,0];
@@ -398,20 +402,11 @@ sub update_pos {
 
    return unless $new_pos;
 
-#   # send whats available for now
-#   my $last_vis = $self->{last_vis} || {};
-#   my $next_vis = {};
-#   my @chunks   = $self->visible_chunks ($pos);
-#   my @new_chunks;
-#   for (@chunks) {
-#      my $id = world_pos2id ($_);
-#      unless ($last_vis->{$id}) {
-#         push @new_chunks, $_;
-#      }
-#      $next_vis->{$id} = 1;
-#   }
-#   $self->{last_vis} = $next_vis;
+   $self->upd_visible_chunks;
+}
 
+sub upd_visible_chunks {
+   my ($self) = @_;
    $self->calc_visible_chunks;
    world_load_at_player ($self, sub {
       $self->check_visible_chunks_uptodate;
@@ -453,6 +448,8 @@ sub calc_visible_chunks {
       $self->{visible_chunk_ids}->{$chnkid} = 1;
    }
 
+   # only load at max the 8 adjacent sectors! this means, visible_chunk*
+   # overdraws and just says that those chunks are visible...
    my $plchnk = world_pos2chnkpos ($pos);
    for my $x (-2, 0, 2) {
       for my $y (-2, 0, 2) {
@@ -498,6 +495,11 @@ sub check_visible_chunks_uptodate {
 sub send_chunk {
    my ($self, $chnk) = @_;
 
+   # evenif the chunk is not allocated, it should be marked as "uptodate".
+   # not allocated means: it either will be loaded (and then updated) or
+   # wont be loaded anytime soon!
+   $self->{chunk_uptodate}->{world_pos2id ($chnk)} = 1;
+
    # only send chunk when allcoated, in all other cases the chunk will
    # be sent by the chunk_changed-callback by the server (when it checks
    # whether any player might be interested in that chunk).
@@ -508,7 +510,6 @@ sub send_chunk {
    }
 
    $self->send_client ({ cmd => "chunk", pos => $chnk }, compress ($data));
-   $self->{chunk_uptodate}->{world_pos2id ($chnk)} = 1;
 }
 
 sub msg {
@@ -1059,7 +1060,9 @@ sub teleport {
    my ($self, $pos) = @_;
 
    $pos ||= $self->{data}->{pos};
-   world_load_at ($pos, sub {
+   warn "START TELEPORT @$pos\n";
+   world_load_around_at ($pos, sub {
+      warn "TELEPORT @$pos\n";
       my $new_pos = world_find_free_spot ($pos, 1);
       unless ($new_pos) {
          $new_pos = world_find_free_spot ($pos, 0); # without floor on second try
@@ -1074,9 +1077,23 @@ sub teleport {
          };
       }
 
+      warn "FREESPOT @$new_pos\n";
       $new_pos = vaddd ($new_pos, 0.5, 0.5, 0.5);
-      $self->send_client ({ cmd => "place_player", pos => $new_pos });
+      warn "FREESPOT AT EXACTLY @$new_pos\n";
+      my $fid = "$new_pos";
+      $self->{data}->{pos} = $new_pos;
+      $self->{freeze_update_pos} = $fid;
+      $self->upd_visible_chunks;
+      $self->send_client ({ cmd => "place_player", pos => $new_pos, id => $fid });
    });
+   warn "END TELEPORT @$pos\n";
+}
+
+sub unfreeze_update_pos {
+   my ($self, $id) = @_;
+   if ($self->{freeze_update_pos} eq $id) {
+      delete $self->{freeze_update_pos};
+   }
 }
 
 sub new_ui {
