@@ -556,7 +556,7 @@ sub get_object_by_pattern {
 
    for my $o (values %{$self->{object_res}}) {
       next if $o->{model_cnt} == 0;
-      warn "SEARCH $o->{model_str} <=> @str_coll\n";
+      warn "SEARCH $o->{type} || $o->{model_str} <=>\n" . join (",\n", @str_coll) . "\n";
       if (grep { $o->{model_str} eq $_ } @str_coll) {
          warn "Found Model $o->{model_str}! => $o->{type}\n";
          return $o;

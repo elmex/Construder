@@ -293,11 +293,11 @@
         "complexity" : 60,
         "density" : 30,
         "model" : [3,
-           5,  10, # iron
-           13, 42, # circuits
-           14, 25, # uran
-           15, 42, # circuits
-           23, 10, # iron
+           2,  10, # iron
+           10, 42, # circuits
+           11, 25, # uran
+           12, 42, # circuits
+           20, 10, # iron
         ],
         "model_cnt" : 6,
       },

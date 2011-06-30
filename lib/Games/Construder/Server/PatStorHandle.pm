@@ -184,9 +184,11 @@ sub remove {
 sub get_invids {
    my ($self) = @_;
    sort {
-      $Games::Construder::Server::RES->get_object_by_type ($a)->{name}
+      my ($atype) = $self->split_invid ($a);
+      my ($btype) = $self->split_invid ($b);
+      $Games::Construder::Server::RES->get_object_by_type ($atype)->{name}
       cmp
-      $Games::Construder::Server::RES->get_object_by_type ($b)->{name}
+      $Games::Construder::Server::RES->get_object_by_type ($btype)->{name}
    } (keys %{$self->{data}->{inv}->{mat}}, keys %{$self->{data}->{inv}->{ent}})
 }
 
