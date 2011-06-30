@@ -286,7 +286,8 @@ sub commands {
    $self->{cmd_need_select_boxes} = 1;
 
    (
-      f1  => "contact",
+      f2  => "help",
+      f3  => "contact",
       f9  => "teleport_home",
       f11 => "text_script",
       f12 => "exit_server",
