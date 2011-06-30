@@ -20,6 +20,7 @@ use Games::Construder::Vector;
 
 use Games::Construder::Client::World;
 use Games::Construder::Client::Resources;
+use Games::Construder::UI;
 use Games::Construder::Client::UI;
 
 use base qw/Object::Event/;
@@ -1000,39 +1001,30 @@ sub show_audio_settings {
 sub show_key_help {
    my ($self) = @_;
 
-   my $key = sub {
-      [box => { dir => "hor" },
-         [text => { align => "left", color => "#888888", font => "normal" },
-          $_[0]],
-         [text => { align => "left", color => "#ffffff", font => "normal", wrap => 40 },
-          " => " . $_[1]]
-      ]
-   };
-
-   $self->activate_ui (credits => {
-      window => { pos => [center => 'center'] },
-      layout => [ box => { dir => "vert" },
-          [text => { align => "left", font => "big", color => "#ffffff" },
-           "Client Keybindings"],
-          [text => { align => "center", font => "normal", color => "#ffaaaa" },
-           "(For more key bindings hit [F2] to bring up the server menu!)"],
-          $key->(
-             "[w]/[s] [a]/[d]", "Move forward / backward, left / right."),
-          $key->(
-             "[left shift]",    "Hold to speedup [w/s/a/d] movement."),
-          $key->(
-             "[space]",
-             "Jump / Give upward boost (you can fly by repeatedly hitting this)."),
-          $key->(
-             "[f]",
-             "Toggle mouse look."),
-          $key->(
-             "[left ctrl]",
-             "Hold to move highlight into the free air (for building for example)."),
-          $key->("[g]",         "Toggle ghost mode (developer stuff)."),
-          $key->("[F5] / [F6]", "De-/Increase visibility radius."),
-      ],
-   });
+   $self->activate_ui (key_help =>
+      ui_window ("Client Key Bindings",
+         ui_desc (
+            "These key bindings work globally "
+            . "when not in any dialog in the client."),
+         ui_subdesc (
+            "(For more key bindings hit [F2] to bring up the server menu!)"),
+         ui_key_explain (
+            [qw/w s a d/], "Move forward / backward / left / right."),
+         ui_key_explain (
+            "left shift",    "Hold to speedup [w/s/a/d] movement."),
+         ui_key_explain (
+            "space",
+            "Jump / Give upward boost (you can fly by repeatedly hitting this)."),
+         ui_key_explain (
+            "f",
+            "Toggle mouse look."),
+         ui_key_explain (
+            "left ctrl",
+            "Hold to move highlight into the free air (for building for example)."),
+         ui_key_explain ("g",         "Toggle ghost mode (developer stuff)."),
+         ui_key_explain ([qw/F5 F6/], "De-/Increase visibility radius."),
+      )
+   );
 }
 sub show_credits {
    my ($self) = @_;
@@ -1059,34 +1051,23 @@ sub show_credits {
 sub esc_menu {
    my ($self) = @_;
 
+   my $ui =
+      ui_window ("Construder Client",
+         ui_subdesc (
+            "(To activate the menu item, press the key in the square brackets)"),
+         ui_key_explain (F1 => "Keybindings Help (Client)"),
+         ui_key_explain (s  => "Connection Settings"),
+         ui_key_explain (d  => "Disconnect"),
+         ui_key_explain (c  => "Connect"),
+         ui_key_explain (a  => "Audio Options"),
+         ui_key_explain (m  => "Mouse Options"),
+         ui_key_explain (f  => "Toggle Fullscreen"),
+         ui_key_explain (t  => "View Credits"),
+         ui_key_explain (q  => "Exit (Press the 'q' key)"),
+      );
+
    $self->activate_ui (esc_menu => {
-      window => { pos => [center => 'center'] },
-      layout => [ box => { dir => "vert" },
-         [text => { align => "center", font => "big", color => "#ffffff" },
-          "Construder Client Menu"],
-         [text => { align => "center", color => "#999999", font => "small" },
-          "(To select the menu item, press the key in the square brackets)"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "[F1] Keybindings Help (Client)"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "[s] Connection Settings"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "[d] Disconnect"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "[c] Connect"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "[a] Audio Options"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "[m] Mouse Options"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "[f] Toggle Fullscreen"],
-#         [text => { align => "center", color => "#ffffff", font => "normal" },
-#          "[v] Video Options"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "[t] View Credits"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "[q] Exit (Press the 'q' key)"],
-      ],
+      %$ui,
       commands => {
          default_keys => {
             q => "exit",

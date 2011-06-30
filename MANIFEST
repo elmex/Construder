@@ -9,6 +9,7 @@ Construder.xs
 KNOWN_BUGS
 lib/Games/Construder.pm
 lib/Games/Construder/Client.pm
+lib/Games/Construder/UI.pm
 lib/Games/Construder/Client/Frontend.pm
 lib/Games/Construder/Client/Resources.pm
 lib/Games/Construder/Client/UI.pm

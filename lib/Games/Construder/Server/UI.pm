@@ -266,6 +266,17 @@ sub layout {
    }
 }
 
+package Games::Construder::Server::UI::Help;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub layout {
+   {
+      window => { pos => [center => "center"], },
+      layout => [ box => { dir => "vert" },
+   }
+}
+
 package Games::Construder::Server::UI::Status;
 use Games::Construder::Server::World;
 

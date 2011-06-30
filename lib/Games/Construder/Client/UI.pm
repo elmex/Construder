@@ -175,7 +175,6 @@ sub layout_text {
          }
          push @olines, $line;
       }
-      (@olines) = map { s/\s*$//; $_ } @olines;
 
       my $max_w;
       for (@olines) {
