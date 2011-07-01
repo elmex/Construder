@@ -39,6 +39,7 @@ our %TYPES_INSTANCIATE = (
    48 => \&in_vaporizer,
    50 => \&in_drone,
    62 => \&in_teleporter,
+   70 => \&in_mat_upgrade,
 );
 
 our %TYPES_TIMESENSITIVE = (
@@ -83,6 +84,10 @@ sub tick {
    my $cb = $TYPES_TIMESENSITIVE{$type}
       or return;
    $cb->($pos, $entity, $type, $dt)
+}
+
+sub in_mat_upgrade {
+   { }
 }
 
 sub in_vaporizer {
@@ -441,7 +446,7 @@ sub tmr_drone {
    $entity->{in_transition} = 1;
    $entity->{transition_time} = 1.5 * $dt;
    $entity->{transistion_dest} = $new_pos;
-   $pl->msg (1, "Proximity alert!\nDistance " . int ($min->[0]));
+   $pl->{uis}->{prox_warn}->show ("Proximity alert!\nDistance " . int ($min->[0]));
 }
 
 =back

@@ -67,6 +67,14 @@ Teleporters can bring you instantly from one place to another in the Construct.
 You can direct a teleporter to the position of any synchronized message beacon
 and travel there at free will by invoking the teleporter.
 .
+:obj:Materializer V2:lore
+This is an upgrade to your integrated materializer tool. It makes
+dematerialization and materialization many times faster. But be careful, it
+also need as much more power and will drain your bio energy much much faster!
+This also means, that harvesting moss will probably need as much energy as it
+could provide. So be careful! The upgrade can always be disabled by throwing
+it away or storing it somewhere.
+.
 :ship:gen_i:content
 Generic Inquiry
 

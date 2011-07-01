@@ -106,6 +106,7 @@ sub DESTROY {
 }
 
 package Games::Construder::Server::UI::Score;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -123,29 +124,23 @@ sub layout {
 
    my $score =  $self->{pl}->{data}->{score};
 
-   {
-      window => {
-         sticky  => 1,
-         pos     => [center => "up"],
-         alpha   => $hl ? 1 : 0.6,
-      },
-      layout => [
-         box => {
+   ui_hud_window ([center => "up"],
+      [box => {
             border  => { color => $hl ? "#ff0000" : "#777700" },
             padding => ($hl ? 10 : 2),
             align   => "hor",
-         },
-         [text => {
-            font  => "normal",
-            color => "#aa8800",
-            align => "center"
-          }, "Score:"],
-         [text => {
-            font  => "big",
-            color => $hl ? "#ff0000" : "#aa8800",
-          }, ($score . ($hl ? ($hl > 0 ? "+$hl" : "$hl") : ""))]
+       },
+       [text => {
+          font  => "normal",
+          color => "#aa8800",
+          align => "center"
+        }, "Score:"],
+       [text => {
+          font  => "big",
+          color => $hl ? "#ff0000" : "#aa8800",
+        }, ($score . ($hl ? ($hl > 0 ? "+$hl" : "$hl") : ""))]
       ]
-   }
+   )
 }
 
 package Games::Construder::Server::UI::BioWarning;
@@ -171,7 +166,29 @@ sub layout {
    }
 }
 
+package Games::Construder::Server::UI::ProximityWarning;
+use Games::Construder::UI;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub layout {
+   my ($self, $msg) = @_;
+
+   my $wself = $self;
+   weaken $wself;
+   $self->{msg_tout} = AE::timer (3, 0, sub {
+      $wself->hide;
+      delete $wself->{msg_tout};
+   });
+
+   ui_hud_window_transparent (
+      [center => "center", 0.25],
+      ui_warning ($msg)
+   );
+}
+
 package Games::Construder::Server::UI::MsgBox;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -185,19 +202,16 @@ sub layout {
       delete $wself->{msg_tout};
    });
 
-   {
-      window => {
-         pos => [center => "center", 0, 0.25],
-         alpha => 0.6,
-      },
-      layout => [
-         text => { font => "big", color => $error ? "#ff0000" : "#ffffff", wrap => 20 },
-         $msg
-      ]
-   }
+   ui_hud_window_transparent (
+      [center => "center", 0, 0.25],
+      $error
+         ? ui_warning ($msg)
+         : ui_notice ($msg)
+   )
 }
 
 package Games::Construder::Server::UI::Slots;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -229,11 +243,6 @@ sub layout {
    for (my $i = 0; $i < 10; $i++) {
       my $invid = $slots->{selection}->[$i];
 
-      my $border = "#0000ff";
-      if ($i == $slots->{selected}) {
-         $border = "#ff0000";
-      }
-
       my ($cnt) = $self->{pl}->{inv}->get_count ($invid);
       if ($invid =~ /:/ && $cnt == 0) {
          $slots->{selection}->[$i] = undef;
@@ -243,8 +252,7 @@ sub layout {
       my ($type, $invid) = $self->{pl}->{inv}->split_invid ($invid);
 
       push @slots,
-      [box => { padding => 2, aspect => 1 },
-      [box => { dir => "vert", padding => 2, border => { color => $border }, aspect => 1 },
+      ui_hlt_border (($i == $slots->{selected}),
          [box => { padding => 2, align => "center" },
            [model => { color => "#00ff00", width => 40 }, $type]],
          [text => { font => "small",
@@ -252,18 +260,10 @@ sub layout {
                        (!defined ($cnt) || $cnt <= 0) ? "#990000" : "#999999",
                     align => "center" },
           sprintf ("[%d] %d", $i + 1, $cnt * 1)]
-      ]];
+      );
    }
 
-   {
-      window => {
-         sticky => 1,
-         pos    => [left => "down"],
-      },
-      layout => [
-         box => { }, @slots
-      ],
-   }
+   ui_hud_window ([left => "down"], [box => { dir => "hor" }, @slots]);
 }
 
 package Games::Construder::Server::UI::Help;
@@ -289,6 +289,7 @@ sub layout {
 }
 
 package Games::Construder::Server::UI::Status;
+use Games::Construder::UI;
 use Games::Construder::Server::World;
 
 use base qw/Games::Construder::Server::UI/;
@@ -387,7 +388,7 @@ sub _range_color {
 }
 
 sub layout {
-   my ($self) = @_;
+   my ($self, $bio_usage) = @_;
 
    my $abs_pos  = $self->{pl}->get_pos_normalized;
    my $chnk_pos = $self->{pl}->get_pos_chnk;
@@ -395,16 +396,21 @@ sub layout {
 
    my $sinfo = world_sector_info ($chnk_pos);
 
-   {
-      window => {
-         sticky => 1,
-         pos => [right => 'up'],
-         alpha => 0.8,
-      },
-      layout => [
-        box => { dir => "vert" },
-        [
-           box => { dir => "hor" },
+   if ($bio_usage) {
+      my $wself = $self;
+      weaken $wself;
+      $self->{bio_usage} = $bio_usage;
+      $self->{bio_usage_tmr} = AE::timer 2, 0, sub {
+         delete $wself->{bio_usage};
+         $wself->show;
+         delete $wself->{bio_usage_tmr};
+      };
+   }
+
+   ui_hud_window (
+     [right => 'up'],
+     ui_border (
+        [box => { dir => "hor" },
            [box => { dir => "vert", padding => 2 },
               [text => { color => "#888888", font => "small" }, "Pos"],
               #d#[text => { color => "#888888", font => "small" }, "Look"],
@@ -435,6 +441,10 @@ sub layout {
               sprintf ("%d%%", $self->{pl}->{data}->{bio})],
            [text => { align => "center", color => "#888888" }, "bio"],
         ],
+        ($self->{bio_usage}
+           ? [box => { },
+              [text => { align => "center", color => "#FFaa00" }, "-$self->{bio_usage}% bio"]]
+           : ()),
         [box => { },
            [text => { align => "right",
                       color => $self->{pl}->{data}->{signal_jammed}
@@ -442,8 +452,8 @@ sub layout {
               $self->{pl}->{data}->{signal_jammed} ? "Jammed" : "Clear"],
            [text => { align => "center", color => "#888888" }, " signal"],
         ],
-      ],
-   }
+      )
+   )
 }
 
 package Games::Construder::Server::UI::ListQuery;

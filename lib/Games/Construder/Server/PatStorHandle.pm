@@ -192,6 +192,15 @@ sub get_invids {
    } (keys %{$self->{data}->{inv}->{mat}}, keys %{$self->{data}->{inv}->{ent}})
 }
 
+sub has {
+   my ($self, $type) = @_;
+   return 1 if $self->{data}->{inv}->{mat}->{$type};
+   return !!grep {
+      my ($t) = $self->split_invid ($_);
+      $t == $type
+   } keys %{$self->{data}->{inv}->{ent}}
+}
+
 sub get_count { # should be renamed to count() and also count permanent types even without direct $invid
    my ($self, $invid) = @_;
 

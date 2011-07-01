@@ -194,6 +194,7 @@ sub init {
    $self->new_ui (teleporter    => "Games::Construder::Server::UI::Teleporter");
    $self->new_ui (color_select  => "Games::Construder::Server::UI::ColorSelector");
    $self->new_ui (ship_transmission => "Games::Construder::Server::UI::ShipTransmission");
+   $self->new_ui (prox_warn     => "Games::Construder::Server::UI::ProximityWarning");
    $self->new_ui (text_script   => "Games::Construder::Server::UI::TextScript");
    $self->new_ui (help          => "Games::Construder::Server::UI::Help");
 
@@ -591,6 +592,7 @@ sub do_materialize {
    $self->highlight ($pos, $time, [0, 1, 0]);
 
    $self->push_tick_change (bio => -$energy);
+   $self->{uis}->{status}->show ($energy);
 
    $self->{materializings}->{$id} = 1;
    my $tmr;
@@ -643,7 +645,8 @@ sub start_materialize {
 
       my $obj = $Games::Construder::Server::RES->get_object_by_type ($type);
       my ($time, $energy, $score) =
-         $Games::Construder::Server::RES->get_type_materialize_values ($type);
+         $Games::Construder::Server::RES->get_type_materialize_values (
+            $type, $self->has_matter_transformer_upgrade);
       unless ($self->{data}->{bio} >= $energy) {
          $self->msg (1, "You don't have enough energy to materialize the $obj->{name}!");
          return;
@@ -662,6 +665,7 @@ sub do_dematerialize {
    $self->highlight ($pos, $time, [1, 0, 0]);
 
    $self->push_tick_change (bio => -$energy);
+   $self->{uis}->{status}->show ($energy);
 
    $self->{dematerializings}->{$id} = 1;
    my $tmr;
@@ -689,6 +693,11 @@ sub do_dematerialize {
    };
 }
 
+sub has_matter_transformer_upgrade {
+   my ($self) = @_;
+   $self->{inv}->has (70);
+}
+
 sub start_dematerialize {
    my ($self, $pos) = @_;
 
@@ -712,7 +721,9 @@ sub start_dematerialize {
       }
 
       my ($time, $energy) =
-         $Games::Construder::Server::RES->get_type_dematerialize_values ($type);
+         $Games::Construder::Server::RES->get_type_dematerialize_values (
+            $type, $self->has_matter_transformer_upgrade);
+
       unless ($obj->{bio_energy} || $self->{data}->{bio} >= $energy) {
          $self->msg (1, "You don't have enough energy to dematerialize the $obj->{name}!");
          return;

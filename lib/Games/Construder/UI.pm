@@ -16,6 +16,11 @@ our @EXPORT = qw/
    ui_subdesc
    ui_caption
    ui_small_text
+   ui_hud_window
+   ui_hud_window_transparent
+   ui_hlt_border
+   ui_warning
+   ui_notice
 /;
 
 =head1 NAME
@@ -32,9 +37,12 @@ Games::Construder::UI - desc
 
 =cut
 
+our $HIGHLIGHT_BORDER_COLOR = "#ff0000";
 our $BORDER_COLOR  = "#8888ff";
 our $TITLE_COLOR   = "#8888ff";
 our $TEXT_COLOR    = "#ffffff";
+our $WARTEXT_COLOR = "#ff7733";
+our $NOTICETEXT_COLOR = "#ffffff";
 our $SUBTEXT_COLOR = "#ff8888";
 our $KEYBIND_COLOR = "#ffff88";
 our $BG_COLOR      = "#000000";
@@ -91,9 +99,32 @@ sub ui_subtext {
    [text => { wrap => 45, %args, color => $SUBTEXT_COLOR }, $txt]
 }
 
+sub ui_warning {
+   my ($txt, %args) = @_;
+   [text => { wrap => 20, font => "big", color => $WARTEXT_COLOR, %args }, $txt]
+}
+
+sub ui_notice {
+   my ($txt, %args) = @_;
+   [text => { wrap => 20, font => "big", color => $NOTICETEXT_COLOR, %args }, $txt]
+}
+
 sub ui_subdesc {
    my ($desc, %args) = @_;
    ui_subtext ($desc, align => "center", %args)
+}
+
+sub ui_hlt_border {
+   my ($hlt, @cont) = @_;
+   [box => { dir => "vert", padding => 2, aspect => 1 },
+    [box => { dir => "vert", aspect => 1,
+              border => {
+                 color => ($hlt ? $HIGHLIGHT_BORDER_COLOR : $BORDER_COLOR)
+              },
+              padding => 2 },
+     @cont
+    ]
+   ]
 }
 
 sub ui_border {
@@ -128,6 +159,26 @@ sub ui_window {
          ui_title ($title),
          @content
       )
+   }
+}
+
+sub ui_hud_window_transparent {
+   my ($pos, @content) = @_;
+   {
+      window => { pos => $pos, background => $BG_COLOR, sticky => 1, alpha => 0.6 },
+      layout => [ box => { dir => "vert" },
+         @content
+      ]
+   }
+}
+
+sub ui_hud_window {
+   my ($pos, @content) = @_;
+   {
+      window => { pos => $pos, background => $BG_COLOR, sticky => 1 },
+      layout => [ box => { dir => "vert" },
+         @content
+      ]
    }
 }
 

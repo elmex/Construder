@@ -585,7 +585,7 @@ sub get_inventory_max_dens {
 }
 
 sub get_type_dematerialize_values {
-   my ($self, $type) = @_;
+   my ($self, $type, $upgrade) = @_;
 
    my $bal = $self->{content}->{balancing};
    my $max_time   = $bal->{max_dematerialize_time};
@@ -597,16 +597,22 @@ sub get_type_dematerialize_values {
    my $cplx = $obj->{complexity} / 100;
    my $dens = $obj->{density} / 100;
    my ($time, $energy);
-   if ($dens < 50) {
+
+   if ($dens < 0.5) {
       $time = ($dens / 2) * $max_time;
    } else {
       $time = ($dens ** 2) * $max_time;
    }
 
-   if ($cplx < 50) {
-      $energy = ($dens / 2) * $max_energy;
+   if ($upgrade) {
+      $time /= 10;
+      $cplx = lerp ($cplx, 1, 0.7);
+   }
+
+   if ($cplx < 0.5) {
+      $energy = ($cplx / 2) * $max_energy;
    } else {
-      $energy = ($dens ** 2) * $max_energy;
+      $energy = ($cplx ** 2) * $max_energy;
    }
 
    $energy = int ($energy + 0.5);
@@ -641,7 +647,7 @@ sub _cplx_dens_2_score {
 }
 
 sub get_type_materialize_values {
-   my ($self, $type) = @_;
+   my ($self, $type, $upgrade) = @_;
 
    my $bal = $self->{content}->{balancing};
    my $max_time   = $bal->{max_materialize_time};
@@ -654,16 +660,21 @@ sub get_type_materialize_values {
    my $cplx = $obj->{complexity} / 100;
    my $dens = $obj->{density} / 100;
    my ($time, $energy);
-   if ($dens < 50) {
+   if ($dens < 0.5) {
       $time = ($dens / 2) * $max_time;
    } else {
       $time = ($dens ** 2) * $max_time;
    }
 
-   if ($cplx < 50) {
-      $energy = ($dens / 2) * $max_energy;
+   if ($upgrade) {
+      $time /= 10;
+      $cplx = lerp ($cplx, 1, 0.7);
+   }
+
+   if ($cplx < 0.5) {
+      $energy = ($cplx / 2) * $max_energy;
    } else {
-      $energy = ($dens ** 2) * $max_energy;
+      $energy = ($cplx ** 2) * $max_energy;
    }
 
    $energy = int ($energy + 0.5);

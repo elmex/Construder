@@ -457,6 +457,20 @@
         "model" : [1, 1, 20],
         "model_cnt" : 8,
       },
+      "Materializer V2" : {
+         "type" : 70,
+         "complexity" : 83,
+         "density" : 30,
+         "permanent" : 1, # this entity's data is stored permanently
+         "model" : [3,
+            2, 42,
+            4, 32, 5, 39, 6, 32,
+            8, 42,
+            11, 42, 14, 42, 17, 42,
+         ],
+         "model_cnt" : 1
+      },
+
       "Trophy" : {
          "type" : 500,
          "model" : [5,8,44,12,44,13,44,14,44,18,44,38,44,57,44,58,44,59,44,62,44,64,44,67,44,68,44,69,44,78,44,82,44,84,44,86,44,90,44,92,44,94,44,98,44,107,44,109,44,117,44,119,44],
@@ -486,7 +500,7 @@
    },
    "balancing" : {
       "max_dematerialize_time" : 30,         # 30 seconds
-      "max_dematerialize_bio"  : 33.3,       # 33.3% bio => should be less
+      "max_dematerialize_bio"  : 20,         # 20% bio => should be less
       "max_materialize_time"   : 6,          # 6 seconds
       "max_materialize_bio"    : 10,         # 10% bio
       "max_materialize_score"  : 500,

@@ -3,6 +3,7 @@ use sort qw/stable/;
 use common::sense;
 use JSON;
 my $data = JSON->new->utf8->relaxed->decode (do { local $/; <STDIN> });
+$data = $data->{types};
 
 my $flag = $ARGV[0];
 
