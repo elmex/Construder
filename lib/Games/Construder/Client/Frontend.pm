@@ -599,7 +599,7 @@ sub setup_event_poller {
             box => { padding => 5, bgcolor => "#222222" },
             [text => {
                color => "#ff0000", align => "center", font => "small"
-            }, sprintf ("%.1f FPS\n", $fps / $fps_intv)],
+            }, sprintf ("%.1f FPS", $fps / $fps_intv)],
          ],
       });
       $collide_cnt = $collide_time = 0;

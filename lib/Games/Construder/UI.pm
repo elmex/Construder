@@ -165,7 +165,7 @@ sub ui_window {
 sub ui_hud_window_transparent {
    my ($pos, @content) = @_;
    {
-      window => { pos => $pos, background => $BG_COLOR, sticky => 1, alpha => 0.6 },
+      window => { pos => $pos, background => $BG_COLOR, sticky => 1, alpha => 0.5 },
       layout => [ box => { dir => "vert" },
          @content
       ]
@@ -175,7 +175,7 @@ sub ui_hud_window_transparent {
 sub ui_hud_window {
    my ($pos, @content) = @_;
    {
-      window => { pos => $pos, background => $BG_COLOR, sticky => 1 },
+      window => { pos => $pos, background => $BG_COLOR, sticky => 1, alpha => 0.65 },
       layout => [ box => { dir => "vert" },
          @content
       ]
