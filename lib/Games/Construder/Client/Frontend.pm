@@ -484,7 +484,7 @@ sub render_scene {
 
    $self->{app}->sync;
 
-   my $cnt = 5;
+   my $cnt = 7;
    if (@compl_end) {
       warn scalar (@compl_end) . " chunks to compile...\n";
       while ($cnt-- > 0) {
