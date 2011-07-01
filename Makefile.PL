@@ -29,6 +29,7 @@ requires 'Math::Trig'          => 0;
 requires 'Compress::LZF'       => 0;
 requires 'EV'                  => 0;
 requires 'File::ShareDir::PAR' => 0;
+requires 'Storable'            => 0;
 
 install_script 'bin/construder_server';
 install_script 'bin/construder_client';

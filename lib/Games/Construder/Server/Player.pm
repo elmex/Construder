@@ -299,7 +299,7 @@ sub starvation {
          my $cnt = 30;
          $self->{death_timer} = AE::timer 0, 1, sub {
             if ($cnt-- <= 0) {
-               $self->kill_player;
+               $self->kill_player ("starvation");
                delete $self->{death_timer};
 
                $bio_ui->hide;
@@ -357,14 +357,16 @@ sub refill_bio {
 }
 
 sub kill_player {
-   my ($self) = @_;
-   $self->teleport ([0, 0, 0]);
+   my ($self, $reason) = @_;
+   my $new_pl_pos = vsmul (vnorm (vrand ()), 780);
+   $self->teleport ($new_pl_pos);
+   $self->msg (1, "You died of $reason, your stats and inventory were reset and you have been teleported 13 sectors away!");
    $self->{inv}->remove ('all');
+   my $inv = $Games::Construder::Server::RES->get_initial_inventory;
+   $self->{inv}->{$_} = $inv->{$_} for keys %$inv;
    $self->{data}->{happyness} = 100;
    $self->{data}->{bio}       = 100;
-   $self->{data}->{score}    -=
-      int ($self->{data}->{score} * (20 / 100)); # 20% score loss
-
+   $self->{data}->{score}     = 0;
 }
 
 sub logout {

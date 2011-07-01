@@ -197,7 +197,7 @@ sub layout {
 
    my $wself = $self;
    weaken $wself;
-   $self->{msg_tout} = AE::timer (($error ? 4 : 2.5), 0, sub {
+   $self->{msg_tout} = AE::timer (($error ? 7 : 3), 0, sub {
       $wself->hide;
       delete $wself->{msg_tout};
    });
@@ -285,6 +285,8 @@ sub layout {
       ui_key_explain ("b",               "Open material handbook."),
       ui_key_explain ("r",               "Open color selector."),
       ui_key_explain ("l",               "Create encounter (developer stuff)."),
+      ui_key_explain ("F3",              "Displays this help screen."),
+      ui_key_explain ("F8",              "Commit suicide, when you want to start over."),
    )
 }
 
@@ -309,8 +311,10 @@ sub commands {
    $self->{cmd_need_select_boxes} = 1;
 
    (
-      f2  => "help",
-      f3  => "contact",
+      f2  => "menu",
+      f3  => "help",
+      f4  => "contact",
+      f8  => "kill",
       f9  => "teleport_home",
       f11 => "text_script",
       f12 => "exit_server",
@@ -362,7 +366,20 @@ sub handle_command {
       $self->show_ui ('text_script');
    } elsif ($cmd eq 'encounter') {
       $self->{pl}->create_encounter;
-   } elsif ($cmd eq 'help') {
+   } elsif ($cmd eq 'kill') {
+      $self->new_ui (kill_player =>
+         "Games::Construder::Server::UI::ConfirmQuery",
+         msg       => "Do you really want to commit suicide?",
+         cb => sub {
+            $self->delete_ui ('discard_material');
+            if ($_[0]) {
+               $self->{pl}->kill_player ("suicide");
+            }
+         });
+      $self->hide;
+      $self->show_ui ('kill_player');
+
+   } elsif ($cmd eq 'help' || $cmd eq 'menu') {
       $self->show_ui ('help');
    } elsif ($cmd eq 'toggle_navigator') {
       if ($self->{pl}->{uis}->{navigator}->{shown}) {
@@ -501,6 +518,43 @@ sub layout {
           } @{$self->{items}}
       ]
    }
+}
+
+package Games::Construder::Server::UI::ConfirmQuery;
+use Games::Construder::UI;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub init {
+}
+
+sub commands {
+   (
+      y => "yes"
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'yes') {
+      $self->{cb}->(1);
+
+   } elsif ($cmd eq 'cancel') {
+      $self->{cb}->(0);
+   }
+}
+
+sub layout {
+   my ($self) = @_;
+
+   my $msg = $self->{msg};
+
+   ui_window ("Confirmation Request",
+      ui_desc ($msg),
+      ui_key_explain ("y", "Yes"),
+      ui_key_explain ("escape", "No"),
+   );
 }
 
 package Games::Construder::Server::UI::StringQuery;

@@ -5,6 +5,7 @@ use JSON;
 use Digest::MD5 qw/md5_base64/;
 use Games::Construder::Server::Objects;
 use File::ShareDir::PAR;
+use Storable qw/dclone/;
 use base qw/Object::Event/;
 
 =head1 NAME
@@ -573,10 +574,7 @@ sub lerp {
 
 sub get_initial_inventory {
    my ($self) = @_;
-   my $inv = $self->{content}->{initial_inventory};
-   my $i = {};
-   (%$i) = (%$inv);
-   $i
+   dclone $self->{content}->{initial_inventory}
 }
 
 sub get_inventory_max_dens {
