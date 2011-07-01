@@ -267,14 +267,25 @@ sub layout {
 }
 
 package Games::Construder::Server::UI::Help;
-
+use Games::Construder::UI;
 use base qw/Games::Construder::Server::UI/;
 
 sub layout {
-   {
-      window => { pos => [center => "center"], },
-      layout => [ box => { dir => "vert" } ],
-   }
+   ui_window ("Server Handled Keybindings",
+      ui_desc ("Global Bindings:"),
+      ui_key_explain ("left mouse btn",  "Materialize block from selected slot."),
+      ui_key_explain ("right mouse btn", "Dematerialize block."),
+      ui_key_explain ("q",               "Query information for highlighted block."),
+      ui_key_explain ("e",               "Interact with highlighted block."),
+      ui_key_explain ("i",               "Open inventory."),
+      ui_key_explain ("n",               "Open navigator programmer."),
+      ui_key_explain ("m",               "Toggle navigator visibility."),
+      ui_key_explain ("x",               "Open assignment information."),
+      ui_key_explain ("o",               "Open notebook."),
+      ui_key_explain ("b",               "Open material handbook."),
+      ui_key_explain ("r",               "Open color selector."),
+      ui_key_explain ("l",               "Create encounter (developer stuff)."),
+   )
 }
 
 package Games::Construder::Server::UI::Status;
@@ -350,6 +361,8 @@ sub handle_command {
       $self->show_ui ('text_script');
    } elsif ($cmd eq 'encounter') {
       $self->{pl}->create_encounter;
+   } elsif ($cmd eq 'help') {
+      $self->show_ui ('help');
    } elsif ($cmd eq 'toggle_navigator') {
       if ($self->{pl}->{uis}->{navigator}->{shown}) {
          $self->hide_ui ('navigator');
@@ -1186,55 +1199,6 @@ sub layout {
    }
 }
 
-sub show_help {
-   my ($self) = @_;
-   return;
-
-   my $help_txt = <<HELP;
-[ w a s d ]
-forward, left, backward, right
-[ shift ]
-holding down shift doubles your speed
-[ f ]
-toggle mouse look
-[ g ]
-enable gravitation and collision detection
-[ i ]
-show up inventory
-[ space ]
-jump
-[ escape ]
-close window or quit game
-[ left, right mouse button ]
-dematerialize and materialize
-[ F9 ]
-teleport to the starting point
-HELP
-
-   $self->send_client ({ cmd => activate_ui => ui => "player_help", desc => {
-      window => {
-         extents => [center => center => 0.8, 1],
-         alpha => 1,
-         color => "#000000",
-         prio => 1000,
-      },
-      elements => [
-         {
-            type => "text", extents => ["center", 0.01, 0.9, "font_height"],
-            font => "big", color => "#ffffff",
-            align => "center",
-            text => "Help:"
-         },
-         {
-            type => "text", extents => ["center", "bottom_of 0", 1, 0.9],
-            font => "small", color => "#ffffff",
-            align => "center",
-            text => $help_txt,
-         },
-      ]
-   } });
-}
-
 package Games::Construder::Server::UI::NavigationProgrammer;
 
 use base qw/Games::Construder::Server::UI/;
@@ -1503,6 +1467,7 @@ sub layout_assignment {
 }
 
 package Games::Construder::Server::UI::AssignmentTime;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -1553,6 +1518,7 @@ sub layout {
            "Left:\n$left_txt" ],
          [ text => { color => "#ff8888", align => "center" },
            "Highlighted: " . $sel_mat->{name} ],
+         ui_key_inline_expl ("c", "Cycle highlights"),
       ]
    }
 }

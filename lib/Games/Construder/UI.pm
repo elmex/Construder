@@ -11,6 +11,7 @@ our @EXPORT = qw/
    ui_window
    ui_key
    ui_key_explain
+   ui_key_inline_expl
    ui_desc
    ui_subdesc
    ui_caption
@@ -46,15 +47,17 @@ sub ui_key {
          ? (join "/", map { "[$_]" } @$key)
          : "[$key]";
 
-   if ($pad) {
+   if ($pad == 1) {
       $pad = 20;
       $pad -= length $txt;
       my $hpad = int ($pad / 2);
       my $hpad2 = $pad - $hpad;
       $txt = (" " x $hpad) . $txt . (" " x $hpad2)
+   } elsif ($pad == 2) {
+      $txt = "$txt ";
    }
 
-   [text => { %args, color => $KEYBIND_COLOR, font => "normal", wrap => -20 },
+   [text => { font => "normal", %args, color => $KEYBIND_COLOR, wrap => -20 },
     $txt
    ]
 }
@@ -98,6 +101,14 @@ sub ui_border {
     [box => { dir => "vert", border => { color => $BORDER_COLOR }, padding => 8 },
      @_
     ]
+   ]
+}
+
+sub ui_key_inline_expl {
+   my ($key, $desc, %args) = @_;
+   [box => { dir => "hor" },
+      ui_key ($key, pad => 2, font => "small"),
+      ui_text ($desc, wrap => 40, font => "small")
    ]
 }
 
