@@ -13,6 +13,8 @@ our @EXPORT = qw/
    ui_key_explain
    ui_desc
    ui_subdesc
+   ui_caption
+   ui_small_text
 /;
 
 =head1 NAME
@@ -61,9 +63,19 @@ sub ui_title {
    [text => { %args, color => $TITLE_COLOR, font => "big", align => "center"  }, $txt]
 }
 
+sub ui_caption {
+   my ($txt, %args) = @_;
+   [text => { %args, color => $TITLE_COLOR, font => "normal", align => "center"  }, $txt]
+}
+
 sub ui_text {
    my ($txt, %args) = @_;
    [text => { wrap => 45, %args, color => $TEXT_COLOR }, $txt]
+}
+
+sub ui_small_text {
+   my ($txt, %args) = @_;
+   ui_text ($txt, font => "small", wrap => 70, %args)
 }
 
 sub ui_desc {

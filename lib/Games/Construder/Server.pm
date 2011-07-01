@@ -235,7 +235,12 @@ sub handle_packet : event_cb {
 
    if ($hdr->{cmd} eq 'hello') {
       $self->send_client ($cid,
-         { cmd => "hello", version => "Games::Construder::Server 0.1" });
+         { cmd => "hello",
+           info => {
+              version => (sprintf "G::C::Server %s", $Games::Construder::VERSION),
+              credits => $RES->credits,
+           }
+         });
 
    } elsif ($hdr->{cmd} eq 'ui_response' && $hdr->{ui} eq 'login') {
       $self->send_client ($cid, { cmd => deactivate_ui => ui => "login" });

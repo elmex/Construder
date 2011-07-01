@@ -473,11 +473,14 @@
    #      "source" : "",
    #   }
    #},
-   "credits" : {
-      "graphics" : [
-         { "license" : "", "source" : "" },
+   "credits" : [
+      "Code & Game Design: Robin Redeker",
+      "Graphics:",
+      ["OpenArena project (GPLv2 / PublicDomain)"],
+      ["www.imageafter.com", "Textures: b19marbles011.jpg, b1metalfloor000.jpg, b19nature091.jpg, b8marbles003.jpg, b15metals016.jpg, b3_scripts008.jpg, b20objects_signs002.jpg, b19objects_circuits096.jpg\nTerms: http://www.imageafter.com/terms.php\nLicense / Terms of Use (01.07.2011):\n* you CAN modify our images and textures in any way you see fit\n* you CAN use our images and textures in your own work, whether it be for personal or commercial use\n* you CAN redistribute or sell our images and textures ALTERED OR UNALTERED as part of printed work (e.g. posters, cd-covers, postcards etc)",
       ],
-   },
+      ["OpenGameArt.org", "http://opengameart.org/content/p0sss-texture-pack-1\n- Author: p0ss Licenses: GPL 3.0, CC-BY 3.0\nhttp://opengameart.org/content/iron-plague-gravbconbmp\n- Author: Daniel Cook License: CC-BY 3.0\nhttp://opengameart.org/content/26-high-res-ground-textures Author: bart License: CC-BY 3.0\nhttp://www.opengameart.org/content/wall-grass-rock-stone-wood-and-dirt-480\n- Author: west License: CC0 (Public Domain)\nhttp://www.opengameart.org/content/golgotha-textures-bunkergalvanizedjpg\n- Author: Crack.com License: CC0 (Public Domain)\nhttp://www.opengameart.org/content/golgotha-textures-airbaseradarpanelsjpg\n- Author: Crack.com License: CC0 (Public Domain)\nhttp://www.opengameart.org/content/filth-texture-set-trakrustypanellightjpg\n- Author: Georges \"TRaK\" Grondin License: GNU GPL 2.0"],
+   ],
    "assign_types" : {
       "a" : { "file" : "voldraw/assign_1.cmds" },
    },

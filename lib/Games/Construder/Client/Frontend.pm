@@ -1011,7 +1011,7 @@ sub show_key_help {
          ui_key_explain (
             [qw/w s a d/], "Move forward / backward / left / right."),
          ui_key_explain (
-            "left shift",    "Hold to speedup [w/s/a/d] movement."),
+            "left shift",  "Hold to speedup [w/s/a/d] movement."),
          ui_key_explain (
             "space",
             "Jump / Give upward boost (you can fly by repeatedly hitting this)."),
@@ -1029,23 +1029,35 @@ sub show_key_help {
 sub show_credits {
    my ($self) = @_;
 
-   $self->activate_ui (credits => {
-      window => { pos => [center => 'center'] },
-      layout => [ box => { dir => "vert" },
-         [text => { align => "center", font => "big", color => "#ffffff" },
-          "Credits"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "Perl Client: Robin Redeker"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "Perl Server Code: Robin Redeker"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "Graphics: Various"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "Music: Various"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "Game Design: Robin Redeker"],
-      ],
-   });
+   my $si = $self->{server_info};
+
+   $self->activate_ui (credits => ui_window ("About",
+      ui_caption (sprintf "Client: G::C::Client %s", $Games::Construder::VERSION),
+      ui_subdesc ("Code: Robin Redeker"),
+      ui_caption (sprintf "Server: %s", $si->{version}),
+      map {
+         ref $_
+            ? (ui_subdesc ("* $_->[0]", font => "small"),
+               ui_small_text ($_->[1], align => "center"))
+            : ui_subdesc ($_, font => "small")
+      } @{$si->{credits}}
+   ));
+#      window => { pos => [center => 'center'] },
+#      layout => [ box => { dir => "vert" },
+#         [text => { align => "center", font => "big", color => "#ffffff" },
+#          "Credits"],
+#         [text => { align => "center", color => "#ffffff", font => "normal" },
+#          "Perl Client: Robin Redeker"],
+#         [text => { align => "center", color => "#ffffff", font => "normal" },
+#          "Perl Server Code: Robin Redeker"],
+#         [text => { align => "center", color => "#ffffff", font => "normal" },
+#          "Graphics: Various"],
+#         [text => { align => "center", color => "#ffffff", font => "normal" },
+#          "Music: Various"],
+#         [text => { align => "center", color => "#ffffff", font => "normal" },
+#          "Game Design: Robin Redeker"],
+#      ],
+#   });
 }
 
 sub esc_menu {
@@ -1062,7 +1074,7 @@ sub esc_menu {
          ui_key_explain (a  => "Audio Options"),
          ui_key_explain (m  => "Mouse Options"),
          ui_key_explain (f  => "Toggle Fullscreen"),
-         ui_key_explain (t  => "View Credits"),
+         ui_key_explain (t  => "About"),
          ui_key_explain (q  => "Exit (Press the 'q' key)"),
       );
 

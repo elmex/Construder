@@ -2,7 +2,7 @@ package Games::Construder;
 use JSON;
 use common::sense;
 
-our $VERSION = '0.01';
+our $VERSION = '0.8';
 
 use XSLoader;
 XSLoader::load "Games::Construder", $Games::Construder::VERSION;

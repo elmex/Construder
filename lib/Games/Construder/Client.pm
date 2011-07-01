@@ -132,6 +132,7 @@ sub handle_packet : event_cb {
    warn "cl< $hdr->{cmd} (".length ($body).")\n";
 
    if ($hdr->{cmd} eq 'hello') {
+      $self->{front}->{server_info} = $hdr->{info};
       $self->{front}->msg ("Queried Resources");
       $self->send_server ({ cmd => 'list_resources' });
 

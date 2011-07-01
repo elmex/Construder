@@ -273,7 +273,7 @@ use base qw/Games::Construder::Server::UI/;
 sub layout {
    {
       window => { pos => [center => "center"], },
-      layout => [ box => { dir => "vert" },
+      layout => [ box => { dir => "vert" } ],
    }
 }
 

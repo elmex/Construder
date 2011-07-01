@@ -821,6 +821,10 @@ sub encounter_values {
    ($tele_dist, $time_to_next, $lifetime)
 }
 
+sub credits {
+   my ($self) = @_;
+   $self->{content}->{credits}
+}
 
 =back
 
