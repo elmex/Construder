@@ -2,3 +2,12 @@
 - recursive mutates should be handled somehow.
 - change #!/opt/perl.. to something more portable.
 - make ambient light configurable in the client.
+
+- 1. sort chunk updates by distance to player.
+   - client AND server!
+  2. make the client display/have blocking materialization
+     blocks to prevent player from entering an un-updated block
+  4. dont kill compiled chunks if they are already compiled. just
+     update them. => prevent empty chunks from being updated,
+     but they should be like blocking anyway!
+  3. tell client to teleport player to free location

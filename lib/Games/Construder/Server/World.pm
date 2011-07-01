@@ -164,6 +164,8 @@ sub world_init {
          }
       }
 
+      $SRV->schedule_chunk_upd;
+
       _calc_some_lights ();
    };
 
@@ -215,7 +217,7 @@ sub world_free_sector {
 my $light_upd_chunks_wait;
 
 sub _calc_some_lights {
-   my $alloced_time = 0.09;
+   my $alloced_time = 0.07;
    my $t1 = time;
    my $calced;
 

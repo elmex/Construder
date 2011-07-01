@@ -485,6 +485,24 @@ sub chunk_updated {
 sub check_visible_chunks_uptodate {
    my ($self) = @_;
 
+#   my @upds;
+#   for (keys %{$self->{visible_chunk_ids}}) {
+#      unless ($self->{chunk_uptodate}->{$_}) {
+#         push @upds, world_id2pos ($_);
+#      }
+#   }
+#   push @{$self->{chunk_network_upd}}, @upds;
+
+#   if (@upds) {
+#      $self->send_client ({ cmd => "chunk_upd_start" });
+#      $self->send_chunk ($_) for @upds;
+#      warn "done sending " . scalar (@upds) . " chunk updates.\n";
+#      $self->send_client ({ cmd => "chunk_upd_done" });
+#   }
+}
+
+sub push_chunk_to_network {
+   my ($self) = @_;
    my @upds;
    for (keys %{$self->{visible_chunk_ids}}) {
       unless ($self->{chunk_uptodate}->{$_}) {
@@ -492,11 +510,12 @@ sub check_visible_chunks_uptodate {
       }
    }
 
-   if (@upds) {
-      $self->send_client ({ cmd => "chunk_upd_start" });
-      $self->send_chunk ($_) for @upds;
-      warn "done sending " . scalar (@upds) . " chunk updates.\n";
-      $self->send_client ({ cmd => "chunk_upd_done" });
+   my $cnt = scalar @upds;
+   print "$cnt chunk upodates in queue!\n";
+   for (my $i = 0; $i < 5; $i++) {
+      my $q = shift @upds
+         or return;
+      $self->send_chunk ($q);
    }
 }
 

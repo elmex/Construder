@@ -227,7 +227,7 @@ sub set_ambient_light {
    for my $cx (keys %{$self->{compiled_chunks}}) {
       for my $cy (keys %{$self->{compiled_chunks}->{$cx}}) {
          for my $cz (keys %{$self->{compiled_chunks}->{$cx}->{$cy}}) {
-            Games::Construder::Renderer::chunk ($cx, $cy, $cz, $self->{compiled_chunks}->{$cx}->{$cy}->{$cz});
+            $self->compile_chunk ($cx, $cy, $cz);
          }
       }
    }
@@ -237,6 +237,7 @@ sub set_ambient_light {
 sub free_compiled_chunk {
    my ($self, $cx, $cy, $cz) = @_;
    my $l = delete $self->{compiled_chunks}->{$cx}->{$cy}->{$cz};
+   delete $self->{dirty_chunks}->{$cx}->{$cy}->{$cz};
    Games::Construder::Renderer::free_geom ($l) if $l;
 }
 
@@ -251,6 +252,7 @@ sub compile_chunk {
          Games::Construder::Renderer::new_geom ();
    }
 
+   delete $self->{dirty_chunks}->{$cx}->{$cy}->{$cz};
    Games::Construder::Renderer::chunk ($cx, $cy, $cz, $geom);
 }
 
@@ -319,23 +321,25 @@ sub update_chunk {
       [0, 0, +1]
    ) {
       my $cur = [$cx + $_->[0], $cy + $_->[1], $cz + $_->[2]];
-      next if grep {
-         $cur->[0] == $_->[0]
-         && $cur->[1] == $_->[1]
-         && $cur->[2] == $_->[2]
-      } @{$self->{chunk_update}};
-      push @upd, $cur;
+      $self->{dirty_chunks}->{$cur->[0]}->{$cur->[1]}->{$cur->[2]} = 1;
+      #next if grep {
+      #   $cur->[0] == $_->[0]
+      #   && $cur->[1] == $_->[1]
+      #   && $cur->[2] == $_->[2]
+      #} @{$self->{chunk_update}};
+      #push @upd, $cur;
    }
 
-   if (is_player_chunk ($cx, $cy, $cz)) {
-      unshift @{$self->{chunk_update}}, @upd;
-   } else {
-      push @{$self->{chunk_update}}, @upd;
-   }
+#   if (is_player_chunk ($cx, $cy, $cz)) {
+#      unshift @{$self->{chunk_update}}, @upd;
+#   } else {
+#      push @{$self->{chunk_update}}, @upd;
+#   }
 }
 
 sub compile_some_chunks {
    my $self = shift;
+   return;
 
    my ($comp) = (0);
    my $cc = $self->{compiled_chunks};
@@ -407,6 +411,8 @@ sub add_highlight {
 
 my $render_cnt;
 my $render_time;
+my $render_chunk_compl_tick = 0;
+my @compl_end;
 sub render_scene {
    my ($self) = @_;
 
@@ -449,6 +455,9 @@ sub render_scene {
 
    while (@$vis_chunks) {
       my ($cx, $cy, $cz) = (shift @$vis_chunks, shift @$vis_chunks, shift @$vis_chunks);
+      if (!$cc->{$cx}->{$cy}->{$cz} || $self->{dirty_chunks}->{$cx}->{$cy}->{$cz}) {
+         push @compl_end, [$cx, $cy, $cz];
+      }
       my $compl = $cc->{$cx}->{$cy}->{$cz}
          or next;
       Games::Construder::Renderer::draw_geom ($compl);
@@ -474,6 +483,16 @@ sub render_scene {
    #glFinish; # what for?
 
    $self->{app}->sync;
+
+   my $cnt = 5;
+   if (@compl_end) {
+      warn scalar (@compl_end) . " chunks to compile...\n";
+      while ($cnt-- > 0) {
+         my $chnk = shift @compl_end;
+         $self->compile_chunk (@$chnk);
+      }
+      (@compl_end) = ();
+   }
 
    $render_time += time - $t1;
    $render_cnt++;
@@ -647,7 +666,7 @@ sub setup_event_poller {
    my $accum_time = 0;
    my $dt = 1 / 40;
    my $upd_pos = 0;
-   $self->{poll_w} = AE::timer 0, 0.015, sub { # 66fps!?
+   $self->{poll_w} = AE::timer 0, 0.02, sub { # 66fps!?
       $self->handle_sdl_events;
 
       $ltime = time - 0.02 if not defined $ltime;

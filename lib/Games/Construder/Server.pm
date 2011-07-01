@@ -142,6 +142,13 @@ sub client_disconnected : event_cb {
    warn "client disconnected: $cid\n";
 }
 
+sub schedule_chunk_upd {
+   my ($self) = @_;
+   for (values %{$self->{players}}) {
+      $_->push_chunk_to_network;
+   }
+}
+
 sub check_players_uptodate {
    my ($self) = @_;
 
