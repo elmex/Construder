@@ -1077,6 +1077,7 @@ sub teleport {
 
    $pos ||= $self->{data}->{pos};
    warn "START TELEPORT @$pos\n";
+   $self->msg (0, "Teleport in progress, please wait...");
    world_load_around_at ($pos, sub {
       warn "TELEPORT @$pos\n";
       my $new_pos = world_find_free_spot ($pos, 1);

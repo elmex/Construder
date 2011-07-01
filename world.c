@@ -273,6 +273,7 @@ void ctr_chunk_clear_changes (ctr_chunk *chnk)
   chnk->changes = 0;
 }
 
+#if 0
 void ctr_chunk_cell_changed (ctr_chunk *chnk, unsigned int x, unsigned int y, unsigned int z) 
 {
   if (chnk->changes < MAX_CHUNK_CHANGES)
@@ -285,6 +286,7 @@ void ctr_chunk_cell_changed (ctr_chunk *chnk, unsigned int x, unsigned int y, un
 
   chnk->dirty = 1;
 }
+#endif
 
 ctr_cell *ctr_chunk_cell_at_rel (ctr_chunk *chnk, unsigned int x, unsigned int y, unsigned int z)
 {

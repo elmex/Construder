@@ -167,7 +167,8 @@ ctr_cell *ctr_world_query_cell_at (unsigned int rel_x, unsigned int rel_y, unsig
     ctr_chunk_cell_at_rel (chnk, chnk_rel_x, chnk_rel_y, chnk_rel_z);
 
   if (modify)
-    ctr_chunk_cell_changed (chnk, chnk_rel_x, chnk_rel_y, chnk_rel_z);
+    chnk->dirty = 1;
+    //ctr_chunk_cell_changed (chnk, chnk_rel_x, chnk_rel_y, chnk_rel_z);
 
   return c;
 }

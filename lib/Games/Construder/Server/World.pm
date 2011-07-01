@@ -48,7 +48,7 @@ Games::Construder::Server::World - desc
 our $CHNK_SIZE = 12;
 our $CHNKS_P_SEC = 5;
 
-our $REGION_SEED = 39;
+our $REGION_SEED = 42;
 our $REGION_SIZE = 100; # 100x100x100 sections
 our $REGION;
 
@@ -58,6 +58,9 @@ our $STORE_SCHED_TMR;
 our $FREE_TMR;
 our $TICK_TMR;
 our @SAVE_SECTORS_QUEUE;
+
+our @LIGHTQUEUE;
+our %LIGHTQUEUE;
 
 our $INHIBIT_CHUNK_UPTODATE_CHECK = 0;
 
@@ -160,6 +163,8 @@ sub world_init {
             Games::Construder::Server::Objects::tick ($pos, $e, $e->{type}, 0.15);
          }
       }
+
+      _calc_some_lights ();
    };
 
    region_init ($region_cmds);
@@ -205,6 +210,52 @@ sub world_free_sector {
       }
    }
    warn "chunks from @$fchunk purged!\n";
+}
+
+my $light_upd_chunks_wait;
+
+sub _calc_some_lights {
+   my $t1 = time;
+   my $calced;
+
+   {
+      local $INHIBIT_CHUNK_UPTODATE_CHECK = 1;
+      for (my $i = 0; $i < 5; $i++) {
+         my $pos = shift @LIGHTQUEUE
+            or last;
+         delete $LIGHTQUEUE{world_pos2id ($pos)};
+         my $secid = world_pos2id (world_chnkpos2secpos (world_pos2chnkpos ($pos)));
+         unless (exists $SECTORS{$secid}) {
+            $i--;
+            next;
+         }
+         warn "calc light at @$pos\n";
+         Games::Construder::World::flow_light_query_setup (@$pos, @$pos);
+         Games::Construder::World::flow_light_at (@$pos);
+         Games::Construder::World::query_desetup ();
+         $calced++;
+      }
+   }
+   if ($calced) {
+      printf "calclight step %0.4f, calced %d lights, %d lights to go\n",
+             time - $t1, $calced, scalar @LIGHTQUEUE;
+   }
+   if ($light_upd_chunks_wait++ > 5) {
+      $SRV->check_players_uptodate;
+      $light_upd_chunks_wait = 0;
+   }
+}
+
+sub _query_push_lightqueue {
+   my $lightposes = Games::Construder::World::query_search_types (35, 40, 41);
+   while (@$lightposes) {
+      my $pos = [shift @$lightposes, shift @$lightposes, shift @$lightposes];
+      my $id = world_pos2id ($pos);
+      unless ($LIGHTQUEUE{$id}) {
+         $LIGHTQUEUE{$id} = 1;
+         push @LIGHTQUEUE, $pos;
+      }
+   }
 }
 
 sub _world_make_sector {
@@ -276,7 +327,7 @@ sub _world_make_sector {
       $plcnt++;
    }
 
-   Games::Construder::World::query_reflow_every_light ();
+   _query_push_lightqueue ();
    $tsum += time - $t1;
 
    my $smeta = $SECTORS{world_pos2id ($sec)} = {
@@ -382,7 +433,7 @@ sub _world_load_sector {
                    $CHNKS_P_SEC * $CHNK_SIZE);
 
          Games::Construder::World::flow_light_query_setup (@$lower_left, @$upper_right);
-         Games::Construder::World::query_reflow_every_light ();
+         _query_push_lightqueue ();
          Games::Construder::World::query_desetup (2);
       }
 

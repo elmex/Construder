@@ -770,6 +770,33 @@ void ctr_world_flow_light_query_setup (int minx, int miny, int minz, int maxx, i
     ctr_world_query_load_chunks (0);
 
 
+AV *ctr_world_query_search_types (int t1, int t2, int t3)
+  CODE:
+    RETVAL = newAV ();
+    sv_2mortal ((SV *)RETVAL);
+
+    int xw = QUERY_CONTEXT.x_w * CHUNK_SIZE,
+        yw = QUERY_CONTEXT.y_w * CHUNK_SIZE,
+        zw = QUERY_CONTEXT.z_w * CHUNK_SIZE;
+    int x, y, z;
+    for (x = 0; x < xw; x++)
+      for (y = 0; y < yw; y++)
+        for (z = 0; z < zw; z++)
+           {
+             ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 0);
+             if (cur && (cur->type == t1 || cur->type == t2 || cur->type == t3))
+               {
+                  int rx = x, ry = y, rz = z;
+                  ctr_world_query_rel2abs (&rx, &ry, &rz);
+                  av_push (RETVAL, newSViv (rx));
+                  av_push (RETVAL, newSViv (ry));
+                  av_push (RETVAL, newSViv (rz));
+               }
+           }
+
+  OUTPUT:
+    RETVAL
+
 void ctr_world_query_reflow_every_light ()
   CODE:
     int xw = QUERY_CONTEXT.x_w * CHUNK_SIZE,
