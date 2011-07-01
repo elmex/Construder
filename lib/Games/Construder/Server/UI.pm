@@ -1993,7 +1993,7 @@ sub layout {
 
 
 package Games::Construder::Server::UI::ColorSelector;
-use Games::Construder::Server::World;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -2008,7 +2008,6 @@ sub handle_command {
 
    if ($cmd eq 'select') {
       $self->{pl}->{colorifyer} = $arg->{color};
-      warn "SET COLOr $arg->{color}\n";
       $self->hide;
    }
 }
@@ -2038,31 +2037,19 @@ my @CLRMAP = (
 
 sub layout {
    my $nr = 0;
-   {
-      window => { pos => [ center => 'center' ] },
-      layout => [
-         box => { dir => "vert", border => { color => "#ffffff" } },
-         [text => { color => "#ffffff", font => "big" }, "Select color"],
-         map {
-            $nr++;
-            my $clr = "#" . join '', map {
-               sprintf "%02x", $_ * 255
-            } @$_;
-            [select_box => {
-               dir => "hor", align => "center", arg => "color", tag => ($nr - 1),
-               padding => 2, bgcolor => "#333333",
-               border => { color => "#555555", width => 2 },
-               select_border => { color => "#ffffff", width => 2 },
-             },
-               [text => { color => $clr }, "##"]
-            ]
-         } @CLRMAP
-      ]
-   }
+   ui_window ("Select Color",
+      map {
+         $nr++;
+         my $clr = "#" . join '', map {
+            sprintf "%02x", $_ * 255
+         } @$_;
+         ui_select_item (color => ($nr - 1), [text => { color => $clr }, "##"])
+      } @CLRMAP
+   )
 }
 
 package Games::Construder::Server::UI::ShipTransmission;
-use Games::Construder::Server::World;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -2099,20 +2086,12 @@ sub layout {
 
    $self->{resp} = \@responses;
 
-   {
-      window => { pos => [ center => 'center' ] },
-      layout => [
-         box => { dir => "vert", border => { color => "#ffffff" } },
-         [text => { color => "#ffffff", font => "big" },
-          "Ship Interaction: $title"],
-         [text => { color => "#ffffff", font => "normal", wrap => 45, align => "center" }, $text],
-         map {
-            [text => { color => "#ffffff", font => "normal" },
-             "[$keys[$_->[0]]] $_->[1]"],
-         } @responses
-      ]
-   }
-
+   ui_window ("Ship Transmission: $title",
+      ui_text ($text),
+      map {
+         ui_key_explain ($keys[$_->[0]], $_->[1])
+      } @responses
+   )
 }
 
 package Games::Construder::Server::UI::TextScript;

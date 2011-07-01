@@ -21,6 +21,7 @@ our @EXPORT = qw/
    ui_hlt_border
    ui_warning
    ui_notice
+   ui_select_item
 /;
 
 =head1 NAME
@@ -45,7 +46,8 @@ our $WARTEXT_COLOR = "#ff0000";
 our $NOTICETEXT_COLOR = "#ffffff";
 our $SUBTEXT_COLOR = "#ff8888";
 our $KEYBIND_COLOR = "#ffff88";
-our $BG_COLOR      = "#000000";
+our $BG_COLOR      = "#000022";
+our $BG_SEL_COLOR  = "#222244";
 
 sub ui_key {
    my ($key, %args) = @_;
@@ -135,6 +137,18 @@ sub ui_border {
    ]
 }
 
+sub ui_select_item {
+   my ($name, $tag, @cont) = @_;
+   [select_box => {
+      dir => "hor", align => "center", arg => $name, tag => $tag,
+      padding => 2, bgcolor => $BG_SEL_COLOR,
+      border => { color => $BORDER_COLOR, width => 2 },
+      select_border => { color => $HIGHLIGHT_BORDER_COLOR, width => 2 },
+    },
+    @cont
+   ]
+}
+
 sub ui_key_inline_expl {
    my ($key, $desc, %args) = @_;
    [box => { dir => "hor" },
@@ -154,7 +168,7 @@ sub ui_key_explain {
 sub ui_window {
    my ($title, @content) = @_;
    {
-      window => { pos => [ center => "center" ], background => $BG_COLOR },
+      window => { pos => [ center => "center" ], bgcolor => $BG_COLOR },
       layout => ui_border (
          ui_title ($title),
          @content
@@ -165,7 +179,7 @@ sub ui_window {
 sub ui_hud_window_transparent {
    my ($pos, @content) = @_;
    {
-      window => { pos => $pos, background => $BG_COLOR, sticky => 1, alpha => 0.5 },
+      window => { pos => $pos, bgcolor => $BG_COLOR, sticky => 1, alpha => 0.5 },
       layout => [ box => { dir => "vert" },
          @content
       ]
@@ -175,7 +189,7 @@ sub ui_hud_window_transparent {
 sub ui_hud_window {
    my ($pos, @content) = @_;
    {
-      window => { pos => $pos, background => $BG_COLOR, sticky => 1, alpha => 0.65 },
+      window => { pos => $pos, bgcolor => $BG_COLOR, sticky => 1, alpha => 0.65 },
       layout => [ box => { dir => "vert" },
          @content
       ]

@@ -497,7 +497,7 @@ sub update {
    }
 
    # window_size_inside is initialized here, and window_padding too
-   $self->prepare_sdl_surface; # creates a new sdl surface for this window
+   $self->prepare_sdl_surface ($win->{bgcolor}); # creates a new sdl surface for this window
 
    $self->draw_element ($layout, [0, 0]);
 
