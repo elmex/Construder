@@ -43,7 +43,7 @@ Games::Construder::Client::Frontend - desc
 
 my ($WIDTH, $HEIGHT) = (800, 600);
 my $DEPTH = 24;
-my $UPDATE_P_FRAME = 30;
+my $UPDATE_P_FRAME = 25;
 
 my $PL_HEIGHT  = 1.3;
 my $PL_RAD     = 0.3;

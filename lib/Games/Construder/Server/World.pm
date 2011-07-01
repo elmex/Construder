@@ -215,18 +215,18 @@ sub world_free_sector {
 my $light_upd_chunks_wait;
 
 sub _calc_some_lights {
+   my $alloced_time = 0.09;
    my $t1 = time;
    my $calced;
 
    {
       local $INHIBIT_CHUNK_UPTODATE_CHECK = 1;
-      for (my $i = 0; $i < 5; $i++) {
+      while ((time - $t1) < $alloced_time) {
          my $pos = shift @LIGHTQUEUE
             or last;
          delete $LIGHTQUEUE{world_pos2id ($pos)};
          my $secid = world_pos2id (world_chnkpos2secpos (world_pos2chnkpos ($pos)));
          unless (exists $SECTORS{$secid}) {
-            $i--;
             next;
          }
          warn "calc light at @$pos\n";
@@ -247,7 +247,7 @@ sub _calc_some_lights {
 }
 
 sub _query_push_lightqueue {
-   my $lightposes = Games::Construder::World::query_search_types (35, 40, 41);
+   my $lightposes = Games::Construder::World::query_search_types (35, 41, 41);
    while (@$lightposes) {
       my $pos = [shift @$lightposes, shift @$lightposes, shift @$lightposes];
       my $id = world_pos2id ($pos);
@@ -306,7 +306,7 @@ sub _world_make_sector {
          [shift @$pospos, shift @$pospos, shift @$pospos];
    }
    my $cnt = scalar @poses;
-   my @types = qw/40 41 35/;
+   my @types = qw/41 41 35/;
    my $rnd_type = Games::Construder::Random::rnd_xor ($seed);
    my $flot = Games::Construder::Random::rnd_float ($rnd_type) * 2.99999;
    my $type = $types[int $flot];
