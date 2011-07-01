@@ -237,6 +237,10 @@ sub player_tick {
             $self->{data}->{$k} = 100;
          }
 
+         if ($k eq 'bio' && -$a) {
+            $self->{uis}->{status}->show (-$a);
+         }
+
       } elsif ($k eq 'score') {
          my $happy = $Games::Construder::Server::RES->score2happyness ($a);
          $self->{data}->{happyness} += int ($happy + 0.5);
@@ -592,7 +596,6 @@ sub do_materialize {
    $self->highlight ($pos, $time, [0, 1, 0]);
 
    $self->push_tick_change (bio => -$energy);
-   $self->{uis}->{status}->show ($energy);
 
    $self->{materializings}->{$id} = 1;
    my $tmr;
@@ -665,7 +668,6 @@ sub do_dematerialize {
    $self->highlight ($pos, $time, [1, 0, 0]);
 
    $self->push_tick_change (bio => -$energy);
-   $self->{uis}->{status}->show ($energy);
 
    $self->{dematerializings}->{$id} = 1;
    my $tmr;

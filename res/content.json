@@ -500,9 +500,9 @@
    },
    "balancing" : {
       "max_dematerialize_time" : 30,         # 30 seconds
-      "max_dematerialize_bio"  : 20,         # 20% bio => should be less
+      "max_dematerialize_bio"  : 35,         # 35% bio
       "max_materialize_time"   : 6,          # 6 seconds
-      "max_materialize_bio"    : 10,         # 10% bio
+      "max_materialize_bio"    : 17,         # 17% bio
       "max_materialize_score"  : 500,
       "max_construction_score" : 250,        # for most complex item
       "max_construction_clear_time" : 15,    # for most complex item

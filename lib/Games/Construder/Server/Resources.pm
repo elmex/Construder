@@ -606,7 +606,7 @@ sub get_type_dematerialize_values {
 
    if ($upgrade) {
       $time /= 10;
-      $cplx = lerp ($cplx, 1, 0.7);
+      $cplx = lerp ($cplx, 1, 0.5);
    }
 
    if ($cplx < 0.5) {
@@ -668,7 +668,7 @@ sub get_type_materialize_values {
 
    if ($upgrade) {
       $time /= 10;
-      $cplx = lerp ($cplx, 1, 0.7);
+      $cplx = lerp ($cplx, 1, 0.5);
    }
 
    if ($cplx < 0.5) {
