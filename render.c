@@ -526,12 +526,12 @@ double ctr_cell_light (ctr_cell *c)
   return light;
 }
 
-void
+int
 ctr_render_chunk (int x, int y, int z, void *geom)
 {
   ctr_chunk *c = ctr_world_chunk (x, y, z, 0);
   if (!c)
-    return;
+    return 0;
 
   LOAD_NEIGHBOUR_CHUNKS(x,y,z);
 
@@ -597,5 +597,5 @@ ctr_render_chunk (int x, int y, int z, void *geom)
         }
 
   ctr_render_compile_geom (geom);
-  return;
+  return 1;
 }

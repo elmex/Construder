@@ -63,9 +63,9 @@ sub new {
          $self->send_server ({ cmd => "visibility_radius", radius => $radius });
       },
       visible_chunks_changed => sub {
-         my ($front, $new, $old) = @_;
+         my ($front, $new, $old, $req) = @_;
  #        warn "NEW: @$new, OLD @$old\n";
-         $self->send_server ({ cmd => "vis_chunks", old => $old, new => $new });
+         $self->send_server ({ cmd => "vis_chunks", old => $old, new => $new, req => $req });
       }
    );
 
@@ -201,6 +201,9 @@ sub handle_packet : event_cb {
       } else {
          $self->{front}->remove_highlight_model ($hdr->{id});
       }
+
+   } elsif ($hdr->{cmd} eq 'dirty_chunks') {
+      $self->{front}->clear_chunk ($_) for @{$hdr->{chnks}}
 
    } elsif ($hdr->{cmd} eq 'chunk') {
       $body = decompress ($body);

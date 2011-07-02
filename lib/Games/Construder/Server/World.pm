@@ -62,8 +62,6 @@ our @SAVE_SECTORS_QUEUE;
 our @LIGHTQUEUE;
 our %LIGHTQUEUE;
 
-our $INHIBIT_CHUNK_UPTODATE_CHECK = 0;
-
 our $SRV;
 
 sub world_init {
@@ -74,8 +72,9 @@ sub world_init {
    Games::Construder::World::init (
       sub {
          my ($x, $y, $z) = @_;
+         my $chnk = [$x, $y, $z];
 
-         my $sec = world_chnkpos2secpos ([$x, $y, $z]);
+         my $sec = world_chnkpos2secpos ($chnk);
          my $id  = world_pos2id ($sec);
          unless (exists $SECTORS{$id}) {
             # this might happen either due to bugs or when sectors are loaded
@@ -87,12 +86,8 @@ sub world_init {
          }
          world_sector_dirty ($sec);
 
-         my $chnk = [@_];
          for (values %{$server->{players}}) {
             $_->chunk_updated ($chnk);
-            unless ($INHIBIT_CHUNK_UPTODATE_CHECK) {
-               $_->check_visible_chunks_uptodate;
-            }
          }
       },
       sub {
@@ -222,7 +217,6 @@ sub _calc_some_lights {
    my $calced;
 
    {
-      local $INHIBIT_CHUNK_UPTODATE_CHECK = 1;
       while ((time - $t1) < $alloced_time) {
          my $pos = shift @LIGHTQUEUE
             or last;
@@ -241,10 +235,6 @@ sub _calc_some_lights {
    if ($calced) {
       printf "calclight step %0.4f, calced %d lights, %d lights to go\n",
              time - $t1, $calced, scalar @LIGHTQUEUE;
-   }
-   if ($light_upd_chunks_wait++ > 5) {
-      $SRV->check_players_uptodate;
-      $light_upd_chunks_wait = 0;
    }
 }
 
@@ -348,13 +338,10 @@ sub _world_make_sector {
    warn "created sector @$sec in $smeta->{creation_time} seconds\n";
 
    {
-      local $INHIBIT_CHUNK_UPTODATE_CHECK = 1;
       Games::Construder::World::query_desetup (2);
    }
 
    warn "PLACED $cnt / $plcnt lights $type ($flot) in $tsum!\n";
-
-   $SRV->check_players_uptodate;
 }
 
 sub _world_load_sector {
@@ -408,8 +395,6 @@ sub _world_load_sector {
       $meta->{load_time} = time;
 
       {
-         local $INHIBIT_CHUNK_UPTODATE_CHECK = 1;
-
          my $offs;
          my $first_chnk = world_secpos2chnkpos ($sec);
          my @chunks;
@@ -447,7 +432,6 @@ sub _world_load_sector {
            . sprintf ("%.3f seconds", time - $t1)
            . ".\n";
 
-      $SRV->check_players_uptodate;
       return 1;
 
    } else {
@@ -737,10 +721,8 @@ sub world_mutate_at {
    }
 
    {
-      local $INHIBIT_CHUNK_UPTODATE_CHECK = 1;
       Games::Construder::World::query_desetup ();
    }
-   $SRV->check_players_uptodate;
 }
 
 sub world_find_free_spot {

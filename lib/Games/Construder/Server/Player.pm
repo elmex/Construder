@@ -416,9 +416,7 @@ sub update_pos {
 sub upd_visible_chunks {
    my ($self) = @_;
    $self->calc_visible_sectors;
-   world_load_at_player ($self, sub {
-      $self->check_visible_chunks_uptodate;
-   });
+   world_load_at_player ($self, sub { });
 }
 
 sub get_pos_normalized {
@@ -442,23 +440,22 @@ sub set_vis_rad {
 }
 
 sub set_visible_chunks {
-   my ($self, $new, $old) = @_;
+   my ($self, $new, $old, $req) = @_;
+
    for (@$old) {
       my $id = world_pos2id ($_);
       delete $self->{visible_chunk_ids}->{$id};
    }
+
    for (@$new) {
       my $id = world_pos2id ($_);
       $self->{visible_chunk_ids}->{$id} = $_;
    }
-   my @chnks = values %{$self->{visible_chunk_ids}};
-   $self->{visible_chunks} = \@chnks;
 
-   for (keys %{$self->{chunk_uptodate}}) {
-      unless ($self->{visible_chunk_ids}->{$_}) {
-         delete $self->{chunk_uptodate}->{$_};
-      }
+   for (@{$req || []}) {
+      $self->{to_send_chunks}->{world_pos2id ($_)} = $_;
    }
+
 }
 
 sub calc_visible_sectors {
@@ -483,36 +480,27 @@ sub calc_visible_sectors {
 
 sub chunk_updated {
    my ($self, $chnk) = @_;
-   delete $self->{chunk_uptodate}->{world_pos2id ($chnk)};
-}
+   my $id = world_pos2id ($chnk);
 
-sub check_visible_chunks_uptodate {
-   my ($self) = @_;
+   #d#warn "TEST[$id] vs [" . join (", ", keys %{$self->{visible_chunk_ids}}) . "]\n";
 
-#   my @upds;
-#   for (keys %{$self->{visible_chunk_ids}}) {
-#      unless ($self->{chunk_uptodate}->{$_}) {
-#         push @upds, world_id2pos ($_);
-#      }
-#   }
-#   push @{$self->{chunk_network_upd}}, @upds;
+   if ($self->{visible_chunk_ids}->{$id}) {
+      $self->{to_send_chunks}->{$id} = $chnk;
 
-#   if (@upds) {
-#      $self->send_client ({ cmd => "chunk_upd_start" });
-#      $self->send_chunk ($_) for @upds;
-#      warn "done sending " . scalar (@upds) . " chunk updates.\n";
-#      $self->send_client ({ cmd => "chunk_upd_done" });
-#   }
+   } else {
+      if ($self->{sent_chunks}->{$id}) {
+         $self->send_client ({ cmd => "dirty_chunks", chnks => [$chnk] });
+         delete $self->{sent_chunks}->{$id};
+      }
+   }
+   #delete $self->{chunk_uptodate}->{world_pos2id ($chnk)};
 }
 
 sub push_chunk_to_network {
    my ($self) = @_;
-   my @upds;
-   for (keys %{$self->{visible_chunk_ids}}) {
-      unless ($self->{chunk_uptodate}->{$_}) {
-         push @upds, world_id2pos ($_);
-      }
-   }
+
+   my (@upds) = values %{$self->{to_send_chunks}};
+
    my $plpos = $self->{data}->{pos};
    my $plchnk = world_pos2chnkpos ($self->{data}->{pos});
    (@upds) = sort {
@@ -533,21 +521,20 @@ sub push_chunk_to_network {
 sub send_chunk {
    my ($self, $chnk) = @_;
 
-   # evenif the chunk is not allocated, it should be marked as "uptodate".
-   # not allocated means: it either will be loaded (and then updated) or
-   # wont be loaded anytime soon!
-   $self->{chunk_uptodate}->{world_pos2id ($chnk)} = 1;
-
    # only send chunk when allcoated, in all other cases the chunk will
    # be sent by the chunk_changed-callback by the server (when it checks
    # whether any player might be interested in that chunk).
+   my $id = world_pos2id ($chnk);
    my $data = Games::Construder::World::get_chunk_data (@$chnk);
    unless (defined $data) {
       #d# warn "send_chunk: @$chnk was not yet allocated!\n";
+      delete $self->{to_send_chunks}->{$id};
       return;
    }
 
    $self->send_client ({ cmd => "chunk", pos => $chnk }, compress ($data));
+   $self->{sent_chunks}->{$id} = $chnk;
+   delete $self->{to_send_chunks}->{$id};
 }
 
 sub msg {

@@ -170,10 +170,12 @@ void ctr_render_draw_geom (void *c);
 
 void ctr_render_free_geom (void *c);
 
-void ctr_render_chunk (int x, int y, int z, void *geom)
+int ctr_render_chunk (int x, int y, int z, void *geom)
   CODE:
     ctr_render_clear_geom (geom);
-    ctr_render_chunk (x, y, z, geom);
+    RETVAL = ctr_render_chunk (x, y, z, geom);
+  OUTPUT:
+    RETVAL
 
 void
 ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int yo, unsigned int zo, void *geom, int skip, int force_model)
@@ -197,6 +199,15 @@ void ctr_world_init (SV *change_cb, SV *cell_change_cb)
      WORLD.chunk_change_cb = change_cb;
      SvREFCNT_inc (cell_change_cb);
      WORLD.active_cell_change_cb = cell_change_cb;
+
+
+int
+ctr_world_has_chunk (int x, int y, int z)
+  CODE:
+    ctr_chunk *chnk = ctr_world_chunk (x, y, z, 0);
+    RETVAL = chnk ? 1 : 0;
+  OUTPUT:
+    RETVAL
 
 SV *
 ctr_world_get_chunk_data (int x, int y, int z)

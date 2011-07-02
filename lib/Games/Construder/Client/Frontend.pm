@@ -228,7 +228,6 @@ sub set_ambient_light {
    for my $id (keys %{$self->{compiled_chunks}}) {
       $self->compile_chunk (@{world_id2pos ($_)});
    }
-
 }
 
 sub free_compiled_chunk {
@@ -255,7 +254,7 @@ sub compile_chunk {
    }
 
    delete $self->{dirty_chunks}->{$id};
-   Games::Construder::Renderer::chunk ($cx, $cy, $cz, $geom);
+   return Games::Construder::Renderer::chunk ($cx, $cy, $cz, $geom);
 }
 
 sub step_animations {
@@ -284,6 +283,8 @@ sub set_player_pos {
    my ($self, $pos) = @_;
    warn "NEW PLAYER POS: @$pos\n";
    $self->{phys_obj}->{player}->{pos} = $pos;
+   delete $self->{visible_chunks};
+   $self->calc_visibility;
 }
 
 sub get_visible_chunks {
@@ -323,6 +324,11 @@ sub dirty_chunk {
       my $id = world_pos2id ($cur);
       $self->{dirty_chunks}->{$id} = $cur;
    }
+}
+
+sub clear_chunk {
+   my ($self, $chnk) = @_;
+   $self->free_compiled_chunk (@$chnk);
 }
 
 sub remove_highlight_model {
@@ -402,19 +408,24 @@ sub calc_visibility {
 
    my $old_vis = $self->{visible_chunks};
    my $new_vis = { };
-   my (@newv, @oldv);
+   my (@newv, @oldv, @req);
    for my $c (@chunks) {
       my $cid = world_pos2id ($c);
       if ($old_vis->{$cid}) {
          delete $old_vis->{$cid};
-      } elsif (!$new_vis->{$cid}) {
+
+      } elsif (not exists $new_vis->{$cid}) {
          push @newv, $c;
       }
       $new_vis->{$cid} = $c;
+      unless (Games::Construder::World::has_chunk (@$c)) {
+         push @req, $c;
+      }
    }
+ #d#  print "VISIBLE CHUNKS: " . join (", ", keys %$new_vis) . " (NEW ".join (", ", map { world_pos2id ($_) } @newv).") (OLD "  . join (", ", map { world_pos2id ($_) } @oldv).")\n";
    (@oldv) = values %$old_vis;
-   $self->visible_chunks_changed (\@newv, \@oldv)
-      if @newv || @oldv;
+   $self->visible_chunks_changed (\@newv, \@oldv, \@req)
+      if @newv || @oldv || @req;
    $self->{visible_chunks} = $new_vis;
 }
 
@@ -489,20 +500,34 @@ sub render_scene {
          vlength (vsub ($plchnk, $b))
       } @compl_end;
       my $tc = time;
-      $tleft -= $tleft / 3; # lets don't overdo it
-      my $ac = $tleft < 0 ? 0.001 : $tleft; # we MUST allow at least one per frame, otherwise on other machines maybe none are compiled...
+      $tleft -= $tleft / 2; # lets don't overdo it
+      # we MUST allow at least one per frame, otherwise on
+      # other machines maybe none are compiled...
+      my $ac = $tleft < 0 ? 0.001 : $tleft;
+
+      my @request;
 
       my $cnt = 0;
-      while ((time - $tc) < $ac) {
+      my $max = 4;
+      while ($max-- > 0 && (time - $tc) < $ac) {
          my $chnk = shift @compl_end
             or last;
-         $self->compile_chunk (@$chnk);
+         unless ($self->compile_chunk (@$chnk)) {
+            push @request, $chnk;
+         }
          $cnt++;
       }
+      my $tok = time - $tc;
 
-      warn "compiled $cnt chunks in $ac, but only had $tleft left, but " . scalar (@compl_end) . " chunks still to compile...\n";
+      warn "compiled $cnt chunks in $tok, but only had $tleft left, but "
+           . scalar (@compl_end) . " chunks still to compile...\n";
 
       (@compl_end) = ();
+
+      if (@request) {
+         warn "requesting " . scalar (@request) . " chnks\n";
+         $self->visible_chunks_changed ([], [], \@request);
+      }
    }
 
    $render_time += time - $t1;
@@ -1293,7 +1318,10 @@ sub update_player_pos : event_cb {
 }
 
 sub visible_chunks_changed : event_cb {
-   my ($self, $new, $old) = @_;
+   my ($self, $new, $old, $req) = @_;
+   # TODO: $req might be issued again and again with the same chunks,
+   #       we should mabye rate limit that for more bandwidth friendly
+   #       behaviour
 }
 
 sub visibility_radius : event_cb {

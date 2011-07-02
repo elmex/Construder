@@ -149,14 +149,6 @@ sub schedule_chunk_upd {
    }
 }
 
-sub check_players_uptodate {
-   my ($self) = @_;
-
-   for (values %{$self->{players}}) {
-      $_->check_visible_chunks_uptodate;
-   }
-}
-
 sub players_near_pos {
    my ($self, $pos) = @_;
    my @p;
@@ -192,7 +184,7 @@ sub handle_player_packet : event_cb {
       $player->set_vis_rad ($hdr->{radius});
 
    } elsif ($hdr->{cmd} eq 'vis_chunks') {
-      $player->set_visible_chunks ($hdr->{new}, $hdr->{old});
+      $player->set_visible_chunks ($hdr->{new}, $hdr->{old}, $hdr->{req});
 
    } elsif ($hdr->{cmd} eq 'pos_action') {
       if ($hdr->{action} == 1 && @{$hdr->{build_pos} || []}) {
