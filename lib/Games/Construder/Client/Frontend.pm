@@ -110,6 +110,7 @@ sub resize_app {
    }
 
    delete $self->{cached_cam_cone};
+   $self->calc_visibility;
 }
 
 sub init_app {
@@ -409,12 +410,69 @@ sub add_highlight {
       [$pos, $color, { fading => $fade, rad => 0.08 + rand (0.005) }, $id];
 }
 
+my $old_pp;
+
+sub calc_visibility {
+   my ($self) = @_;
+
+   my $play_pos = $self->{phys_obj}->{player}->{pos};
+   my $ppf = vfloor ($play_pos);
+   return unless
+      !$self->{cached_cam_cone}
+      || $ppf->[0] != $old_pp->[0]
+      || $ppf->[1] != $old_pp->[1]
+      || $ppf->[2] != $old_pp->[2];
+   $old_pp = $ppf;
+
+   my $cam_pos  = vaddd ($play_pos, 0, $PL_HEIGHT, 0);
+   my (@fcone) = $self->cam_cone;
+   unshift @fcone, $cam_pos;
+
+   my $vis_chunks =
+      Games::Construder::Math::calc_visible_chunks_at_in_cone (
+         @$play_pos, $PL_VIS_RAD,
+         @{$fcone[0]}, @{$fcone[1]}, $fcone[2],
+         $Games::Construder::Client::World::BSPHERE);
+
+   my @chunks;
+   my $plchnk = [world_pos2chunk ($ppf)];
+   for my $x (-1,0,1) {
+      for my $y (-1,0,1) {
+         for my $z (-1,0,1) {
+            my $c = vaddd ($plchnk, $x, $y, $z);
+            push @chunks, $c;
+         }
+      }
+   }
+
+   while (@$vis_chunks) {
+      push @chunks, [shift @$vis_chunks, shift @$vis_chunks, shift @$vis_chunks];
+   }
+
+   my $old_vis = $self->{visible_chunks};
+   my $new_vis = { };
+   my (@newv, @oldv);
+   for my $c (@chunks) {
+      my $cid = world_pos2id ($c);
+      if ($old_vis->{$cid}) {
+         delete $old_vis->{$cid};
+      } elsif (!$new_vis->{$cid}) {
+         push @newv, $c;
+      }
+      $new_vis->{$cid} = $c;
+   }
+   (@oldv) = values %$old_vis;
+   $self->visible_chunks_changed (\@newv, \@oldv)
+      if @newv || @oldv;
+   $self->{visible_chunks} = $new_vis;
+}
+
 my $render_cnt;
 my $render_time;
 my $render_chunk_compl_tick = 0;
 my @compl_end;
 sub render_scene {
-   my ($self) = @_;
+   my ($self, $frame_time) = @_;
 
    my $t1 = time;
    my $cc = $self->{compiled_chunks};
@@ -438,23 +496,13 @@ sub render_scene {
    my $cpos;
    glTranslatef (@{vneg ($cpos = vaddd ($pp, 0, $PL_HEIGHT, 0))});
 
-   my $t2 = time;
-   my (@fcone) = $self->cam_cone;
-   unshift @fcone, $cpos;
-   #d# warn "FCONE ".vstr ($fcone[0]). ",".vstr ($fcone[1])." : $fcone[2]\n";
-   my $t3 = time;
-
-   my $vis_chunks =
-      Games::Construder::Math::calc_visible_chunks_at_in_cone (
-         @$pp, $PL_VIS_RAD,
-         @{$fcone[0]}, @{$fcone[1]}, $fcone[2],
-         $Games::Construder::Client::World::BSPHERE);
-
    my ($txtid) = $self->{res}->obj2texture (1);
    glBindTexture (GL_TEXTURE_2D, $txtid);
 
-   while (@$vis_chunks) {
-      my ($cx, $cy, $cz) = (shift @$vis_chunks, shift @$vis_chunks, shift @$vis_chunks);
+   #d# warn "FCONE ".vstr ($fcone[0]). ",".vstr ($fcone[1])." : $fcone[2]\n";
+
+   for (values %{$self->{visible_chunks}}) {
+      my ($cx, $cy, $cz) = @$_;
       if (!$cc->{$cx}->{$cy}->{$cz} || $self->{dirty_chunks}->{$cx}->{$cy}->{$cz}) {
          push @compl_end, [$cx, $cy, $cz];
       }
@@ -473,8 +521,6 @@ sub render_scene {
 
    my $qp = $self->{selected_box};
    _render_highlight ($qp, [1, 0, 0, 0.2], 0.04) if $qp;
-   #my $qpb = $self->{selected_build_box};
-   #_render_highlight ($qpb, [0, 0, 1, 0.05], 0.05) if $qp;
 
    glPopMatrix;
 
@@ -484,19 +530,34 @@ sub render_scene {
 
    $self->{app}->sync;
 
-   my $cnt = 7;
+   my $tleft = $frame_time - (time - $t1);
+
    if (@compl_end) {
-      warn scalar (@compl_end) . " chunks to compile...\n";
-      while ($cnt-- > 0) {
-         my $chnk = shift @compl_end;
+      my $plchnk = world_pos2chunk ($pp);
+      (@compl_end) = sort {
+         vlength (vsub ($plchnk, $a))
+         <=>
+         vlength (vsub ($plchnk, $b))
+      } @compl_end;
+      my $tc = time;
+      $tleft -= $tleft / 3; # lets don't overdo it
+      my $ac = $tleft < 0 ? 0.001 : $tleft; # we MUST allow at least one per frame, otherwise on other machines maybe none are compiled...
+
+      my $cnt = 0;
+      while ((time - $tc) < $ac) {
+         my $chnk = shift @compl_end
+            or last;
          $self->compile_chunk (@$chnk);
+         $cnt++;
       }
+
+      warn "compiled $cnt chunks in $ac, but only had $tleft left, but " . scalar (@compl_end) . " chunks still to compile...\n";
+
       (@compl_end) = ();
    }
 
    $render_time += time - $t1;
    $render_cnt++;
-
 }
 
 sub render_hud {
@@ -666,10 +727,11 @@ sub setup_event_poller {
    my $accum_time = 0;
    my $dt = 1 / 40;
    my $upd_pos = 0;
-   $self->{poll_w} = AE::timer 0, 0.02, sub { # 66fps!?
+   my $frame_time = 0.02;
+   $self->{poll_w} = AE::timer 0, $frame_time, sub {
       $self->handle_sdl_events;
 
-      $ltime = time - 0.02 if not defined $ltime;
+      $ltime = time - $frame_time if not defined $ltime;
       my $ctime = time;
       $accum_time += time - $ltime;
       $ltime = $ctime;
@@ -679,6 +741,8 @@ sub setup_event_poller {
          $accum_time -= $dt;
       }
 
+      $self->calc_visibility;
+
       if ($upd_pos++ > 8) {
          $self->update_player_pos (
             $self->{phys_obj}->{player}->{pos},
@@ -687,7 +751,7 @@ sub setup_event_poller {
          $upd_pos = 0;
       }
 
-      $self->render_scene;
+      $self->render_scene ($frame_time);
       $fps++;
 
       my $t1 = time;
@@ -729,7 +793,7 @@ sub get_look_vector {
    $self->{cached_look_vec} = [$yl * $xd, $yd, $yl * $zd];
 
    delete $self->{cached_cam_cone};
-   $self->cam_cone;
+   $self->calc_visibility; # calls ->cam_cone!
 
    return $self->{cached_look_vec};
 }
@@ -1316,6 +1380,10 @@ sub input_mouse_button : event_cb {
 
 sub update_player_pos : event_cb {
    my ($self, $pos) = @_;
+}
+
+sub visible_chunks_changed : event_cb {
+   my ($self, $new, $old) = @_;
 }
 
 sub visibility_radius : event_cb {

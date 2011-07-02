@@ -62,6 +62,11 @@ sub new {
          my ($front, $radius) = @_;
          $self->send_server ({ cmd => "visibility_radius", radius => $radius });
       },
+      visible_chunks_changed => sub {
+         my ($front, $new, $old) = @_;
+ #        warn "NEW: @$new, OLD @$old\n";
+         $self->send_server ({ cmd => "vis_chunks", old => $old, new => $new });
+      }
    );
 
    $self->connect ($ARGV[1] || localhost => $ARGV[2] || 9364);

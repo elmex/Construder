@@ -191,6 +191,9 @@ sub handle_player_packet : event_cb {
    } elsif ($hdr->{cmd} eq 'visibility_radius') {
       $player->set_vis_rad ($hdr->{radius});
 
+   } elsif ($hdr->{cmd} eq 'vis_chunks') {
+      $player->set_visible_chunks ($hdr->{new}, $hdr->{old});
+
    } elsif ($hdr->{cmd} eq 'pos_action') {
       if ($hdr->{action} == 1 && @{$hdr->{build_pos} || []}) {
          $player->start_materialize ($hdr->{build_pos});

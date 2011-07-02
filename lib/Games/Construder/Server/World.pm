@@ -565,6 +565,7 @@ sub world_id2pos {
    my ($id) = @_;
    [map { s/^N/-/; $_ } split /x/, $id]
 }
+
 sub world_pos2chnkpos {
    vfloor (vsdiv ($_[0], $CHNK_SIZE))
 }

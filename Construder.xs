@@ -253,7 +253,7 @@ void ctr_world_purge_chunk (int x, int y, int z);
 
 int ctr_world_is_solid_at (double x, double y, double z)
   CODE:
-    RETVAL = 0;
+    RETVAL = 1;
 
     ctr_chunk *chnk = ctr_world_chunk_at (x, y, z, 0);
     if (chnk)

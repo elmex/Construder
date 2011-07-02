@@ -415,7 +415,7 @@ sub update_pos {
 
 sub upd_visible_chunks {
    my ($self) = @_;
-   $self->calc_visible_chunks;
+   $self->calc_visible_sectors;
    world_load_at_player ($self, sub {
       $self->check_visible_chunks_uptodate;
    });
@@ -441,20 +441,32 @@ sub set_vis_rad {
    $self->{vis_rad} = $rad || $PL_VIS_RAD;
 }
 
-sub calc_visible_chunks {
+sub set_visible_chunks {
+   my ($self, $new, $old) = @_;
+   for (@$old) {
+      my $id = world_pos2id ($_);
+      delete $self->{visible_chunk_ids}->{$id};
+   }
+   for (@$new) {
+      my $id = world_pos2id ($_);
+      $self->{visible_chunk_ids}->{$id} = $_;
+   }
+   my @chnks = values %{$self->{visible_chunk_ids}};
+   $self->{visible_chunks} = \@chnks;
+
+   for (keys %{$self->{chunk_uptodate}}) {
+      unless ($self->{visible_chunk_ids}->{$_}) {
+         delete $self->{chunk_uptodate}->{$_};
+      }
+   }
+}
+
+sub calc_visible_sectors {
    my ($self) = @_;
 
    my $pos = $self->{data}->{pos};
 
    delete $self->{visible_sectors};
-   delete $self->{visible_chunk_ids};
-   delete $self->{visible_chunks};
-
-   my @chnks = Games::Construder::Util::visible_chunks_at ($pos, $self->{vis_rad});
-   for (@chnks) {
-      my $chnkid = world_pos2id ($_);
-      $self->{visible_chunk_ids}->{$chnkid} = 1;
-   }
 
    # only load at max the 8 adjacent sectors! this means, visible_chunk*
    # overdraws and just says that those chunks are visible...
@@ -465,14 +477,6 @@ sub calc_visible_chunks {
             my $id = world_pos2id (world_chnkpos2secpos (vaddd ($plchnk, $x, $y, $z)));
             $self->{visible_sectors}->{$id} = 1;
          }
-      }
-   }
-
-   $self->{visible_chunks} = \@chnks;
-
-   for (keys %{$self->{chunk_uptodate}}) {
-      unless ($self->{visible_chunk_ids}->{$_}) {
-         delete $self->{chunk_uptodate}->{$_};
       }
    }
 }

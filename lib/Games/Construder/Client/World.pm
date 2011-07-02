@@ -20,6 +20,8 @@ our @EXPORT = qw/
    world_set_chunk
    world_delete_chunk
    world_change_chunk_at world_change_chunk
+   world_pos2id
+   world_id2pos
    world_init
    world
 /;
@@ -47,6 +49,16 @@ sub world_init {
 
 sub world_pos2chunk {
    @{vfloor (vsdiv ($_[0], $CHNK_SIZE))};
+}
+
+sub world_pos2id {
+   my ($pos) = @_;
+   join "x", map { $_ < 0 ? "N" . abs ($_) : $_ } @{vfloor ($pos)};
+}
+
+sub world_id2pos {
+   my ($id) = @_;
+   [map { s/^N/-/; $_ } split /x/, $id]
 }
 
 sub world_intersect_ray_box {
