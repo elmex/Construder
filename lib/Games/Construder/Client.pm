@@ -204,6 +204,8 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'chunk') {
       $body = decompress ($body);
+      # WARNING FIXME XXX: this data might not be freed up all chunks that
+      # were set/initialized by the server! see also free_compiled_chunk in Frontend.pm
       Games::Construder::World::set_chunk_data (@{$hdr->{pos}}, $body, length $body);
       if (!$self->{in_chunk_upd}) {
          $self->{front}->dirty_chunk (@{$hdr->{pos}});
