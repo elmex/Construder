@@ -515,15 +515,6 @@ sub push_chunk_to_network {
    }
    my $plpos = $self->{data}->{pos};
    my $plchnk = world_pos2chnkpos ($self->{data}->{pos});
-   (@upds) = grep {
-      my $l = vlength (vsub ($_, $plchnk));
-      my $r = 1;
-      if ($l > 0.1) {
-         my $diff = vnorm (vsub ($_, $plchnk));
-         $r = vdot ($diff, $self->{data}->{look_vec}) > 0
-      }
-      $r
-   } @upds;
    (@upds) = sort {
       vlength (vsub ($plchnk, $a))
       <=>
