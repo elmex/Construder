@@ -500,7 +500,7 @@ sub render_scene {
          vlength (vsub ($plchnk, $b))
       } @compl_end;
       my $tc = time;
-      $tleft -= $tleft / 2; # lets don't overdo it
+      $tleft -= $tleft / 4; # lets don't overdo it
       # we MUST allow at least one per frame, otherwise on
       # other machines maybe none are compiled...
       my $ac = $tleft < 0 ? 0.001 : $tleft;
@@ -508,7 +508,7 @@ sub render_scene {
       my @request;
 
       my $cnt = 0;
-      my $max = 4;
+      my $max = 9;
       while ($max-- > 0 && (time - $tc) < $ac) {
          my $chnk = shift @compl_end
             or last;
@@ -519,8 +519,10 @@ sub render_scene {
       }
       my $tok = time - $tc;
 
-      warn "compiled $cnt chunks in $tok, but only had $tleft left, but "
-           . scalar (@compl_end) . " chunks still to compile...\n";
+      if ($tok > $tleft) {
+         warn "compiled $cnt chunks in $tok, but only had $tleft ($ac) left, but "
+              . scalar (@compl_end) . " chunks still to compile...\n";
+      }
 
       (@compl_end) = ();
 
@@ -696,6 +698,8 @@ sub setup_event_poller {
    my $upd_pos = 0;
    my $frame_time = 0.02;
    $self->{poll_w} = AE::timer 0, $frame_time, sub {
+      my $start_time = time;
+
       $self->handle_sdl_events;
 
       $ltime = time - $frame_time if not defined $ltime;
@@ -718,7 +722,10 @@ sub setup_event_poller {
          $upd_pos = 0;
       }
 
-      $self->render_scene ($frame_time);
+      my $used = time - $start_time;
+      my $rem = $frame_time - $used;
+
+      $self->render_scene ($rem);
       $fps++;
 
    };
