@@ -9,6 +9,7 @@ use AnyEvent;
 use AnyEvent::Socket;
 use AnyEvent::Handle;
 use Benchmark qw/:all/;
+use Time::HiRes qw/time/;
 
 use base qw/Object::Event/;
 
@@ -65,6 +66,23 @@ sub new {
       visible_chunks_changed => sub {
          my ($front, $new, $old, $req) = @_;
  #        warn "NEW: @$new, OLD @$old\n";
+         (@$req) = grep {
+            my $p = $_;
+            my $id = world_pos2id ($p);
+            my $rereq = 1;
+            if ($self->{requested_chunks}->{$id}) {
+               $rereq =
+                  (time - $self->{requested_chunks}->{$id}) > 2;
+               if ($rereq) {
+                  warn "re-requesting chunk $id!\n";
+               }
+            }
+            if ($rereq) {
+               $self->{requested_chunks}->{$id} = time;
+            }
+            $rereq
+         } @$req; # Frontend will retry until it succeeds (at least it should)!
+         return unless @$new || @$old || @$req;
          $self->send_server ({ cmd => "vis_chunks", old => $old, new => $new, req => $req });
       }
    );
@@ -206,10 +224,14 @@ sub handle_packet : event_cb {
       $self->{front}->clear_chunk ($_) for @{$hdr->{chnks}}
 
    } elsif ($hdr->{cmd} eq 'chunk') {
+      my $id = world_pos2id ($hdr->{pos});
+      delete $self->{requested_chunks}->{$id};
       $body = decompress ($body);
+
       # WARNING FIXME XXX: this data might not be freed up all chunks that
       # were set/initialized by the server! see also free_compiled_chunk in Frontend.pm
       Games::Construder::World::set_chunk_data (@{$hdr->{pos}}, $body, length $body);
+
       if (!$self->{in_chunk_upd}) {
          $self->{front}->dirty_chunk (@{$hdr->{pos}});
       } else {
