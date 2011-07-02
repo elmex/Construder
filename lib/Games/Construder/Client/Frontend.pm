@@ -225,35 +225,35 @@ sub _render_highlight {
 sub set_ambient_light {
    my ($self, $l) = @_;
    Games::Construder::Renderer::set_ambient_light ($l);
-   for my $cx (keys %{$self->{compiled_chunks}}) {
-      for my $cy (keys %{$self->{compiled_chunks}->{$cx}}) {
-         for my $cz (keys %{$self->{compiled_chunks}->{$cx}->{$cy}}) {
-            $self->compile_chunk ($cx, $cy, $cz);
-         }
-      }
+   for my $id (keys %{$self->{compiled_chunks}}) {
+      $self->compile_chunk (@{world_id2pos ($_)});
    }
 
 }
 
 sub free_compiled_chunk {
    my ($self, $cx, $cy, $cz) = @_;
-   my $l = delete $self->{compiled_chunks}->{$cx}->{$cy}->{$cz};
-   delete $self->{dirty_chunks}->{$cx}->{$cy}->{$cz};
+   my $c = [$cx, $cy, $cz];
+   my $id = world_pos2id ($c);
+   my $l = delete $self->{compiled_chunks}->{$id};
+   delete $self->{dirty_chunks}->{$id};
    Games::Construder::Renderer::free_geom ($l) if $l;
+   Games::Construder::World::purge_chunk (@$c);
 }
 
 sub compile_chunk {
    my ($self, $cx, $cy, $cz) = @_;
+   my $id = world_pos2id ([$cx, $cy, $cz]);
 
    #d# warn "compiling... $cx, $cy, $cz.\n";
-   my $geom = $self->{compiled_chunks}->{$cx}->{$cy}->{$cz};
+   my $geom = $self->{compiled_chunks}->{$id};
 
    unless ($geom) {
-      $geom = $self->{compiled_chunks}->{$cx}->{$cy}->{$cz} =
+      $geom = $self->{compiled_chunks}->{$id} =
          Games::Construder::Renderer::new_geom ();
    }
 
-   delete $self->{dirty_chunks}->{$cx}->{$cy}->{$cz};
+   delete $self->{dirty_chunks}->{$id};
    Games::Construder::Renderer::chunk ($cx, $cy, $cz, $geom);
 }
 
@@ -291,27 +291,24 @@ sub get_visible_chunks {
       $self->{phys_obj}->{player}->{pos}, $PL_VIS_RAD);
 }
 
+# currently used to determine which chunks to keep cached:
 sub can_see_chunk {
    my ($self, $cx, $cy, $cz, $range_fact) = @_;
    my $plc = [world_pos2chunk ($self->{phys_obj}->{player}->{pos})];
    vlength (vsub ([$cx, $cy, $cz], $plc)) < $PL_VIS_RAD * ($range_fact || 1);
 }
 
-sub is_player_chunk {
-   my ($self, $cx, $cy, $cz) = @_;
-   my ($pcx, $pcy, $pcz) = world_pos2chunk ($self->{phys_obj}->{player}->{pos});
-   return $pcx == $cx && $pcy == $cy && $pcz == $cz;
-}
-
-sub update_chunks {
+sub dirty_chunks {
    my ($self, $chnks) = @_;
-   $self->update_chunk (@$_) for @$chnks;
+   $self->dirty_chunk (@$_) for @$chnks;
 }
 
-sub update_chunk {
+sub dirty_chunk {
    my ($self, $cx, $cy, $cz) = @_;
 
    my @upd;
+   # invalidate neighbor chunks, because light
+   # updates will also change their appearance
    for (
       [0, 0, 0],
       [-1, 0, 0],
@@ -322,56 +319,9 @@ sub update_chunk {
       [0, 0, +1]
    ) {
       my $cur = [$cx + $_->[0], $cy + $_->[1], $cz + $_->[2]];
-      $self->{dirty_chunks}->{$cur->[0]}->{$cur->[1]}->{$cur->[2]} = 1;
-      #next if grep {
-      #   $cur->[0] == $_->[0]
-      #   && $cur->[1] == $_->[1]
-      #   && $cur->[2] == $_->[2]
-      #} @{$self->{chunk_update}};
-      #push @upd, $cur;
+      my $id = world_pos2id ($cur);
+      $self->{dirty_chunks}->{$id} = $cur;
    }
-
-#   if (is_player_chunk ($cx, $cy, $cz)) {
-#      unshift @{$self->{chunk_update}}, @upd;
-#   } else {
-#      push @{$self->{chunk_update}}, @upd;
-#   }
-}
-
-sub compile_some_chunks {
-   my $self = shift;
-   return;
-
-   my ($comp) = (0);
-   my $cc = $self->{compiled_chunks};
-   for ($self->get_visible_chunks) {
-      unless ($cc->{$_->[0]}->{$_->[1]}->{$_->[2]}) {
-         if ($comp <= $UPDATE_P_FRAME) {
-            $self->compile_chunk (@$_);
-            $comp++;
-         }
-      }
-   }
-
-   my $cnt = 0;
-   my @next_upd;
-   while (@{$self->{chunk_update}}) {
-      my $c = shift @{$self->{chunk_update}};
-      next unless $self->can_see_chunk (@$c);
-      if ($comp <= $UPDATE_P_FRAME) {
-         $self->compile_chunk (@$c);
-         $comp++;
-      } else {
-         push @next_upd, $c;
-         $cnt++;
-      }
-   }
-   $self->{chunk_update} = \@next_upd;
-
-   if ($comp) {
-      warn "$comp chunks compiled ($cnt updates remaining)\n";
-   }
-   $comp
 }
 
 sub remove_highlight_model {
@@ -469,8 +419,6 @@ sub calc_visibility {
 
 my $render_cnt;
 my $render_time;
-my $render_chunk_compl_tick = 0;
-my @compl_end;
 sub render_scene {
    my ($self, $frame_time) = @_;
 
@@ -501,12 +449,12 @@ sub render_scene {
 
    #d# warn "FCONE ".vstr ($fcone[0]). ",".vstr ($fcone[1])." : $fcone[2]\n";
 
-   for (values %{$self->{visible_chunks}}) {
-      my ($cx, $cy, $cz) = @$_;
-      if (!$cc->{$cx}->{$cy}->{$cz} || $self->{dirty_chunks}->{$cx}->{$cy}->{$cz}) {
-         push @compl_end, [$cx, $cy, $cz];
+   my @compl_end; # are to be compiled at the end of the frame
+   for my $id (keys %{$self->{visible_chunks}}) {
+      if (!$cc->{$id} || $self->{dirty_chunks}->{$id}) {
+         push @compl_end, $self->{visible_chunks}->{$id};
       }
-      my $compl = $cc->{$cx}->{$cy}->{$cz}
+      my $compl = $cc->{$id}
          or next;
       Games::Construder::Renderer::draw_geom ($compl);
    }
@@ -584,13 +532,9 @@ sub render_hud {
    glBindTexture (GL_TEXTURE_2D, 0);
    glBegin (GL_QUADS);
 
-   #glTexCoord2d(1, 1);
-   glVertex3f (-5, 5, -9.99);
-   #glTexCoord2d(1, 0);
-   glVertex3f (5, 5, -9.99);
-   #glTexCoord2d(0, 1);
-   glVertex3f (5, -5, -9.99);
-   #glTexCoord2d(0, 0);
+   glVertex3f (-5,  5, -9.99);
+   glVertex3f ( 5,  5, -9.99);
+   glVertex3f ( 5, -5, -9.99);
    glVertex3f (-5, -5, -9.99);
 
    glEnd ();
@@ -688,14 +632,11 @@ sub setup_event_poller {
    };
 
    $self->{chunk_freeer} = AE::timer 0, 2, sub {
-      for my $kx (keys %{$self->{compiled_chunks}}) {
-         for my $ky (keys %{$self->{compiled_chunks}->{$kx}}) {
-            for my $kz (keys %{$self->{compiled_chunks}->{$kx}->{$ky}}) {
-               unless ($self->can_see_chunk ($kx, $ky, $kz, 1)) {
-                  $self->free_compiled_chunk ($kx, $ky, $kz);
-                  #d# warn "freeed compiled chunk $kx, $ky, $kz\n";
-               }
-            }
+      for my $id (keys %{$self->{compiled_chunks}}) {
+         my $p = world_id2pos ($id);
+         unless ($self->can_see_chunk (@$p, 1)) {
+            $self->free_compiled_chunk (@$p);
+            #d# warn "freeed compiled chunk $kx, $ky, $kz\n";
          }
       }
    };
@@ -754,14 +695,6 @@ sub setup_event_poller {
       $self->render_scene ($frame_time);
       $fps++;
 
-      my $t1 = time;
-      if ($self->compile_some_chunks) {
-         my $t2 = time - $t1;
-         if ($t2 > 0.015) {
-            warn "compiling chunks took " . (time - $t1) . " seconds (almost a whole frame!)\n";
-         }
-      }
-      #}
    };
 }
 
@@ -1125,22 +1058,6 @@ sub show_credits {
             : ui_subdesc ($_, font => "small")
       } @{$si->{credits}}
    ));
-#      window => { pos => [center => 'center'] },
-#      layout => [ box => { dir => "vert" },
-#         [text => { align => "center", font => "big", color => "#ffffff" },
-#          "Credits"],
-#         [text => { align => "center", color => "#ffffff", font => "normal" },
-#          "Perl Client: Robin Redeker"],
-#         [text => { align => "center", color => "#ffffff", font => "normal" },
-#          "Perl Server Code: Robin Redeker"],
-#         [text => { align => "center", color => "#ffffff", font => "normal" },
-#          "Graphics: Various"],
-#         [text => { align => "center", color => "#ffffff", font => "normal" },
-#          "Music: Various"],
-#         [text => { align => "center", color => "#ffffff", font => "normal" },
-#          "Game Design: Robin Redeker"],
-#      ],
-#   });
 }
 
 sub esc_menu {
@@ -1181,7 +1098,6 @@ sub esc_menu {
             return 1;
 
          } elsif ($cmd eq 'credits') {
-            warn "SLEC CRED\n";
             $self->deactivate_ui ('esc_menu');
             $self->show_credits;
             return 1;
@@ -1253,11 +1169,9 @@ sub deactivate_ui {
    @{$self->{active_ui_stack}} = grep {
       $_->[0] ne $ui
    } @{$self->{active_ui_stack}};
-   warn "DEACT $ui\n";
 
    my $obj = delete $self->{active_uis}->{$ui};
    if ($obj) {
-   warn "DEACT $ui $obj\n";
       $obj->active (0);
       $self->{inactive_uis}->{$ui} = $obj;
    }
@@ -1309,11 +1223,6 @@ sub input_key_down : event_cb {
 
    my $move_x;
 
-   #  -45    0     45
-   #    \    |    /
-   #-90 -         - 90
-   #    /    |    \
-   #-135 -180/180  135
    if ($name eq 'space') {
       viaddd ($self->{phys_obj}->{player}->{vel}, 0, 5, 0);
    } elsif ($name eq 'g') {

@@ -206,7 +206,7 @@ sub handle_packet : event_cb {
       $body = decompress ($body);
       Games::Construder::World::set_chunk_data (@{$hdr->{pos}}, $body, length $body);
       if (!$self->{in_chunk_upd}) {
-         $self->{front}->update_chunk (@{$hdr->{pos}});
+         $self->{front}->dirty_chunk (@{$hdr->{pos}});
       } else {
          push @{$self->{upd_chunks}}, $hdr->{pos};
       }
@@ -216,7 +216,7 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'chunk_upd_done') {
       delete $self->{in_chunk_upd};
-      $self->{front}->update_chunks (delete $self->{upd_chunks});
+      $self->{front}->dirty_chunks (delete $self->{upd_chunks});
 
    } elsif ($hdr->{cmd} eq 'msg') {
       $self->{front}->msg ("Server: " . $hdr->{msg});
