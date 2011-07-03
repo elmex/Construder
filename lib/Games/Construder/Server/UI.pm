@@ -171,6 +171,18 @@ use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
+sub commands {
+   (u => "killdrone")
+}
+
+sub handle_command {
+   my ($self, $cmd) = @_;
+
+   if ($cmd eq 'killdrone') {
+      $self->{kill_drone} = 1;
+   }
+}
+
 sub layout {
    my ($self, $msg) = @_;
 

@@ -38,8 +38,14 @@ sub new {
    return $self
 }
 
+our $PROF_DEBUG = 0;
+
 sub ctr_prof {
    my ($name, $sub) = @_;
+   if (!$PROF_DEBUG) {
+      $sub->();
+      return;
+   }
    my $t1 = time;
    $sub->();
    printf "ctr_prof[%-20s] %0.4f\n", $name, time - $t1;

@@ -303,7 +303,6 @@ sub can_see_chunk {
 sub dirty_chunk {
    my ($self, $chnk) = @_;
    my $id = world_pos2id ($chnk);
-   warn "DIRTY CHUNK $id\n";
    $self->{dirty_chunks}->{$id} = $chnk;
 }
 
@@ -678,8 +677,14 @@ sub setup_event_poller {
    my $dt = 1 / 40;
    my $upd_pos = 0;
    my $frame_time = 0.02;
+   my $last_frame;
    $self->{poll_w} = AE::timer 0, $frame_time, sub {
       my $start_time = time;
+      my $dlta = $start_time - $last_frame;
+      if ($dlta > $frame_time) {
+         $dlta -= $frame_time;
+         warn "frame too late, delta is $dlta\n";
+      }
 
       $self->handle_sdl_events;
 
@@ -708,7 +713,7 @@ sub setup_event_poller {
 
       $self->render_scene ($rem);
       $fps++;
-
+      $last_frame = time;
    };
 }
 
