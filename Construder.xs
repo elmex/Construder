@@ -228,11 +228,11 @@ ctr_world_get_chunk_data (int x, int y, int z)
     RETVAL
 
 
-void ctr_world_set_chunk_data (int x, int y, int z, unsigned char *data, unsigned int len)
+int ctr_world_set_chunk_data (int x, int y, int z, unsigned char *data, unsigned int len)
   CODE:
     ctr_chunk *chnk = ctr_world_chunk (x, y, z, 1);
     assert (chnk);
-    ctr_world_set_chunk_from_data (chnk, data, len);
+    RETVAL = ctr_world_set_chunk_from_data (chnk, data, len);
     int lenc = (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) * 4;
     if (lenc != len)
       {
@@ -240,6 +240,7 @@ void ctr_world_set_chunk_data (int x, int y, int z, unsigned char *data, unsigne
         exit (1);
       }
 
+    // FIXME: this needs to be done for neighborss where whe changed too!!!
     ctr_world_chunk_calc_visibility (chnk);
 
     ctr_world_emit_chunk_change (x, y, z);
@@ -259,6 +260,8 @@ void ctr_world_set_chunk_data (int x, int y, int z, unsigned char *data, unsigne
           }
       }
     */
+  OUTPUT:
+    RETVAL
 
 void ctr_world_purge_chunk (int x, int y, int z);
 

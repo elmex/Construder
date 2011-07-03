@@ -300,30 +300,11 @@ sub can_see_chunk {
    vlength (vsub ([$cx, $cy, $cz], $plc)) < $PL_VIS_RAD * ($range_fact || 1);
 }
 
-sub dirty_chunks {
-   my ($self, $chnks) = @_;
-   $self->dirty_chunk (@$_) for @$chnks;
-}
-
 sub dirty_chunk {
-   my ($self, $cx, $cy, $cz) = @_;
-
-   my @upd;
-   # invalidate neighbor chunks, because light
-   # updates will also change their appearance
-   for (
-      [0, 0, 0],
-      [-1, 0, 0],
-      [+1, 0, 0],
-      [0, -1, 0],
-      [0, +1, 0],
-      [0, 0, -1],
-      [0, 0, +1]
-   ) {
-      my $cur = [$cx + $_->[0], $cy + $_->[1], $cz + $_->[2]];
-      my $id = world_pos2id ($cur);
-      $self->{dirty_chunks}->{$id} = $cur;
-   }
+   my ($self, $chnk) = @_;
+   my $id = world_pos2id ($chnk);
+   warn "DIRTY CHUNK $id\n";
+   $self->{dirty_chunks}->{$id} = $chnk;
 }
 
 sub clear_chunk {
@@ -638,7 +619,7 @@ sub setup_event_poller {
    my ($self) = @_;
 
    my $fps;
-   my $fps_intv = 0.4;
+   my $fps_intv = 0.8;
    $self->{fps_w} = AE::timer 0, $fps_intv, sub {
       #printf "%.5f FPS\n", $fps / $fps_intv;
       printf "%.5f secsPcoll\n", $collide_time / $collide_cnt if $collide_cnt;
@@ -1175,7 +1156,9 @@ sub activate_ui {
    my ($self, $ui, $desc) = @_;
 
    if (my $obj = $self->{active_uis}->{$ui}) {
-      $obj->update ($desc);
+      ctr_prof ("act_ui($ui)", sub {
+         $obj->update ($desc);
+      });
       return;
    }
 
@@ -1185,7 +1168,9 @@ sub activate_ui {
       Games::Construder::Client::UI->new (
          W => $WIDTH, H => $HEIGHT, res => $self->{res}, name => $ui);
 
-   $obj->update ($desc);
+   ctr_prof ("act_ui($ui)", sub {
+      $obj->update ($desc);
+   });
 
    my $oobj = delete $self->{active_uis}->{$ui};
    $oobj->active (0) if $oobj;

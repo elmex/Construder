@@ -1,6 +1,12 @@
 package Games::Construder;
 use JSON;
 use common::sense;
+use Time::HiRes qw/time/;
+require Exporter;
+our @ISA = qw/Exporter/;
+our @EXPORT = qw/
+   ctr_prof
+/;
 
 our $VERSION = '0.8';
 
@@ -30,6 +36,13 @@ sub new {
    bless $self, $class;
 
    return $self
+}
+
+sub ctr_prof {
+   my ($name, $sub) = @_;
+   my $t1 = time;
+   $sub->();
+   printf "ctr_prof[%-20s] %0.4f\n", $name, time - $t1;
 }
 
 package Games::Construder::Util;

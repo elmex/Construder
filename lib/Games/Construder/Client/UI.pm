@@ -7,6 +7,7 @@ use SDL::TTF;
 use OpenGL qw(:all);
 use JSON;
 use Games::Construder::Vector;
+use Games::Construder;
 use File::ShareDir::PAR;
 
 use base qw/Object::Event/;
@@ -456,6 +457,13 @@ sub element_font {
    $font eq 'big' ? $BIG_FONT : $font eq 'small' ? $SMALL_FONT : $NORM_FONT;
 }
 
+sub fit_size_pot {
+   my ($size) = @_;
+   my $gls = 1;
+   $gls++ while $size->[0] > (2**$gls) || $size->[1] > (2**$gls);
+   2**$gls
+}
+
 sub update {
    my ($self, $gui_desc) = @_;
 
@@ -484,10 +492,12 @@ sub update {
 
    $self->{active_elements} = [];
 
-   my $size = $self->setup_sizes ($layout);
+   my $size;
+   $size = $self->setup_sizes ($layout);
    $self->{layout} = $layout;
    $self->{window_size} = $size;
    $self->{window_pos}  = $self->window_position ($win->{pos}, $size);
+   $self->{opengl_texture_size} = fit_size_pot ($size);
 
    unless (grep {
              $self->{active_element} eq $_
@@ -497,11 +507,15 @@ sub update {
    }
 
    # window_size_inside is initialized here, and window_padding too
-   $self->prepare_sdl_surface ($win->{bgcolor}); # creates a new sdl surface for this window
+   $self->prepare_sdl_surface ($win->{bgcolor}, $size); # creates a new sdl surface for this window
 
+   ctr_prof ("draw elements", sub {
    $self->draw_element ($layout, [0, 0]);
+   });
 
+   ctr_prof ("render_view", sub {
    $self->render_view; # refresh rendering to opengl texture
+   });
 }
 
 sub active {
@@ -547,23 +561,31 @@ sub prepare_opengl_texture {
 }
 
 sub prepare_sdl_surface {
-   my ($self, $clear_color) = @_;
+   my ($self, $clear_color, $winsize) = @_;
 
    $clear_color = "#000000" unless defined $clear_color;
 
    my $size = $self->{opengl_texture_size};
+   delete $self->{sdl_surf}
+      if $self->{surf_size} != $size;
+
    unless ($self->{sdl_surf}) {
       $self->{sdl_surf} = SDL::Surface->new (
          SDL_SWSURFACE, $size, $size, 24, 0, 0, 0);
+      $self->{surf_size} = $size;
+      $self->{gl_texture} = 0;
    }
-   my $clr = SDL::Video::map_RGB (
-      $self->{sdl_surf}->format, _clr2color ($clear_color),
-   );
-   SDL::Video::fill_rect (
-      $self->{sdl_surf},
-      SDL::Rect->new (0, 0, $self->{sdl_surf}->w, $self->{sdl_surf}->h),
-      $clr
-   );
+
+   ctr_prof ("prepsurf($size)", sub {
+      my $clr = SDL::Video::map_RGB (
+         $self->{sdl_surf}->format, _clr2color ($clear_color),
+      );
+      SDL::Video::fill_rect (
+         $self->{sdl_surf},
+         SDL::Rect->new (0, 0, @$winsize),
+         $clr
+      );
+   });
 
 }
 
@@ -614,18 +636,18 @@ sub render_view {
    glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
    SDL::Video::lock_surface($surf);
-   #if ($self->{gl_texture}) {
-   #   glTexSubImage2D_s (GL_TEXTURE_2D,
-   #      0, 0, 0, $surf->w, $surf->h,
-   #      $texture_format, GL_UNSIGNED_BYTE, ${$surf->get_pixels_ptr});
+   if ($self->{gl_texture}) {
+      glTexSubImage2D_s (GL_TEXTURE_2D,
+         0, 0, 0, $surf->w, $surf->h,
+         $texture_format, GL_UNSIGNED_BYTE, ${$surf->get_pixels_ptr});
 
-   #} else {
+   } else {
       # without SubImage it seems to be faster in nytprof...
       glTexImage2D_s (GL_TEXTURE_2D,
          0, $surf->format->BytesPerPixel, $surf->w, $surf->h,
          0, $texture_format, GL_UNSIGNED_BYTE, ${$surf->get_pixels_ptr});
-    #  $self->{gl_texture} = 1;
-   #}
+      $self->{gl_texture} = 1;
+   }
    SDL::Video::unlock_surface($surf);
 
    $self->{rendered} = 1;

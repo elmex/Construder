@@ -4,6 +4,7 @@ use Compress::LZF;
 use Games::Construder::Client::Frontend;
 use Games::Construder::Client::World;
 use Games::Construder::Protocol;
+use Games::Construder::Vector;
 use Games::Construder;
 use AnyEvent;
 use AnyEvent::Socket;
@@ -230,20 +231,27 @@ sub handle_packet : event_cb {
 
       # WARNING FIXME XXX: this data might not be freed up all chunks that
       # were set/initialized by the server! see also free_compiled_chunk in Frontend.pm
-      Games::Construder::World::set_chunk_data (@{$hdr->{pos}}, $body, length $body);
-
-      if (!$self->{in_chunk_upd}) {
-         $self->{front}->dirty_chunk (@{$hdr->{pos}});
-      } else {
-         push @{$self->{upd_chunks}}, $hdr->{pos};
+      my $neigh_chunks =
+         Games::Construder::World::set_chunk_data (@{$hdr->{pos}}, $body, length $body);
+      if ($neigh_chunks & 0x01) {
+         $self->{front}->dirty_chunk (vaddd ($hdr->{pos}, -1, 0, 0));
       }
-
-   } elsif ($hdr->{cmd} eq 'chunk_upd_start') {
-      $self->{in_chunk_upd} = 1;
-
-   } elsif ($hdr->{cmd} eq 'chunk_upd_done') {
-      delete $self->{in_chunk_upd};
-      $self->{front}->dirty_chunks (delete $self->{upd_chunks});
+      if ($neigh_chunks & 0x02) {
+         $self->{front}->dirty_chunk (vaddd ($hdr->{pos}, 0, -1, 0));
+      }
+      if ($neigh_chunks & 0x04) {
+         $self->{front}->dirty_chunk (vaddd ($hdr->{pos}, 0, 0, -1));
+      }
+      if ($neigh_chunks & 0x08) {
+         $self->{front}->dirty_chunk (vaddd ($hdr->{pos}, 1, 0, 0));
+      }
+      if ($neigh_chunks & 0x10) {
+         $self->{front}->dirty_chunk (vaddd ($hdr->{pos}, 0, 1, 0));
+      }
+      if ($neigh_chunks & 0x20) {
+         $self->{front}->dirty_chunk (vaddd ($hdr->{pos}, 0, 0, 1));
+      }
+      $self->{front}->dirty_chunk ($hdr->{pos});
 
    } elsif ($hdr->{cmd} eq 'msg') {
       $self->{front}->msg ("Server: " . $hdr->{msg});

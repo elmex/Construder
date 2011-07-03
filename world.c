@@ -238,19 +238,35 @@ void ctr_world_set_object_model (unsigned int type, unsigned int dim, AV *blocks
     }
 }
 
-void ctr_set_cell_from_data (ctr_cell *c, unsigned char *ptr)
+static int ctr_detect_chunk_changes = 0;
+
+void ctr_set_detect_chunk_changes (int c)
+{
+  ctr_detect_chunk_changes = c;
+}
+
+int ctr_set_cell_from_data (ctr_cell *c, unsigned char *ptr)
 {
  //d//printf ("CELL dATA %p: %02x %02x %02x %02x\n", c, *ptr, *(ptr + 1), *(ptr + 2), *(ptr + 3));
   unsigned short *sptr = (short *) ptr;
   unsigned short blk = ntohs (*sptr);
-  c->type  = ((blk & 0xFFF0) >> 4);
-  c->light = blk & 0x000F;
-
+  unsigned short type  = ((blk & 0xFFF0) >> 4);
+  unsigned short light = blk & 0x000F;
   sptr++;
   ptr = (unsigned char *) sptr;
-  c->meta = *ptr;
+  unsigned char  meta  = *ptr;
   ptr++;
-  c->add  = *ptr;
+  unsigned char  add   = *ptr;
+
+  int chg = 0;
+  if (c->type != type)   chg = 1;
+  if (c->light != light) chg = 1;
+
+  c->type  = type;
+  c->light = light;
+  c->meta  = meta;
+  c->add   = add;
+  return chg;
 }
 
 void ctr_get_data_from_cell (ctr_cell *c, unsigned char *ptr)
@@ -404,17 +420,36 @@ void ctr_world_chunk_calc_visibility (ctr_chunk *chnk)
         }
 }
 
-void ctr_world_set_chunk_from_data (ctr_chunk *chnk, unsigned char *data, unsigned int len)
+int ctr_world_set_chunk_from_data (ctr_chunk *chnk, unsigned char *data, unsigned int len)
 {
   unsigned int x, y, z;
+  int neigh_chunks = 0;
+
   for (z = 0; z < CHUNK_SIZE; z++)
     for (y = 0; y < CHUNK_SIZE; y++)
       for (x = 0; x < CHUNK_SIZE; x++)
         {
           unsigned int offs = REL_POS2OFFS (x, y, z);
           assert (len > (offs * 4) + 3);
-          ctr_set_cell_from_data (&(chnk->cells[offs]), data + (offs * 4));
+          int chg = ctr_set_cell_from_data (&(chnk->cells[offs]), data + (offs * 4));
+          if (chg)
+            {
+              if (x == 0)
+                neigh_chunks |= 0x01; // -1,0,0
+              if (y == 0)
+                neigh_chunks |= 0x02; // 0,-1,0
+              if (z == 0)
+                neigh_chunks |= 0x04; // 0,0,-1
+              if (x == (CHUNK_SIZE - 1)) // 1,0,0
+                neigh_chunks |= 0x08;
+              if (y == (CHUNK_SIZE - 1)) // 0,1,0
+                neigh_chunks |= 0x10;
+              if (z == (CHUNK_SIZE - 1)) // 0,0,1
+                neigh_chunks |= 0x20;
+            }
         }
+
+  return neigh_chunks;
 }
 
 void ctr_world_get_chunk_data (ctr_chunk *chnk, unsigned char *data)

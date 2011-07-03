@@ -182,7 +182,7 @@ sub layout {
    });
 
    ui_hud_window_transparent (
-      [center => "center", 0.25],
+      [center => "center", -0.25],
       ui_warning ($msg)
    );
 }
@@ -254,7 +254,7 @@ sub layout {
       push @slots,
       ui_hlt_border (($i == $slots->{selected}),
          [box => { padding => 2, align => "center" },
-           [model => { color => "#00ff00", width => 40 }, $type]],
+           [model => { color => "#00ff00", width => 30 }, $type]],
          [text => { font => "small",
                     color =>
                        (!defined ($cnt) || $cnt <= 0) ? "#990000" : "#999999",
@@ -262,8 +262,14 @@ sub layout {
           sprintf ("[%d] %d", $i + 1, $cnt * 1)]
       );
    }
+   my @grid;
+   $grid[0] = [splice @slots, 0, 5, ()];
+   $grid[1] = \@slots;
 
-   ui_hud_window ([left => "down"], [box => { dir => "hor" }, @slots]);
+   ui_hud_window ([left => "down"],
+      [box => { dir => "hor" }, @{$grid[0]}],
+      [box => { dir => "hor" }, @{$grid[1]}]
+   );
 }
 
 package Games::Construder::Server::UI::Help;
