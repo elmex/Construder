@@ -981,6 +981,7 @@ sub show_mouse_settings {
                    $self->{res}->{config}->{mouse_sens}),
       )
    );
+
    $self->activate_ui (mouse_settings => {
       %$win,
       commands => {

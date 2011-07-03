@@ -144,26 +144,22 @@ sub layout {
 }
 
 package Games::Construder::Server::UI::BioWarning;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
 sub layout {
    my ($self, $seconds) = @_;
 
-   {
-      window => {
-         sticky => 1,
-         pos    => [center => 'center', 0, -0.15],
-         alpha  => 0.3,
-      },
-      layout => [
-         box => { dir => "vert" },
-         [text => { font => "big", color => "#ff0000", wrap => 28, align => "center" },
-          "Warning: Bio energy level low! You have $seconds seconds left!\n"],
-         [text => { font => "normal", color => "#ff0000", wrap => 35, align => "center" },
-          "Death imminent, please dematerialize something that provides bio energy!"],
-      ]
-   }
+   ui_hud_window_transparent (
+      [center => 'center', 0, -0.15],
+      ui_warning (
+          "Warning: Bio energy level low! You have $seconds seconds left!"
+      ),
+      ui_subdesc (
+       "Death imminent, please dematerialize something that provides bio energy!",
+      )
+   )
 }
 
 package Games::Construder::Server::UI::ProximityWarning;
@@ -215,7 +211,7 @@ sub layout {
    });
 
    ui_hud_window_transparent (
-      [center => "center", 0, 0.25],
+      [center => "center", 0, 0.15],
       $error
          ? ui_warning ($msg)
          : ui_notice ($msg)
@@ -281,7 +277,7 @@ sub layout {
    ui_hud_window ([left => "down"],
       [box => { dir => "hor" }, @{$grid[0]}],
       [box => { dir => "hor" }, @{$grid[1]}]
-   );
+   )
 }
 
 package Games::Construder::Server::UI::Help;
@@ -492,6 +488,7 @@ sub layout {
 }
 
 package Games::Construder::Server::UI::ListQuery;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -514,28 +511,11 @@ sub layout {
    my ($self) = @_;
 
    my $i = 0;
-   {
-      window => {
-         pos => [center => 'center'],
-      },
-      layout => [
-         box => { dir => "vert", border => { color => "#ffffff" }, padding => 10 },
-         [text => { align => "center", font => "big", color => "#FFFFFF", wrap => 25 },
-          $self->{msg}],
-         [text => { align => "center", font => "small", color => "#888888" },
-          "Select a list item with [up]/[down] keys and hit [return]."],
-          map {
-            [select_box => {
-               dir => "vert", align => "center", arg => "item", tag => $i++,
-               padding => 2,
-               bgcolor => "#333333",
-               border => { color => "#555555", width => 2 },
-               select_border => { color => "#ffffff", width => 2 },
-             }, [text => { font => "normal", color => "#ffffff" }, $_->[0]]
-            ]
-          } @{$self->{items}}
-      ]
-   }
+   ui_window ($self->{msg},
+      ui_key_inline_expl ([qw/up down/], "Select item"),
+      ui_key_inline_expl (return => "Confirm selection"),
+      map { ui_select_item (item => $i++, ui_text ($_->[0])) } @{$self->{items}}
+   )
 }
 
 package Games::Construder::Server::UI::ConfirmQuery;
@@ -576,6 +556,7 @@ sub layout {
 }
 
 package Games::Construder::Server::UI::StringQuery;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -604,25 +585,14 @@ sub layout {
 
    my $msg = $self->{msg};
 
-   {
-      window => {
-         pos => [center => 'center'],
-      },
-      layout => [
-         box => { dir => "vert" },
-         [text => { color => "#ffffff", align => "center", wrap => 30 },
-          $msg],
-         [box => { dir => "hor", align => "center" },
-            [text => { font => "normal", color => "#ffffff", align => "center" }, "Entry:"],
-            [entry => { font => 'normal', color => "#ffffff", arg => "txt",
-                        highlight => ["#111111", "#333333"], align => "center" },
-             $self->{txt}]
-         ]
-      ]
-   }
+   ui_window ($msg,
+      ui_key_inline_expl (return => "Confirm entered text"),
+      ui_entry (txt => $self->{txt}, 30),
+   )
 }
 
 package Games::Construder::Server::UI::CountQuery;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -658,24 +628,16 @@ sub layout {
 
    my $msg = $self->{msg};
 
-   {
-      window => {
-         pos => [center => 'center'],
-      },
-      layout => [
-         box => { dir => "vert" },
-         [text => { color => "#ffffff", align => "center" },
-          $msg],
-         ($error ?
-            [text => { align => "center", color => "#ff0000" },
-             "Entered value: $error, is too high!"] : ()),
-         [box => { dir => "hor", align => "center" },
-            [entry => { font => 'normal', color => "#ffffff", arg => "cnt",
-                        highlight => ["#111111", "#333333"], max_chars => 3 },
-             $self->{max_count}],
-            [text => { font => "normal", color => "#999999" }, "Max: $self->{max_count}"]],
-      ]
-   }
+   ui_window ($msg,
+      ($error ?
+         [text => { align => "center", color => "#ff0000" },
+          "Entered value: $error, is too high!"] : ()),
+      [box => { dir => "hor", align => "center" },
+         [entry => { font => 'normal', color => "#ffffff", arg => "cnt",
+                     highlight => ["#111111", "#333333"], max_chars => 3 },
+          $self->{max_count}],
+         [text => { font => "normal", color => "#999999" }, "Max: $self->{max_count}"]],
+   )
 }
 
 package Games::Construder::Server::UI::MaterialView;
@@ -1118,7 +1080,8 @@ sub layout_dir {
    }
 }
 
-package Games::Construder::Server::UI::SectorFinderSelect;
+package Games::Construder::Server::UI::SectorFinder;
+use Games::Construder::UI;
 use Games::Construder::Vector;
 
 use base qw/Games::Construder::Server::UI/;
@@ -1127,32 +1090,8 @@ sub commands {
    ( return => "select" )
 }
 
-sub handle_command {
-   my ($self, $cmd, $arg) = @_;
-
-   if ($cmd eq 'select') {
-      $self->hide;
-      my (@vec) = split /,/, $arg->{sector};
-      pop @vec; # remove distance
-      $self->show_ui ('navigator', sector => \@vec);
-   }
-}
-
-sub layout {
-   my ($self, $stype, $error) = @_;
-
-   $self->{stype} = $stype;
-
-   if ($error) {
-      return {
-         window => { pos => [center => 'center'], },
-         layout => [
-            box => { dir => "vert" },
-            [text => { color => "#ff0000", align => "center" },
-             "Sector with Type $stype not found anywhere near!"]
-         ]
-      };
-   }
+sub coords_for_sector_type {
+   my ($self, $stype) = @_;
 
    my @sector_types =
       $Games::Construder::Server::RES->get_sector_types ();
@@ -1179,56 +1118,33 @@ sub layout {
    (@coords) = map { $_->[3] = vlength (vsub ($sec_pos, $_)); $_ } @coords;
    (@coords) = sort { $a->[3] <=> $b->[3] } @coords;
    splice @coords, 15;
-
-   {
-      window => {
-         pos => [center => 'center'],
-      },
-      layout => [
-         box => { dir => "vert" },
-         [text => { color => "#ff0000", align => "center" },
-          "Sector with Type $stype found at:\n"],
-         (map {
-            [select_box => {
-               dir => "vert", align => "left", align => "center",
-               arg => "sector", tag => join (",",@$_),
-               padding => 2,
-               bgcolor => "#333333",
-               border => { color => "#555555", width => 2 },
-               select_border => { color => "#ffffff", width => 2 },
-             },
-             [
-                text => { font => "normal", color => "#ffffff" },
-                sprintf ("%d,%d,%d: %d", @$_)
-             ]
-            ]
-         } @coords)
-      ],
-   }
+   @coords
 }
 
-package Games::Construder::Server::UI::SectorFinder;
-
-use base qw/Games::Construder::Server::UI/;
-
-sub init {
-   my ($self) = @_;
-   $self->new_ui (
-      sector_finder_sec_select =>
-         "Games::Construder::Server::UI::SectorFinderSelect");
-}
-
-sub commands {
-   ( return => "select" )
-}
 
 sub handle_command {
    my ($self, $cmd, $arg) = @_;
 
    if ($cmd eq 'select') {
       my $st = $arg->{sector};
+
+      my @coords = $self->coords_for_sector_type ($st);
+
+      $self->new_ui (nav_prog_sector_select =>
+         "Games::Construder::Server::UI::ListQuery",
+         msg => "Closest Sectors with type $st",
+         items =>
+            [map { [ sprintf ("%d,%d,%d: %d", @$_) , $_] } @coords],
+         cb  => sub {
+            my ($coord) = @_;
+            $self->delete_ui ('nav_prog_sector_select');
+            if ($coord) {
+               pop @$coord; # remove distance
+               $self->show_ui ('navigator', sector => $coord);
+            }
+         });
       $self->hide;
-      $self->show_ui ('sector_finder_sec_select', $st);
+      $self->show_ui ('nav_prog_sector_select');
    }
 }
 
@@ -1250,38 +1166,24 @@ sub layout {
    }
    push @grid, $row if @$row;
 
-   {
-      window => {
-         pos => [center => 'center'],
-      },
-      layout => [
-         box => { dir => "vert", border => { color => "#ffffff" }, padding => 10 },
-         [text => { align => "center", font => "big", color => "#FFFFFF" },
-          "Find sector..."],
-         [text => { align => "center", font => "small", color => "#888888" },
-          "Select a sector type with [up]/[down] keys and hit [return]."],
-         [box => { align => "center", dir => "vert" },
+   ui_window ("Find Sector by Type",
+      ui_key_inline_expl ([qw/up down/], "Select sector type."),
+      ui_key_inline_expl (return => "Confirm selection."),
+      [box => { align => "center", dir => "vert" },
          (map {
             my $row = $_;
-            [box => { },
-             map {
-               [select_box => {
-                  dir => "vert", align => "center", arg => "sector", tag => $_->[0],
-                  padding => 2,
-                  bgcolor => "#333333",
-                  border => { color => "#555555", width => 2 },
-                  select_border => { color => "#ffffff", width => 2 },
-                  aspect => 1
-                }, [text => { font => "normal", color => "#ffffff" }, $_->[0]]
-               ]
-             } @$row
+            [box => { dir => "hor" },
+               map {
+                  ui_select_item (sector => $_->[0], ui_text ($_->[0]))
+               } @$row
             ]
-         } @grid)],
-      ]
-   }
+         } @grid)
+      ],
+   )
 }
 
 package Games::Construder::Server::UI::NavigationProgrammer;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 

@@ -23,6 +23,7 @@ our @EXPORT = qw/
    ui_notice
    ui_select_item
    ui_range
+   ui_entry
    ui_pad_box
 /;
 
@@ -75,7 +76,7 @@ sub ui_key {
 }
 sub ui_title {
    my ($txt, %args) = @_;
-   [text => { %args, color => $TITLE_COLOR, font => "big", align => "center"  }, $txt]
+   [text => { %args, color => $TITLE_COLOR, font => "big", align => "center", wrap => 30  }, $txt]
 }
 
 sub ui_caption {
@@ -105,7 +106,7 @@ sub ui_subtext {
 
 sub ui_warning {
    my ($txt, %args) = @_;
-   [text => { wrap => 20, font => "big", color => $WARTEXT_COLOR, %args }, $txt]
+   [text => { wrap => 20, align => "center", font => "big", color => $WARTEXT_COLOR, %args }, $txt]
 }
 
 sub ui_notice {
@@ -169,6 +170,14 @@ sub ui_range {
        range => [$min, $max],
        highlight => [$BG_COLOR, $BG_SEL_COLOR]
     }, $val]
+}
+
+sub ui_entry {
+   my ($arg, $txt, $maxchars) = @_;
+   [entry => { font => 'normal', color => $TEXT_COLOR, arg => "txt",
+               (defined $maxchars ? (max_chars => $maxchars) : ()),
+               highlight => [$BG_COLOR, $BG_SEL_COLOR] },
+    $txt]
 }
 
 sub ui_key_inline_expl {
