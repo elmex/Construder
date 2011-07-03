@@ -623,17 +623,14 @@ sub setup_event_poller {
       #printf "%.5f FPS\n", $fps / $fps_intv;
       printf "%.5f secsPcoll\n", $collide_time / $collide_cnt if $collide_cnt;
       printf "%.5f secsPrender\n", $render_time / $render_cnt if $render_cnt;
-      $self->activate_ui (hud_fps => {
-         window => {
-            sticky => 1, pos => [left => 'up'], alpha => 0.5,
-         },
-         layout => [
-            box => { padding => 5, bgcolor => "#222222" },
+      $self->activate_ui (hud_fps =>
+         ui_hud_window_transparent (
+            pos => [left => 'up'],
             [text => {
                color => "#ff0000", align => "center", font => "small"
-            }, sprintf ("%.1f FPS", $fps / $fps_intv)],
-         ],
-      });
+            }, sprintf ("%.1f FPS", $fps / $fps_intv)]
+         )
+      );
       $collide_cnt = $collide_time = 0;
       $render_cnt = $render_time = 0;
       $fps = 0;
@@ -976,16 +973,16 @@ sub input_key_up : event_cb {
 sub show_mouse_settings {
    my ($self) = @_;
 
-   $self->activate_ui (audio_settings => {
-      window => { pos => [center => 'center'] },
-      layout => [ box => { dir => "vert" },
-         [text => { align => "center", font => "big", color => "#ffffff" },
-          "Mouse Settings"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "Mouse sensitivity: " . sprintf "%0.2f", $self->{res}->{config}->{mouse_sens}],
-         [range => { align => "center", fmt => "%0.2f", color => "#ffffff", font => "normal", arg => "sens", step => 0.05, range => [0.05, 20], highlight => ["#111111", "#333333"] },
-          sprintf "%0.2f", $self->{res}->{config}->{mouse_sens}],
-      ],
+   my $win = ui_window ("Mouse Settings",
+      ui_pad_box (hor =>
+         ui_desc ("Mouse sensitivity: "),
+         ui_subdesc (sprintf "%0.2f", $self->{res}->{config}->{mouse_sens}),
+         ui_range (sens => 0.05, 20, 0.05, "%0.2f",
+                   $self->{res}->{config}->{mouse_sens}),
+      )
+   );
+   $self->activate_ui (mouse_settings => {
+      %$win,
       commands => {
          default_keys => { return => "change" }
       },
@@ -1006,16 +1003,17 @@ sub show_mouse_settings {
 sub show_audio_settings {
    my ($self) = @_;
 
+   my $win = ui_window ("Audio Settings",
+      ui_pad_box (hor =>
+         ui_desc ("Music Volume: "),
+         ui_subdesc (SDL::Mixer::Music::volume_music (-1)),
+         ui_range (music => 0, SDL::Mixer::MIX_MAX_VOLUME, 5, "%d",
+                   SDL::Mixer::Music::volume_music (-1))
+      )
+   );
+
    $self->activate_ui (audio_settings => {
-      window => { pos => [center => 'center'] },
-      layout => [ box => { dir => "vert" },
-         [text => { align => "center", font => "big", color => "#ffffff" },
-          "Audio Settings"],
-         [text => { align => "center", color => "#ffffff", font => "normal" },
-          "Music Volume: " . SDL::Mixer::Music::volume_music (-1)],
-         [range => { align => "center", color => "#ffffff", font => "normal", arg => "music", step => 5, range => [0, SDL::Mixer::MIX_MAX_VOLUME], highlight => ["#111111", "#333333"] },
-          SDL::Mixer::Music::volume_music (-1)],
-      ],
+      %$win,
       commands => {
          default_keys => { return => "change" }
       },
@@ -1066,7 +1064,7 @@ sub show_credits {
 
    my $si = $self->{server_info};
 
-   $self->activate_ui (credits => ui_window ("About",
+   $self->activate_ui (credits => ui_window ("About / Credits",
       ui_caption (sprintf "Client: G::C::Client %s", $Games::Construder::VERSION),
       ui_subdesc ("Code: Robin Redeker"),
       ui_caption (sprintf "Server: %s", $si->{version}),
@@ -1146,15 +1144,7 @@ sub msg {
       return;
    }
 
-   $self->activate_ui (cl_msgbox => {
-      window => { pos => [ 'center', 'center' ] },
-      layout => [box => { dir => "vert", padding => 10, border => { color => "#888888" } },
-         [text => { align => "center", font => 'normal', color => "#ffffff", wrap => 30 },
-          $msg],
-         [text => { align => "center", font => 'small', color => "#888888" },
-          "(Press Escape-Key to hide)"],
-      ]
-   });
+   $self->activate_ui (cl_msgbox => ui_window ("Client Message", ui_desc ($msg)));
 }
 
 sub activate_ui {

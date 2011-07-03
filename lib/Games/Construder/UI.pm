@@ -22,6 +22,8 @@ our @EXPORT = qw/
    ui_warning
    ui_notice
    ui_select_item
+   ui_range
+   ui_pad_box
 /;
 
 =head1 NAME
@@ -137,6 +139,13 @@ sub ui_border {
    ]
 }
 
+sub ui_pad_box {
+   my ($dir, @childs) = @_;
+   [box => { dir => $dir },
+      map { [box => { padding => 4 }, $_] } @childs
+   ]
+}
+
 sub ui_select_item {
    my ($name, $tag, @cont) = @_;
    [select_box => {
@@ -147,6 +156,19 @@ sub ui_select_item {
     },
     @cont
    ]
+}
+
+sub ui_range {
+   my ($arg, $min, $max, $step, $fmt, $val) = @_;
+   [range => {
+       fmt => $fmt,
+       color => $TEXT_COLOR,
+       font => "normal",
+       arg => $arg,
+       step => $step,
+       range => [$min, $max],
+       highlight => [$BG_COLOR, $BG_SEL_COLOR]
+    }, $val]
 }
 
 sub ui_key_inline_expl {
