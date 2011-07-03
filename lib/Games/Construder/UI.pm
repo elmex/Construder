@@ -86,7 +86,7 @@ sub ui_caption {
 
 sub ui_text {
    my ($txt, %args) = @_;
-   [text => { wrap => 45, %args, color => $TEXT_COLOR }, $txt]
+   [text => { wrap => 45, align => "center", %args, color => $TEXT_COLOR }, $txt]
 }
 
 sub ui_small_text {
@@ -101,7 +101,7 @@ sub ui_desc {
 
 sub ui_subtext {
    my ($txt, %args) = @_;
-   [text => { wrap => 45, %args, color => $SUBTEXT_COLOR }, $txt]
+   [text => { wrap => 45, align => "center", %args, color => $SUBTEXT_COLOR }, $txt]
 }
 
 sub ui_warning {
@@ -111,7 +111,7 @@ sub ui_warning {
 
 sub ui_notice {
    my ($txt, %args) = @_;
-   [text => { wrap => 20, font => "big", color => $NOTICETEXT_COLOR, %args }, $txt]
+   [text => { wrap => 20, font => "big", align => "center", color => $NOTICETEXT_COLOR, %args }, $txt]
 }
 
 sub ui_subdesc {
@@ -162,6 +162,7 @@ sub ui_select_item {
 sub ui_range {
    my ($arg, $min, $max, $step, $fmt, $val) = @_;
    [range => {
+       align => "center",
        fmt => $fmt,
        color => $TEXT_COLOR,
        font => "normal",
@@ -175,6 +176,7 @@ sub ui_range {
 sub ui_entry {
    my ($arg, $txt, $maxchars) = @_;
    [entry => { font => 'normal', color => $TEXT_COLOR, arg => "txt",
+               align => "center",
                (defined $maxchars ? (max_chars => $maxchars) : ()),
                highlight => [$BG_COLOR, $BG_SEL_COLOR] },
     $txt]
@@ -182,17 +184,17 @@ sub ui_entry {
 
 sub ui_key_inline_expl {
    my ($key, $desc, %args) = @_;
-   [box => { dir => "hor" },
+   [box => { dir => "hor", align => "center" },
       ui_key ($key, pad => 2, font => "small"),
-      ui_text ($desc, wrap => 40, font => "small")
+      ui_text ($desc, align => "left", wrap => 40, font => "small")
    ]
 }
 
 sub ui_key_explain {
    my ($key, $desc, %args) = @_;
-   [box => { dir => "hor" },
+   [box => { dir => "hor", align => "left" },
       ui_key ($key, pad => 1),
-      ui_text ($desc, wrap => 40)
+      ui_text ($desc, wrap => 40, align => "left")
    ]
 }
 
