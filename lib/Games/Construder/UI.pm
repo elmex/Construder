@@ -194,7 +194,7 @@ sub ui_key_explain {
    my ($key, $desc, %args) = @_;
    [box => { dir => "hor", align => "left" },
       ui_key ($key, pad => 1),
-      ui_text ($desc, wrap => 40, align => "left")
+      ui_text ($desc, wrap => 30, align => "left")
    ]
 }
 

@@ -951,6 +951,7 @@ sub layout {
 }
 
 package Games::Construder::Server::UI::Navigator;
+use Games::Construder::UI;
 use Games::Construder::Vector;
 use Math::Trig qw/deg2rad rad2deg pi tan atan/;
 
@@ -1046,38 +1047,29 @@ sub layout_dir {
    my ($alt_dir, $alt_ok, $lr_dir, $lr_ok, $dist)
       = $self->calc_direction_from_to ($from, $to);
 
-   {
-      window => {
-         pos => ["right", "center"],
-         sticky => 1,
-         alpha => 0.6,
-      },
-      layout => [
-         box => {
-            dir => "vert",
-         },
-         [text => { font => "small", align => "center", color => "#888888" },
-          "Navigator"],
-         [box => {
-            dir => "hor",
-          },
-          [box => { dir => "vert", padding => 4 },
-             [text => { color => "#888888" }, $self->{nav_to_pos} ? "Pos" : "Sec"],
-             [text => { color => "#888888" }, "Dest"],
-             [text => { color => "#888888" }, "Dist"],
-             [text => { color => "#888888" }, "Alt"],
-             [text => { color => "#888888" }, "Dir"],
-          ],
-          [box => { dir => "vert", padding => 4 },
-             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @$from],
-             [text => { color => "#888888" }, sprintf "%3d,%3d,%3d", @$to],
-             [text => { color => "#ffffff" }, int ($dist)],
-             [text => { color => $alt_ok ? "#00ff00" : "#ff0000" }, $alt_dir],
-             [text => { color => $lr_ok  ? "#00ff00" : "#ff0000" }, $lr_dir],
-          ],
-         ],
+   ui_hud_window_transparent (
+      ["right", "center"],
+      ui_small_text ("Navigator"),
+      [box => {
+         dir => "hor",
+       },
+       [box => { dir => "vert", padding => 4 },
+          ui_text ($self->{nav_to_pos} ? "Pos" : "Sec", align => "right"),
+          ui_text ("Dest", align => "right"),
+          ui_text ("Dist", align => "right"),
+          ui_text ("Alt", align => "right"),
+          ui_text ("Dir", align => "right"),
+       ],
+       [box => { dir => "vert", padding => 4 },
+          ui_text ((sprintf "%3d,%3d,%3d", @$from), align => "left"),
+          ui_text ((sprintf "%3d,%3d,%3d", @$to), align => "left"),
+          ui_text (int ($dist), align => "left"),
+          [text => { align => "left", color => $alt_ok ? "#00ff00" : "#ff0000" }, $alt_dir],
+          [text => { align => "left", color => $lr_ok  ? "#00ff00" : "#ff0000" }, $lr_dir],
+       ],
       ],
-   }
+      ui_key_inline_expl (m => "Toggle Nav. Visibility"),
+   )
 }
 
 package Games::Construder::Server::UI::SectorFinder;
@@ -1252,29 +1244,17 @@ sub handle_command {
 sub layout {
    my ($self) = @_;
 
-   {
-      window => {
-         pos => [center => 'center'],
-      },
-      layout => [
-         box => { dir => "vert" },
-         [text => { font => "big", color => "#ffffff" },
-          "Navigation Programmer"],
-         [text => { align => "center", font => "small", color => "#888888" },
-          "Select a way to program the navigator by hitting the [key]."],
-         [text => { font => "normal", color => "#ffffff" },
-          "[p] Navigate to position."],
-         [text => { font => "normal", color => "#ffffff" },
-          "[s] Navigate to sector."],
-         [text => { font => "normal", color => "#ffffff" },
-          "[t] Navigate to nearest sector type."],
-         [text => { font => "normal", color => "#ffffff" },
-          "[b] Navigate to recently synchronized message beacon."],
-      ]
-   }
+   ui_window ("Navigation Programmer",
+      ui_desc ("Select a way to program the navigator."),
+      ui_key_explain (p => "Navigate to position."),
+      ui_key_explain (s => "Navigate to sector."),
+      ui_key_explain (t => "Navigate to sector type."),
+      ui_key_explain (b => "Navigate to recently synchronized message beacon."),
+   )
 }
 
 package Games::Construder::Server::UI::Assignment;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -1347,69 +1327,45 @@ sub layout_offers {
 
    my $off = $self->{pl}->{data}->{offers};
 
-   {
-      window => { pos => [ center => 'center' ] },
-      layout => [
-         box => { dir => "vert", border => { color => "#ffffff" } },
-         [text => { color => "#ffffff", font => "big" }, "Assignment Offers"],
-         [box => { dir => "hor" },
-          [box => { dir => "vert", padding => 4 },
-           [text => { color => "#888888" }, "Key"],
-           map {
-            [text => { color => "#ffffff" },
-               "[" . ($_->{diff} + 1) . "]"]
-           } @$off
-          ],
-          [box => { dir => "vert", padding => 4 },
-           [text => { color => "#888888" }, "Type"],
-           map {
-            [text => { color => "#ffffff" },
-               "Constr."]
-           } @$off
-          ],
-          [box => { dir => "vert", padding => 4 },
-           [text => { color => "#888888" }, "Time"],
-           map {
-            [text => { color => "#ffffff" },
-               time2str ($_->{time})]
-           } @$off
-          ],
-          [box => { dir => "vert", padding => 4 },
-           [text => { color => "#888888" }, "Materials"],
-           map {
-            [text => { color => "#ffffff", wrap => 10 },
-               join ",\n",
-               map {
+   ui_window ("Assignment Offers",
+      [box => { dir => "hor" },
+       [box => { dir => "vert", padding => 4 },
+          ui_desc ("Key"),
+          map { ui_key ($_->{diff} + 1) } @$off
+       ],
+       [box => { dir => "vert", padding => 4 },
+          ui_desc ("Time"),
+          map { ui_text (time2str ($_->{time})) } @$off
+       ],
+       [box => { dir => "vert", padding => 4 },
+        ui_desc ("Materials"),
+        map {
+         ui_border (
+            ui_text (
+               (join ",\n", map {
                   my $o =
                      $Games::Construder::Server::RES->get_object_by_type ($_->[2]);
                   $o->{name}
-               } @{$_->{material_map}}]
-           } @$off
-          ],
-          [box => { dir => "vert", padding => 4 },
-           [text => { color => "#888888" }, "Score"],
-           map {
-            [text => { color => "#ffffff" },
-               $_->{score}]
-           } @$off
-          ],
-          [box => { dir => "vert", padding => 4 },
-           [text => { color => "#888888" }, "Expiration"],
-           map {
-            [text => { color => "#ffffff" },
-               time2str ($_->{offer_time})]
-           } @$off
-          ],
-          [box => { dir => "vert", padding => 4 },
-           [text => { color => "#888888" }, "Punishment"],
-           map {
-            [text => { color => "#ffffff" }, -$_->{punishment}]
-           } @$off
-          ],
-         ],
-      ]
-   }
-
+               } @{$_->{material_map}}), wrap => 10)
+         )
+        } @$off
+       ],
+       [box => { dir => "vert", padding => 4 },
+          ui_desc ("Score"),
+          map { ui_text ($_->{score}, align => "right") } @$off
+       ],
+       [box => { dir => "vert", padding => 4 },
+          ui_desc ("Expiration"),
+          map {
+           ui_text (time2str ($_->{offer_time}))
+          } @$off
+       ],
+       [box => { dir => "vert", padding => 4 },
+          ui_desc ("Punishment"),
+          map { ui_text (-$_->{punishment}, align => "right") } @$off
+       ],
+      ],
+   )
 }
 
 sub layout_assignment {
@@ -1417,37 +1373,26 @@ sub layout_assignment {
 
    my $cal = $self->{pl}->{data}->{assignment} || {};
 
-   {
-      window => { pos => [ center => 'center' ] },
-      layout => [
-         box => { dir => "vert", border => { color => "#ffffff" } },
-         [text => { color => "#ffffff", font => "big" }, "Assignment"],
-         [text => { color => "#888888", font => "small" },
-          "(You are currently on assignment)"],
-         [box => { dir => "hor" },
-          [box => { dir => "vert" },
-           [text => { color => "#888888" }, "Type:"],
-           [text => { color => "#888888" }, "Time left:"],
-           [text => { color => "#888888" }, "Score:"],
-           [text => { color => "#888888" }, "Difficulty:"],
-           [text => { color => "#888888" }, "Punishment on\nfailure/cancellation:"],
-          ],
-          [box => { dir => "vert" },
-           [text => { color => "#ffffff" }, $cal->{type} || "Construction"],
-           [text => { color => "#ffffff" }, $cal->{time}],
-           [text => { color => "#ffffff" }, $cal->{score}],
-           [text => { color => "#ffffff" }, $DIFFMAP{$cal->{diff}}],
-           [text => { color => "#ffffff" }, $cal->{punishment}],
-          ],
-         ],
-         [text => { color => "#ffffff" },
-          "[n] Navigate to assignment"],
-         [text => { color => "#ffffff" },
-          "[c] Cycle highlighted material\n   (also works globally from the HUD)"],
-         [text => { color => "#ffffff" },
-          "[z] Cancel assignment (you will lose score!)"],
-      ]
-   }
+   ui_window ("Assignment",
+      ui_desc ("You are currently on assignment."),
+      [box => { dir => "hor" },
+       [box => { dir => "vert" },
+        ui_desc ("Type:", align => "left"),
+        ui_desc ("Time left:", align => "left"),
+        ui_desc ("Score:", align => "left"),
+        ui_desc ("Punishment on\nfailure/cancellation:", align => "left"),
+       ],
+       [box => { dir => "vert" },
+        ui_text ($cal->{type} || "Construction", align => "left"),
+        ui_text (time2str ($cal->{time}), align => "left"),
+        ui_text ($cal->{score}, align => "left"),
+        ui_text ($DIFFMAP{$cal->{diff}}, align => "left"),
+        ui_text ($cal->{punishment}, align => "left"),
+       ],
+      ],
+      ui_key_explain (n => "Navigate to assignment."),
+      ui_key_explain (z => "[z] Cancel assignment (you will lose score!)"),
+   )
 }
 
 package Games::Construder::Server::UI::AssignmentTime;
@@ -1492,23 +1437,19 @@ sub layout {
       sprintf "%-15s: %3d", $o->{name}, $cal->{left}->{$_}
    } keys %{$cal->{left}});
 
-   {
-      window => { pos => [ left => "up", 0.1, 0 ], sticky => 1 },
-      layout => [
-         box => { dir => "vert" },
-         [ text => { color => $color, align => "center" },
-            "Assignment: " . sprintf ("%2dm %2ds", $minutes, $time) ],
-         [ text => { color => "#888888", align => "center" },
-           "Left:\n$left_txt" ],
-         [ text => { color => "#ff8888", align => "center" },
-           "Highlighted: " . $sel_mat->{name} ],
+   ui_hud_window ([ left => "up", 0, 0.03 ],
+      ui_border (
+         ui_desc ("Assignment"),
+         ui_subdesc ("Time Left: " . sprintf ("%2dm %2ds", $minutes, $time)),
+         ui_desc ("Highlighted: " . $sel_mat->{name} ),
          ui_key_inline_expl ("c", "Cycle highlights"),
-      ]
-   }
+         ui_small_text ("Materials to Place:\n$left_txt"),
+      )
+   )
 }
 
 package Games::Construder::Server::UI::MessageBeaconList;
-use Games::Construder::Server::World;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -1525,20 +1466,15 @@ sub layout {
       $a->[2] <=> $b->[2]
    } values %$beacons;
    splice @top, 3;
+   (@top) = ([0, "FOFofoef oe foe"], [1, "kifemf em fwmfew m"]);
 
-   {
-      window => { pos => [ left => "up", 0, 0.07 ], sticky => 1, alpha => 0.5 },
-      layout => [
-         box => { dir => "vert" },
-         @top
-            ? (
-               [text => { color => "#888888", font => "small" }, "message beacons:"],
-               map {
-                  [text => { color => "#ffff00" }, $_->[1]]
-               } @top
-            ) : ()
-      ]
-   }
+   ui_hud_window_transparent (
+      [ right => "down" ],
+      ui_border (
+         ui_desc ("Message Beacons:"),
+         @top ? ( map { ui_subdesc ($_->[1]) } @top) : ()
+      )
+   )
 }
 
 package Games::Construder::Server::UI::MessageBeacon;
