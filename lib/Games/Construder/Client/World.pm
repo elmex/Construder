@@ -13,7 +13,6 @@ our @EXPORT = qw/
    world_visible_chunks_at
    world_collide
    world_collide_cylinder_aabb
-   world_is_solid_box
    world_intersect_ray_box
    world_get_box_at
    world_get_chunk world_get_chunk_at
@@ -98,26 +97,27 @@ sub world_intersect_ray_box {
 }
 
 sub _collide_sphere_box {
-   my ($sphere_pos, $sphere_rad, $box) = @_;
+   my ($sphere_pos, $sphere_rad, $box, $box_h) = @_;
 
    my $abpt =
       Games::Construder::Math::point_aabb_distance (
-         @$sphere_pos, @$box, @{vaddd ($box, 1, 1, 1)});
-   my $dv   = vsub ($sphere_pos, $abpt);
+         @$sphere_pos, @$box, @{vaddd ($box, 1, $box_h, 1)});
+   my $dv = vsub ($sphere_pos, $abpt);
 
-   #d#warn "solid box at $cur_box, dist vec $dv |"
-   #d#     . (sprintf "%9.4f", $dv->length) . "\n";
+   warn "solid box at @$box, dist vec @$dv |"
+        . (sprintf "%9.4f", vlength ($dv)) . "\n";
 
    my $dvlen = vlength ($dv);
 
    if ($dvlen == 0) { # ouch, directly in the side?
       # find the direction away from the center
-      my $inside_dir = vsub ($sphere_pos, vadd ($box, 0.5, 0.5, 0.5));
+      my $inside_dir = vsub ($sphere_pos, vadd ($box, 0.5, $box_h / 2, 0.5));
       if (vlength ($inside_dir) > 0.0001) {
          vinorm ($inside_dir);
       } else { # he IS in the center
-         $inside_dir = [0, 1, 0]; # move up :)
+         $inside_dir = [0, $box_h, 0]; # move up :)
       }
+      warn "WHUT\n";
       # and move out one radius!
       return ($inside_dir, vsmul ($inside_dir, $sphere_rad));
 
@@ -127,13 +127,12 @@ sub _collide_sphere_box {
 
    if ($dvlen < $sphere_rad) {
       my $back_dist = ($sphere_rad - $dvlen) + 0.00001;
+      warn "BACKDIST $back_dist\n";
       return ($dv, vsmul (vnorm ($dv, $dvlen), $back_dist));
    }
 
    return ()
 }
-
-sub world_is_solid_box { $_[0]->[2] && $_[0]->[0] != 0 }
 
 # collide sphere at $pos with radius $rad
 #   0.00059 secsPcoll in flight without collisions
@@ -142,88 +141,55 @@ sub world_is_solid_box { $_[0]->[2] && $_[0]->[0] != 0 }
 #   0.00032 secsPcoll in flight
 #   0.00068 secsPcoll on floor  # i find this amazing!
 sub world_collide {
-   my ($pos, $rad, $rcoll, $rec, $orig_pos) = @_;
+   my ($pos, $rad, $rcoll) = @_;
 
    my ($rec, $orig_pos) = (0, [@$pos]);
 
    RECOLLIDE:
    $rec++;
    # we collide too much:
-   if ($rec > 6) {
+   if ($rec > 20) {
       #d# warn "collision occured on too many things. we couldn't backoff!";
       return ($orig_pos); # found position is as good as any...
    }
 
+   my $my_box = vfloor ($pos);
 
-   # find the 6 adjacent blocks
-   # and check:
-   #   bottom of top
-   #   top of bottom
-   #   and the interiors of the 4 adjacent blocks
+   my (%boxes) = ();
+   $boxes{world_pos2id ($my_box)} = $my_box;
+   my $mrad = $rad + 0.01;
+   for my $dx (-$mrad, $mrad) {
+      for my $dy (-2, -1, 1, 2) {
+         for my $dz (-$mrad, $mrad) {
+            my $bx = vfloor (vaddd ($pos, $dx, $dy, $dz));
+            $boxes{world_pos2id ($bx)} = $bx;
+         }
+      }
+   }
+   warn "COLLIDE @$pos ".join (", ", sort keys %boxes)."\n";
 
-   # usually i should just check the 4 adjacent blocks instead of the 27.
-   # i need to check the quadrant the sphere is in
-   #
-   # there are 8 quadrants $pos can be in:
-   #
-   #       -------------
-   #      /.    /     /|
-   #     / .   /     / |
-   #    /-----------/  |
-   #   /   . /     /|  |
-   #  /    ./     / | /|
-   # -------------  |/ |
-   # |    .|. . .| ./ .|
-   # |   . |     | /| /
-   # |-----|-----|/ |/
-   # | .   |     |  /
-   # |.    |     | /
-   # |-----------|/
+   for my $cur_box (values %boxes) {
+      next unless Games::Construder::World::is_solid_at (@$cur_box);
 
-   for my $sphere (ref $rad ? @$rad : [[0,0,0],$rad]) {
-      my ($spos, $srad, $coll_y) = @$sphere;
-      $spos = vadd ($spos, $pos),
+      my $sc_box = [@$cur_box];
+      $sc_box->[1] *= 0.25;
+      my $s_pos  = [@$pos];
+      $s_pos->[1] *= 0.25;
 
-      # the "current" block
-      my $my_box = vfloor ($spos);
+      my ($col_dir, $pos_adj) = _collide_sphere_box ($s_pos, $rad, $sc_box, 0.25);
+      if ($col_dir) {
+         $$rcoll = vaccum ($$rcoll, $col_dir);
 
-      my (@xr, @yr, @zr);
-      my ($ax, $ay, $az) = (
-         abs ($spos->[0] - int $spos->[0]),
-         abs ($spos->[1] - int $spos->[1]),
-         abs ($spos->[2] - int $spos->[2])
-      );
-      push @xr, $ax > 0.5 ? (0, 1) : (0, -1);
-      push @yr, $ay > 0.5 ? (0, 1) : (0, -1);
-      push @zr, $az > 0.5 ? (0, 1) : (0, -1);
-      $xr[1] *= -1 if $spos->[0] < 0;
-      $yr[1] *= -1 if $spos->[1] < 0;
-      $zr[1] *= -1 if $spos->[2] < 0;
+         if (defined $pos_adj) { # was able to move to safer location?
+            warn "ADJUSTING1 @$pos_adj | @$s_pos\n";
+            $pos = vadd ($s_pos, $pos_adj);
+            $pos->[1] *= 4;
+            warn "ADJUSTING2 @$pos_adj | @$pos\n";
+            goto RECOLLIDE;
 
-      #d# warn "sphere pos @$spos: checking [@xr|@yr|@zr]\n";
-
-      for my $x (@xr) {
-         for my $y (@yr) {
-            for my $z (@zr) {
-               my $cur_box = vaddd ($my_box, $x, $y, $z);
-#              my $bx = world_get_box_at ($cur_box);
-#              next unless world_is_solid_box ($bx);
-               next unless Games::Construder::World::is_solid_at (@$cur_box);
-
-               my ($col_dir, $pos_adj) = _collide_sphere_box ($spos, $srad, $cur_box);
-               if ($col_dir && vdot ([0, $coll_y, 0], $col_dir) <= 0) { # collided!
-                  $$rcoll = vaccum ($$rcoll, $col_dir);
-
-                  if (defined $pos_adj) { # was able to move to safer location?
-                     $pos = vadd ($pos, $pos_adj);
-                     goto RECOLLIDE;
-
-                  } else { # collided with something, but unable to move to safe location
-                     warn "player collided with something, but we couldn't repell him!";
-                     return ($orig_pos);
-                  }
-               }
-            }
+         } else { # collided with something, but unable to move to safe location
+            warn "player collided with something, but we couldn't repell him!";
+            return ($orig_pos);
          }
       }
    }

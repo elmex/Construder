@@ -45,8 +45,8 @@ my ($WIDTH, $HEIGHT) = (800, 600);
 my $DEPTH = 24;
 my $UPDATE_P_FRAME = 25;
 
-my $PL_HEIGHT  = 1.3;
-my $PL_RAD     = 0.3;
+my $PL_HEIGHT  = 0.6;
+my $PL_RAD     = 0.2;
 my $PL_VIS_RAD = 3;
 my $FAR_PLANE  = 26;
 
@@ -891,10 +891,7 @@ sub physics_tick : event_cb {
    my ($pos) =
       world_collide (
          $player->{pos},
-         [
-            [[0,0,0],$PL_RAD,-1],
-            [[0, $PL_HEIGHT, 0], $PL_RAD,1]
-         ],
+         $PL_RAD,
          \$collide_normal);
 
    #d# warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
