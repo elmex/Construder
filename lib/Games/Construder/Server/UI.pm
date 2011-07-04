@@ -1499,14 +1499,15 @@ sub layout {
       $a->[2] <=> $b->[2]
    } values %$beacons;
    splice @top, 3;
-   (@top) = ([0, "FOFofoef oe foe"], [1, "kifemf em fwmfew m"]);
 
    ui_hud_window_transparent (
       [ right => "down" ],
-      ui_border (
-         ui_desc ("Message Beacons:"),
-         @top ? ( map { ui_subdesc ($_->[1]) } @top) : ()
-      )
+      @top
+         ? ui_border (
+              ui_desc ("Message Beacons:"),
+              map { ui_subdesc ($_->[1]) } @top
+           )
+         : ()
    )
 }
 

@@ -503,6 +503,9 @@ sub push_chunk_to_network {
 
    my $plpos = $self->{data}->{pos};
    my $plchnk = world_pos2chnkpos ($self->{data}->{pos});
+   (@upds) = grep {
+      $self->{visible_chunk_ids}->{world_pos2id ($_)}
+   } @upds;
    (@upds) = sort {
       vlength (vsub ($plchnk, $a))
       <=>
