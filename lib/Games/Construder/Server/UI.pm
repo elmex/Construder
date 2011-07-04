@@ -1708,6 +1708,7 @@ sub layout {
 }
 
 package Games::Construder::Server::UI::MaterialHandbook;
+use Games::Construder::UI;
 use Games::Construder::Server::World;
 
 use base qw/Games::Construder::Server::UI/;
@@ -1746,40 +1747,34 @@ sub layout {
       $Games::Construder::Server::RES->get_handbook_types;
    (@objs) = sort { $a->{name} cmp $b->{name} } @objs;
 
-   my $lastpage = ((@objs % 10 != 0 ? 1 : 0) + int (@objs / 10));
+   my $lastpage = ((@objs % 9 != 0 ? 1 : 0) + int (@objs / 9));
+   $lastpage--;
 
    $self->{page} = $page     if defined $page;
    $self->{page} = 0         if $self->{page} < 0;
    $self->{page} = $lastpage if $self->{page} > $lastpage;
    $page = $self->{page};
 
-   my (@thispage) = splice @objs, $page * 10, 10;
+   my (@thispage) = splice @objs, $page * 9, 9;
 
-   {
-      window => { pos => [ center => 'center' ] },
-      layout => [
-         box => { dir => "vert", border => { color => "#ffffff" } },
-         [text => { font => "big", color => "#ffffff" }, "Material Handbook"],
-         [text => { font => "normal", color => "#ffffff" },
-          "Materials " . (($page * 10) + 1) . " to " . ((($page + 1) * 10) + 1)],
-         [text => { font => "small", color => "#888888" },
-          "[page up] previous page\n[page down] next page"],
-         (map {
-            [select_box => {
-               dir => "hor", align => "center", arg => "type", tag => $_->{type},
-               padding => 2, bgcolor => "#333333",
-               border => { color => "#555555", width => 2 },
-               select_border => { color => "#ffffff", width => 2 },
-             },
-             [model => { width => 40, align => "center" }, $_->{type}],
-             [text => { font => "normal", align => "center", color => "#ffffff" }, $_->{name}],
-            ]
-         } @thispage),
-      ]
-   }
+   ui_window ("Material Handbook",
+      ui_desc (
+       "Materials " . (($page * 9) + 1) . " to " . ((($page + 1) * 9))),
+      ui_key_inline_expl ("page up", "Previous page."),
+      ui_key_inline_expl ("page down", "Next page."),
+      (map {
+         ui_select_item (type => $_->{type},
+            ui_pad_box (hor =>
+               [model => { width => 40, align => "center" }, $_->{type}],
+               ui_text ($_->{name}, align => "right"),
+            )
+         )
+      } @thispage),
+   )
 }
 
 package Games::Construder::Server::UI::Teleporter;
+use Games::Construder::UI;
 use Games::Construder::Server::World;
 
 use base qw/Games::Construder::Server::UI/;
@@ -1836,15 +1831,11 @@ sub layout {
    $pos = $self->{tele_pos};
    my $ent = world_entity_at ($pos);
 
-   {
-      window => { pos => [ center => 'center' ] },
-      layout => [
-         box => { dir => "vert", border => { color => "#ffffff" } },
-         [text => { color => "#ffffff", font => "big" }, "Teleporter to $ent->{msg}"],
-         [text => { color => "#ffffff" }, "[return] teleport"],
-         [text => { color => "#ffffff" }, "[r] redirect teleporter"],
-      ]
-   }
+   ui_window ("Teleporter",
+      ($ent->{msg} ne '' ? ui_desc ("Destination: $ent->{msg}") : ()),
+      ui_key_explain (return => "Teleport to destination."),
+      ui_key_explain (r      => "Redirect teleporter to message beacon."),
+   )
 }
 
 
@@ -1951,6 +1942,7 @@ sub layout {
 }
 
 package Games::Construder::Server::UI::TextScript;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -1967,13 +1959,10 @@ sub layout {
    my $txt = $records[$self->{idx}];
    $txt =~ s/\\n/\n/g;
 
-   {
-      window => { pos => [ center => "center", 0, -0.3 ] },
-      layout => [
-         text => { color => "#FFFF00", font => "big" },
-         $txt
-      ]
-   }
+   ui_hud_window (
+      [ center => "center", 0, -0.3 ],
+      [ text => { color => "#FFFF00", font => "big" }, $txt ]
+   )
 }
 
 =back

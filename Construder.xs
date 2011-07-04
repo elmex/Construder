@@ -178,10 +178,10 @@ int ctr_render_chunk (int x, int y, int z, void *geom)
     RETVAL
 
 void
-ctr_render_model (unsigned int type, double light, unsigned int xo, unsigned int yo, unsigned int zo, void *geom, int skip, int force_model)
+ctr_render_model (unsigned int type, unsigned short color, double light, unsigned int xo, unsigned int yo, unsigned int zo, void *geom, int skip, int force_model)
   CODE:
      ctr_render_clear_geom (geom);
-     ctr_render_model (type, light, xo, yo, zo, geom, skip, force_model, 1);
+     ctr_render_model (type, color, light, xo, yo, zo, geom, skip, force_model, 1);
      ctr_render_compile_geom (geom);
 
 void ctr_render_init ();

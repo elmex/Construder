@@ -609,7 +609,7 @@ sub render_object_type_sample {
    if ($skip >= 0) {
       $skip++;
       my $geom = Games::Construder::Renderer::new_geom ();
-      Games::Construder::Renderer::model ($type, 1, 0, 0, 0, $geom, $skip, 1);
+      Games::Construder::Renderer::model ($type, 0, 1, 0, 0, 0, $geom, $skip, 1);
       Games::Construder::Renderer::draw_geom ($geom);
       Games::Construder::Renderer::free_geom ($geom);
       return;
@@ -620,7 +620,7 @@ sub render_object_type_sample {
 
    } else {
       my $geom = $MODEL_CACHE{$type} = Games::Construder::Renderer::new_geom ();
-      Games::Construder::Renderer::model ($type, 1, 0, 0, 0, $geom, -1, 0);
+      Games::Construder::Renderer::model ($type, 0, 1, 0, 0, 0, $geom, -1, 0);
       Games::Construder::Renderer::draw_geom ($geom);
    }
 }

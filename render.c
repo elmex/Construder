@@ -452,9 +452,9 @@ ctr_render_add_face (unsigned int face, unsigned int type, unsigned short color,
 #endif
 }
 
-void ctr_render_model (unsigned int type, double light, double xo, double yo, double zo, void *chnk, int skip, int force_model, double scaling);
+void ctr_render_model (unsigned int type, unsigned short color, double light, double xo, double yo, double zo, void *chnk, int skip, int force_model, double scaling);
 void
-ctr_render_model (unsigned int type, double light, double xo, double yo, double zo, void *chnk, int skip, int force_model, double scaling)
+ctr_render_model (unsigned int type, unsigned short color, double light, double xo, double yo, double zo, void *chnk, int skip, int force_model, double scaling)
 {
   ctr_obj_attr *oa = ctr_world_get_attr (type);
   unsigned int dim = oa->model_dim;
@@ -493,7 +493,7 @@ ctr_render_model (unsigned int type, double light, double xo, double yo, double 
           if (!oa->has_txt && oa->model)
             {
               ctr_render_model (
-                blktype, light,
+                blktype, color, light,
                 ((double) x * scale) + xo,
                 ((double) y * scale) + yo,
                 ((double) z * scale) + zo, chnk, -1, 0, scale);
@@ -503,7 +503,7 @@ ctr_render_model (unsigned int type, double light, double xo, double yo, double 
               int face;
               for (face = 0; face < 6; face++)
                 ctr_render_add_face (
-                  face, blktype, 0, light,
+                  face, blktype, color, light,
                   x, y, z, scale,
                   xo, yo, zo,
                   chnk);
@@ -559,7 +559,7 @@ ctr_render_chunk (int x, int y, int z, void *geom)
           if (!oa->has_txt)
             {
               ctr_render_model (
-                cur->type, ctr_cell_light (cur), dx, dy, dz, geom, -1, 0, 1);
+                cur->type, cur->add & 0x0F, ctr_cell_light (cur), dx, dy, dz, geom, -1, 0, 1);
               continue;
             }
 
