@@ -1016,12 +1016,16 @@ sub check_assignment {
    }
 
    $self->check_assignment_positions;
+   # was it finished?!
+   return unless $self->{data}->{assignment};
 
    $self->{uis}->{assignment_time}->show;
    my $wself = $self;
    weaken $wself;
    $self->{assign_timer} = AE::timer 1, 1, sub {
       $wself->check_assignment_positions;
+      # was it finished?!
+      return unless $self->{data}->{assignment};
 
       $wself->{data}->{assignment}->{time} -= 1;
       $wself->{uis}->{assignment_time}->show;
@@ -1033,7 +1037,9 @@ sub check_assignment {
 
 sub finished_assignmenet {
    my ($self) = @_;
-   $self->push_tick_change (score => $self->{data}->{assignment}->{score});
+   my $score = $self->{data}->{assignment}->{score};
+   $self->msg (0, "Congratulations! You finished the assignment and got $score score.");
+   $self->push_tick_change (score => $score);
    $self->{data}->{assignment} = undef;
    delete $self->{assign_timer};
    $self->check_assignment;
@@ -1042,6 +1048,7 @@ sub finished_assignmenet {
 sub cancel_assignment {
    my ($self) = @_;
    my $ass = $self->{data}->{assignment};
+   $self->msg (1, "Sorry, you failed to finish the assignment. You lose $ass->{punishment} score.");
    $self->push_tick_change (score_punishment => $ass->{punishment});
    $self->{data}->{assignment} = undef;
    delete $self->{assign_timer};

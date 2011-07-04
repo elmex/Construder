@@ -1282,7 +1282,7 @@ sub handle_command {
 
    } elsif ($cmd eq 'cancel_assign') {
       $self->{pl}->cancel_assignment;
-      $self->show;
+      $self->hide;
 
    } elsif ($cmd =~ /offer_(\d+)/) {
       $self->{pl}->take_assignment ($1);
@@ -1382,7 +1382,7 @@ sub layout_assignment {
        ],
       ],
       ui_key_explain (n => "Navigate to assignment."),
-      ui_key_explain (z => "[z] Cancel assignment (you will lose score!)"),
+      ui_key_explain (z => "Cancel assignment (you will lose score!)"),
    )
 }
 
