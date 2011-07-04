@@ -135,6 +135,20 @@ sub _collide_sphere_box {
 
 sub world_is_solid_box { $_[0]->[2] && $_[0]->[0] != 0 }
 
+sub world_adjacent_walls {
+   my ($pos, $rad) = @_;
+
+   my %poses;
+   for my $dx (-$rad, $rad) {
+      for my $dz (-$rad, $rad) {
+         my $p = vfloor (vaddd ($pos, $dx, 0, $dz));
+         $poses{world_pos2id ($p)} = $p;
+      }
+   }
+
+   values %poses
+}
+
 # collide sphere at $pos with radius $rad
 #   0.00059 secsPcoll in flight without collisions
 #   0.00171secsPcoll to 0.00154secsPcoll when colliding with floor
@@ -142,7 +156,7 @@ sub world_is_solid_box { $_[0]->[2] && $_[0]->[0] != 0 }
 #   0.00032 secsPcoll in flight
 #   0.00068 secsPcoll on floor  # i find this amazing!
 sub world_collide {
-   my ($pos, $rad, $rcoll, $rec, $orig_pos) = @_;
+   my ($pos, $rad, $plh, $rcoll) = @_;
 
    my ($rec, $orig_pos) = (0, [@$pos]);
 
@@ -154,35 +168,36 @@ sub world_collide {
       return ($orig_pos); # found position is as good as any...
    }
 
+   my @wall_boxes = world_adjacent_walls ($pos, $rad);
+   my @wboxes;
+   for (@wall_boxes) {
+      my $b = vfloor (vaddd ($_, 0, $plh, 0));
+      push @wboxes, $_, $b;
+   }
 
-   # find the 6 adjacent blocks
-   # and check:
-   #   bottom of top
-   #   top of bottom
-   #   and the interiors of the 4 adjacent blocks
+   for my $cur_box (@wboxes) {
+      next unless Games::Construder::World::is_solid_at (@$cur_box);
+      $cur_box->[1] = 0;
+      my ($col_dir, $pos_adj) =
+         _collide_sphere_box ([$pos->[0], 0, $pos->[2]], $rad, $cur_box);
 
-   # usually i should just check the 4 adjacent blocks instead of the 27.
-   # i need to check the quadrant the sphere is in
-   #
-   # there are 8 quadrants $pos can be in:
-   #
-   #       -------------
-   #      /.    /     /|
-   #     / .   /     / |
-   #    /-----------/  |
-   #   /   . /     /|  |
-   #  /    ./     / | /|
-   # -------------  |/ |
-   # |    .|. . .| ./ .|
-   # |   . |     | /| /
-   # |-----|-----|/ |/
-   # | .   |     |  /
-   # |.    |     | /
-   # |-----------|/
+      if ($col_dir) { # collided!
+         $$rcoll = vaccum ($$rcoll, $col_dir);
 
-   for my $sphere (ref $rad ? @$rad : [[0,0,0],$rad]) {
-      my ($spos, $srad, $coll_y) = @$sphere;
-      $spos = vadd ($spos, $pos),
+         if (defined $pos_adj) { # was able to move to safer location?
+            $pos = vadd ($pos, $pos_adj);
+            goto RECOLLIDE;
+
+         } else { # collided with something, but unable to move to safe location
+            warn "player collided with something, but we couldn't repell him!";
+            return ($orig_pos);
+         }
+      }
+   }
+
+   for my $sphere_y (0, $plh) {
+      my ($spos, $srad, $coll_y) =
+         (vaddd ($pos, 0, $sphere_y, 0), $rad, $sphere_y > 0 ? -1 : 1);
 
       # the "current" block
       my $my_box = vfloor ($spos);
@@ -206,12 +221,10 @@ sub world_collide {
          for my $y (@yr) {
             for my $z (@zr) {
                my $cur_box = vaddd ($my_box, $x, $y, $z);
-#              my $bx = world_get_box_at ($cur_box);
-#              next unless world_is_solid_box ($bx);
                next unless Games::Construder::World::is_solid_at (@$cur_box);
 
                my ($col_dir, $pos_adj) = _collide_sphere_box ($spos, $srad, $cur_box);
-               if ($col_dir && vdot ([0, $coll_y, 0], $col_dir) <= 0) { # collided!
+               if ($col_dir) { # collided!
                   $$rcoll = vaccum ($$rcoll, $col_dir);
 
                   if (defined $pos_adj) { # was able to move to safer location?

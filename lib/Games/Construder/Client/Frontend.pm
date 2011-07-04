@@ -891,10 +891,8 @@ sub physics_tick : event_cb {
    my ($pos) =
       world_collide (
          $player->{pos},
-         [
-            [[0,0,0],$PL_RAD,-1],
-            [[0, $PL_HEIGHT, 0], $PL_RAD,1]
-         ],
+         $PL_RAD,
+         $PL_HEIGHT,
          \$collide_normal);
 
    #d# warn "new pos : ".vstr ($pos)." norm " . vstr ($collide_normal || []). "\n";
