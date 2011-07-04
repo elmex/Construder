@@ -177,7 +177,7 @@ sub ui_range {
 
 sub ui_entry {
    my ($arg, $txt, $maxchars) = @_;
-   [entry => { font => 'normal', color => $TEXT_COLOR, arg => "txt",
+   [entry => { font => 'normal', color => $TEXT_COLOR, arg => $arg,
                align => "center",
                (defined $maxchars ? (max_chars => $maxchars) : ()),
                highlight => [$BG_COLOR, $BG_SEL_COLOR] },

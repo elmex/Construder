@@ -128,17 +128,26 @@ sub layout {
       [box => {
             border  => { color => $hl ? "#ff0000" : "#777700" },
             padding => ($hl ? 10 : 2),
-            align   => "hor",
-       },
-       [text => {
-          font  => "normal",
-          color => "#aa8800",
-          align => "center"
-        }, "Score:"],
-       [text => {
-          font  => "big",
-          color => $hl ? "#ff0000" : "#aa8800",
-        }, ($score . ($hl ? ($hl > 0 ? "+$hl" : "$hl") : ""))]
+            dir => "vert",
+            },
+         ($self->{pl}->{data}->{cheating}
+            ? [text => { color => "#ff0000", font => "small", align => "center" },
+               "<cheating>"]
+            : ()),
+         [box => {
+               dir   => "hor",
+               align => "center"
+          },
+          [text => {
+             font  => "normal",
+             color => "#aa8800",
+             align => "center"
+           }, "Score:"],
+          [text => {
+             font  => "big",
+             color => $hl ? "#ff0000" : "#aa8800",
+           }, ($score . ($hl ? ($hl > 0 ? "+$hl" : "$hl") : ""))],
+         ],
       ]
    )
 }
@@ -168,15 +177,11 @@ use Games::Construder::UI;
 use base qw/Games::Construder::Server::UI/;
 
 sub commands {
-   (u => "killdrone")
 }
 
 sub handle_command {
    my ($self, $cmd) = @_;
 
-   if ($cmd eq 'killdrone') {
-      $self->{kill_drone} = 1;
-   }
 }
 
 sub layout {
@@ -299,6 +304,7 @@ sub layout {
       ui_key_explain ("b",               "Open material handbook."),
       ui_key_explain ("r",               "Open color selector."),
       ui_key_explain ("l",               "Create encounter (developer stuff)."),
+      ui_key_explain ("h",               "Cheat."),
       ui_key_explain ("F3",              "Displays this help screen."),
       ui_key_explain ("F8",              "Commit suicide, when you want to start over."),
    )
@@ -632,11 +638,9 @@ sub layout {
       ($error ?
          [text => { align => "center", color => "#ff0000" },
           "Entered value: $error, is too high!"] : ()),
-      [box => { dir => "hor", align => "center" },
-         [entry => { font => 'normal', color => "#ffffff", arg => "cnt",
-                     highlight => ["#111111", "#333333"], max_chars => 3 },
-          $self->{max_count}],
-         [text => { font => "normal", color => "#999999" }, "Max: $self->{max_count}"]],
+      ui_pad_box (vert =>
+         ui_entry (cnt => $self->{max_count}, length ($self->{max_count})),
+         ui_subdesc ("Max: $self->{max_count}")),
    )
 }
 
@@ -912,7 +916,17 @@ use Games::Construder::UI;
 use base qw/Games::Construder::Server::UI/;
 
 sub commands {
-   ( return => "cheat" )
+   my ($self) = @_;
+
+   if ($self->{pl}->{data}->{cheating}) {
+      (
+        d => "killdrone",
+        return => "cheat",
+        p => "teleport",
+      )
+   } else {
+      ( y => "enable" )
+   }
 }
 
 sub handle_command {
@@ -926,10 +940,35 @@ sub handle_command {
       warn "CHEAT: $t : $spc\n";
       $self->{pl}->{inv}->add ($t, $spc);
       $self->hide;
+
+   } elsif ($cmd eq 'enable') {
+      $self->{pl}->{data}->{cheating} = 1;
+      $self->show_ui ("score");
+      $self->show;
+
+   } elsif ($cmd eq 'killdrone') {
+      $self->{pl}->{data}->{kill_drone} = 1;
+      $self->hide;
+
+   } elsif ($cmd eq 'teleport') {
+      $self->{pl}->{uis}->{navigator}->teleport;
+      $self->hide;
    }
 }
 
 sub layout {
+   my ($self) = @_;
+
+   unless ($self->{pl}->{data}->{cheating}) {
+      return ui_window ("Enable Cheating?",
+         ui_desc ("Do you want to enable cheating?"),
+         ui_desc (
+            "Enabling cheating will reset your score to 0 and "
+            . "mark your score as being cheated."),
+         ui_key_explain ("escape" => "Close dialog."),
+         ui_key_explain ("y" => "Enable cheating."),
+      )
+   }
    ui_window ("Cheating",
       ui_text (
          "What material do you want to max out in your inventory? "
@@ -937,7 +976,10 @@ sub layout {
       ui_pad_box (hor =>
          ui_desc ("Material Type:"),
          ui_entry (type => "", 4),
-      )
+      ),
+      ui_key_explain (return => "Maxes out entered material."),
+      ui_key_explain (d => "Kills approaching drone."),
+      ui_key_explain (p => "Teleports to destination of navigator."),
    )
 }
 
@@ -949,21 +991,21 @@ use Math::Trig qw/deg2rad rad2deg pi tan atan/;
 use base qw/Games::Construder::Server::UI/;
 
 sub commands {
-   (
-      p => "teleport",
-   )
 }
 
 sub handle_command {
    my ($self, $cmd) = @_;
    if ($cmd eq 'close') {
       $self->hide;
-   } elsif ($cmd eq 'teleport') {
-      if ($self->{nav_to_pos}) {
-         $self->{pl}->teleport ($self->{nav_to_pos});
-      } else {
-         $self->{pl}->teleport (vsmul ($self->{nav_to_sector}, 60));
-      }
+   }
+}
+
+sub teleport {
+   my ($self) = @_;
+   if ($self->{nav_to_pos}) {
+      $self->{pl}->teleport ($self->{nav_to_pos});
+   } else {
+      $self->{pl}->teleport (vsmul ($self->{nav_to_sector}, 60));
    }
 }
 

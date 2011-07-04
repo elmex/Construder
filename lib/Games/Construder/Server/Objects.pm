@@ -447,7 +447,7 @@ sub tmr_drone {
    $entity->{transition_time} = 1.5 * $dt;
    $entity->{transistion_dest} = $new_pos;
    $pl->{uis}->{prox_warn}->show ("Proximity alert!\nDistance " . int ($min->[0]));
-   if (delete $pl->{uis}->{prox_warn}->{kill_drone}) {
+   if (delete $pl->{data}->{kill_drone}) {
       drone_kill ($pos, $entity);
       $pl->{uis}->{prox_warn}->show ("Drone killed!");
    }
