@@ -24,6 +24,7 @@ our @EXPORT = qw/
    ui_select_item
    ui_range
    ui_entry
+   ui_multiline
    ui_pad_box
 /;
 
@@ -51,6 +52,7 @@ our $SUBTEXT_COLOR = "#ff8888";
 our $KEYBIND_COLOR = "#ffff88";
 our $BG_COLOR      = "#000022";
 our $BG_SEL_COLOR  = "#222244";
+our $BG_SEL2_COLOR = "#442222";
 
 sub ui_key {
    my ($key, %args) = @_;
@@ -142,8 +144,8 @@ sub ui_border {
 
 sub ui_pad_box {
    my ($dir, @childs) = @_;
-   [box => { dir => $dir },
-      map { [box => { padding => 4 }, $_] } @childs
+   [box => { dir => $dir, align => "center" },
+      map { [box => { padding => 4, align => $_->[1]->{align} }, $_] } @childs
    ]
 }
 
@@ -180,6 +182,19 @@ sub ui_entry {
                (defined $maxchars ? (max_chars => $maxchars) : ()),
                highlight => [$BG_COLOR, $BG_SEL_COLOR] },
     $txt]
+}
+
+sub ui_multiline {
+   my ($arg, $txt) = @_;
+   [
+      multiline => {
+            font => 'normal', color => "#ffffff", arg => $arg,
+            highlight => [$BG_COLOR, $BG_SEL_COLOR, $BG_SEL2_COLOR],
+            max_chars => 32, wrap => -32,
+            height => 25,
+      },
+      $txt
+   ],
 }
 
 sub ui_key_inline_expl {

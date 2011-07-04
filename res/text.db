@@ -20,13 +20,13 @@ Pattern Storages.
 :obj:Vaporizer B:lore
 :obj:Vaporizer C:lore
 :obj:Vaporizer D:lore
-A Vaporizer vaporizes materials in a certain Radius around it. It's much faster
+A Vaporizer vaporizes materials in a certain radius around it. It's much faster
 than dematerialization, as the atom bondings are dissolved in a destructive
 way. You use it by building it in a place you want to vaporize blocks,
-and apply it after it is built.
-However, as destructive they are to their environment, they will not harm the
-user in any way.
-There are multiple types of Vaporizers with different characteristics.
+and apply it afterwards.
+Because of too many accidents they have been enhanced to not harm the
+users in any way.
+There are multiple types of Vaporizers with different characteristics. 
 .
 :obj:Vaporizer A:lore
 The basic and simplest type is the Vaporizer A, which destructs in a radius of

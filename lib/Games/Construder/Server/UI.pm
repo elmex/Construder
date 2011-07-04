@@ -641,6 +641,7 @@ sub layout {
 }
 
 package Games::Construder::Server::UI::MaterialView;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -726,56 +727,56 @@ sub layout {
    my @srcmat =
       $Games::Construder::Server::RES->get_type_source_materials ($type);
 
-   {
-      window => { pos => [center => 'center'] },
-      layout => [
-         box => { dir => "vert" },
-          [box => { dir => "hor" },
-           [text => { color => "#ffffff", font => "big"   }, $o->{name}],
-           [text => { color => "#666666", font => "small" }, "(" . $o->{type} . ")"],
-          ],
-          [box => { dir => "hor", align => "left" },
-             [text => { align => "left", color => "#ffffff", font => "normal", wrap => 35 }, $o->{lore}],
-             [model => { align => "left", animated => 0, width => 80 }, $o->{type}],
-             (@srcmat && $o->{model_cnt} > 0
-               ? [box => { dir => "vert", align => "left" },
-                  [text => { color => "#999999", font => "small", align => "center" },
-                   "Build Pattern:\n"
-                   . join ("\n", map { $_->[1] . "x " . $_->[0]->{name} } @srcmat)
-                   . "\nYields " . ($o->{model_cnt} || 1) . " $o->{name}"],
-                  [model => { animated => 1, width => 120, align => "center" }, $o->{type}],
-                 ]
-               : ()),
-          ],
-          [text => { color => "#9999ff", font => "normal", wrap => 50 },
-             "- It's complexity is " . _perc_to_word ($o->{complexity}) .
-             " and it's density is " . _perc_to_word ($o->{density})],
-          [text => { color => "#9999ff", font => "normal", wrap => 50 },
-            @sec
-               ? "- This can be found in sectors with following types: "
-                    . join (", ", @sec)
-               : "- This can not be found in any sector."],
-          [text => { color => "#9999ff", font => "normal", wrap => 50 },
-           (@destmat
-              ? "- This can be used as source material for: "
-                . join (", ", map { $_->{name} } @destmat)
-              : "- This can't be processed any further.")],
-          $inv_cnt ? (
-             [text => { color => "#9999ff", font => "normal", wrap => 50 },
-                "- You have $inv_cnt of this in your inventory."],
-             [text => { color => "#0000ff" }, "Possible Actions:"],
-             [box => { dir => "vert", padding => 10, border => { color => "#0000ff" } },
-                [text => { color => "#ffffff", font => "normal", wrap => 50 },
-                   "* Assign to slot, press keys '0' to '9'"],
-                [text => { color => "#ffffff", font => "normal", wrap => 50 },
-                   "* Discard some, press key 'd'"],
-             ]
-          ) : ()
-      ],
-   }
+   my @subtxts;
+   push @subtxts,
+      "It's complexity is " . _perc_to_word ($o->{complexity})
+      . " and it's density is " . _perc_to_word ($o->{density});
+   push @subtxts,
+      @sec
+         ? "This can be found in sectors with following types: " . join (", ", @sec)
+         : "This can not be found in any sector.";
+   push @subtxts,
+      @destmat
+         ? "This can be used as source material for: "
+           . join (", ", map { $_->{name} } @destmat)
+         : "This can't be processed any further.";
+   push @subtxts,
+      $inv_cnt
+         ? "You have $inv_cnt of this in your inventory."
+         : "You don't have any of it in your inventory.";
+
+   ui_window ($o->{name},
+      ui_pad_box (hor =>
+         [box => { dir => "vert", align => "left" },
+            ui_text ($o->{lore}, align => "left", wrap => 36),
+            (map { ui_subtext ($_, wrap => 36, align => "left") } @subtxts),
+            [box => { dir => "vert", align => "center" },
+               $inv_cnt ? (
+                  ui_key_explain ("0-9", "Assign to slot."),
+                  ui_key_explain (d => "Discard material."),
+               ) : ()
+            ],
+            [text => { color => "#666666", font => "small" }, "(" . $o->{type} . ")"],
+         ],
+         ui_border (
+            ui_pad_box (vert =>
+               [model => { align => "center", animated => 0, width => 140 }, $o->{type}],
+               (@srcmat && $o->{model_cnt} > 0
+                  ? [box => { dir => "vert", align => "left" },
+                     ui_small_text (
+                        "Build Pattern:\n"
+                        . join ("\n", map { $_->[1] . "x " . $_->[0]->{name} } @srcmat)
+                       . "\nYields " . ($o->{model_cnt} || 1) . " $o->{name}"),
+                    [model => { animated => 1, width => 120, align => "center" }, $o->{type}],
+                  ] : ()),
+            )
+         ),
+      ),
+   )
 }
 
 package Games::Construder::Server::UI::QueryPatternStorage;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -851,43 +852,38 @@ sub layout {
       : $cap >= 70 ? "#ffff00"
       : "#00ff00";
 
-   {
-      window => {
-         pos => [center => 'center'],
-      },
-      layout => [
-         box => { dir => "vert", border => { color => "#ffffff" } },
-         [text => { font => "big", color => "#FFFFFF", align => "center" }, $self->{title}],
-         [text => { font => "big", color => $cap_clr, align => "center" },
-          "Used capacity: $cap%"],
-         [text => { font => "small", color => "#888888", wrap => 40, align => "center" },
-          "(Select a resource directly by [shortcut key] or [up]/[down] and hit [return].)"],
-         [box => { },
-            (map {
-               [box => { dir => "vert", padding => 4 },
-                  map {
-                     [select_box => {
-                        dir => "vert", align => "center", arg => "item", tag => $_,
-                        padding => 2,
-                        bgcolor => "#111111",
-                        border => { color => "#000000", width => 2 },
-                        select_border => { color => "#ffffff", width => 2 },
-                        aspect => 1
-                      },
-                        [text => { align => "center", color => "#ffffff" },
-                         $_->[1] ? $_->[1] : "0"],
-                        [model => { align => "center", width => 60 }, $_->[0]],
-                        [text  => { font => "small", align => "center",
-                                    color => "#ffffff", wrap => 10 },
-                         $_->[0] == 1 ? "<empty>" : "[$_->[3]] $_->[2]->{name}"]
-                     ]
-
-                  } @$_
-               ]
-            } @{$self->{grid}})
-         ]
+   ui_window ($self->{title},
+      [text => { font => "big", color => $cap_clr, align => "center" },
+       "Used capacity: $cap%"],
+      ui_key_inline_expl (
+         "<shortcut key>",
+         "Every material has it's own shortcut key to directly select it."),
+      ui_key_inline_expl (
+         [qw/up down/], "Select material by skipping through them"),
+      ui_key_inline_expl (return => "Confirm selection."),
+      [box => { dir => "hor" },
+         (map {
+            [box => { dir => "vert", padding => 4 },
+               map {
+                  [box => { padding => 1 },
+                     ui_select_item (item => $_,
+                        [box => { dir => "vert", padding => 4 },
+                           [box => { dir => "hor", align => "left" },
+                              [model => { align => "center", width => 60 }, $_->[0]],
+                              ui_pad_box (vert => ui_text ($_->[1] ? $_->[1] : "0")),
+                           ],
+                           [box => { dir => "hor", align => "left" },
+                              ui_key ($_->[3], font => "small"),
+                              ui_small_text ($_->[0] == 1 ? "<empty>" : $_->[2]->{name})
+                           ]
+                        ]
+                     )
+                  ]
+               } @$_
+            ]
+         } @{$self->{grid}})
       ],
-   }
+   )
 }
 
 package Games::Construder::Server::UI::Inventory;
@@ -911,6 +907,7 @@ sub layout {
 }
 
 package Games::Construder::Server::UI::Cheat;
+use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -933,21 +930,15 @@ sub handle_command {
 }
 
 sub layout {
-   {
-      window => { pos => [center => 'center'], },
-      layout => [
-         box => { dir => "vert", padding => 25, border => { color => "#ffffff" } },
-         [text => { align => 'center', font => 'big', color => "#00ff00" }, "Cheat"],
-         [text => { align => 'center', font => 'normal', color => "#00ff00", wrap => 40 },
-                  "What material do you want to max out in your inventory? Be careful, your score will be reset to 0!"],
-         [box => {  dir => "hor", align => "center" },
-            [text => { font => 'normal', color => "#ffffff" }, "Material Type:"],
-            [entry => { font => 'normal', color => "#ffffff", arg => "type",
-                        highlight => ["#111111", "#333333"], max_chars => 9 },
-             ""],
-         ]
-      ]
-   }
+   ui_window ("Cheating",
+      ui_text (
+         "What material do you want to max out in your inventory? "
+         . "Be careful, your score will be reset to 0!"),
+      ui_pad_box (hor =>
+         ui_desc ("Material Type:"),
+         ui_entry (type => "", 4),
+      )
+   )
 }
 
 package Games::Construder::Server::UI::Navigator;
@@ -1478,6 +1469,7 @@ sub layout {
 }
 
 package Games::Construder::Server::UI::MessageBeacon;
+use Games::Construder::UI;
 use Games::Construder::Server::World;
 
 use base qw/Games::Construder::Server::UI/;
@@ -1521,17 +1513,14 @@ sub layout {
    $self->{entity} = [$pos, $entity] if $pos;
    ($pos, $entity) = @{$self->{entity}};
 
-   {
-      window => { pos => [ center => 'center' ] },
-      layout => [
-         box => { dir => "vert", border => { color => "#ffffff" } },
-         [text => { color => "#ffffff", font => "big" }, "Message Beacon:\n$entity->{msg}"],
-         [text => { color => "#ffffff" }, "[e] edit message"],
-      ]
-   }
+   ui_window ("Message Beacon",
+      ui_desc ($entity->{msg}),
+      ui_key_inline_expl (e => "Edit message."),
+   )
 }
 
 package Games::Construder::Server::UI::PatternStorage;
+use Games::Construder::UI;
 use Games::Construder::Server::World;
 use Games::Construder::Server::Player;
 
@@ -1650,61 +1639,65 @@ sub layout {
    $self->{pat_stor} = [$pos, $entity] if $pos;
    ($pos, $entity) = @{$self->{pat_stor}};
 
-   {
-      window => { pos => [ center => 'center' ] },
-      layout => [
-         box => { dir => "vert", border => { color => "#ffffff" } },
-         [text => { color => "#ffffff", font => "big" }, "Pattern Storage: $entity->{label}"],
-         [text => { color => "#ffffff" }, "[l] to label this storage"],
-         [text => { color => "#ffffff" }, "[i] to transfer from inventory"],
-         [text => { color => "#ffffff" }, "[p] to transfer from storage"],
-      ]
-   }
+   ui_window ("Paggern Storage",
+      ui_desc ($entity->{label}),
+      ui_key_explain (l => "Label this storage."),
+      ui_key_explain (i => "Transfer from inventory."),
+      ui_key_explain (p => "Transfer from storage."),
+   )
 }
 
 package Games::Construder::Server::UI::Notebook;
+use Games::Construder::UI;
 use Games::Construder::Server::World;
 
 use base qw/Games::Construder::Server::UI/;
 
 sub commands {
-   ( f4 => "clear" )
+   (
+      f4 => "clear",
+      f6 => "prev",
+      f7 => "next",
+   )
 }
 
 sub handle_command {
    my ($self, $cmd, $arg) = @_;
 
+   my $pg = $self->{pl}->{data}->{notebook}->{cur_page};
+
    if ($cmd eq 'save_text') {
-      $self->{pl}->{data}->{notebook}->{main} = $arg->{page};
+      $self->{pl}->{data}->{notebook}->{main}->[$pg] = $arg->{page};
 
    } elsif ($cmd eq 'clear') {
-      $self->{pl}->{data}->{notebook}->{main} = "";
+      $self->{pl}->{data}->{notebook}->{main}->[$pg] = "";
+      $self->show;
+
+   } elsif ($cmd eq 'next') {
+      $self->{pl}->{data}->{notebook}->{cur_page}++;
+      $self->show;
+
+   } elsif ($cmd eq 'prev') {
+      $self->{pl}->{data}->{notebook}->{cur_page}--;
+      if ($self->{pl}->{data}->{notebook}->{cur_page} < 0) {
+         $self->{pl}->{data}->{notebook}->{cur_page} = 0;
+      }
       $self->show;
    }
 }
 
 sub layout {
    my ($self) = @_;
-   my $txt = $self->{pl}->{data}->{notebook}->{main};
-   {
-      window => { pos => [ center => 'center' ] },
-      layout => [
-         box => { dir => "vert", border => { color => "#ffffff" } },
-         [text => { color => "#ffffff" }, "Notebook:"],
-         [box => { dir => "hor", padding => 3 },
-         [
-            multiline => {
-                  font => 'normal', color => "#ffffff", arg => "page",
-                  highlight => ["#111111", "#333333", "#663333"],
-                  max_chars => 32, wrap => -32,
-                  height => 25,
-            },
-            $txt
-         ]],
-         [text => { color => "#888888", font => "small" },
-          "[f4] clears all text"],
-      ]
-   }
+   my $pg  = $self->{pl}->{data}->{notebook}->{cur_page};
+   my $txt = $self->{pl}->{data}->{notebook}->{main}->[$pg];
+
+   ui_window ("Notebook",
+      ui_desc ("Page " . ($pg + 1)),
+      ui_multiline (page => $txt),
+      ui_key_inline_expl (F4 => "Clears all text."),
+      ui_key_inline_expl (F6 => "Next page."),
+      ui_key_inline_expl (F7 => "Previous page."),
+   )
 }
 
 package Games::Construder::Server::UI::MaterialHandbook;
@@ -1765,8 +1758,8 @@ sub layout {
       (map {
          ui_select_item (type => $_->{type},
             ui_pad_box (hor =>
-               [model => { width => 40, align => "center" }, $_->{type}],
-               ui_text ($_->{name}, align => "right"),
+               [model => { width => 40, align => "left" }, $_->{type}],
+               ui_text ($_->{name}, align => "center"),
             )
          )
       } @thispage),
@@ -1949,7 +1942,7 @@ use base qw/Games::Construder::Server::UI/;
 sub layout {
    my ($self) = @_;
 
-   my (@records) = split /\n/, $self->{pl}->{data}->{notebook}->{main};
+   my (@records) = split /\n/, $self->{pl}->{data}->{notebook}->{main}->[$self->{pl}->{data}->{notebook}->{cur_page}];
 
    $self->{idx}++;
    if ($self->{idx} >= @records) {
