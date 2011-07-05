@@ -988,7 +988,7 @@ sub show_video_settings {
       )
    );
 
-   $self->activate_ui (mouse_settings => {
+   $self->activate_ui (video_settings => {
       %$win,
       commands => {
          default_keys => { return => "change" }
