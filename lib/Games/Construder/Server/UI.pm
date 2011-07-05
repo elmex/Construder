@@ -1513,43 +1513,27 @@ sub layout_offers {
    my $off = $self->{pl}->{data}->{offers};
 
    ui_window ("Assignment Offers",
-      [box => { dir => "hor" },
-       [box => { dir => "vert", padding => 4 },
-          ui_desc ("Key"),
-          map { ui_key ($_->{diff} + 1) } @$off
-       ],
-       [box => { dir => "vert", padding => 4 },
-          ui_desc ("Time"),
-          map { ui_text (time2str ($_->{time})) } @$off
-       ],
-       [box => { dir => "vert", padding => 4 },
-        ui_desc ("Materials"),
-        map {
-         ui_border (
-            ui_text (
-               (join ",\n", map {
-                  my $o =
-                     $Games::Construder::Server::RES->get_object_by_type ($_->[2]);
-                  $o->{name}
-               } @{$_->{material_map}}), wrap => 10)
-         )
-        } @$off
-       ],
-       [box => { dir => "vert", padding => 4 },
-          ui_desc ("Score"),
-          map { ui_text ($_->{score}, align => "right") } @$off
-       ],
-       [box => { dir => "vert", padding => 4 },
-          ui_desc ("Expiration"),
-          map {
-           ui_text (time2str ($_->{offer_time}))
-          } @$off
-       ],
-       [box => { dir => "vert", padding => 4 },
-          ui_desc ("Punishment"),
-          map { ui_text (-$_->{punishment}, align => "right") } @$off
-       ],
-      ],
+      map {
+         [box => { align => "left" }, ui_pad_box (hor =>
+            ui_key ($_->{diff} + 1),
+            [box => { dir => "vert" },
+               ui_desc ("Time / Expires:", align => "right"),
+               ui_desc ("Score / Punishment:", align => "right"),
+               ui_desc ("Materials:", align => "right"),
+            ],
+            [box => { dir => "vert" },
+               ui_text (time2str ($_->{time}) . " / " . time2str ($_->{offer_time}),
+                        align => "left"),
+               ui_text ($_->{score} . " / " . -$_->{punishment}, align => "left"),
+               ui_small_text (
+                  (join ", ", map {
+                     my $o =
+                        $Games::Construder::Server::RES->get_object_by_type ($_->[2]);
+                     $o->{name}
+                  } @{$_->{material_map}}), wrap => 60, align => "left")
+            ],
+         )]
+      } @$off
    )
 }
 
@@ -1571,7 +1555,6 @@ sub layout_assignment {
         ui_text ($cal->{type} || "Construction", align => "left"),
         ui_text (time2str ($cal->{time}), align => "left"),
         ui_text ($cal->{score}, align => "left"),
-        ui_text ($DIFFMAP{$cal->{diff}}, align => "left"),
         ui_text ($cal->{punishment}, align => "left"),
        ],
       ],
