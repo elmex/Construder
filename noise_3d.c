@@ -1,7 +1,11 @@
+/* This file implements some noise/random functions used by volume_draw.c
+ * and other parts of the code.
+ */
 #define INTSCALE  (128ul)
 #define INTSCALE3 (INTSCALE * INTSCALE * INTSCALE)
 #include <stdint.h>
 
+// xorshift pseudo random number generator.
 unsigned int rnd_xor (unsigned int x)
 {
    x ^= (x << 6);
@@ -10,6 +14,7 @@ unsigned int rnd_xor (unsigned int x)
    return x;
 }
 
+// 32bit integer hash function.
 unsigned int hash32int (unsigned int i)
 {
   i = (i << 15) - i - 1;
@@ -21,6 +26,7 @@ unsigned int hash32int (unsigned int i)
   return i;
 }
 
+// Function to map 3 coordinates onto a single integer value.
 unsigned int map_coord2int (unsigned int x, unsigned int y, unsigned int z)
 {
   unsigned int out = 0;
@@ -38,7 +44,7 @@ unsigned int map_coord2int (unsigned int x, unsigned int y, unsigned int z)
       z >>= 1;
     }
 
-  return hash32int (out);
+  return hash32int (out); // hashed so we can use this as initializer to a rng.
 }
 
 #define NOISE_ARR_OFFS(slen,x,y,z) (1 + (x) + (y) * slen + (z) * (slen * slen))
@@ -62,6 +68,7 @@ unsigned int smoothstep_int (unsigned int a, unsigned int b, unsigned int x)
    return i;
 }
 
+// Create volume with value noise.
 void *mk_3d_noise (unsigned int slen, unsigned int seed)
 {
    int x, y, z;
@@ -83,6 +90,7 @@ void *mk_3d_noise (unsigned int slen, unsigned int seed)
    return noise_arr;
 }
 
+// Sample noise from a noise volume using interpolation.
 unsigned int sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, unsigned int z, unsigned int scale)
 {
    unsigned int *noise_3d = noise;

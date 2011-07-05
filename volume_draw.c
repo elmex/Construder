@@ -1,3 +1,11 @@
+/* This file contains the volume/voxel drawing library that is used
+ * to "draw" the sector types.
+ *
+ * A set of 4 buffers is used to draw the sector types. Those buffers
+ * can be blended into each other and every operation done on a cell
+ * can also be blended with the value from the selected "source" buffer.
+ */
+
 #include <math.h>
 #include "vectorlib.c"
 #include "noise_3d.c"
@@ -5,12 +13,24 @@
 typedef struct _vol_draw_ctx {
   unsigned int size;
   double      *buffers[4];
-  double      *src;
-  double      *dst;
+  double      *src;  // "source" buffer for drawing operations.
+  double      *dst;  // destination buffer of drawing operations.
 
   unsigned int draw_op;
+
+  /* Destination range of drawing operations.
+   * Cells with a value outside this range are not changed.
+   */
   double  dst_range[2];
+
+  /* The source range determines that only the voxels that are
+   * inside this range in the source buffer are drawn to the destination.
+   * If a cell in the source buffer is outside this range the
+   * drawing operation is inhibited, regardless of the src_blend value.
+   */
   double  src_range[2];
+
+  // How much of the source buffer is used in drawing operations.
   double  src_blend;
 
 #define VOL_DRAW_ADD 1
@@ -22,27 +42,6 @@ typedef struct _vol_draw_ctx {
 
 #define DRAW_DST(x,y,z) DRAW_CTX.dst[((unsigned int) (x)) + ((unsigned int) (y)) * DRAW_CTX.size + ((unsigned int) (z)) * (DRAW_CTX.size * DRAW_CTX.size)]
 #define DRAW_SRC(x,y,z) DRAW_CTX.src[((unsigned int) (x)) + ((unsigned int) (y)) * DRAW_CTX.size + ((unsigned int) (z)) * (DRAW_CTX.size * DRAW_CTX.size)]
-
-// two buffers:
-//    source
-//    dest
-//
-// Draw Styles:
-//   - cantor dust
-//   - menger sponge
-//   - sphere-fractal-like: 2 styles: value range fill, empty
-//   - random spheres: also 2 styles
-//
-// Fill Styles:
-//   - noise octaves with parameters
-//   - constant fill from [0,1]
-//   - draw board source (operation: swap dest/source buffer)
-//
-// Draw Ops:
-//   - add
-//   - sub
-//   - mul
-//   - set
 
 static vol_draw_ctx DRAW_CTX;
 
@@ -553,6 +552,7 @@ void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves
         DRAW_DST(x,y,z) /= amp_correction;
 }
 
+// Utility function for vol_draw_mandel_box ().
 double _vol_draw_mandel_box_equation (double *v, double s, double r, double f, double *c)
 {
   //printf ("TEST %lf %lf %lf: %lf %lf %lf, %lf %lf %lf\n", v[0], v[1], v[2], s, r, f, c[0], c[1], c[2]);
@@ -575,6 +575,9 @@ double _vol_draw_mandel_box_equation (double *v, double s, double r, double f, d
   return vec3_len (v);
 }
 
+/* This function implements the mandel box fractal.
+ * It's quite expensive and not used anywhere yet.
+ */
 void vol_draw_mandel_box (double xc, double yc, double zc, double xsc, double ysc, double zsc, double s, double r, double f, int it, double cfact)
 {
 
@@ -605,7 +608,6 @@ void vol_draw_mandel_box (double xc, double yc, double zc, double xsc, double ys
               double d = _vol_draw_mandel_box_equation (v, s, r, f, c);
               if (d > 1024)
                 {
- //             printf ("esc %lf\n", d);
                   escape = 1;
                   break;
                 }
@@ -617,6 +619,7 @@ void vol_draw_mandel_box (double xc, double yc, double zc, double xsc, double ys
 }
 
 
+// This function draws a menger sponge like structure to the volume.
 void vol_draw_menger_sponge_box (float x, float y, float z, float size, unsigned short lvl)
 {
   if (lvl == 0)
@@ -647,7 +650,7 @@ void vol_draw_menger_sponge_box (float x, float y, float z, float size, unsigned
          }
 }
 
-
+// This algorithm draws some cantor dust like boxes recursively to the volume.
 void vol_draw_cantor_dust_box (float x, float y, float z, float size, unsigned short lvl)
 {
   if (lvl == 0)
@@ -675,6 +678,7 @@ void vol_draw_cantor_dust_box (float x, float y, float z, float size, unsigned s
    vol_draw_cantor_dust_box (x + offs, y + offs, z + offs, size, lvl - 1);
 }
 
+// Copy grey voxel values from the internal structures.
 void vol_draw_copy (void *dst_arr)
 {
   double *model = dst_arr;

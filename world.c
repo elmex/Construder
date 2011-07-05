@@ -1,3 +1,8 @@
+/* This file implements storage of the world. That means the chunks of the world
+ * and information about the possible block types.
+ *
+ * The chunks of the world are currently saved in a set of nested sparse arrays.
+ */
 #include <stdio.h>
 #include <arpa/inet.h>
 #include "vectorlib.c"
@@ -20,6 +25,9 @@
 
 #include "world_data_struct.c"
 
+/* Store important information about the block types. This information
+ * is used by nearly every algorithm implemented in C currently.
+ */
 typedef struct _ctr_obj_attr {
   double uv[4];
   unsigned short transparent : 1;
@@ -35,29 +43,36 @@ typedef struct _ctr_cell {
    unsigned short type;
    unsigned char  light;
    unsigned char  meta;
-   unsigned char  add;
+   unsigned char  add;  // lower nibble stores color of the block.
+
+   // stores whether the block is visible (used by the renderer later).
    unsigned char  visible : 1;
-   unsigned char  pad     : 7; // some padding, for 6 bytes
+
+   unsigned char  pad     : 7; // some padding
 } ctr_cell;
 
+// Some (unfinished) try to implement storing changes:
+#if 0
 #define MAX_CHUNK_CHANGES 200
-
 typedef struct _ctr_chunk_changed_cell {
     int rx, ry, rz;
 } ctr_chunk_changed_cell;
+#endif
 
 typedef struct _ctr_chunk {
     int x, y, z;
     ctr_cell cells[CHUNK_ALEN];
     int dirty;
+#if 0
     ctr_chunk_changed_cell changed_cells[MAX_CHUNK_CHANGES];
     int changes;
+#endif
 } ctr_chunk;
 
 typedef struct _ctr_world {
     ctr_axis_array *y;
-    SV *chunk_change_cb;
-    SV *active_cell_change_cb;
+    SV *chunk_change_cb;        // callback for changed chunks.
+    SV *active_cell_change_cb;  // callback for changed "active" cells.
 } ctr_world;
 
 static ctr_obj_attr OBJ_ATTR_MAP[POSSIBLE_OBJECTS];
@@ -69,6 +84,7 @@ typedef struct _ctr_light_item {
     unsigned char lv;
 } ctr_light_item;
 
+// We use a set of two queues, so we can quickly switch back and forth.
 static ctr_queue *light_upd_queue   = 0;
 static ctr_queue *light_upd_queue_1 = 0;
 static ctr_queue *light_upd_queue_2 = 0;
@@ -91,6 +107,7 @@ void ctr_world_init ()
                     CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * MAX_LIGHT_RADIUS_CHUNKS);
 }
 
+// Clears light queues for light computation.
 void ctr_world_light_upd_start ()
 {
   light_upd_queue = light_upd_queue_1;
@@ -98,11 +115,13 @@ void ctr_world_light_upd_start ()
   ctr_queue_clear (light_upd_queue_2);
 }
 
+// Select light queue used.
 void ctr_world_light_select_queue (int i)
 {
   light_upd_queue = i > 0 ? light_upd_queue_2 : light_upd_queue_1;
 }
 
+// Store item in the queue.
 void ctr_world_light_enqueue (int x, int y, int z, unsigned char light)
 {
   ctr_light_item it;
@@ -114,16 +133,19 @@ void ctr_world_light_enqueue (int x, int y, int z, unsigned char light)
   //d// printf ("light upd enqueue %d,%d,%d: %d\n", x, y, z, light);
 }
 
+// Freeze current queue state.
 void ctr_world_light_freeze_queue ()
 {
   ctr_queue_freeze (light_upd_queue);
 }
 
+// Thaw current queue state.
 void ctr_world_light_thaw_queue ()
 {
   ctr_queue_thaw (light_upd_queue);
 }
 
+// Enqueue neighbor cells.
 void ctr_world_light_enqueue_neighbours (int x, int y, int z, unsigned char light)
 {
   ctr_world_light_enqueue (x + 1, y, z, light);
@@ -196,6 +218,9 @@ ctr_obj_attr *ctr_world_get_attr (unsigned int type)
   return &(OBJ_ATTR_MAP[type]);
 }
 
+/* An active cell is a cell that has an entity
+ * associated to it in the perl data structure in the server.
+ */
 int ctr_world_is_active (unsigned int type)
 {
   ctr_obj_attr *a = ctr_world_get_attr (type);
@@ -236,13 +261,6 @@ void ctr_world_set_object_model (unsigned int type, unsigned int dim, AV *blocks
         continue;
       oa->model_blocks[i] = SvIV (*block);
     }
-}
-
-static int ctr_detect_chunk_changes = 0;
-
-void ctr_set_detect_chunk_changes (int c)
-{
-  ctr_detect_chunk_changes = c;
 }
 
 int ctr_set_cell_from_data (ctr_cell *c, unsigned char *ptr)
@@ -286,7 +304,9 @@ void ctr_get_data_from_cell (ctr_cell *c, unsigned char *ptr)
 
 void ctr_chunk_clear_changes (ctr_chunk *chnk)
 {
+#if 0
   chnk->changes = 0;
+#endif
 }
 
 #if 0
@@ -383,6 +403,9 @@ ctr_world_chunk_neighbour_cell (ctr_chunk *c, int x, int y, int z, ctr_chunk *ne
   ctr_cell *front = ctr_world_chunk_neighbour_cell (c, x, y, z - 1, 0); \
   ctr_cell *back  = ctr_world_chunk_neighbour_cell (c, x, y, z + 1, 0);
 
+/* Calculate the visibility of the blocks. If a block is surrounded by
+ * 6 non transparent blocks it's considered non visible.
+ */
 void ctr_world_chunk_calc_visibility (ctr_chunk *chnk)
 {
   int x, y, z;
@@ -533,11 +556,9 @@ void ctr_world_purge_chunk (int x, int y, int z)
       chnk_alloc--;
       free (c);
     }
-  // FIXME: we need probably feedback in query_context, in
-  //        case this chunk is loaded there!
 }
 
-
+// Haven't tested this function in a long time now. Not sure if it still works :)
 void ctr_world_dump ()
 {
   unsigned int x, y, z;

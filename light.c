@@ -1,3 +1,16 @@
+/* This file holds the light algorithm. The light is basically done
+ * by propagating the light from a light source or other bright block
+ * to it's neighbors.
+ *
+ * It's more or less a simple cellular automaton. The light level of a
+ * block is computed from the maximum of the surrounding cells.
+ *
+ * But the algorithm does not recompute the whole volume this way, but
+ * tries to find out the affected area using a flood fill before starting
+ * the fix point iteration of computing the light of the cells within that area.
+ */
+
+// Utility function to get the maximum light level from the neighbors.
 unsigned char ctr_world_query_get_max_light_of_neighbours (x, y, z)
 {
   ctr_cell *above = ctr_world_query_cell_at (x, y + 1, z, 0);
@@ -16,6 +29,7 @@ unsigned char ctr_world_query_get_max_light_of_neighbours (x, y, z)
   return l;
 }
 
+// (Re)flows the light within a query context at the position x,y,z.
 void ctr_world_query_reflow_light (int x, int y, int z)
 {
   int query_w = QUERY_CONTEXT.x_w * CHUNK_SIZE;
@@ -25,6 +39,10 @@ void ctr_world_query_reflow_light (int x, int y, int z)
   ctr_cell *cur = ctr_world_query_cell_at (x, y, z, 0);
   if (!cur)
     return;
+
+  /* First part of this function tries to find out what kind of
+   * light change should be recomputed.
+   */
 
   unsigned char l = ctr_world_query_get_max_light_of_neighbours (x, y, z);
 
@@ -73,6 +91,9 @@ void ctr_world_query_reflow_light (int x, int y, int z)
       ctr_world_light_enqueue_neighbours (x, y, z, l);
     }
 
+  /* The following loop tries to find the affected area by flood filling it.
+   * While doing that it will compute the queue used in the next loops.
+   */
   unsigned char upd_radius = 0;
   while (ctr_world_light_dequeue (&x, &y, &z, &upd_radius))
     {
@@ -98,8 +119,9 @@ void ctr_world_query_reflow_light (int x, int y, int z)
         ctr_world_light_enqueue_neighbours (x, y, z, upd_radius - 1);
     }
 
-  // extra pass for light-down, to reflow other light sources light
-
+  /* Next loop clears all 255-values that were used to mark the
+   * already visited cells.
+   */
   ctr_world_light_select_queue (1);
   ctr_world_light_freeze_queue ();
 
@@ -111,7 +133,9 @@ void ctr_world_query_reflow_light (int x, int y, int z)
       cur->light = 0;
     }
 
-  // select queue for light-re-distribution
+  /* Now we iterate over the working set in the queue and
+   * compute the light from the neighbors.
+   */
   int change = 1;
   int pass = 0;
   while (change)

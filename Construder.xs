@@ -420,8 +420,6 @@ void ctr_world_query_set_at_abs (unsigned int rel_x, unsigned int rel_y, unsigne
     ctr_world_query_abs2rel (&rel_x, &rel_y, &rel_z);
     ctr_world_query_set_at_pl (rel_x, rel_y, rel_z, cell);
 
-void ctr_world_query_unallocated_chunks (AV *chnkposes);
-
 void ctr_world_query_setup (int x, int y, int z, int ex, int ey, int ez);
 
 int ctr_world_query_desetup (int no_update = 0);

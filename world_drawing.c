@@ -1,11 +1,21 @@
-
+/* This file implements setting up a "drawing context" over a part of the
+ * world. The main purpose is to make sure chunks can be quickly accessed
+ * for the mutation operations or the light algorithm.
+ */
 #define DRAW_CONTEXT_MAX_SIZE (20 * 20 * 20)
 
 typedef struct _ctr_world_query {
+    // Chunk coordinates.
     int chnk_x, chnk_y, chnk_z,
         end_chnk_x, end_chnk_y, end_chnk_z;
+
+    // Size of context in chunks.
     int x_w, y_w, z_w;
+
+    // The "loaded" chunks.
     ctr_chunk *chunks[DRAW_CONTEXT_MAX_SIZE];
+
+    // Flag that we tried to fetch chunks from the global data structure.
     int loaded;
 } ctr_world_query;
 
@@ -13,6 +23,13 @@ typedef struct _ctr_world_query {
 
 static ctr_world_query QUERY_CONTEXT;
 
+/* Cleans up the query context after usage and
+ * calls change callbacks if needed.
+ *
+ * no_update == 0 - Call callbacks for every changed/dirty chunk.
+ * no_update == 1 - Don't call any callbacks.
+ * no_update == 2 - Call callbacks for every chunk in the context.
+ */
 int ctr_world_query_desetup (int no_update) // no_update == 2 means: force update
 {
   int cnt = 0;
@@ -73,24 +90,7 @@ void ctr_world_query_setup (int x, int y, int z, int ex, int ey, int ez)
   QUERY_CONTEXT.loaded = 0;
 }
 
-void ctr_world_query_unallocated_chunks (AV *chnkposes)
-{
-  int x, y, z;
-  for (z = QUERY_CONTEXT.chnk_z; z <= QUERY_CONTEXT.end_chnk_z; z++)
-    for (y = QUERY_CONTEXT.chnk_y; y <= QUERY_CONTEXT.end_chnk_y; y++)
-      for (x = QUERY_CONTEXT.chnk_x; x <= QUERY_CONTEXT.end_chnk_x; x++)
-        {
-          ctr_chunk *chnk = ctr_world_chunk (x, y, z, 0);
-
-          if (!chnk)
-            {
-              av_push (chnkposes, newSViv (x));
-              av_push (chnkposes, newSViv (y));
-              av_push (chnkposes, newSViv (z));
-            }
-        }
-}
-
+// Loads chunks from the global data structure (if available).
 void ctr_world_query_load_chunks (int alloc)
 {
   int x, y, z;
@@ -108,6 +108,7 @@ void ctr_world_query_load_chunks (int alloc)
   QUERY_CONTEXT.loaded = 1;
 }
 
+// Compute absolute world coordinates from context relative coordinates.
 void ctr_world_query_rel2abs (int *rel_x, int *rel_y, int *rel_z)
 {
   *rel_x = QUERY_CONTEXT.chnk_x * CHUNK_SIZE + *rel_x;
@@ -115,6 +116,7 @@ void ctr_world_query_rel2abs (int *rel_x, int *rel_y, int *rel_z)
   *rel_z = QUERY_CONTEXT.chnk_z * CHUNK_SIZE + *rel_z;
 }
 
+// Compute the context relative coordinates from absolute ones.
 void ctr_world_query_abs2rel (int *x, int *y, int *z)
 {
   vec3_init (pos, *x, *y, *z);

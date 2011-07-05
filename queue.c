@@ -1,3 +1,6 @@
+/* This file holds a primitive queue implementation.
+ * Mainly used by the light algorithm at the moment of this writing.
+ */
 typedef struct _ctr_queue {
     void         *data;
     void         *data_end;
@@ -49,6 +52,9 @@ void ctr_queue_enqueue (ctr_queue *q, void *item)
     }
 }
 
+/* This function stores the state of the queue, so
+ * we can quickly restore the queue using the queue_thaw method.
+ */
 void ctr_queue_freeze (ctr_queue *q)
 {
   q->freeze_start = q->start;

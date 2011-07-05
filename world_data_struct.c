@@ -1,3 +1,9 @@
+/* This file contains the implementation of the data structure
+ * that will store the chunks of the world.
+ * It's basically a primitively implemented sparse array for each
+ * coordinate axis. The nesting of this arrays is done in world.c.
+ */
+
 typedef struct _ctr_axis_node {
     int coord;
     void *ptr;
@@ -50,7 +56,7 @@ ctr_axis_array *ctr_axis_array_new ()
 void ctr_axis_array_dump (ctr_axis_array *arr)
 {
   int i;
-  printf ("alloc: %d\n", arr->alloc);
+  //d// printf ("alloc: %d\n", arr->alloc);
   for (i = 0; i < arr->len; i++)
     printf ("%d: %d (%p)\n", i, arr->nodes[i].coord, arr->nodes[i].ptr);
 }
@@ -67,14 +73,6 @@ void ctr_axis_array_insert_at (ctr_axis_array *arr, unsigned int idx, int coord,
   if (arr->len > idx)
     {
       unsigned int tail_len = arr->len - idx;
-
-      // checking...
-      // idx:   len:
-      // 0      1, 2, 10     tl:1, tl:2, tl:10
-      // 1      1, 2, 10     tl:?, tl:1, tl:9
-      // 5      1, 2, 10     tl:?, tl:?, tl:5
-      // 10     1, 2, 10
-
       memmove (arr->nodes + idx + 1, arr->nodes + idx,
                sizeof (ctr_axis_node) * tail_len);
     }
