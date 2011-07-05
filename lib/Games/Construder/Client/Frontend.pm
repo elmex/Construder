@@ -226,7 +226,7 @@ sub set_ambient_light {
    my ($self, $l) = @_;
    Games::Construder::Renderer::set_ambient_light ($l);
    for my $id (keys %{$self->{compiled_chunks}}) {
-      $self->compile_chunk (@{world_id2pos ($_)});
+      $self->{dirty_chunks}->{$id} = 1;
    }
 }
 
@@ -976,6 +976,36 @@ sub input_key_up : event_cb {
 
 }
 
+sub show_video_settings {
+   my ($self) = @_;
+
+   my $win = ui_window ("Video Settings",
+      ui_pad_box (hor =>
+         ui_desc ("Ambien light: "),
+         ui_subdesc (sprintf "%0.2f", $self->{res}->{config}->{ambient_light}),
+         ui_range (ambl => 0.0, 0.7, 0.05, "%0.2f",
+                   $self->{res}->{config}->{ambient_light}),
+      )
+   );
+
+   $self->activate_ui (mouse_settings => {
+      %$win,
+      commands => {
+         default_keys => { return => "change" }
+      },
+      command_cb => sub {
+         my ($cmd, $arg, $need_selection) = @_;
+
+         if ($cmd eq 'change') {
+            $self->{res}->{config}->{ambient_light} = $arg->{ambl};
+            $self->set_ambient_light ($self->{res}->{config}->{ambient_light});
+            $self->{res}->save_config;
+            $self->show_video_settings;
+            return 1;
+         }
+      }
+   });
+}
 sub show_mouse_settings {
    my ($self) = @_;
 
@@ -1005,7 +1035,6 @@ sub show_mouse_settings {
       }
    });
 }
-
 
 sub show_audio_settings {
    my ($self) = @_;
@@ -1066,6 +1095,7 @@ sub show_key_help {
       )
    );
 }
+
 sub show_credits {
    my ($self) = @_;
 
@@ -1097,6 +1127,7 @@ sub esc_menu {
          ui_key_explain (c  => "Connect"),
          ui_key_explain (a  => "Audio Options"),
          ui_key_explain (m  => "Mouse Options"),
+         ui_key_explain (v  => "Video Options"),
          ui_key_explain (f  => "Toggle Fullscreen"),
          ui_key_explain (t  => "About"),
          ui_key_explain (q  => "Exit (Press the 'q' key)"),
@@ -1110,7 +1141,7 @@ sub esc_menu {
             t => "credits",
             f => "fullscreen",
             m => "mouse",
-#            v => "video",
+            v => "video",
             a => "audio",
          }
       },
@@ -1134,6 +1165,11 @@ sub esc_menu {
          } elsif ($cmd eq 'mouse') {
             $self->deactivate_ui ('esc_menu');
             $self->show_mouse_settings;
+            return 1;
+
+         } elsif ($cmd eq 'video') {
+            $self->deactivate_ui ('esc_menu');
+            $self->show_video_settings;
             return 1;
 
          } elsif ($cmd eq 'fullscreen') {

@@ -64,7 +64,7 @@ sub load_config {
    } else {
       $self->{config} = {
          mouse_sens    => 8,
-         ambient_light => 0.1,
+         ambient_light => 0.2,
       };
    }
 }
