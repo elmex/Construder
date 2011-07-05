@@ -670,10 +670,6 @@ sub start_materialize {
 
       return 0 unless $data->[0] == 0;
 
-      my ($cnt, $ent) = $self->{inv}->remove ($invid);
-
-      return 0 unless $cnt;
-
       my $obj = $Games::Construder::Server::RES->get_object_by_type ($type);
       my ($time, $energy, $score) =
          $Games::Construder::Server::RES->get_type_materialize_values (
@@ -682,6 +678,10 @@ sub start_materialize {
          $self->msg (1, "You don't have enough energy to materialize the $obj->{name}!");
          return;
       }
+
+      my ($cnt, $ent) = $self->{inv}->remove ($invid);
+
+      return 0 unless $cnt;
 
       $data->[0] = 1;
       $self->do_materialize ($pos, $time, $energy, $score, $type, $ent);

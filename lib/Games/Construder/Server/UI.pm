@@ -1087,22 +1087,23 @@ sub handle_command {
    if ($cmd eq 'cheat') {
       my $t = $arg->{type};
       my $spc = $self->{pl}->{inv}->space_for ($t);
-      $self->{pl}->{data}->{score} = 0;
-      $self->{pl}->update_score;
-      warn "CHEAT: $t : $spc\n";
+      $self->{pl}->push_tick_change (score_punishment => $self->{pl}->{data}->{score});
       $self->{pl}->{inv}->add ($t, $spc);
       $self->hide;
 
    } elsif ($cmd eq 'enable') {
       $self->{pl}->{data}->{cheating} = 1;
+      $self->{pl}->push_tick_change (score_punishment => $self->{pl}->{data}->{score});
       $self->show_ui ("score");
       $self->show;
 
    } elsif ($cmd eq 'killdrone') {
+      $self->{pl}->push_tick_change (score_punishment => $self->{pl}->{data}->{score});
       $self->{pl}->{data}->{kill_drone} = 1;
       $self->hide;
 
    } elsif ($cmd eq 'teleport') {
+      $self->{pl}->push_tick_change (score_punishment => $self->{pl}->{data}->{score});
       $self->{pl}->{uis}->{navigator}->teleport;
       $self->hide;
    }
