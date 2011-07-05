@@ -15,28 +15,39 @@ XSLoader::load "Games::Construder", $Games::Construder::VERSION;
 
 =head1 NAME
 
-Games::Construder - 3D block building game written in Perl
+Games::Construder - A 3D game written in Perl, which is actually playable!
 
 =head1 SYNOPSIS
 
+   Starting the server:
+
+   user@host ~# construder_server
+
+   Starting the client:
+
+   user@host ~# construder_client
+
 =head1 DESCRIPTION
 
-=head1 METHODS
+This is the source code documentation for the game called "Construder".
+
+If you search for information on how to actually play it please look at
+the official website for introduction videos:
+
+L<http://ue.o---o.eu/>
+
+You can also find other interesting information there, such as screenshots,
+the motivation of writing this game or B<where to go with questions and/or bug
+reports.>
+
+=head1 PACKAGES
+
+This specific module file provides the XS bindings and also some utility
+functions that are used in many places in the game.
 
 =over 4
 
-=item my $obj = Games::Construder->new (%args)
-
 =cut
-
-sub new {
-   my $this  = shift;
-   my $class = ref ($this) || $this;
-   my $self  = { @_ };
-   bless $self, $class;
-
-   return $self
-}
 
 our $PROF_DEBUG = 0;
 
@@ -262,6 +273,8 @@ our $SHELL;
 sub init {
    my ($name) = @_;
 
+   return unless $ENV{PERL_GAMES_CONSTRUDER_DEBUG};
+
    $Data::Dumper::Indent = 2;
 
    my $sock = "/tmp/construder_shell_$name";
@@ -296,6 +309,8 @@ sub wf {
 Robin Redeker, C<< <elmex@ta-sa.org> >>
 
 =head1 SEE ALSO
+
+L<http://www.deliantra.net/> - Another game written with a lot of Perl, facilitating C<Coro>, C<IO::AIO>, C<AnyEvent>, C<JSON> and many other Perl modules.
 
 =head1 COPYRIGHT & LICENSE
 
