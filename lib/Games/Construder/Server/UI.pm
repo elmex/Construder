@@ -2134,6 +2134,62 @@ sub layout {
    )
 }
 
+package Games::Construder::Server::UI::PCBProg;
+use Games::Construder::UI;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   (
+      f4 => "stop",
+      f5 => "start",
+      f6 => "prev",
+      f7 => "next",
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'next') {
+      $self->{page}++;
+      $self->show;
+
+   } elsif ($cmd eq 'prev') {
+      $self->{page}--;
+      if ($self->{page} < 0) {
+         $self->{page} = 0;
+      }
+      $self->show;
+
+   } elsif ($cmd eq 'stop') {
+      $self->{ent}->{stopped} = 1;
+
+   } elsif ($cmd eq 'start') {
+      $self->{ent}->{stopped} = 0;
+
+   } elsif ($cmd eq 'save_text') {
+      $self->{pl}->{data}->{prog}->{$self->{page}} = $arg->{page};
+      $self->show;
+
+   }
+}
+
+sub layout {
+   my ($self, $entity) = @_;
+
+   $self->{ent} = $entity;
+   my $prog = $self->{pl}->{data}->{prog}->{$self->{page}};
+
+   ui_window ("PCB Programmer",
+      ui_multiline (page => $prog),
+      ui_key_inline_expl (F4 => "Stop bot."),
+      ui_key_inline_expl (F5 => "Start bot."),
+      ui_key_inline_expl (F6 => "Next page."),
+      ui_key_inline_expl (F7 => "Previous page."),
+   )
+}
+
 =back
 
 =head1 AUTHOR

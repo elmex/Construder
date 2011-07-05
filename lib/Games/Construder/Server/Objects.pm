@@ -38,6 +38,7 @@ our %TYPES_INSTANCIATE = (
    47 => \&in_vaporizer,
    48 => \&in_vaporizer,
    50 => \&in_drone,
+   51 => \&in_auto,
    62 => \&in_teleporter,
    70 => \&in_mat_upgrade,
    500 => \&in_trophy,
@@ -55,6 +56,7 @@ our %TYPES_TIMESENSITIVE = (
    47 => \&tmr_vaporizer,
    48 => \&tmr_vaporizer,
    50 => \&tmr_drone,
+   51 => \&tmr_auto,
 );
 
 our %TYPES_PERSISTENT = (
@@ -371,20 +373,14 @@ sub tmr_drone {
                my $ent = $data->[5];
                $data->[5] = undef;
 
-               my $t; $t = AE::timer 0, 0, sub {
-                  world_mutate_at ($new_pos, sub {
-                     my ($data) = @_;
-                     $data->[0] = 50;
-                     $data->[5] = $ent;
-                     warn "drone $ent moved from @$pos to @$new_pos\n";
-                     my $t; $t = AE::timer 0, 0, sub {
-                        drone_check_player_hit ($new_pos, $ent);
-                        undef $t;
-                     };
-                     return 1;
-                  });
-                  undef $t;
-               };
+               world_mutate_at ($new_pos, sub {
+                  my ($data) = @_;
+                  $data->[0] = 50;
+                  $data->[5] = $ent;
+                  warn "drone $ent moved from @$pos to @$new_pos\n";
+                  drone_check_player_hit ($new_pos, $ent);
+                  return 1;
+               });
 
                return 1;
 
@@ -463,6 +459,20 @@ sub tmr_drone {
       drone_kill ($pos, $entity);
       $pl->{uis}->{prox_warn}->show ("Drone killed!");
    }
+}
+
+sub in_auto {
+   {
+      inv => {
+         ent => {},
+         mat => {},
+      },
+      prog => ""
+   }
+}
+
+sub tmr_auto {
+   my ($pos, $entity, $type, $dt) = @_;
 }
 
 =back

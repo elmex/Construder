@@ -666,8 +666,18 @@ sub world_mutate_entity_at {
    }, need_entity => 1, %arg);
 }
 
+our $in_mutate;
+our @mutate_cont;
+
 sub world_mutate_at {
    my ($poses, $cb, %arg) = @_;
+
+   if ($in_mutate) {
+      push @mutate_cont, [$poses, $cb, %arg];
+      return,
+   }
+
+   local $in_mutate = 1;
 
    if (ref $poses->[0]) {
       my $min = [];
@@ -722,6 +732,13 @@ sub world_mutate_at {
 
    {
       Games::Construder::World::query_desetup ();
+   }
+
+   local $in_mutate = 0;
+
+   while (@mutate_cont) {
+      my $m = shift @mutate_cont;
+      world_mutate_at (@$m);
    }
 }
 
