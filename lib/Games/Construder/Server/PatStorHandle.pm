@@ -87,10 +87,11 @@ sub space_for {
    my $o = $Games::Construder::Server::RES->get_object_by_type ($type);
 
    my $cnt = (not ($o) || $o->{density} <= 0) ? 0 : int ($fdens / $o->{density});
-   warn "SPACEFOR $fdens | $cnt: $type, $fslots\n";
+   #d# warn "SPACEFOR $fdens | $cnt: $type, $fslots\n";
+
    if ($o->{permanent}) {
       $cnt = 0 if $fslots <= 0;
-      $cnt = 1; # hmmm
+
    } else {
       if ($fslots <= 0 && not exists $self->{data}->{inv}->{mat}->{$type}) {
          $cnt = 0;
@@ -179,6 +180,16 @@ sub remove {
    $self->changed;
 
    ($old_val > 0, $ent)
+}
+
+sub get_entity {
+   my ($self, $invid) = @_;
+
+   if ($invid =~ /:/) {
+      return $self->{data}->{inv}->{ent}->{$invid};
+   }
+
+   undef;
 }
 
 sub get_invids {

@@ -306,6 +306,7 @@ sub layout {
       ui_key_explain ("l",               "Create encounter (developer stuff)."),
       ui_key_explain ("h",               "Cheat."),
       ui_key_explain ("F3",              "Displays this help screen."),
+      ui_key_explain ("F4",              "Opens your trophy overview."),
       ui_key_explain ("F8",              "Commit suicide, when you want to start over."),
    )
 }
@@ -333,7 +334,7 @@ sub commands {
    (
       f2  => "menu",
       f3  => "help",
-      f4  => "contact",
+      f4  => "trophies",
       f8  => "kill",
       f9  => "teleport_home",
       f11 => "text_script",
@@ -391,10 +392,8 @@ sub handle_command {
          "Games::Construder::Server::UI::ConfirmQuery",
          msg       => "Do you really want to commit suicide?",
          cb => sub {
-            $self->delete_ui ('discard_material');
-            if ($_[0]) {
-               $self->{pl}->kill_player ("suicide");
-            }
+            $self->delete_ui ('kill_player');
+            $self->{pl}->kill_player ("suicide") if $_[0];
          });
       $self->hide;
       $self->show_ui ('kill_player');
@@ -407,6 +406,8 @@ sub handle_command {
       } else {
          $self->show_ui ('navigator');
       }
+   } elsif ($cmd eq 'trophies') {
+      $self->show_ui ("trophies");
    } elsif ($cmd eq 'exit_server') {
       exit;
    }
@@ -422,6 +423,11 @@ sub _range_color {
      $perc < $first  ? "#ff5555"
    : $perc < $second ? "#ffff55"
    : "#55ff55"
+}
+
+sub time2str {
+   my $m = int ($_[0] / 60);
+   sprintf "%2dm %2ds", $m, $_[0] - ($m * 60)
 }
 
 sub layout {
@@ -449,6 +455,7 @@ sub layout {
      ui_border (
         [box => { dir => "hor" },
            [box => { dir => "vert", padding => 2 },
+              [text => { color => "#FFFF88", font => "small" }, "Time"],
               [text => { color => "#888888", font => "small" }, "Pos"],
               #d#[text => { color => "#888888", font => "small" }, "Look"],
               [text => { color => "#888888", font => "small" }, "Chunk"],
@@ -456,6 +463,8 @@ sub layout {
               [text => { color => "#888888", font => "small" }, "Type"],
            ],
            [box => { dir => "vert", padding => 2 },
+              [text => { color => "#ffffff", font => "small" },
+                 time2str ($self->{pl}->{data}->{time})],
               [text => { color => "#ffffff", font => "small" },
                  sprintf ("%3d,%3d,%3d", @$abs_pos)],
               #d#[text => { color => "#ffffff", font => "small" },
@@ -644,6 +653,142 @@ sub layout {
    )
 }
 
+package Games::Construder::Server::UI::Paged;
+use Games::Construder::UI;
+use Games::Construder::Server::World;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub init {
+   my ($self) = @_;
+   $self->{per_page} = 9;
+}
+
+sub commands {
+   (
+      'page down' => "pdown",
+      'page up' => "pup",
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'pdown') {
+      $self->{page}++;
+      $self->show;
+
+   } elsif ($cmd eq 'pup') {
+      $self->{page}--;
+      $self->show;
+   }
+}
+
+sub elements {
+   (0, [])
+}
+
+sub cur_page {
+   my ($self) = @_;
+
+   my ($cntelem, $ar) = $self->elements;
+   my $pp      = $self->{per_page};
+   my $page_cnt =
+      (($cntelem % $pp != 0 ? 1 : 0) + int ($cntelem / $pp));
+
+   $self->{page} = 0         if $self->{page} < 0;
+   if ($page_cnt > 0) {
+      $self->{page} = $page_cnt - 1 if $self->{page} >= $page_cnt;
+   }
+   my $page = $self->{page};
+
+   ($page, $page_cnt, $pp, [splice @$ar, $page * $pp, $pp])
+}
+
+package Games::Construder::Server::UI::Trophies;
+use Games::Construder::UI;
+
+use base qw/Games::Construder::Server::UI::Paged/;
+
+sub commands {
+   my ($self) = @_;
+   (
+      $self->SUPER::commands (),
+      return => "collect",
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'collect') {
+      my $t = $arg->{trophy};
+      $self->hide;
+      $self->collect ($t);
+
+   } else {
+      $self->SUPER::handle_command ($cmd, $arg);
+   }
+}
+
+sub collect {
+   my ($self, $t) = @_;
+
+   my $tr = $self->{pl}->{data}->{trophies}->{$t};
+   my $ttype =
+      $Games::Construder::Server::RES->get_trophy_type_by_score ($t);
+
+   my $e = {
+      label =>
+         "Trophy for reaching the score $tr->[0] after "
+         . time2str (int ($tr->[1])) . " playtime.",
+   };
+
+   if ($self->{pl}->{inv}->add ($ttype, $e)) {
+      $tr->[2] = 1;
+      $self->{pl}->msg (0, "Put the trophy for $tr->[0] score into your inventory!");
+   } else {
+      $self->{pl}->msg (1, "The trophy for $tr->[0] score does not fit into your inventory!");
+   }
+}
+
+sub elements {
+   my ($self) = @_;
+
+   my $t = $self->{pl}->{data}->{trophies};
+
+   my (@t) = map { $t->{$_} } sort {
+      $b <=> $a
+   } keys %$t;
+
+   (scalar (@t), \@t)
+}
+
+sub time2str {
+   my $m = int ($_[0] / 60);
+   sprintf "%2dm %2ds", $m, $_[0] - ($m * 60)
+}
+
+sub layout {
+   my ($self) = @_;
+
+   my ($p, $lp, $epp, $elem) =
+      $self->cur_page;
+
+   ui_window ("Trophies",
+      ui_desc (
+       "Trophies " . (($p * $epp) + 1) . " to " . ((($p + 1) * $epp))),
+      ui_key_inline_expl ("page up", "Previous page."),
+      ui_key_inline_expl ("page down", "Next page."),
+      map {
+         $_->[2]
+            ? ui_subtext (sprintf "%d after %s", $_->[0], time2str (int $_->[1]))
+            : ui_select_item (trophy => $_->[0],
+                 ui_text (sprintf "%d after %s", $_->[0], time2str (int $_->[1])))
+      } @$elem
+   )
+}
+
 package Games::Construder::Server::UI::MaterialView;
 use Games::Construder::UI;
 
@@ -715,12 +860,15 @@ sub handle_command {
 }
 
 sub layout {
-   my ($self, $type) = @_;
+   my ($self, $type, $ent) = @_;
 
    $self->{invid} = $type;
    my ($type, $invid) = $self->{pl}->{inv}->split_invid ($type);
    my ($inv_cnt) = $self->{pl}->{inv}->get_count ($invid);
-   warn "MATVOIEW $inv_cnt |$type,$invid\n";
+
+   unless ($ent) {
+      $ent = $self->{pl}->{inv}->get_entity ($invid);
+   }
 
    my $o =
       $Games::Construder::Server::RES->get_object_by_type ($type);
@@ -753,6 +901,10 @@ sub layout {
       ui_pad_box (hor =>
          [box => { dir => "vert", align => "left" },
             ui_text ($o->{lore}, align => "left", wrap => 36),
+            ($ent && $ent->{label} ne ''
+               ? (ui_subtext ("This $o->{name} is labelled:"),
+                 ui_text ("$ent->{label}"))
+               : ()),
             (map { ui_subtext ($_, wrap => 36, align => "left") } @subtxts),
             [box => { dir => "vert", align => "center" },
                $inv_cnt ? (
@@ -1747,14 +1899,28 @@ package Games::Construder::Server::UI::MaterialHandbook;
 use Games::Construder::UI;
 use Games::Construder::Server::World;
 
-use base qw/Games::Construder::Server::UI/;
+use base qw/Games::Construder::Server::UI::Paged/;
+
+sub init {
+   my ($self) = @_;
+   $self->{per_page} = 9;
+}
+
+sub elements {
+   my ($self) = @_;
+
+   my (@objs) =
+      $Games::Construder::Server::RES->get_handbook_types;
+   (@objs) = sort { $a->{name} cmp $b->{name} } @objs;
+
+   (scalar (@objs), \@objs)
+}
 
 sub commands {
+   my ($self) = @_;
+
    (
-      down => "down",
-      'page down' => "down",
-      up => "up",
-      'page up' => "up",
+      $self->SUPER::commands (),
       return => "select",
    )
 }
@@ -1766,36 +1932,20 @@ sub handle_command {
       $self->hide;
       $self->show_ui ('material_view', $arg->{type});
 
-   } elsif ($cmd eq 'down') {
-      $self->{page}++;
-      $self->show;
-
-   } elsif ($cmd eq 'up') {
-      $self->{page}--;
-      $self->show;
+   } else {
+      $self->SUPER::handle_command ($cmd, $arg);
    }
 }
 
 sub layout {
    my ($self, $page) = @_;
 
-   my (@objs) =
-      $Games::Construder::Server::RES->get_handbook_types;
-   (@objs) = sort { $a->{name} cmp $b->{name} } @objs;
-
-   my $lastpage = ((@objs % 9 != 0 ? 1 : 0) + int (@objs / 9));
-   $lastpage--;
-
-   $self->{page} = $page     if defined $page;
-   $self->{page} = 0         if $self->{page} < 0;
-   $self->{page} = $lastpage if $self->{page} > $lastpage;
-   $page = $self->{page};
-
-   my (@thispage) = splice @objs, $page * 9, 9;
+   my ($page, $lastpage, $epp, $elements) =
+      $self->cur_page;
 
    ui_window ("Material Handbook",
       ui_desc (
-       "Materials " . (($page * 9) + 1) . " to " . ((($page + 1) * 9))),
+       "Materials " . (($page * $epp) + 1) . " to " . ((($page + 1) * $epp))),
       ui_key_inline_expl ("page up", "Previous page."),
       ui_key_inline_expl ("page down", "Next page."),
       (map {
@@ -1805,7 +1955,7 @@ sub layout {
                ui_text ($_->{name}, align => "center"),
             )
          )
-      } @thispage),
+      } @$elements),
    )
 }
 

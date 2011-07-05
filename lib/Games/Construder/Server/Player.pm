@@ -74,6 +74,7 @@ sub _initialize_player {
       bio       => 100,
       score     => 0,
       pos       => [0, 0, 0],
+      time      => 0,
       inv       => $inv,
       next_encounter => 10 * 60, # 10 minutes newbie safety
       slots => {
@@ -196,6 +197,7 @@ sub init {
    $self->new_ui (ship_transmission => "Games::Construder::Server::UI::ShipTransmission");
    $self->new_ui (prox_warn     => "Games::Construder::Server::UI::ProximityWarning");
    $self->new_ui (text_script   => "Games::Construder::Server::UI::TextScript");
+   $self->new_ui (trophies      => "Games::Construder::Server::UI::Trophies");
    $self->new_ui (help          => "Games::Construder::Server::UI::Help");
 
    $self->{inv} =
@@ -253,8 +255,11 @@ sub player_tick {
 
          if ($a) {
             $self->update_score ($a);
+            my $old = $self->{data}->{score};
             $self->{data}->{score} += $a;
             $self->{data}->{score} = int $self->{data}->{score};
+
+            $self->add_trophies ($old);
          }
       }  elsif ($k eq 'score_punishment') {
          $self->update_score (-$a);
@@ -363,10 +368,11 @@ sub kill_player {
    $self->msg (1, "You died of $reason, your stats and inventory were reset and you have been teleported 13 sectors away!");
    $self->{inv}->remove ('all');
    my $inv = $Games::Construder::Server::RES->get_initial_inventory;
-   $self->{inv}->{$_} = $inv->{$_} for keys %$inv;
+   $self->{data}->{inv}->{$_} = $inv->{$_} for keys %$inv;
    $self->{data}->{happyness} = 100;
    $self->{data}->{bio}       = 100;
    $self->{data}->{score}     = 0;
+   $self->update_score;
 }
 
 sub logout {
@@ -557,10 +563,10 @@ sub query {
    world_mutate_at ($pos, sub {
       my ($data) = @_;
       if ($data->[0]) {
-         $self->{uis}->{material_view}->show ($data->[0]);
+         $self->{uis}->{material_view}->show ($data->[0], $data->[5]);
       }
       return 0;
-   });
+   }, need_entity => 1);
 }
 
 sub interact {
@@ -1041,8 +1047,8 @@ sub check_assignment {
 sub finished_assignmenet {
    my ($self) = @_;
    my $score = $self->{data}->{assignment}->{score};
-   $self->msg (0, "Congratulations! You finished the assignment and got $score score.");
    $self->push_tick_change (score => $score);
+   $self->msg (0, "Congratulations! You finished the assignment and got $score score.");
    $self->{data}->{assignment} = undef;
    delete $self->{assign_timer};
    $self->check_assignment;
@@ -1051,8 +1057,8 @@ sub finished_assignmenet {
 sub cancel_assignment {
    my ($self) = @_;
    my $ass = $self->{data}->{assignment};
-   $self->msg (1, "Sorry, you failed to finish the assignment. You lose $ass->{punishment} score.");
    $self->push_tick_change (score_punishment => $ass->{punishment});
+   $self->msg (1, "Sorry, you failed to finish the assignment. You lose $ass->{punishment} score.");
    $self->{data}->{assignment} = undef;
    delete $self->{assign_timer};
    $self->check_assignment;
@@ -1094,6 +1100,27 @@ sub check_signal_jamming {
    my $pre = $self->{data}->{signal_jammed};
    $self->{data}->{signal_jammed} = @$jammers ? 1 : 0;
 }
+
+sub add_trophies {
+   my ($self, $old_score) = @_;
+   my $new_score = $self->{data}->{score};
+   my $time      = $self->{data}->{time};
+
+   my @t =
+      $Games::Construder::Server::RES->generate_trophies_for_score_change (
+         $old_score, $new_score, $time);
+
+   my $new;
+   for (@t) {
+      next if exists $self->{data}->{trophies}->{$_->[0]};
+      $self->{data}->{trophies}->{$_->[0]} = $_;
+      $new++;
+   }
+   if ($new) {
+      $self->msg (0, "Congratulations, you gained $new new trophies!");
+   }
+}
+
 
 sub send_client : event_cb {
    my ($self, $hdr, $body) = @_;

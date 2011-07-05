@@ -856,12 +856,14 @@ sub physics_tick : event_cb {
    my ($self, $dt) = @_;
 
    my $player = $self->{phys_obj}->{player};
+   my $below_feet_chnk =
+      Games::Construder::World::has_chunk (world_pos2chunk (vsubd ($player->{pos}, 0, 1, 0)));
    my $feet_chnk =
       Games::Construder::World::has_chunk (world_pos2chunk ($player->{pos}));
    my $head_chnk =
       Games::Construder::World::has_chunk (
-         world_pos2chunk (vaddd ($player->{pos}, $PL_HEIGHT)));
-   return unless $self->{ghost_mode} || $feet_chnk && $head_chnk;
+         world_pos2chunk (vaddd ($player->{pos}, 0, $PL_HEIGHT, 0)));
+   return unless $self->{ghost_mode} || $below_feet_chnk && $feet_chnk && $head_chnk;
 
    my $bx = Games::Construder::World::at (@{vaddd ($player->{pos}, 0, -1, 0)});
 

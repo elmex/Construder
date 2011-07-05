@@ -17,7 +17,7 @@
 
 #define CHUNK_ALEN (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE)
 #define POSSIBLE_OBJECTS 4096 // this is the max number of different object types!
-#define MAX_MODEL_DIM   4
+#define MAX_MODEL_DIM   6
 #define MAX_MODEL_SIZE  (MAX_MODEL_DIM * MAX_MODEL_DIM * MAX_MODEL_DIM)
 
 #define myabs(x) ((x) < 0 ? -(x) : (x))

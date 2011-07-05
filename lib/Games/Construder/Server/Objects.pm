@@ -40,6 +40,12 @@ our %TYPES_INSTANCIATE = (
    50 => \&in_drone,
    62 => \&in_teleporter,
    70 => \&in_mat_upgrade,
+   500 => \&in_trophy,
+   501 => \&in_trophy,
+   502 => \&in_trophy,
+   503 => \&in_trophy,
+   504 => \&in_trophy,
+   505 => \&in_trophy,
 );
 
 our %TYPES_TIMESENSITIVE = (
@@ -84,6 +90,12 @@ sub tick {
    my $cb = $TYPES_TIMESENSITIVE{$type}
       or return;
    $cb->($pos, $entity, $type, $dt)
+}
+
+sub in_trophy {
+   {
+      label => "ACME Inc.",
+   }
 }
 
 sub in_mat_upgrade {

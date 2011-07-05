@@ -419,7 +419,7 @@ sub calc_object_levels {
             if (@sub) {
                $o->{level} = 1;
                $o->{natural} = 1;
-            } elsif (!$o->{model}) {
+            } elsif (!$o->{model} || $o->{model_cnt} == 0) {
                $o->{level} = 9999999;
             }
             $change = 1;
@@ -444,7 +444,7 @@ sub calc_object_levels {
 
    for my $o (values %$objects) {
       push @{$self->{objects_by_level}->{$o->{level}}}, $o;
-      if ($o->{level} > $self->{max_object_level}) {
+      if ($o->{level} != 9999999 && $o->{level} > $self->{max_object_level}) {
          $self->{max_object_level} = $o->{level};
       }
    }
@@ -749,7 +749,7 @@ sub get_assignment_for_score {
    for (my $i = 0; $i < $mat_num; $i++){
       my $max;
       my (@matlvl) = sort {
-         $a <=> $b
+         $b <=> $a
       } grep {
          $_ <= $mat_level
       } keys %{$self->{objects_by_level}};
@@ -762,7 +762,7 @@ sub get_assignment_for_score {
       my $mat = $os[int (rand (@os))];
       push @materials, $mat;
 
-      $mat_level--;
+      $mat_level = $matlvl[0] - 1;
       $mat_level = 1 if $mat_level <= 0;
    }
 
@@ -828,6 +828,68 @@ sub encounter_values {
       lerp ($enc->{lifetime_min}, $enc->{lifetime_max}, rand ());
 
    ($tele_dist, $time_to_next, $lifetime)
+}
+
+sub _trophy_of {
+   my ($self, $old, $new, $score, $time) = @_;
+   my @trophies;
+   my $diff = $new - $old;
+   my $n  = int ($old / $score);
+   my $n2 = int ($new / $score);
+   for (my $i = $n; $i <= $n2; $i++) {
+      push @trophies, [$i * $score, $time];
+   }
+   @trophies
+}
+
+sub generate_trophies_for_score_change {
+   my ($self, $old, $new, $time) = @_;
+   my @trohpies;
+
+   my $t1h   = 100;
+   my $t1k   = 1000;
+   my $t10k  = 10000;
+   my $t100k = 100000;
+   my $t1m   = 1000000;
+   my $t10m  = 10000000;
+
+   for ($t1h, $t1k, $t10k, $t100k, $t1m, $t10m) {
+      if ($new < (10 * $_)) {
+         push @trohpies, $self->_trophy_of ($old, $new, $_, $time);
+         last;
+      }
+   }
+
+   @trohpies
+}
+
+sub get_trophy_type_by_score {
+   my ($self, $score) = @_;
+
+   my $t1h   = 100;
+   my $t1k   = 1000;
+   my $t10k  = 10000;
+   my $t100k = 100000;
+   my $t1m   = 1000000;
+   my $t10m  = 10000000;
+
+   my $s;
+   for ($t1h, $t1k, $t10k, $t100k, $t1m, $t10m) {
+      if ($score < (10 * $_)) {
+         $s = $_;
+         last;
+      }
+   }
+
+   my $trophyt = 504; # default :)
+
+   for my $t (keys %{$self->{object_res}}) {
+      if ($self->{object_res}->{$t}->{trophy_score} == $s) {
+         $trophyt = $t;
+      }
+   }
+
+   $trophyt
 }
 
 sub credits {
