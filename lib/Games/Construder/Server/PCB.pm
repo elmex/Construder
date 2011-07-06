@@ -27,30 +27,42 @@ sub new {
 }
 
 sub _tokens {
-   my ($stmt) = @_;
+   my ($line) = @_;
+
+   my @stmts;
 
    my (@tokens);
-   while ($stmt ne '') {
-      next if $stmt =~ s/^\s+//;
+   while ($line ne '') {
+      next if $line =~ s/^\s+//;
 
-      if ($stmt =~ s/^"([^"]+)"//) {
+      if ($line =~ s/^"([^"]+)"//) {
          push @tokens, [str => $1];
-      } elsif ($stmt =~ s/^call:(\S+)//) {
+      } elsif ($line =~ s/^call:(\S+)//) {
          push @tokens, [call => [str => $1]];
-      } elsif ($stmt =~ s/^jump:(\S+)//) {
+      } elsif ($line =~ s/^jump:(\S+)//) {
          push @tokens, [jump => [str => $1]];
-      } elsif ($stmt =~ s/^([-+]?(\d+))//) {
+      } elsif ($line =~ s/^;$//) {
+         push @stmts, [@tokens];
+         (@tokens) = ();
+         next;
+      } elsif ($line =~ s/^#.*$//) {
+         next;
+      } elsif ($line =~ s/^(\S+?)://) {
+         push @tokens, [label => $1];
+      } elsif ($line =~ s/^([-+]?(\d+))//) {
          push @tokens, [num => $1];
-      } elsif ($stmt =~ s/^\$(\S+)//) {
+      } elsif ($line =~ s/^\$(\S+)//) {
          push @tokens, [id => $1];
-      } elsif ($stmt =~ s/^(\S+)//) {
+      } elsif ($line =~ s/^(\S+)//) {
          push @tokens, [str => $1];
       } else {
-         return [error => $stmt];
+         return [error => $line];
       }
    }
 
-   @tokens
+   push @stmts, [@tokens] if @tokens;
+
+   @stmts
 }
 
 our %ROTMAP = (
@@ -320,18 +332,23 @@ sub parse {
    my ($self) = @_;
 
    my $t     = $self->{p}->{txt};
-   my @stmts = split /(;|\r?\n)/, $t;
+   my @lines = split /\r?\n/, $t;
+
+   my @stmts;
+   for my $l (@lines) {
+      push @stmts, _tokens ($l);
+   }
 
    my @ops;
 
    for my $s (@stmts) {
-      if ($s =~ /^\s*(\S+):(.*)/) {
-         $self->{p}->{lbl}->{$1} = scalar @ops;
-         $s = $2;
-      }
-
-      my ($first, @args) = _tokens ($s);
+      my ($first, @args) = @$s;
       next unless defined $first;
+
+      if ($first->[0] eq 'label') {
+         $self->{p}->{lbl}->{$first->[1]} = scalar @ops;
+         next;
+      }
 
       if ($first->[0] eq 'error') {
          return "Bad token found: '$first->[1]'";

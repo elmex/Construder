@@ -712,7 +712,7 @@ sub display {
    glPopMatrix;
 }
 
-our $MLBUFFER;
+our @MLBUFFER;
 
 sub do_multiline {
    my ($self, $el, $key, $name, $unicode) = @_;

@@ -20,6 +20,7 @@ our @EXPORT = qw/
    ui_hud_window_transparent
    ui_hlt_border
    ui_warning
+   ui_window_special
    ui_notice
    ui_select_item
    ui_range
@@ -214,15 +215,21 @@ sub ui_key_explain {
    ]
 }
 
-sub ui_window {
-   my ($title, @content) = @_;
+sub ui_window_special {
+   my ($title, $pos, @content) = @_;
    {
-      window => { pos => [ center => "center" ], bgcolor => $BG_COLOR },
+      window => { pos => $pos, bgcolor => $BG_COLOR },
       layout => ui_border (
          ui_title ($title),
          @content
       )
    }
+
+}
+
+sub ui_window {
+   my ($title, @content) = @_;
+   ui_window_special ($title, [ center => "center" ], @content)
 }
 
 sub ui_hud_window_transparent {

@@ -2199,8 +2199,8 @@ sub layout {
    my $prog = $self->{pl}->{data}->{prog}->[$self->{page}];
    $self->{ent}->{player} = $self->{pl}->{name};
 
-   ui_window ("PCB Programmer",
-      ui_multiline (page => $prog, font => "small", height => 40, wrap => -50, max_chars => 50),
+   ui_window_special ("Programmer", [ left => "center" ],
+      ui_multiline (page => $prog, font => "small", height => 40, wrap => -35, max_chars => 35),
       ui_key_inline_expl (F4 => "Stop bot."),
       ui_key_inline_expl (F5 => "Start bot."),
       ui_key_inline_expl (F6 => "Previous page."),
