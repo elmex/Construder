@@ -41,8 +41,10 @@ sub _tokens {
          push @tokens, [jump => [str => $1]];
       } elsif ($stmt =~ s/^([-+]?(\d+))//) {
          push @tokens, [num => $1];
-      } elsif ($stmt =~ s/^(\S+)//) {
+      } elsif ($stmt =~ s/^\$(\S+)//) {
          push @tokens, [id => $1];
+      } elsif ($stmt =~ s/^(\S+)//) {
+         push @tokens, [str => $1];
       } else {
          return [error => $stmt];
       }
@@ -57,11 +59,62 @@ our %BLTINS = (
    return => sub { }, # dummy
    stop   => sub { }, # dummy
 
+   mat => sub {
+      my ($self, $dir, $name, $follow) = @_;
+      if (ref $dir) {
+         return "mat: bad direction: @$dir"
+      }
+
+      unless (grep { $dir eq $_ } qw/up down forward backward left right/) {
+         return "mat: unknown direction: '$dir'";
+      }
+
+      $self->{p}->{wait} = 1;
+
+      $self->{act}->(materialize => $dir, $name, sub {
+         my ($error, $blockobj) = @_;
+         warn "MATCM @_\n";
+
+         my $arg = "";
+         if ($blockobj) {
+            $arg = $blockobj->{name};
+         }
+
+         if ($error ne '' && $follow) {
+            $self->{p}->{cc} = [@$follow, [str => $error], [str => $arg]]
+
+         } else {
+            delete $self->{p}->{wait};
+         }
+      });
+
+      "wait"
+   },
+
+   vapo => sub {
+      my ($self, $dir) = @_;
+      if (ref $dir) {
+         return "vapo: bad direction: @$dir"
+      }
+
+      unless (grep { $dir eq $_ } qw/up down forward backward left right/) {
+         return "vapo: unknown direction: '$dir'";
+      }
+
+      $self->{p}->{wait} = 1;
+      $self->{act}->(vaporize => $dir, sub {
+         delete $self->{p}->{wait};
+      });
+
+      "wait"
+   },
+
    move => sub {
       my ($self, $dir, $follow) = @_;
       if (ref $dir) {
          return "move: bad direction: @$dir"
       }
+
       unless (grep { $dir eq $_ } qw/up down forward backward left right/) {
          return "move: unknown direction: '$dir'";
       }
@@ -71,26 +124,23 @@ our %BLTINS = (
       $self->{act}->(move => $dir, sub {
          my ($blockobj) = @_;
 
-         if ($blockobj) {
-            if ($follow) {
-               $self->{p}->{cc} = [@$follow, [str => $blockobj->{name}]]
-            } else {
-               delete $self->{p}->{wait};
-            }
-         } else {
-            delete $self->{p}->{wait};
+         if ($blockobj && $follow) {
+            $self->{p}->{cc} = [@$follow, [str => $blockobj->{name}]]
          }
+
+         delete $self->{p}->{wait};
       });
 
-      return "wait"
+      "wait"
    },
    probe => sub {
    },
    apply => sub {
    },
+   wait => sub { "wait" },
    print => sub {
-      my ($self, $a) = @_;
-      $self->{pl}->msg (0, "PCB at @{$self->{pos}} prints: $a");
+      my ($self, @a) = @_;
+      $self->{pl}->msg (0, "PCB at @{$self->{pos}} prints: " . join ('', @a));
       return "wait"
    },
    if => sub {
@@ -101,39 +151,24 @@ our %BLTINS = (
 
       my $do_follow;
 
-      if ($a =~ /^[-+0-9]/) {
-         if ($op eq '==') {
-            $do_follow = ($a == $b);
-         } elsif ($op eq '!=') {
-            $do_follow = ($a != $b);
-         } elsif ($op eq '>') {
-            $do_follow = ($a > $b);
-         } elsif ($op eq '<') {
-            $do_follow = ($a < $b);
-         } elsif ($op eq '>=') {
-            $do_follow = ($a >= $b);
-         } elsif ($op eq '<=') {
-            $do_follow = ($a <= $b);
-         } else {
-            return "compare: unknown op: $op";
-         }
-
+      if ($op eq '==') {
+         $do_follow = ($a == $b);
+      } elsif ($op eq '!=') {
+         $do_follow = ($a != $b);
+      } elsif ($op eq '>') {
+         $do_follow = ($a > $b);
+      } elsif ($op eq '<') {
+         $do_follow = ($a < $b);
+      } elsif ($op eq '>=') {
+         $do_follow = ($a >= $b);
+      } elsif ($op eq '<=') {
+         $do_follow = ($a <= $b);
+      } elsif ($op eq 'eq') {
+         $do_follow = ($a eq $b);
+      } elsif ($op eq 'ne') {
+         $do_follow = ($a ne $b);
       } else {
-         if ($op eq '==') {
-            $do_follow = ($a eq $b);
-         } elsif ($op eq '!=') {
-            $do_follow = ($a ne $b);
-         } elsif ($op eq '>') {
-            $do_follow = ($a > $b);
-         } elsif ($op eq '<') {
-            $do_follow = ($a < $b);
-         } elsif ($op eq '>=') {
-            $do_follow = ($a >= $b);
-         } elsif ($op eq '<=') {
-            $do_follow = ($a <= $b);
-         } else {
-            return "compare: unknown op: $op";
-         }
+         return "compare: unknown op: $op";
       }
 
       if ($do_follow) {
@@ -143,15 +178,54 @@ our %BLTINS = (
 
       return "";
    },
-   variable => sub {
+   var => sub {
+      my ($self, $varname, $op, $value) = @_;
+      my $rv = \$self->{p}->{pad}->{$varname};
+
+      if ($op eq 'add') {
+         $$rv += $value;
+      } elsif ($op eq 'sub') {
+         $$rv -= $value;
+      } elsif ($op eq 'mul') {
+         $$rv *= $value;
+      } elsif ($op eq 'div') {
+         $$rv /= $value if $value != 0;
+      } elsif ($op eq 'mod') {
+         $$rv %= $value if $value != 0;
+      } elsif ($op eq 'set') {
+         $$rv = $value;
+
+      } elsif ($op eq 'pop') {
+         my (@elems) = split /,/, $$rv, -1;
+         $self->{p}->{pad}->{$value} = pop @elems;
+         $$rv = join ",", @elems;
+
+      } elsif ($op eq 'shift') {
+         my (@elems) = split /,/, $$rv, -1;
+         $self->{p}->{pad}->{$value} = shift @elems;
+         $$rv = join ",", @elems;
+
+      } elsif ($op eq 'unshift') {
+         if ($$rv eq '') {
+            $$rv = $value
+         } else {
+            $$rv = "$value," . $$rv
+         }
+
+      } elsif ($op eq 'push') {
+         if ($$rv eq '') {
+            $$rv = $value
+         } else {
+            $$rv .= ",$value"
+         }
+      }
+
+      return ""
    },
-   vaporize => sub {
-   },
-   collect => sub {
-   },
-   build => sub {
+   demat => sub {
    },
    inv_full => sub {
+      my ($self, $name, $follow) = @_;
    },
 );
 
@@ -174,8 +248,8 @@ sub parse {
 
       if ($first->[0] eq 'error') {
          return "Bad token found: '$first->[1]'";
-      } elsif ($first->[0] ne 'id') {
-         return "Statement must start with an identifier and not a @$first";
+      } elsif ($first->[0] ne 'str') {
+         return "Statement must start with a string and not a @$first";
       }
 
       push @ops, [$first->[1], @args];

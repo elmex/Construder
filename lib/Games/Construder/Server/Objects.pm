@@ -510,6 +510,7 @@ sub tmr_auto {
                my ($data) = @_;
                if ($data->[0] == 51) {
                   $data->[0] = 0;
+                  $data->[3] &= 0xF0; # clear color :)
                   return 1;
                }
                return 0;
@@ -517,12 +518,64 @@ sub tmr_auto {
 
 
             $data->[0] = 51;
+            $data->[3] &= 0xF0; # clear color :)
             $data->[5] = $entity;
             warn "pct $entity moved from @$pos to @$new_pos\n";
             $pos = $new_pos; # safety, so we are not moving from the same position again if the PCB code doesn't let the stepper wait...
             $cb->();
             return 1;
          });
+
+      } elsif ($op eq 'vaporize') {
+         my $dir = $DIR2VEC{$args[0]};
+         my $new_pos = vadd ($pos, $dir);
+
+         world_mutate_at ($new_pos, sub {
+            my ($data) = @_;
+            $data->[0] = 0;
+            $data->[3] &= 0xF0; # clear color :)
+            $pl->highlight ($new_pos, -$dt, [1, 1, 0]);
+            $cb->();
+            return 1;
+         });
+
+      } elsif ($op eq 'materialize') {
+         my $dir = $DIR2VEC{$args[0]};
+         my $new_pos = vadd ($pos, $dir);
+
+         my ($obj) =
+            $Games::Construder::Server::RES->get_object_by_name ($args[1]);
+         unless ($obj) {
+            $pl->msg (1, "PCB Error: No such material: '$args[1]'");
+            $cb->("no_such_material");
+            return;
+         }
+
+         warn "MATERIALIZE OBJECT: $obj | $obj->{type}\n";
+
+         world_mutate_at ($new_pos, sub {
+            my ($data) = @_;
+
+            if ($data->[0] == 0) {
+               my ($cnt, $ent) = $pl->{inv}->remove ($obj->{type});
+               unless ($cnt) {
+                  $cb->("empty");
+                  return 0;
+               }
+
+               $data->[0] = $obj->{type};
+               $data->[3] &= 0xF0; # clear color :)
+               $pl->highlight ($new_pos, $dt, [0, 1, 0]);
+               $cb->();
+               return 1;
+
+            } else {
+               $cb->("blocked" =>
+                     $Games::Construder::Server::RES->get_object_by_type ($data->[0]));
+               return 0;
+            }
+         });
+
 
       } else {
          warn "DID $op (@args)!\n";

@@ -185,17 +185,18 @@ sub ui_entry {
 }
 
 sub ui_multiline {
-   my ($arg, $txt) = @_;
+   my ($arg, $txt, %arg) = @_;
    [
       multiline => {
             font => 'normal', color => "#ffffff", arg => $arg,
             highlight => [$BG_COLOR, $BG_SEL_COLOR, $BG_SEL2_COLOR],
             max_chars => 32, wrap => -32,
-            height => 25,
+            height => 25, %arg
       },
       $txt
    ],
 }
+
 
 sub ui_key_inline_expl {
    my ($key, $desc, %args) = @_;

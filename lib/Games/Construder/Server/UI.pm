@@ -2199,11 +2199,11 @@ sub layout {
    $self->{ent}->{player} = $self->{pl}->{name};
 
    ui_window ("PCB Programmer",
-      ui_multiline (page => $prog),
+      ui_multiline (page => $prog, font => "small", height => 40, wrap => -50, max_chars => 50),
       ui_key_inline_expl (F4 => "Stop bot."),
       ui_key_inline_expl (F5 => "Start bot."),
-      ui_key_inline_expl (F6 => "Next page."),
-      ui_key_inline_expl (F7 => "Previous page."),
+      ui_key_inline_expl (F6 => "Previous page."),
+      ui_key_inline_expl (F7 => "Next page."),
    )
 }
 

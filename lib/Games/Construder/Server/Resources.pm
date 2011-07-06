@@ -245,6 +245,14 @@ sub load_object {
    $self->{object_res}->{$obj->{type}} = $obj;
 }
 
+sub get_object_by_name {
+   my ($self, $name) = @_;
+
+   grep {
+      $name eq $_->{name}
+   } values %{$self->{object_res}};
+}
+
 sub get_object_by_type {
    my ($self, $typeid) = @_;
    $typeid != 0
