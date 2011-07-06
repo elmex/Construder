@@ -22,6 +22,7 @@ our @EXPORT = qw/
    world_change_chunk_at world_change_chunk
    world_pos2id
    world_id2pos
+   world_find_free_spot
    world_init
    world
 /;
@@ -163,9 +164,13 @@ sub world_collide {
    RECOLLIDE:
    $rec++;
    # we collide too much:
-   if ($rec > 6) {
+   if ($rec > 8) {
       #d# warn "collision occured on too many things. we couldn't backoff!";
-      return ($orig_pos); # found position is as good as any...
+      my $np = world_find_free_spot ($orig_pos, 0);
+      $$rcoll = 1;
+      $np = $orig_pos unless $np;
+      $np = vaddd ($np, $rad + 0.01, $rad + 0.01, $rad + 0.01);
+      return $np;
    }
 
    my @wall_boxes = world_adjacent_walls ($pos, $rad);
@@ -244,7 +249,11 @@ sub world_collide {
    return ($pos);
 }
 
-
+sub world_find_free_spot {
+   my ($pos, $wflo) = @_;
+   $wflo = 0 unless defined $wflo;
+   Games::Construder::World::find_free_spot (@$pos, $wflo);
+}
 
 =back
 

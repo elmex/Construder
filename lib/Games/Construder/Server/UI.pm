@@ -824,6 +824,7 @@ sub _perc_to_word {
    my (@k) = sort keys %PERC;
    my $k = shift @k;
    while ($p > $k) {
+      last unless @k;
       $k = shift @k;
    }
 
@@ -861,6 +862,8 @@ sub handle_command {
 
 sub layout {
    my ($self, $type, $ent) = @_;
+
+   warn "LAYOUT MATVIEW $type | $ent\n";
 
    $self->{invid} = $type;
    my ($type, $invid) = $self->{pl}->{inv}->split_invid ($type);
@@ -2060,7 +2063,7 @@ sub layout {
          my $clr = "#" . join '', map {
             sprintf "%02x", $_ * 255
          } @$_;
-         ui_select_item (color => ($nr - 1), [text => { color => $clr }, "##"])
+         ui_select_item (color => ($nr - 1), [text => { color => $clr }, sprintf ("#%02d#", $nr - 1)])
       } @CLRMAP
    )
 }
@@ -2132,6 +2135,76 @@ sub layout {
    ui_hud_window (
       [ center => "center", 0, -0.3 ],
       [ text => { color => "#FFFF00", font => "big" }, $txt ]
+   )
+}
+
+package Games::Construder::Server::UI::PCBProg;
+use Games::Construder::Server::PCB;
+use Games::Construder::UI;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   (
+      f4 => "stop",
+      f5 => "start",
+      f6 => "prev",
+      f7 => "next",
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   my $pcb = Games::Construder::Server::PCB->new (p => $self->{ent}->{prog}, pl => $self->{pl});
+
+   if ($cmd eq 'next') {
+      $self->{page}++;
+      $self->show;
+
+   } elsif ($cmd eq 'prev') {
+      $self->{page}--;
+      if ($self->{page} < 0) {
+         $self->{page} = 0;
+      }
+      $self->show;
+
+   } elsif ($cmd eq 'stop') {
+      $pcb->clear ();
+      $self->{ent}->{time_active} = 0;
+
+   } elsif ($cmd eq 'start') {
+      $self->{ent}->{prog}->{txt} = join "\n", @{$self->{pl}->{data}->{prog}};
+      my $err = $pcb->parse ();
+      if ($err ne '') {
+         $self->{pl}->msg (1, "Compiling prog failed: $err");
+
+      } else {
+         $pcb->clear ();
+         $self->{ent}->{time_active} = 1;
+      }
+
+   } elsif ($cmd eq 'save_text') {
+      $self->{pl}->{data}->{prog}->[$self->{page}] = $arg->{page};
+      $self->show;
+
+   }
+}
+
+sub layout {
+   my ($self, $entity) = @_;
+
+   $self->{ent} = $entity if $entity;
+
+   my $prog = $self->{pl}->{data}->{prog}->[$self->{page}];
+   $self->{ent}->{player} = $self->{pl}->{name};
+
+   ui_window ("PCB Programmer",
+      ui_multiline (page => $prog, font => "small", height => 40, wrap => -50, max_chars => 50),
+      ui_key_inline_expl (F4 => "Stop bot."),
+      ui_key_inline_expl (F5 => "Start bot."),
+      ui_key_inline_expl (F6 => "Previous page."),
+      ui_key_inline_expl (F7 => "Next page."),
    )
 }
 

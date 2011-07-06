@@ -408,6 +408,22 @@
          "untransformable" : true
       },
 
+      "PCB" : {
+         "type" : 51,
+         "lore" : "A programmable construction bot.",
+         "model" : [3,
+             1, 42, 3, 42,
+          2, 27, 5, 32, 6, 37,
+             7, 42, 9, 42,
+            14, 32, 15, 42,
+            23, 32, 24, 42,
+         ],
+         "complexity" : 91,
+         "density" : 35,
+         "model_cnt" : 1,
+         "permanent" : 1, # this entity's data is stored permanently
+      },
+
       "Soylent Blue" : {
          "type" : 60,
          "texture" : ["textures.png", 320, 128, 64, 64],

@@ -108,7 +108,7 @@ sub transfer_res2client {
          } else {
             $_->[-1] = ${$_->[-1]};
          }
-         warn "PREPARE RESOURCE $_->[0]: " . length ($body) . "\n";
+         #d# warn "PREPARE RESOURCE $_->[0]: " . length ($body) . "\n";
          packet2data ({
             cmd => "resource",
             res => $_
@@ -147,6 +147,13 @@ sub schedule_chunk_upd {
    for (values %{$self->{players}}) {
       $_->push_chunk_to_network;
    }
+}
+
+sub get_player {
+   my ($self, $name) = @_;
+   grep {
+      $_->{name} eq $name
+   } values %{$self->{players}}
 }
 
 sub players_near_pos {

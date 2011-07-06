@@ -712,6 +712,8 @@ sub display {
    glPopMatrix;
 }
 
+our $MLBUFFER;
+
 sub do_multiline {
    my ($self, $el, $key, $name, $unicode) = @_;
 
@@ -740,6 +742,27 @@ sub do_multiline {
    } elsif ($name eq 'end') {
       $c->[1] = 99999;
       $hdl = 1;
+   } elsif ($name eq 'f2') {
+      (@MLBUFFER) = ($lines[$c->[0]]);
+      $hdl = 1;
+
+   } elsif ($name eq 'f3') {
+      push @MLBUFFER, $lines[$c->[0]];
+      $c->[0]++;
+      $hdl = 1;
+
+   } elsif ($name eq 'f4') {
+      push @MLBUFFER, splice @lines, $c->[0], 1;
+      $hdl = 1;
+
+   } elsif ($name eq 'f5') {
+      splice @lines, $c->[0], 0, @MLBUFFER;
+      $hdl = 1;
+
+   } elsif ($name eq 'f6') {
+      (@MLBUFFER) = ();
+      $hdl = 1;
+
    } elsif ($name eq 'backspace') {
       if ($c->[1] > 0) {
          substr $lines[$c->[0]], $c->[1] - 1, 1, '';
@@ -773,6 +796,9 @@ sub do_multiline {
       substr $lines[$c->[0]], $c->[1], 0, $unicode;
       $c->[1]++;
       $hdl = 1;
+
+   } else {
+      $hdl = 1;
    }
 
    $c->[0] = 0 if $c->[0] < 0;
@@ -799,7 +825,6 @@ sub input_key_press : event_cb {
 
    my $el = $self->{active_element};
    if ($el && $el->[1]->{active_input} && $name eq 'escape') {
-      warn "DEACV\n";
       $el->[1]->{active_input} = 0;
       $$rhandled = 1;
       $self->update;

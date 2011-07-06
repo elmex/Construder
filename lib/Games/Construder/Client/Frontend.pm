@@ -907,7 +907,7 @@ sub physics_tick : event_cb {
    unless ($self->{ghost_mode}) {
       $player->{pos} = $pos;
 
-      if ($collide_normal) {
+      if (ref $collide_normal) {
           # figure out how much downward velocity is removed:
           my $down_part;
           my $coll_depth = vlength ($collide_normal);
@@ -924,6 +924,8 @@ sub physics_tick : event_cb {
           }
           #d# warn "downpart $down_part\n";
           vismul ($player->{vel}, $down_part);
+      } elsif ($collide_normal == 1) {
+         $self->msg ("Emergency Teleport Activated. You were teleported to a free spot so you are not intermixed with something solid!");
       }
    }
 

@@ -1,5 +1,6 @@
 package Games::Construder::Server::Objects;
 use common::sense;
+use Games::Construder::Server::PCB;
 use Games::Construder::Server::World;
 use Games::Construder::Vector;
 use Games::Construder;
@@ -28,6 +29,7 @@ our %TYPES = (
    47 => \&ia_vaporizer,
    48 => \&ia_vaporizer,
    62 => \&ia_teleporter,
+   51 => \&ia_auto,
 );
 
 our %TYPES_INSTANCIATE = (
@@ -38,6 +40,7 @@ our %TYPES_INSTANCIATE = (
    47 => \&in_vaporizer,
    48 => \&in_vaporizer,
    50 => \&in_drone,
+   51 => \&in_auto,
    62 => \&in_teleporter,
    70 => \&in_mat_upgrade,
    500 => \&in_trophy,
@@ -55,6 +58,7 @@ our %TYPES_TIMESENSITIVE = (
    47 => \&tmr_vaporizer,
    48 => \&tmr_vaporizer,
    50 => \&tmr_drone,
+   51 => \&tmr_auto,
 );
 
 our %TYPES_PERSISTENT = (
@@ -371,20 +375,14 @@ sub tmr_drone {
                my $ent = $data->[5];
                $data->[5] = undef;
 
-               my $t; $t = AE::timer 0, 0, sub {
-                  world_mutate_at ($new_pos, sub {
-                     my ($data) = @_;
-                     $data->[0] = 50;
-                     $data->[5] = $ent;
-                     warn "drone $ent moved from @$pos to @$new_pos\n";
-                     my $t; $t = AE::timer 0, 0, sub {
-                        drone_check_player_hit ($new_pos, $ent);
-                        undef $t;
-                     };
-                     return 1;
-                  });
-                  undef $t;
-               };
+               world_mutate_at ($new_pos, sub {
+                  my ($data) = @_;
+                  $data->[0] = 50;
+                  $data->[5] = $ent;
+                  warn "drone $ent moved from @$pos to @$new_pos\n";
+                  drone_check_player_hit ($new_pos, $ent);
+                  return 1;
+               });
 
                return 1;
 
@@ -462,6 +460,147 @@ sub tmr_drone {
    if (delete $pl->{data}->{kill_drone}) {
       drone_kill ($pos, $entity);
       $pl->{uis}->{prox_warn}->show ("Drone killed!");
+   }
+}
+
+sub in_auto {
+   {
+      prog => { },
+   }
+}
+
+sub ia_auto {
+   my ($pl, $pos, $type, $entity) = @_;
+   $pl->{uis}->{pcb_prog}->show ($entity);
+}
+
+our %DIR2VEC = (
+   up       => [ 0,  1,  0],
+   down     => [ 0, -1,  0],
+   left     => [ 1,  0,  0],
+   right    => [-1,  0,  0],
+   forward  => [ 0,  0,  1],
+   backward => [ 0,  0, -1],
+);
+
+sub tmr_auto {
+   my ($pos, $entity, $type, $dt) = @_;
+
+   warn "PCB @ @$pos doing something\n";
+
+   my ($pl) = $Games::Construder::Server::World::SRV->get_player ($entity->{player})
+      or return;
+
+   my $pcb = Games::Construder::Server::PCB->new (p => $entity->{prog}, pl => $pl, act => sub {
+      my ($op, @args) = @_;
+      my $cb = pop @args;
+
+      if ($op eq 'move') {
+         my $dir = $DIR2VEC{$args[0]};
+         my $new_pos = vadd ($pos, $dir);
+
+         world_mutate_at ($new_pos, sub {
+            my ($data) = @_;
+            if ($data->[0] != 0) {
+               $cb->($Games::Construder::Server::RES->get_object_by_type ($data->[0]));
+               return 0;
+            }
+
+            world_mutate_at ($pos, sub {
+               my ($data) = @_;
+               if ($data->[0] == 51) {
+                  $data->[0] = 0;
+                  $data->[3] &= 0xF0; # clear color :)
+                  return 1;
+               }
+               return 0;
+            });
+
+
+            $data->[0] = 51;
+            $data->[3] &= 0xF0; # clear color :)
+            $data->[5] = $entity;
+            warn "pct $entity moved from @$pos to @$new_pos\n";
+            $pos = $new_pos; # safety, so we are not moving from the same position again if the PCB code doesn't let the stepper wait...
+            $cb->();
+            return 1;
+         });
+
+      } elsif ($op eq 'vaporize') {
+         my $dir = $DIR2VEC{$args[0]};
+         my $new_pos = vadd ($pos, $dir);
+
+         world_mutate_at ($new_pos, sub {
+            my ($data) = @_;
+            $data->[0] = 0;
+            $data->[3] &= 0xF0; # clear color :)
+            $pl->highlight ($new_pos, -$dt, [1, 1, 0]);
+            $cb->();
+            return 1;
+         });
+
+      } elsif ($op eq 'materialize') {
+         my $dir = $DIR2VEC{$args[0]};
+         my $new_pos = vadd ($pos, $dir);
+
+         my ($obj) =
+            $Games::Construder::Server::RES->get_object_by_name ($args[1]);
+         unless ($obj) {
+            $pl->msg (1, "PCB Error: No such material: '$args[1]'");
+            $cb->("no_such_material");
+            return;
+         }
+
+         warn "MATERIALIZE OBJECT: $obj | $obj->{type}\n";
+
+         world_mutate_at ($new_pos, sub {
+            my ($data) = @_;
+
+            if ($data->[0] == 0) {
+               my ($cnt, $ent) = $pl->{inv}->remove ($obj->{type});
+               unless ($cnt) {
+                  $cb->("empty");
+                  return 0;
+               }
+
+               $data->[0] = $obj->{type};
+               $data->[3] |= $args[2];
+               $pl->highlight ($new_pos, $dt, [0, 1, 0]);
+               $cb->();
+               return 1;
+
+            } else {
+               $cb->("blocked" =>
+                     $Games::Construder::Server::RES->get_object_by_type ($data->[0]));
+               return 0;
+            }
+         });
+
+
+      } else {
+         warn "DID $op (@args)!\n";
+      }
+   });
+
+   warn "PCB @ @$pos doing somethingwith $pl->{name}\n";
+
+   my $n = 10;
+   while ($n-- > 0) {
+      $pcb->{pos} = vfloor ($pos);
+      my $cmd = $pcb->step ();
+      warn "STEP COMMAND: $cmd\n";
+
+      if ($cmd eq 'wait') {
+         return;
+
+      } elsif ($cmd eq 'done') {
+         $entity->{time_active} = 0;
+         return;
+
+      } elsif ($cmd ne '') {
+         $entity->{prog}->{wait} = 1;
+         $pl->msg (1, "Program error with PCB at @$pos: $cmd");
+      }
    }
 }
 
