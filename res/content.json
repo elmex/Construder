@@ -410,7 +410,7 @@
 
       "PCB" : {
          "type" : 51,
-         "lore" : "A programmable construction bot.",
+         "lore" : "A PCB (Programmable Construction Bot). It can vaporize, materialize, dematerialize, move and probe around in the world. It's behaviour is completely determined by the program you feed it with.",
          "model" : [3,
            1, 42,  2, 27,   3, 42,
              4, 37, 5, 32, 6, 37,
