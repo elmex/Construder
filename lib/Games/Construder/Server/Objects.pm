@@ -1,5 +1,6 @@
 package Games::Construder::Server::Objects;
 use common::sense;
+use Games::Construder::Server::PCB;
 use Games::Construder::Server::World;
 use Games::Construder::Vector;
 use Games::Construder;
@@ -28,6 +29,7 @@ our %TYPES = (
    47 => \&ia_vaporizer,
    48 => \&ia_vaporizer,
    62 => \&ia_teleporter,
+   51 => \&ia_auto,
 );
 
 our %TYPES_INSTANCIATE = (
@@ -463,16 +465,90 @@ sub tmr_drone {
 
 sub in_auto {
    {
-      inv => {
-         ent => {},
-         mat => {},
-      },
-      prog => ""
+      prog => { },
    }
 }
 
+sub ia_auto {
+   my ($pl, $pos, $type, $entity) = @_;
+   $pl->{uis}->{pcb_prog}->show ($entity);
+}
+
+our %DIR2VEC = (
+   up       => [ 0,  1,  0],
+   down     => [ 0, -1,  0],
+   left     => [ 1,  0,  0],
+   right    => [-1,  0,  0],
+   forward  => [ 0,  0,  1],
+   backward => [ 0,  0, -1],
+);
+
 sub tmr_auto {
    my ($pos, $entity, $type, $dt) = @_;
+
+   warn "PCB @ @$pos doing something\n";
+
+   my ($pl) = $Games::Construder::Server::World::SRV->get_player ($entity->{player})
+      or return;
+
+   my $pcb = Games::Construder::Server::PCB->new (p => $entity->{prog}, pl => $pl, act => sub {
+      my ($op, @args) = @_;
+      my $cb = pop @args;
+
+      if ($op eq 'move') {
+         my $dir = $DIR2VEC{$args[0]};
+         my $new_pos = vadd ($pos, $dir);
+
+         world_mutate_at ($new_pos, sub {
+            my ($data) = @_;
+            if ($data->[0] != 0) {
+               $cb->($Games::Construder::Server::RES->get_object_by_type ($data->[0]));
+               return 0;
+            }
+
+            world_mutate_at ($pos, sub {
+               my ($data) = @_;
+               if ($data->[0] == 51) {
+                  $data->[0] = 0;
+                  return 1;
+               }
+               return 0;
+            });
+
+
+            $data->[0] = 51;
+            $data->[5] = $entity;
+            warn "pct $entity moved from @$pos to @$new_pos\n";
+            $pos = $new_pos; # safety, so we are not moving from the same position again if the PCB code doesn't let the stepper wait...
+            $cb->();
+            return 1;
+         });
+
+      } else {
+         warn "DID $op (@args)!\n";
+      }
+   });
+
+   warn "PCB @ @$pos doing somethingwith $pl->{name}\n";
+
+   my $n = 10;
+   while ($n-- > 0) {
+      $pcb->{pos} = vfloor ($pos);
+      my $cmd = $pcb->step ();
+      warn "STEP COMMAND: $cmd\n";
+
+      if ($cmd eq 'wait') {
+         return;
+
+      } elsif ($cmd eq 'done') {
+         $entity->{time_active} = 0;
+         return;
+
+      } elsif ($cmd ne '') {
+         $entity->{prog}->{wait} = 1;
+         $pl->msg (1, "Program error with PCB at @$pos: $cmd");
+      }
+   }
 }
 
 =back

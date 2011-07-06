@@ -824,6 +824,7 @@ sub _perc_to_word {
    my (@k) = sort keys %PERC;
    my $k = shift @k;
    while ($p > $k) {
+      last unless @k;
       $k = shift @k;
    }
 
@@ -861,6 +862,8 @@ sub handle_command {
 
 sub layout {
    my ($self, $type, $ent) = @_;
+
+   warn "LAYOUT MATVIEW $type | $ent\n";
 
    $self->{invid} = $type;
    my ($type, $invid) = $self->{pl}->{inv}->split_invid ($type);
@@ -2135,6 +2138,7 @@ sub layout {
 }
 
 package Games::Construder::Server::UI::PCBProg;
+use Games::Construder::Server::PCB;
 use Games::Construder::UI;
 
 use base qw/Games::Construder::Server::UI/;
@@ -2151,6 +2155,8 @@ sub commands {
 sub handle_command {
    my ($self, $cmd, $arg) = @_;
 
+   my $pcb = Games::Construder::Server::PCB->new (p => $self->{ent}->{prog}, pl => $self->{pl});
+
    if ($cmd eq 'next') {
       $self->{page}++;
       $self->show;
@@ -2163,13 +2169,22 @@ sub handle_command {
       $self->show;
 
    } elsif ($cmd eq 'stop') {
-      $self->{ent}->{stopped} = 1;
+      $pcb->clear ();
+      $self->{ent}->{time_active} = 0;
 
    } elsif ($cmd eq 'start') {
-      $self->{ent}->{stopped} = 0;
+      $self->{ent}->{prog}->{txt} = join "\n", @{$self->{pl}->{data}->{prog}};
+      my $err = $pcb->parse ();
+      if ($err ne '') {
+         $self->{pl}->msg (1, "Compiling prog failed: $err");
+
+      } else {
+         $pcb->clear ();
+         $self->{ent}->{time_active} = 1;
+      }
 
    } elsif ($cmd eq 'save_text') {
-      $self->{pl}->{data}->{prog}->{$self->{page}} = $arg->{page};
+      $self->{pl}->{data}->{prog}->[$self->{page}] = $arg->{page};
       $self->show;
 
    }
@@ -2178,8 +2193,10 @@ sub handle_command {
 sub layout {
    my ($self, $entity) = @_;
 
-   $self->{ent} = $entity;
-   my $prog = $self->{pl}->{data}->{prog}->{$self->{page}};
+   $self->{ent} = $entity if $entity;
+
+   my $prog = $self->{pl}->{data}->{prog}->[$self->{page}];
+   $self->{ent}->{player} = $self->{pl}->{name};
 
    ui_window ("PCB Programmer",
       ui_multiline (page => $prog),

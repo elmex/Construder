@@ -106,7 +106,7 @@ sub world_init {
 
          unless ($ent) {
             $ent = Games::Construder::Server::Objects::instance ($type);
-            warn "INSTANCE entity $eid at sector $id with type $type: $e\n";
+            warn "INSTANCE entity $eid at sector $id with type $type: $ent\n";
          } else {
             warn "PUT INSTANCED ENTITY $eid in sec $id with type $type: $ent\n";
          }
