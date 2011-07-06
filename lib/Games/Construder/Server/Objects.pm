@@ -564,7 +564,7 @@ sub tmr_auto {
                }
 
                $data->[0] = $obj->{type};
-               $data->[3] &= 0xF0; # clear color :)
+               $data->[3] |= $args[2];
                $pl->highlight ($new_pos, $dt, [0, 1, 0]);
                $cb->();
                return 1;

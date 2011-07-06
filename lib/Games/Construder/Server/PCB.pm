@@ -119,7 +119,7 @@ our %BLTINS = (
    stop   => sub { }, # dummy
 
    mat => sub {
-      my ($self, $dir, $name, $follow) = @_;
+      my ($self, $dir, $name, $color, $follow) = @_;
       if (ref $dir) {
          return "mat: bad direction: @$dir"
       }
@@ -128,9 +128,13 @@ our %BLTINS = (
          return "mat: unknown direction: '$dir'";
       }
 
+      if ($color < 0 || $color > 15) {
+         return "mat: color out of range (0-15): '$color'";
+      }
+
       $self->{p}->{wait} = 1;
 
-      $self->{act}->(materialize => $dir, $name, sub {
+      $self->{act}->(materialize => $dir, $name, $color, sub {
          my ($error, $blockobj) = @_;
 
          my $arg = "";
