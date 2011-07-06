@@ -53,6 +53,65 @@ sub _tokens {
    @tokens
 }
 
+our %ROTMAP = (
+   left => {
+      forward   => "left",
+      left      => "backward",
+      backward  => "right",
+      right     => "forward",
+      up        => "up",
+      down      => "down",
+   },
+   right => {
+      forward   => "right",
+      right     => "backward",
+      backward  => "left",
+      left      => "forward",
+      up        => "up",
+      down      => "down",
+   },
+   up => {
+      forward   => "up",
+      up        => "backward",
+      backward  => "down",
+      down      => "forward",
+      left      => "left",
+      right     => "right",
+   },
+   down => {
+      forward   => "down",
+      down      => "backward",
+      backward  => "up",
+      up        => "forward",
+      left      => "left",
+      right     => "right",
+   },
+   forward => {
+      up        => "left",
+      left      => "down",
+      down      => "right",
+      right     => "up",
+      forward   => "forward",
+      backward  => "backward",
+   },
+   backward => {
+      up        => "right",
+      right     => "down",
+      down      => "left",
+      left      => "up",
+      forward   => "forward",
+      backward  => "backward",
+   },
+   opposite => {
+      up       => "down",
+      down     => "up",
+      left     => "right",
+      right    => "left",
+      forward  => "backward",
+      backward => "forward",
+   }
+);
+
 our %BLTINS = (
    jump   => sub { }, # dummy
    call   => sub { }, # dummy
@@ -73,7 +132,6 @@ our %BLTINS = (
 
       $self->{act}->(materialize => $dir, $name, sub {
          my ($error, $blockobj) = @_;
-         warn "MATCM @_\n";
 
          my $arg = "";
          if ($blockobj) {
@@ -179,7 +237,7 @@ our %BLTINS = (
       return "";
    },
    var => sub {
-      my ($self, $varname, $op, $value) = @_;
+      my ($self, $varname, $op, $value, $out) = @_;
       my $rv = \$self->{p}->{pad}->{$varname};
 
       if ($op eq 'add') {
@@ -194,6 +252,10 @@ our %BLTINS = (
          $$rv %= $value if $value != 0;
       } elsif ($op eq 'set') {
          $$rv = $value;
+      } elsif ($op eq 'append') {
+         $$rv .= $value;
+      } elsif ($op eq 'prepend') {
+         $$rv = $value . $$rv;
 
       } elsif ($op eq 'pop') {
          my (@elems) = split /,/, $$rv, -1;
@@ -218,6 +280,27 @@ our %BLTINS = (
          } else {
             $$rv .= ",$value"
          }
+
+      } elsif ($op eq 'at') {
+         my (@elems) = split /,/, $$rv, -1;
+         if ($value > 0 && $value < @elems) {
+            $self->{p}->{pad}->{$out} = $elems[$value];
+         }
+
+      } elsif ($op eq 'turn') {
+         my $map = $ROTMAP{$value};
+         unless ($map) {
+            return "var turn: can't turn in unknown direction '$value'";
+         }
+         my $new = $map->{$$rv};
+         if ($new eq '') {
+            return "var turn: variable $varname contains unknown direction '$$rv'";
+         }
+         $$rv = $new;
+
+      } else {
+         return "var: unknown operation '$op'";
+
       }
 
       return ""
@@ -277,8 +360,6 @@ sub clear {
 
 sub step {
    my ($self, $pre_step) = @_;
-
-   warn "STEP $self->{p}->{wait} $self->{p}->{cc} $self->{p}->{ip}\n";
 
    $self->{p}->{pad}->{pos_x} = $self->{pos}->[0];
    $self->{p}->{pad}->{pos_y} = $self->{pos}->[1];
