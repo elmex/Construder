@@ -41,7 +41,7 @@ sub _tokens {
          push @tokens, [call => [str => $1]];
       } elsif ($line =~ s/^jump:(\S+)//) {
          push @tokens, [jump => [str => $1]];
-      } elsif ($line =~ s/^;$//) {
+      } elsif ($line =~ s/^;//) {
          push @stmts, [@tokens];
          (@tokens) = ();
          next;
