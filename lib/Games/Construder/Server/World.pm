@@ -64,6 +64,11 @@ our %LIGHTQUEUE;
 
 our $SRV;
 
+# neccessary so we can start other mutates
+# from inside loading or mutate callbacks:
+our $in_mutate;
+our @mutate_cont;
+
 sub world_init {
    my ($server, $region_cmds) = @_;
 
@@ -619,6 +624,14 @@ sub world_load_at_chunk {
 
 sub world_load_sector {
    my ($sec, $cb) = @_;
+
+   if ($in_mutate) {
+      push @mutate_cont, sub { world_load_sector ($sec, $cb); };
+      return;
+   }
+
+   local $in_mutate = 1;
+
    my $secid = world_pos2id ($sec);
    unless ($SECTORS{$secid}) {
       warn "LOAD SECTOR $secid\n";
@@ -631,6 +644,13 @@ sub world_load_sector {
 
    warn "SECTORS LOADED: " . scalar (keys %SECTORS) . ": "
                            . join (", ", keys %SECTORS) . " \n";
+
+   local $in_mutate = 0;
+
+   while (@mutate_cont) {
+      my $m = shift @mutate_cont;
+      $m->();
+   }
 }
 
 sub world_entity_at {
@@ -666,14 +686,11 @@ sub world_mutate_entity_at {
    }, need_entity => 1, %arg);
 }
 
-our $in_mutate;
-our @mutate_cont;
-
 sub world_mutate_at {
    my ($poses, $cb, %arg) = @_;
 
    if ($in_mutate) {
-      push @mutate_cont, [$poses, $cb, %arg];
+      push @mutate_cont, sub { world_mutate_at ($poses, $cb, %arg); };
       return,
    }
 
@@ -738,7 +755,7 @@ sub world_mutate_at {
 
    while (@mutate_cont) {
       my $m = shift @mutate_cont;
-      world_mutate_at (@$m);
+      $m->();
    }
 }
 

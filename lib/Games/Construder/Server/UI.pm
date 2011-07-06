@@ -2062,7 +2062,7 @@ sub layout {
          my $clr = "#" . join '', map {
             sprintf "%02x", $_ * 255
          } @$_;
-         ui_select_item (color => ($nr - 1), [text => { color => $clr }, "##"])
+         ui_select_item (color => ($nr - 1), [text => { color => $clr }, sprintf ("#%02d#", $nr - 1)])
       } @CLRMAP
    )
 }
