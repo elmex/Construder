@@ -584,6 +584,9 @@ sub tmr_auto {
                      $obj->{type});
 
                $entity->{used_energy} += $energy;
+               $score /= 10;
+               $score = int $score;
+               $pl->push_tick_change (score => $score);
 
                $cb->();
                return 1;
