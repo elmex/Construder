@@ -9,8 +9,9 @@ license   'gpl';
 all_from  'lib/Games/Construder.pm';
 
 makemaker_args (
-    (LIBS => [Alien::SDL->config('libs')]),
-    (INC  => Alien::SDL->config('cflags')),
+    #(LIBS => Alien::SDL->config('libs')),
+    dynamic_lib  => { OTHERLDFLAGS =>  Alien::SDL->config('libs') },
+    (CCFLAGS  => Alien::SDL->config('cflags')),
     depend => {
        "Construder.c" => "vectorlib.c world.c world_data_struct.c render.c "
                        . "world_drawing.c noise_3d.c volume_draw.c light.c"
