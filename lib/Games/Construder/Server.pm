@@ -3,6 +3,7 @@ use common::sense;
 use AnyEvent;
 use AnyEvent::Handle;
 use AnyEvent::Socket;
+use EV;
 use JSON;
 
 use Games::Construder::Protocol;
@@ -56,6 +57,16 @@ sub init {
    world_init ($self, $RES->{region_cmds});
 
    $RES->load_objects;
+
+   $self->{sigint} = AE::signal INT => sub {
+      warn "received signal INT, saving maps and players and shutting down...\n";
+      $self->shutdown;
+   };
+   $self->{sigterm} = AE::signal TERM => sub {
+      warn "received signal TERM, saving maps and players and shutting down...\n";
+      $self->shutdown;
+   };
+
 }
 
 sub listen {
@@ -77,6 +88,15 @@ sub listen {
       $self->client_connected ($cid);
       $self->handle_protocol ($cid);
    };
+}
+
+sub shutdown {
+   my ($self) = @_;
+   world_save_all ();
+   for (values %{$self->{players}}) {
+      $_->save;
+   }
+   EV::unloop;
 }
 
 sub handle_protocol {

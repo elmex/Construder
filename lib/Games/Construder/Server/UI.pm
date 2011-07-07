@@ -409,7 +409,7 @@ sub handle_command {
    } elsif ($cmd eq 'trophies') {
       $self->show_ui ("trophies");
    } elsif ($cmd eq 'exit_server') {
-      exit;
+      $Games::Construder::Server::World::SRV->shutdown;
    }
 }
 

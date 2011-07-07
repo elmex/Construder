@@ -28,6 +28,7 @@ our @EXPORT = qw/
    world_touch_sector
    world_load_at_player
    world_load_around_at
+   world_save_all
 /;
 
 
@@ -170,6 +171,16 @@ sub world_init {
    };
 
    region_init ($region_cmds);
+}
+
+sub world_save_all {
+   my ($self) = @_;
+   for my $s (@SAVE_SECTORS_QUEUE) {
+      return unless exists $SECTORS{$s->[0]};
+      if ($SECTORS{$s->[0]}->{dirty}) {
+         _world_save_sector ($s->[1]);
+      }
+   }
 }
 
 sub world_sector_dirty {
