@@ -149,13 +149,11 @@ our %BLTINS = (
       $self->{act}->(materialize => $dir, $name, $color, sub {
          my ($error, $blockobj) = @_;
 
-         my $arg = "";
-         if ($blockobj) {
-            $arg = $blockobj->{name};
-         }
+         $self->{p}->{pad}->{mat_error} = $error;
+         $self->{p}->{pad}->{mat}       = $blockobj;
 
          if ($error ne '' && $follow) {
-            $self->{p}->{cc} = [@$follow, [str => $error], [str => $arg]]
+            $self->{p}->{cc} = [@$follow, [str => $error], [str => $blockobj]]
 
          } else {
             delete $self->{p}->{wait};
@@ -166,7 +164,7 @@ our %BLTINS = (
    },
 
    vapo => sub {
-      my ($self, $dir) = @_;
+      my ($self, $dir, $follow) = @_;
       if (ref $dir) {
          return "vapo: bad direction: @$dir"
       }
@@ -177,7 +175,15 @@ our %BLTINS = (
 
       $self->{p}->{wait} = 1;
       $self->{act}->(vaporize => $dir, sub {
-         delete $self->{p}->{wait};
+         my ($name) = @_;
+
+         $self->{p}->{pad}->{vapo} = $name;
+
+         if ($follow) {
+            $self->{p}->{cc} = [@$follow, [str => $name]]
+         } else {
+            delete $self->{p}->{wait};
+         }
       });
 
       "wait"
@@ -198,23 +204,74 @@ our %BLTINS = (
       $self->{act}->(move => $dir, sub {
          my ($blockobj) = @_;
 
-         if ($blockobj && $follow) {
-            $self->{p}->{cc} = [@$follow, [str => $blockobj->{name}]]
-         }
+         $self->{p}->{pad}->{move} = $blockobj;
 
-         delete $self->{p}->{wait};
+         if ($blockobj ne "" && $follow) {
+            $self->{p}->{cc} = [@$follow, [str => $blockobj]]
+         } else {
+            delete $self->{p}->{wait};
+         }
       });
 
       "wait"
    },
    probe => sub {
+      my ($self, $dir, $follow) = @_;
+      if (ref $dir) {
+         return "probe: bad direction: @$dir"
+      }
+
+      unless (grep { $dir eq $_ } qw/up down forward backward left right/) {
+         return "probe: unknown direction: '$dir'";
+      }
+
+      $self->{p}->{wait} = 1;
+      $self->{act}->(probe => $dir, sub {
+         my ($name) = @_;
+
+         $self->{p}->{pad}->{probe} = $name;
+
+         if ($follow) {
+            $self->{p}->{cc} = [@$follow, [str => $name]]
+         } else {
+            delete $self->{p}->{wait};
+         }
+      });
+
+      "wait"
+   },
+   demat => sub {
+      my ($self, $dir, $follow) = @_;
+      if (ref $dir) {
+         return "demat: bad direction: @$dir"
+      }
+
+      unless (grep { $dir eq $_ } qw/up down forward backward left right/) {
+         return "demat: unknown direction: '$dir'";
+      }
+
+      $self->{p}->{wait} = 1;
+      $self->{act}->(dematerialize => $dir, sub {
+         my ($error, $name) = @_;
+
+         $self->{p}->{pad}->{demat_error} = $error;
+         $self->{p}->{pad}->{demat} = $name;
+
+         if ($follow) {
+            $self->{p}->{cc} = [@$follow, [str => $error], [str => $name]]
+         } else {
+            delete $self->{p}->{wait};
+         }
+      });
+
+      "wait"
    },
    apply => sub {
    },
    wait => sub { "wait" },
    print => sub {
       my ($self, @a) = @_;
-      $self->{pl}->msg (0, "PCB at @{$self->{pos}} prints: " . join ('', @a));
+      $self->{pl}->msg (0, "PCB at @{$self->{pos}}: " . join ('', @a));
       return "wait"
    },
    if => sub {
@@ -321,8 +378,6 @@ our %BLTINS = (
 
       return ""
    },
-   demat => sub {
-   },
    inv_full => sub {
       my ($self, $name, $follow) = @_;
    },
@@ -385,6 +440,8 @@ sub step {
    $self->{p}->{pad}->{pos_x} = $self->{pos}->[0];
    $self->{p}->{pad}->{pos_y} = $self->{pos}->[1];
    $self->{p}->{pad}->{pos_z} = $self->{pos}->[2];
+   $self->{p}->{pad}->{energy_used} = $self->{energy_used};
+   $self->{p}->{pad}->{energy_left} = $self->{energy_left};
 
    if ($self->{p}->{wait}) {
       my $cc = delete $self->{p}->{cc}
@@ -451,6 +508,11 @@ sub step {
          unless exists $self->{p}->{lbl}->{$call};
 
       push @{$self->{p}->{stack}}, $$rip;
+
+      if (@{$self->{p}->{stack}} > 500000) {
+         return "exception: stack too large, too many calls without return!";
+      }
+
       my $i = 0;
       $self->{p}->{pad}->{"arg" . ($i++)} = $_
          for @res;

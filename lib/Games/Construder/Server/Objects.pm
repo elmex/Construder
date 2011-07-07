@@ -464,8 +464,11 @@ sub tmr_drone {
 }
 
 sub in_auto {
+   my ($type) = @_;
+
    {
       prog => { },
+      used_energy => 0,
    }
 }
 
@@ -491,6 +494,9 @@ sub tmr_auto {
    my ($pl) = $Games::Construder::Server::World::SRV->get_player ($entity->{player})
       or return;
 
+   my ($pcb_obj) =
+      $Games::Construder::Server::RES->get_object_by_type ($type);
+
    my $pcb = Games::Construder::Server::PCB->new (p => $entity->{prog}, pl => $pl, act => sub {
       my ($op, @args) = @_;
       my $cb = pop @args;
@@ -502,7 +508,8 @@ sub tmr_auto {
          world_mutate_at ($new_pos, sub {
             my ($data) = @_;
             if ($data->[0] != 0) {
-               $cb->($Games::Construder::Server::RES->get_object_by_type ($data->[0]));
+               my $obj = $Games::Construder::Server::RES->get_object_by_type ($data->[0]);
+               $cb->($obj->{name});
                return 0;
             }
 
@@ -515,7 +522,6 @@ sub tmr_auto {
                }
                return 0;
             });
-
 
             $data->[0] = 51;
             $data->[3] &= 0xF0; # clear color :)
@@ -532,10 +538,16 @@ sub tmr_auto {
 
          world_mutate_at ($new_pos, sub {
             my ($data) = @_;
+
+            $entity->{used_energy} += 1;
+
+            my ($obj) =
+               $Games::Construder::Server::RES->get_object_by_type ($data->[0]);
+
             $data->[0] = 0;
             $data->[3] &= 0xF0; # clear color :)
             $pl->highlight ($new_pos, -$dt, [1, 1, 0]);
-            $cb->();
+            $cb->($obj->{type} != 0 ? $obj->{name} : "");
             return 1;
          });
 
@@ -566,16 +578,75 @@ sub tmr_auto {
                $data->[0] = $obj->{type};
                $data->[3] |= $args[2];
                $pl->highlight ($new_pos, $dt, [0, 1, 0]);
+
+               my ($time, $energy, $score) =
+                  $Games::Construder::Server::RES->get_type_materialize_values (
+                     $obj->{type});
+
+               $entity->{used_energy} += $energy;
+
                $cb->();
                return 1;
 
             } else {
-               $cb->("blocked" =>
-                     $Games::Construder::Server::RES->get_object_by_type ($data->[0]));
+               my $obj = $Games::Construder::Server::RES->get_object_by_type ($data->[0]);
+               $cb->("blocked" => $obj->{name});
                return 0;
             }
+
          });
 
+      } elsif ($op eq 'dematerialize') {
+         my $dir = $DIR2VEC{$args[0]};
+         my $new_pos = vadd ($pos, $dir);
+
+         world_mutate_at ($new_pos, sub {
+            my ($data) = @_;
+
+            if ($data->[0] == 0) {
+               $cb->("", "");
+               return 0;
+            }
+
+            my ($obj) =
+               $Games::Construder::Server::RES->get_object_by_type ($data->[0]);
+
+            my ($time, $energy, $score) =
+               $Games::Construder::Server::RES->get_type_dematerialize_values (
+                  $obj->{type});
+
+            if ($pl->{inv}->add ($data->[0], $data->[5] || 1)) {
+               $pl->highlight ($new_pos, $dt, [1, 0, 0]);
+               $data->[0] = 0;
+               $data->[3] &= 0xF0;
+               $data->[5] = undef;
+               $entity->{used_energy} += $energy;
+               $cb->("", $obj->{name});
+               return 1;
+
+            } else {
+               $cb->("inv_full", $obj->{name});
+               return 0;
+            }
+         }, need_entity => 1);
+
+      } elsif ($op eq 'probe') {
+         my $dir = $DIR2VEC{$args[0]};
+         my $new_pos = vadd ($pos, $dir);
+
+         world_mutate_at ($new_pos, sub {
+            my ($data) = @_;
+
+            if ($data->[0] == 0) {
+               $cb->("");
+               return 0;
+            }
+
+            my ($obj) =
+               $Games::Construder::Server::RES->get_object_by_type ($data->[0]);
+            $cb->($obj->{name});
+            return 0;
+         });
 
       } else {
          warn "DID $op (@args)!\n";
@@ -587,20 +658,37 @@ sub tmr_auto {
    my $n = 10;
    while ($n-- > 0) {
       $pcb->{pos} = vfloor ($pos);
+      $pcb->{energy_used} = $entity->{used_energy};
+      $pcb->{energy_left} = ($pcb_obj->{energy} - $entity->{used_energy});
       my $cmd = $pcb->step ();
       warn "STEP COMMAND: $cmd\n";
 
       if ($cmd eq 'wait') {
-         return;
+         last;
 
       } elsif ($cmd eq 'done') {
          $entity->{time_active} = 0;
-         return;
+         last;
 
       } elsif ($cmd ne '') {
          $entity->{prog}->{wait} = 1;
          $pl->msg (1, "Program error with PCB at @$pos: $cmd");
       }
+   }
+
+   if ($pcb_obj->{energy} < $entity->{used_energy}) {
+      $pl->msg (1, "PCB at @$pos ran out of energy and vaporized itself.");
+
+      $pl->highlight ($pos, -$dt, [1, 1, 0]);
+      world_mutate_at ($pos, sub {
+         my ($data) = @_;
+         if ($data->[0] == 51) {
+            $data->[0] = 0;
+            $data->[3] &= 0xF0; # clear color :)
+            return 1;
+         }
+         return 0;
+      });
    }
 }
 

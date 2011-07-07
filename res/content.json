@@ -427,6 +427,7 @@
          "complexity" : 91,
          "density" : 35,
          "model_cnt" : 1,
+         "energy" : 1000,
          "permanent" : 1, # this entity's data is stored permanently
       },
 
