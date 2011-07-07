@@ -2150,6 +2150,7 @@ sub commands {
       f5 => "start",
       f6 => "prev",
       f7 => "next",
+      f8 => "reference",
    )
 }
 
@@ -2188,6 +2189,10 @@ sub handle_command {
       $self->{pl}->{data}->{prog}->[$self->{page}] = $arg->{page};
       $self->show;
 
+   } elsif ($cmd eq 'reference') {
+      $self->{ref} = not $self->{ref};
+      $self->show;
+
    }
 }
 
@@ -2199,13 +2204,37 @@ sub layout {
    my $prog = $self->{pl}->{data}->{prog}->[$self->{page}];
    $self->{ent}->{player} = $self->{pl}->{name};
 
-   ui_window_special ("Programmer", [ left => "center" ],
-      ui_multiline (page => $prog, font => "small", height => 40, wrap => -42, max_chars => 42),
-      ui_key_inline_expl (F4 => "Stop bot."),
-      ui_key_inline_expl (F5 => "Start bot."),
-      ui_key_inline_expl (F6 => "Previous page."),
-      ui_key_inline_expl (F7 => "Next page."),
-   )
+   if ($self->{ref}) {
+      return
+      ui_window_special ("Programmer Reference", [ left => "center" ],
+
+         ui_small_text (<<REF),
+<string> looks like: '"abc d e ef"', '"test"' or just bare 'test'.
+<direction> is a string that can one of 6 values: forward, backward, left, right, up, down
+<color> is a number from 0 to 15.
+<callback> can be 'call:<labelname>' or 'jump:<labelname>'.
+<material> is a string with the material name.
+
+jump <string> <arguments> - Jumps to label <string>, setting variables arg0, arg1, ...
+call <string> <arguments> - Saves return address and jumps to <string>, setting  variables as jump does.
+return <arguments>        - Return from a call and set variables ret0, ret1, ...
+stop                      - Halt the PCB.
+
+mat <direction> <material> <color> <callback> - Materializes the material from inventory with color to direction.
+REF
+         ui_key_inline_expl (F8 => "Hide Reference Sheet."),
+      )
+   } else {
+      return
+      ui_window_special ("Programmer", [ left => "center" ],
+         ui_multiline (page => $prog, font => "small", height => 40, wrap => -42, max_chars => 42),
+         ui_key_inline_expl (F4 => "Stop bot."),
+         ui_key_inline_expl (F5 => "Start bot."),
+         ui_key_inline_expl (F6 => "Previous page."),
+         ui_key_inline_expl (F7 => "Next page."),
+         ui_key_inline_expl (F8 => "Show Reference Sheet."),
+      )
+   }
 }
 
 =back
