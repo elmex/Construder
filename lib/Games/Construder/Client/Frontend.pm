@@ -1145,10 +1145,11 @@ sub esc_menu {
          ui_subdesc (
             "(To activate the menu item, press the key in the square brackets)"),
          ui_key_explain (F1 => "Keybindings Help (Client)"),
-         ui_key_explain (s  => "Connection Settings"),
-         ui_key_explain (d  => "Disconnect"),
-         ui_key_explain (c  => "Connect"),
-         ui_key_explain (a  => "Audio Options"),
+ # not yet implemented:
+ #        ui_key_explain (s  => "Connection Settings"),
+ #        ui_key_explain (d  => "Disconnect"),
+ #        ui_key_explain (c  => "Connect"),
+ #        ui_key_explain (a  => "Audio Options"),
          ui_key_explain (m  => "Mouse Options"),
          ui_key_explain (v  => "Video Options"),
          ui_key_explain (f  => "Toggle Fullscreen"),
