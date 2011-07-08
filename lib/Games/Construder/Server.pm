@@ -217,8 +217,8 @@ sub handle_player_packet : event_cb {
       $player->ui_res ($hdr->{ui}, $hdr->{ui_command}, $hdr->{arg},
                        [$hdr->{pos}, $hdr->{build_pos}]);
 
-   } elsif ($hdr->{cmd} eq 'player_pos') {
-      $player->update_pos ($hdr->{pos}, $hdr->{look_vec});
+   } elsif ($hdr->{cmd} eq 'p') {
+      $player->update_pos ($hdr->{p}, $hdr->{l});
 
    } elsif ($hdr->{cmd} eq 'set_player_pos_ok') {
       $player->unfreeze_update_pos ($hdr->{id});
@@ -274,7 +274,7 @@ sub login {
 sub handle_packet : event_cb {
    my ($self, $cid, $hdr, $body) = @_;
 
-   if ($hdr->{cmd} ne 'player_pos') {
+   if ($hdr->{cmd} ne 'p') {
       warn "srv($cid)< $hdr->{cmd}\n";
    }
 

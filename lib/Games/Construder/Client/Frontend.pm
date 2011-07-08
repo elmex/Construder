@@ -303,6 +303,11 @@ sub set_player_pos {
    $self->calc_visibility;
 }
 
+sub set_other_poses {
+   my ($self, $poses) = @_;
+   $self->{other_players} = @$poses;
+}
+
 sub get_visible_chunks {
    my ($self) = @_;
    Games::Construder::Util::visible_chunks_at (

@@ -41,6 +41,8 @@ our @EXPORT = qw/
    vnorm_2d vinorm_2d
 
    vaccum
+
+   vcompres
 /;
 
 =head1 NAME
@@ -166,6 +168,15 @@ sub vlength_2d { sqrt (vdot_2d ($_[0], $_[0])) }
 
 sub vnorm_2d  { vsdiv_2d ($_[0] , defined $_[1] ? $_[1] : vlength_2d ($_[0])) }
 sub vinorm_2d { visdiv_2d ($_[0], defined $_[1] ? $_[1] : vlength_2d ($_[0])) }
+
+sub vcompres {
+   my ($p) = @_;
+   [
+      map {
+         (sprintf "%0.4f", $_) * 1
+      } @$p
+   ]
+}
 
 =back
 
