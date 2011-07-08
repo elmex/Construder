@@ -92,7 +92,7 @@ sub _initialize_player {
       pos       => [0, 0, 0],
       time      => 0,
       inv       => $inv,
-      next_encounter => 10 * 60, # 10 minutes newbie safety
+      next_encounter => 15 * 60, # 15 minutes newbie safety
       slots => {
          selection => [],
          selected  => 0

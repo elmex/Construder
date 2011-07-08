@@ -162,12 +162,21 @@ sub layout_text {
       for (@lines) {
          my @words = split /\s+/, $_;
          my $line = "";
+         my $force = 0;
          while (@words) {
-            if (length ($line) >= $wrap) {
+            my $w = shift @words;
+            my $new_line = $line . "$w ";
+
+            if ($force || length ($new_line) <= $wrap) {
+               $line = $new_line;
+               $force = 0;
+
+            } else {
                push @olines, $line;
                $line = "";
+               unshift @words, $w;
+               $force = 1;
             }
-            $line .= (shift @words) . " ";
          }
          push @olines, $line;
       }
@@ -684,6 +693,7 @@ sub display {
    glPushMatrix;
    my $z = -8;
    $z-- if $self->{sticky};
+   $z += 0.5 if $self->{desc}->{window}->{force_one_higher};
    glTranslatef (@$pos, $z);
    my $a = $self->{desc}->{window}->{alpha};
    $a = 1 unless defined $a;

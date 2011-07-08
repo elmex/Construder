@@ -33,6 +33,7 @@ our @EXPORT = qw/
    ui_caption
    ui_small_text
    ui_hud_window
+   ui_hud_window_above
    ui_hud_window_transparent
    ui_hlt_border
    ui_warning
@@ -267,6 +268,17 @@ sub ui_hud_window {
       ]
    }
 }
+
+sub ui_hud_window_above {
+   my ($pos, @content) = @_;
+   {
+      window => { force_one_higher => 1, pos => $pos, bgcolor => $BG_COLOR, sticky => 1, alpha => 0.65 },
+      layout => [ box => { dir => "vert" },
+         @content
+      ]
+   }
+}
+
 
 =back
 

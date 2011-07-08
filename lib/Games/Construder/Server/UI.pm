@@ -354,6 +354,7 @@ sub commands {
       f8  => "kill",
       f9  => "teleport_home",
       f11 => "text_script",
+      f10 => "text_script_hide",
       f12 => "exit_server",
       i   => "inventory",
       n   => "navigation_programmer",
@@ -401,6 +402,8 @@ sub handle_command {
       $self->show_ui ('color_select');
    } elsif ($cmd eq 'text_script') {
       $self->show_ui ('text_script');
+   } elsif ($cmd eq 'text_script_hide') {
+      $self->hide_ui ('text_script');
    } elsif ($cmd eq 'encounter') {
       $self->{pl}->create_encounter;
    } elsif ($cmd eq 'kill') {
@@ -762,7 +765,7 @@ sub collect {
 
    if ($self->{pl}->{inv}->add ($ttype, $e)) {
       $tr->[2] = 1;
-      $self->{pl}->msg (0, "Put the trophy for $tr->[0] score into your inventory!");
+      $self->{pl}->msg (0, "Transferred the trophy for $tr->[0] score into your inventory!");
    } else {
       $self->{pl}->msg (1, "The trophy for $tr->[0] score does not fit into your inventory!");
    }
@@ -1853,7 +1856,6 @@ use base qw/Games::Construder::Server::UI/;
 
 sub commands {
    (
-      f4 => "clear",
       f6 => "prev",
       f7 => "next",
    )
@@ -1866,10 +1868,6 @@ sub handle_command {
 
    if ($cmd eq 'save_text') {
       $self->{pl}->{data}->{notebook}->{main}->[$pg] = $arg->{page};
-
-   } elsif ($cmd eq 'clear') {
-      $self->{pl}->{data}->{notebook}->{main}->[$pg] = "";
-      $self->show;
 
    } elsif ($cmd eq 'next') {
       $self->{pl}->{data}->{notebook}->{cur_page}++;
@@ -1892,9 +1890,8 @@ sub layout {
    ui_window ("Notebook",
       ui_desc ("Page " . ($pg + 1)),
       ui_multiline (page => $txt),
-      ui_key_inline_expl (F4 => "Clears all text."),
-      ui_key_inline_expl (F6 => "Next page."),
-      ui_key_inline_expl (F7 => "Previous page."),
+      ui_key_inline_expl (F6 => "Previous page."),
+      ui_key_inline_expl (F7 => "Next page."),
    )
 }
 
@@ -2136,33 +2133,62 @@ use Games::Construder::UI;
 use base qw/Games::Construder::Server::UI/;
 
 sub layout {
-   my ($self) = @_;
+   my ($self, $chrs) = @_;
 
-   my (@records) = split /\n/, $self->{pl}->{data}->{notebook}->{main}->[$self->{pl}->{data}->{notebook}->{cur_page}];
+   unless ($chrs) {
+      my (@records) =
+         split /\n/,
+            join "\n", @{$self->{pl}->{data}->{notebook}->{main}};
 
-   $self->{idx}++;
-   if ($self->{idx} >= @records) {
-      $self->{idx} = 0;
+      $self->{idx}++;
+      if ($self->{idx} >= @records) {
+         $self->{idx} = 0;
+      }
+
+      my $txt = $records[$self->{idx}];
+      $txt =~ s/\\n/\n/g;
+      $self->{cur_text} = $txt;
    }
 
-   my $txt = $records[$self->{idx}];
-   $txt =~ s/\\n/\n/g;
+   my $txt = $self->{cur_text};
 
    my $font = "normal";
+   my $wrap = 40;
    if ($txt =~ s/^!big\s*//) {
-      $font = "big"
+      $font = "big";
+      $wrap = 27;
    } elsif ($txt =~ s/^!small\s*//) {
       $font = "small";
+      $wrap = 50;
    }
    my $pos = [ left => "center" ];
    if ($txt =~ s/^!middle\s*//) {
       $pos = [ center => "center" ];
    }
 
-   ui_hud_window (
+   my $tl = length $txt;
+
+   $txt = substr $txt, 0, $chrs;
+
+   my $w = ui_hud_window_above (
       $pos,
-      [ text => { color => "#FFFF00", font => $font }, $txt ]
-   )
+      [ text => { color => "#FFFF00", font => $font, wrap => $wrap }, $txt ]
+   );
+
+   my $add = 0.05;
+   if ($txt =~ /[,\.]\s+$/s) {
+      $add = 0.5; # even longer after dot or comma
+   }
+
+   $self->{timer} = AE::timer $add + rand (0.11), 0, sub {
+      $self->show ($chrs + 1);
+   };
+
+   if ($tl <= $chrs) {
+      delete $self->{timer};
+   }
+
+   $w
 }
 
 package Games::Construder::Server::UI::PCBProg;

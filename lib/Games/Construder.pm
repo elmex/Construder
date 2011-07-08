@@ -24,7 +24,7 @@ our @EXPORT = qw/
    ctr_prof
 /;
 
-our $VERSION = '0.8';
+our $VERSION = '0.9';
 
 use XSLoader;
 XSLoader::load "Games::Construder", $Games::Construder::VERSION;

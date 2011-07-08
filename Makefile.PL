@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use inc::Module::Install;
 use Alien::SDL;
+use OpenGL::Config;
 
 name      'Games-Construder';
 author    'Robin Redeker <elmex@ta-sa.org>';
@@ -10,8 +11,9 @@ all_from  'lib/Games/Construder.pm';
 
 makemaker_args (
     #(LIBS => Alien::SDL->config('libs')),
-    dynamic_lib  => { OTHERLDFLAGS =>  Alien::SDL->config('libs') },
-    (CCFLAGS  => Alien::SDL->config('cflags')),
+    dynamic_lib  => { OTHERLDFLAGS => Alien::SDL->config('libs') . " " . $OpenGL::Config->{LIBS}},
+ #   DEFINE => $OpenGL::Config->{DEFINE},
+    (CCFLAGS  => Alien::SDL->config('cflags') . " " . $OpenGL::Config->{INC}),
     depend => {
        "Construder.c" => "vectorlib.c world.c world_data_struct.c render.c "
                        . "world_drawing.c noise_3d.c volume_draw.c light.c"
