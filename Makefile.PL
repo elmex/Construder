@@ -11,7 +11,10 @@ all_from  'lib/Games/Construder.pm';
 
 makemaker_args (
     #(LIBS => Alien::SDL->config('libs')),
-    dynamic_lib  => { OTHERLDFLAGS => Alien::SDL->config('libs') . " " . $OpenGL::Config->{LIBS}},
+    dynamic_lib  => {
+       OTHERLDFLAGS => Alien::SDL->config('libs') . " " . $OpenGL::Config->{LIBS}
+                       . ($^O eq 'MSWin32' ? " -lopengl32 -lglu32 -L\"C:\\strawberry\\perl\\site\\bin\" -lfreeglut " : "")
+    },
  #   DEFINE => $OpenGL::Config->{DEFINE},
     (CCFLAGS  => Alien::SDL->config('cflags') . " " . $OpenGL::Config->{INC}),
     depend => {
