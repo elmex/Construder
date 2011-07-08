@@ -2148,9 +2148,20 @@ sub layout {
    my $txt = $records[$self->{idx}];
    $txt =~ s/\\n/\n/g;
 
+   my $font = "normal";
+   if ($txt =~ s/^!big\s*//) {
+      $font = "big"
+   } elsif ($txt =~ s/^!small\s*//) {
+      $font = "small";
+   }
+   my $pos = [ left => "center" ];
+   if ($txt =~ s/^!middle\s*//) {
+      $pos = [ center => "center" ];
+   }
+
    ui_hud_window (
-      [ center => "center", 0, -0.3 ],
-      [ text => { color => "#FFFF00", font => "big" }, $txt ]
+      $pos,
+      [ text => { color => "#FFFF00", font => $font }, $txt ]
    )
 }
 
