@@ -18,7 +18,7 @@ makemaker_args (
  #   DEFINE => $OpenGL::Config->{DEFINE},
     (CCFLAGS  => Alien::SDL->config('cflags') . " " . $OpenGL::Config->{INC}),
     depend => {
-       "Construder.c" => "vectorlib.c world.c world_data_struct.c render.c "
+       "Construder.c" => "vectorlib.c world.c world_data_struct.c render.c queue.c "
                        . "world_drawing.c noise_3d.c volume_draw.c light.c"
     },
 );
