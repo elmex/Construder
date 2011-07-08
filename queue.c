@@ -19,12 +19,12 @@
  * Mainly used by the light algorithm at the moment of this writing.
  */
 typedef struct _ctr_queue {
-    void         *data;
-    void         *data_end;
+    unsigned char *data;
+    unsigned char *data_end;
     unsigned int  item_size;
     unsigned int  alloc_items;
-    void *start, *end;
-    void *freeze_start, *freeze_end;
+    unsigned char *start, *end;
+    unsigned char *freeze_start, *freeze_end;
 } ctr_queue;
 
 void ctr_queue_clear (ctr_queue *q)
@@ -35,11 +35,11 @@ void ctr_queue_clear (ctr_queue *q)
 
 ctr_queue *ctr_queue_new (unsigned int item_size, unsigned int alloc_items)
 {
-  ctr_queue *q = malloc (sizeof (ctr_queue));
+  ctr_queue *q = safemalloc (sizeof (ctr_queue));
 
   assert (alloc_items > 1);
 
-  q->data     = malloc (item_size * alloc_items);
+  q->data     = safemalloc (item_size * alloc_items);
   q->data_end = q->data + (item_size * alloc_items);
 
   q->item_size   = item_size;
@@ -52,8 +52,8 @@ ctr_queue *ctr_queue_new (unsigned int item_size, unsigned int alloc_items)
 
 void ctr_queue_free (ctr_queue *q)
 {
-  free (q->data);
-  free (q);
+  safefree (q->data);
+  safefree (q);
 }
 
 void ctr_queue_enqueue (ctr_queue *q, void *item)

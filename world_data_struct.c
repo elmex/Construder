@@ -41,7 +41,7 @@ void ctr_axis_array_grow (ctr_axis_array *arr, unsigned int min_size)
   if (arr->alloc == 0)
     {
       arr->alloc = 64;
-      arr->nodes = malloc (sizeof (ctr_axis_node) * arr->alloc);
+      arr->nodes = safemalloc (sizeof (ctr_axis_node) * arr->alloc);
       memset (arr->nodes, 0, sizeof (ctr_axis_node) * arr->alloc);
       arr->len = 0;
       return;
@@ -52,17 +52,17 @@ void ctr_axis_array_grow (ctr_axis_array *arr, unsigned int min_size)
   while (arr->alloc < min_size)
     arr->alloc *= 2;
 
-  ctr_axis_node *newnodes = malloc (sizeof (ctr_axis_node) * arr->alloc);
+  ctr_axis_node *newnodes = safemalloc (sizeof (ctr_axis_node) * arr->alloc);
   assert (newnodes);
   memset (newnodes, 0, sizeof (ctr_axis_node) * arr->alloc);
   memcpy (newnodes, arr->nodes, sizeof (ctr_axis_node) * oa);
-  free (arr->nodes);
+  safefree (arr->nodes);
   arr->nodes = newnodes;
 }
 
 ctr_axis_array *ctr_axis_array_new ()
 {
-  ctr_axis_array *na = malloc (sizeof (ctr_axis_array));
+  ctr_axis_array *na = safemalloc (sizeof (ctr_axis_array));
   memset (na, 0, sizeof (ctr_axis_array));
   na->len = 0;
   na->alloc = 0;

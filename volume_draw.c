@@ -123,12 +123,12 @@ void vol_draw_alloc (unsigned int size)
   if (DRAW_CTX.buffers[0])
     {
       for (i = 0; i < 4; i++)
-        free (DRAW_CTX.buffers[i]);
+        safefree (DRAW_CTX.buffers[i]);
     }
 
   for (i = 0; i < 4; i++)
     {
-      DRAW_CTX.buffers[i] = malloc (sizeof (double) * size * size * size);
+      DRAW_CTX.buffers[i] = safemalloc (sizeof (double) * size * size * size);
       memset (DRAW_CTX.buffers[i], 0, sizeof (double) * size * size * size);
     }
 

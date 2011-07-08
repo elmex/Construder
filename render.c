@@ -73,8 +73,10 @@ double clr_map[16][3] = {
 };
 
 // NOTE: some combinations of these two variables are not implemented:
+#ifndef _WIN32
 #define USE_VBO 1
 #define USE_SINGLE_BUFFER 1
+#endif
 
 #define VERT_P_PRIM 6
 
@@ -97,7 +99,7 @@ void ctr_dyn_buf_init (ctr_dyn_buf *db, void **ptr, unsigned int pa_items,
                        unsigned int item_size)
 {
   db->ptr = ptr;
-  *(db->ptr) = malloc (pa_items * item_size);
+  *(db->ptr) = safemalloc (pa_items * item_size);
   db->item = item_size;
   db->alloc = pa_items;
 }
@@ -109,7 +111,7 @@ void ctr_dyn_buf_grow (ctr_dyn_buf *db, unsigned int items)
 
   items *= 2;
 
-  void *nb = malloc (items * db->item);
+  void *nb = safemalloc (items * db->item);
   memcpy (nb, *(db->ptr), db->alloc * db->item);
   free (*(db->ptr));
   *(db->ptr) = nb;
@@ -195,7 +197,7 @@ void *ctr_render_new_geom ()
     }
   else
     {
-      c = malloc (sizeof (ctr_render_geom));
+      c = safemalloc (sizeof (ctr_render_geom));
       cgeom++;
       memset (c, 0, sizeof (ctr_render_geom));
       c->dl = glGenLists (1);
@@ -267,7 +269,7 @@ void ctr_render_free_geom (void *c)
 # endif
       glDeleteBuffers (1, &geom->vbo_vert_idxs);
 #endif
-      free (geom);
+      safefree (geom);
       cgeom--;
     }
 }

@@ -119,13 +119,22 @@ sub start {
    $c->recv;
 }
 
+sub reconnect {
+   my ($self) = @_;
+   $self->connect ($self->{host}, $self->{port});
+}
+
 sub connect {
    my ($self, $host, $port) = @_;
 
+   ($self->{host}, $self->{port}) = ($host, $port);
+
+   delete $self->{recon};
    tcp_connect $host, $port, sub {
       my ($fh) = @_;
       unless ($fh) {
          $self->{front}->msg ("Couldn't connect to server: $!");
+         $self->{recon} = AE::timer 5, 0, sub { $self->reconnect; };
          return;
       }
 
@@ -280,6 +289,7 @@ sub disconnected : event_cb {
    my ($self) = @_;
    delete $self->{srv};
    $self->{front}->msg ("Disconnected from server!");
+   $self->{recon} = AE::timer 5, 0, sub { $self->reconnect; };
 }
 
 =back

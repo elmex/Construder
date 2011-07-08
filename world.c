@@ -118,10 +118,10 @@ void ctr_world_init ()
   neighbour_cell.visible = 1;
   light_upd_queue_1 =
      ctr_queue_new (sizeof (ctr_light_item),
-                    CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * MAX_LIGHT_RADIUS_CHUNKS);
+                    CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 9 * 2);
   light_upd_queue_2 =
      ctr_queue_new (sizeof (ctr_light_item),
-                    CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * MAX_LIGHT_RADIUS_CHUNKS);
+                    CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 9 * 2);
 }
 
 // Clears light queues for light computation.
@@ -535,7 +535,7 @@ ctr_chunk *ctr_world_chunk (int x, int y, int z, int alloc)
   ctr_chunk *c = (ctr_chunk *) ctr_axis_get (zn, z);
   if (alloc && !c)
     {
-      c = malloc (sizeof (ctr_chunk));
+      c = safemalloc (sizeof (ctr_chunk));
       memset (c, 0, sizeof (ctr_chunk));
       chnk_alloc++;
       //printf ("ALLOC CHUNK %d %d %d (%d)\n", x, y, z, chnk_alloc);
@@ -571,7 +571,7 @@ void ctr_world_purge_chunk (int x, int y, int z)
   if (c)
     {
       chnk_alloc--;
-      free (c);
+      safefree (c);
     }
 }
 
