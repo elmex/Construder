@@ -74,8 +74,11 @@ double clr_map[16][3] = {
 
 // NOTE: some combinations of these two variables are not implemented:
 #ifndef _WIN32
-#define USE_VBO 1
-#define USE_SINGLE_BUFFER 1
+#define USE_VBO 0
+#define USE_SINGLE_BUFFER 0
+#else
+#define USE_VBO 0
+#define USE_SINGLE_BUFFER 0
 #endif
 
 #define VERT_P_PRIM 6
@@ -90,12 +93,12 @@ double clr_map[16][3] = {
  * to be sent to the gfx card later.
  */
 typedef struct _ctr_dyn_buf {
-    void **ptr;
+    GLfloat **ptr;
     unsigned int alloc;
     unsigned int item;
 } ctr_dyn_buf;
 
-void ctr_dyn_buf_init (ctr_dyn_buf *db, void **ptr, unsigned int pa_items,
+void ctr_dyn_buf_init (ctr_dyn_buf *db, GLfloat **ptr, unsigned int pa_items,
                        unsigned int item_size)
 {
   db->ptr = ptr;
@@ -215,9 +218,9 @@ void *ctr_render_new_geom ()
       glBindBuffer (GL_ARRAY_BUFFER, c->geom_buf);
       glBufferData(GL_ARRAY_BUFFER, GEOM_SIZE, NULL, GL_DYNAMIC_DRAW);
 #else
-      ctr_dyn_buf_init (&c->db_vertexes, (void **) &c->vertexes, 10, sizeof (GLfloat));
-      ctr_dyn_buf_init (&c->db_colors,   (void **) &c->colors,   10, sizeof (GLfloat));
-      ctr_dyn_buf_init (&c->db_uvs,      (void **) &c->uvs,      10, sizeof (GLfloat));
+      ctr_dyn_buf_init (&c->db_vertexes, &c->vertexes, 10, sizeof (GLfloat));
+      ctr_dyn_buf_init (&c->db_colors,   &c->colors,   10, sizeof (GLfloat));
+      ctr_dyn_buf_init (&c->db_uvs,      &c->uvs,      10, sizeof (GLfloat));
 
       glGenBuffers (1, &c->vbo_verts);
       glGenBuffers (1, &c->vbo_colors);
@@ -236,6 +239,10 @@ void *ctr_render_new_geom ()
       glGenBuffers (1, &c->vbo_vert_idxs);
       glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, c->vbo_vert_idxs);
       glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (c->vertex_idx), c->vertex_idx, GL_STATIC_DRAW);
+#else
+      ctr_dyn_buf_init (&c->db_vertexes, &c->vertexes, 10, sizeof (GLfloat));
+      ctr_dyn_buf_init (&c->db_colors,   &c->colors,   10, sizeof (GLfloat));
+      ctr_dyn_buf_init (&c->db_uvs,      &c->uvs,      10, sizeof (GLfloat));
 #endif
 
       ctr_render_clear_geom (c);
@@ -268,6 +275,10 @@ void ctr_render_free_geom (void *c)
       glDeleteBuffers (1, &geom->vbo_uvs);
 # endif
       glDeleteBuffers (1, &geom->vbo_vert_idxs);
+#else
+      ctr_dyn_buf_free (&geom->db_vertexes);
+      ctr_dyn_buf_free (&geom->db_colors);
+      ctr_dyn_buf_free (&geom->db_uvs);
 #endif
       safefree (geom);
       cgeom--;
