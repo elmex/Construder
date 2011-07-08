@@ -36,6 +36,12 @@ void ctr_queue_clear (ctr_queue *q)
 ctr_queue *ctr_queue_new (unsigned int item_size, unsigned int alloc_items)
 {
   ctr_queue *q = safemalloc (sizeof (ctr_queue));
+  q->freeze_start = 0;
+  q->freeze_end   = 0;
+  q->data = 0;
+  q->data_end = 0;
+  q->start = 0;
+  q->end = 0;
 
   assert (alloc_items > 1);
 
@@ -84,16 +90,16 @@ void ctr_queue_thaw (ctr_queue *q)
   q->end   = q->freeze_end;
 }
 
-int ctr_queue_dequeue (ctr_queue *q, void **item)
+void *ctr_queue_dequeue (ctr_queue *q)
 {
   if (q->start == q->end)
     return 0;
 
-  *item = q->start;
+  void *ptr = q->start;
 
   q->start += q->item_size;
   if (q->start == q->data_end) // wrap around
     q->start = q->data;
 
-  return 1;
+  return ptr;
 }

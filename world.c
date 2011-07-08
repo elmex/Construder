@@ -175,8 +175,7 @@ void ctr_world_light_enqueue_neighbours (int x, int y, int z, unsigned char ligh
 
 int ctr_world_light_dequeue (int *x, int *y, int *z, unsigned char *light)
 {
-  ctr_light_item *it = 0;
-  int c = ctr_queue_dequeue (light_upd_queue, (void **) &it);
+  ctr_light_item *it = ctr_queue_dequeue (light_upd_queue);
   if (it)
     {
       *x = it->x;
@@ -186,7 +185,7 @@ int ctr_world_light_dequeue (int *x, int *y, int *z, unsigned char *light)
       //d// printf ("light upd dequeue %d,%d,%d: %d\n", *x, *y, *z, *light);
     }
 
-  return c;
+  return it != 0;
 }
 
 void ctr_world_emit_chunk_change (int x, int y, int z)
