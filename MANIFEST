@@ -41,7 +41,6 @@ light.c
 queue.c
 render.c
 TODO
-typemap
 vectorlib.c
 volume_draw.c
 world.c
