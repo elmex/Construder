@@ -24,6 +24,7 @@ lib/Games/Construder/Server/Player.pm
 lib/Games/Construder/Server/Resources.pm
 lib/Games/Construder/Server/UI.pm
 lib/Games/Construder/Server/World.pm
+lib/Games/Construder/Server/PCB.pm
 lib/Games/Construder/Vector.pm
 inc/Module/Install.pm
 inc/Module/Install/Base.pm
@@ -35,12 +36,6 @@ inc/Module/Install/Scripts.pm
 inc/Module/Install/Share.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
-lib/Games/Construder/.UI.pm.swp
-lib/Games/Construder/Client/.Frontend.pm.swp
-lib/Games/Construder/Client/.UI.pm.swp
-lib/Games/Construder/Server/.Player.pm.swp
-lib/Games/Construder/Server/.UI.pm.swp
-lib/Games/Construder/Server/PCB.pm
 noise_3d.c
 light.c
 queue.c
