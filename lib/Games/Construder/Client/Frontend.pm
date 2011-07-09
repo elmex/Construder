@@ -116,6 +116,11 @@ sub resize_app {
 
    glViewport (0, 0, $WIDTH, $HEIGHT);
 
+   glMatrixMode(GL_PROJECTION);
+   glLoadIdentity();
+   gluPerspective (72, $WIDTH / $HEIGHT, 0.1, $FAR_PLANE);
+   glMatrixMode(GL_MODELVIEW);
+
    for (values %{$self->{active_uis}}) {
       $_->resize_screen ($nw, $nh);
       $_->update;
