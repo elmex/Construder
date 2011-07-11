@@ -27,6 +27,7 @@ use Games::Construder::Server::Resources;
 use Games::Construder::Server::Player;
 use Games::Construder::Server::World;
 use Games::Construder::Server::Objects;
+use Games::Construder::UI;
 use Games::Construder::Vector;
 
 use base qw/Object::Event/;
@@ -300,17 +301,13 @@ sub handle_packet : event_cb {
 
       } else {
          $self->send_client ($cid, { cmd => activate_ui => ui => "login", desc => {
-            window => { pos => [center => 'center'], },
-            layout => [
-               box => { dir => "vert", padding => 25 },
-               [text => { align => 'center', font => 'big', color => "#00ff00" }, "Login"],
-               [box => {  dir => "hor" },
-                  [text => { font => 'normal', color => "#00ff00" }, "Name:"],
-                  [entry => { font => 'normal', color => "#00ff00", arg => "name",
-                              highlight => ["#111111", "#333333"], max_chars => 9 },
-                   ""],
-               ]
-            ],
+            %{ui_window ("Login",
+               ui_pad_box (hor =>
+                  ui_desc ("Name:"),
+                  ui_entry (name => "", 9),
+               ),
+               ui_subdesc ("After Login hit F1 for Client Help\nAnd F2 for Server Help!"),
+            )},
             commands => {
                default_keys => {
                   return => "login",
