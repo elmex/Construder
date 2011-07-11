@@ -548,6 +548,12 @@
          "permanent" : 1, # this entity's data is stored permanently
          "trophy_score" : 10000000,
       },
+      "Fog" : {
+        "type"            : 900,
+        "texture"         : ["textures.png", 448, 256, 64, 64],
+        "lore"            : "Some really thick fog. Can sometimes be really nasty...",
+        "untransformable" : true,
+      },
    },
    #"music" : {
    #   "test" : {

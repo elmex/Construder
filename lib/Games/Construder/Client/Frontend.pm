@@ -199,6 +199,8 @@ sub init_gl {
    $self->visibility_radius ($PL_VIS_RAD);
 
    glViewport (0, 0, $WIDTH, $HEIGHT);
+
+   $self->render_temporary;
 }
 
 #  0 front  1 top    2 back   3 left   4 right  5 bottom
@@ -371,6 +373,28 @@ sub remove_highlight_model {
    delete $self->{model_highlights}->{$id};
 }
 
+sub render_temporary {
+   my ($self) = @_;
+   $self->{temporary_fog} = OpenGL::List::glpList {
+      glPushMatrix;
+      glBindTexture (GL_TEXTURE_2D, 0);
+      glColor4f (0.2, 0.5, 0.2, 1);
+      for (my $x = 0; $x < 12; $x++) {
+         for (my $y = 0; $y < 12; $y++) {
+            for (my $z = 0; $z < 12; $z++) {
+               if ($z == 0 || $x == 0 || $y == 0 || $x == 11 || $y == 11 || $z == 11) {
+
+                  glBegin (GL_QUADS);
+                  _render_quad ([$x, $y, $z], 1);
+                  glEnd;
+               }
+            }
+         }
+      }
+      glPopMatrix;
+   };
+}
+
 sub add_highlight_model {
    my ($self, $pos, $relposes, $id) = @_;
 # FIXME: might need to be rebuilt on init_gl()! (resizes!)
@@ -501,8 +525,15 @@ sub render_scene {
       if (!$cc->{$id} || $self->{dirty_chunks}->{$id}) {
          push @compl_end, $self->{visible_chunks}->{$id};
       }
-      my $compl = $cc->{$id}
-         or next;
+      my $compl = $cc->{$id};
+      unless ($compl) {
+         my $p = world_id2pos ($id);
+         glPushMatrix;
+         glTranslatef (@{vsmul ($p, -12)});
+         glCallList ($self->{temporary_fog});
+         glPopMatrix;
+         next;
+      }
       Games::Construder::Renderer::draw_geom ($compl);
    }
 
