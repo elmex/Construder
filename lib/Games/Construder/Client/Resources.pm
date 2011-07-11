@@ -303,7 +303,7 @@ sub setup_texture {
 
 sub type_model_blocks {
    my ($self, $type) = @_;
-   my $model = $self->{obj2txt}->[$type]->[3];
+   my $model = $self->{obj2txt}->[$type]->[2];
    @$model ? (@$model - 1) / 2 : 1
 }
 

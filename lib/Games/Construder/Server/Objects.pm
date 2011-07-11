@@ -356,7 +356,7 @@ sub drone_check_player_hit {
       $pl = $pl[0]->[0];
    }
 
-   if (vlength (vsub ($pl->{data}->{pos}, $pos)) <= 2) {
+   if (vlength (vsub ($pl->{data}->{pos}, $pos)) <= 1.1) {
       my $dist = $entity->{teleport_dist} * 60;
       my $new_pl_pos = vsmul (vnorm (vrand ()), $dist);
       $pl->teleport ($new_pl_pos);
