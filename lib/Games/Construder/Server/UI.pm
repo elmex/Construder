@@ -446,11 +446,13 @@ sub handle_command {
          msg       => "Do you really want to shutdown the server?",
          cb => sub {
             $self->delete_ui ('shutdown');
-            $self->{pl}->msg (0, "Shutting down the server in 2 seconds...");
-            my $t; $t = AE::timer 2, 0, sub {
-               $Games::Construder::Server::World::SRV->shutdown;
-               undef $t;
-            };
+            if ($_[0]) {
+               $self->{pl}->msg (0, "Shutting down the server in 2 seconds...");
+               my $t; $t = AE::timer 2, 0, sub {
+                  $Games::Construder::Server::World::SRV->shutdown;
+                  undef $t;
+               };
+            }
          });
       $self->hide;
       $self->show_ui ('shutdown');
