@@ -81,9 +81,14 @@ sub new {
    $self->init_object_events;
 
    $self->{opengl_texture_size} = 1024;
-   $self->prepare_opengl_texture;
 
    return $self
+}
+
+sub pre_resize_screen {
+   my ($self) = @_;
+   glDeleteTextures_p (delete $self->{gl_id})
+      if $self->{gl_id};
 }
 
 sub resize_screen {
@@ -530,6 +535,8 @@ sub update {
    ) {
       $self->{active_element} = $self->{active_elements}->[0];
    }
+
+   $self->prepare_opengl_texture;
 
    # window_size_inside is initialized here, and window_padding too
    $self->prepare_sdl_surface ($win->{bgcolor}, $size); # creates a new sdl surface for this window

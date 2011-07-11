@@ -123,7 +123,7 @@ sub post_proc {
          my $uv;
          my $model = $_->{data}->{model};
          my $txt = [];
-         warn "MODEL: " . JSON->new->pretty->encode ($_) . "\n";
+         my $txtid;
 
          if ($_->{data}->{texture_map}) {
             my $texmap_id = $_->{data}->{texture_map};
@@ -140,6 +140,7 @@ sub post_proc {
             }
 
             $txt = $texture->{texture};
+            $txtid = $map->{data}->{tex_id};
 
             $uv = [0, 0, 1, 1];
             if ($map->{data}->{uv_map}) {
@@ -149,9 +150,8 @@ sub post_proc {
          }
 
          my $typeid = $_->{data}->{object_type};
-         $objtype2texture->[$typeid] = [
-            $txt->[0], $txt->[1], $uv, $model
-         ];
+         $objtype2texture->[$typeid] = [$txtid, $uv, $model];
+
          Games::Construder::World::set_object_type (
             $typeid,
             ($typeid == 0 || (@$txt == 0 && defined $model ? 1 : 0)),
@@ -195,8 +195,39 @@ sub set_resource_data {
    my ($self, $res, $data) = @_;
    my $r = $self->{resource}->[$res->[0]]
       or return;
+   $self->{resource_data}->[$res->[0]] = $data;
+
    if ($r->{type} eq 'texture') {
       $r->{texture} = $self->setup_texture ($data)
+   }
+}
+
+sub desetup_textures {
+   my ($self) = @_;
+   for (@{$self->{resource}}) {
+      if ($_->{texture}) {
+         glDeleteTextures_p ($_->{texture}->[0]);
+         delete $_->{texture};
+      }
+   }
+}
+
+sub setup_textures {
+   my ($self) = @_;
+
+   my $objtype2texture = $self->{obj2txt};
+
+   my $i = 0;
+   for (@{$self->{resource}}) {
+      if ($_->{type} eq 'texture') {
+         my $txt =
+            $_->{texture} =
+               $self->setup_texture ($self->{resource_data}->[$i]);
+         my $otype = $_->{data}->{object_type};
+         $objtype2texture->[$otype]->[0] = $txt->[0];
+         $objtype2texture->[$otype]->[1] = $txt->[1];
+      }
+      $i++;
    }
 }
 
@@ -278,7 +309,9 @@ sub type_model_blocks {
 
 sub obj2texture {
    my ($self, $objid) = @_;
-   @{$self->{obj2txt}->[$objid] || []}
+   my ($txtid, @r) = (@{$self->{obj2txt}->[$objid] || []});
+   my $txt = $self->{resource}->[$txtid]->{texture};
+   ($txt->[0], $txt->[1], @r)
 }
 
 sub get_opengl {

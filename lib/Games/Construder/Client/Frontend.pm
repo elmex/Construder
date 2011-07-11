@@ -105,6 +105,17 @@ sub exit_app {
 
 sub resize_app {
    my ($self, $nw, $nh) = @_;
+
+   $self->{res}->desetup_textures;
+   $self->unload_geoms;
+
+   for (values %{$self->{active_uis}}) {
+      $_->pre_resize_screen ($nw, $nh);
+   }
+   for (values %{$self->{inactive_uis}}) {
+      $_->pre_resize_screen ($nw, $nh);
+   }
+
    eval {
       $self->{app}->resize ($nw, $nh);
    };
@@ -114,21 +125,19 @@ sub resize_app {
 
    ($WIDTH, $HEIGHT) = ($nw, $nh);
 
-   glViewport (0, 0, $WIDTH, $HEIGHT);
+   $self->init_gl;
 
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
-   gluPerspective (72, $WIDTH / $HEIGHT, 0.1, $FAR_PLANE);
-   glMatrixMode(GL_MODELVIEW);
+   $self->{res}->setup_textures;
 
    for (values %{$self->{active_uis}}) {
       $_->resize_screen ($nw, $nh);
       $_->update;
    }
-
    for (values %{$self->{inactive_uis}}) {
       $_->resize_screen ($nw, $nh);
    }
+
+   $self->all_chunks_dirty;
 
    delete $self->{cached_cam_cone};
    $self->calc_visibility;
@@ -145,13 +154,13 @@ sub init_app {
       resizeable => 1
    );
 
-   #d#my $init = SDL::Mixer::init (SDL::Mixer::MIX_INIT_OGG);
-   #d#unless ($init & SDL::Mixer::MIX_INIT_OGG) {
-   #d#   die "Couldn't initialize SDL Mixer for OGG!\n";
-   #d#}
+   #d# my $init = SDL::Mixer::init (SDL::Mixer::MIX_INIT_OGG);
+   #d# unless ($init & SDL::Mixer::MIX_INIT_OGG) {
+   #d#    die "Couldn't initialize SDL Mixer for OGG!\n";
+   #d# }
 
-   #d#SDL::Mixer::open_audio( 44100, SDL::Mixer::AUDIO_S16SYS, 2, 4096 );
-   #d#SDL::Mixer::Music::volume_music ($self->{res}->{config}->{volume_music});
+   #d# SDL::Mixer::open_audio( 44100, SDL::Mixer::AUDIO_S16SYS, 2, 4096 );
+   #d# SDL::Mixer::Music::volume_music ($self->{res}->{config}->{volume_music});
 
    $self->set_ambient_light ($self->{res}->{config}->{ambient_light});
 
@@ -159,6 +168,12 @@ sub init_app {
    $self->{sdl_event} = SDL::Event->new;
    SDL::Video::GL_set_attribute (SDL::Constants::SDL_GL_SWAP_CONTROL, 1);
    SDL::Video::GL_set_attribute (SDL::Constants::SDL_GL_DOUBLEBUFFER, 1);
+
+   $self->init_gl;
+}
+
+sub init_gl {
+   my ($self) = @_;
 
    glDepthFunc(GL_LESS);
    glEnable (GL_DEPTH_TEST);
@@ -246,6 +261,10 @@ sub _render_highlight {
 sub set_ambient_light {
    my ($self, $l) = @_;
    Games::Construder::Renderer::set_ambient_light ($l);
+}
+
+sub all_chunks_dirty {
+   my ($self) = @_;
    for my $id (keys %{$self->{compiled_chunks}}) {
       $self->{dirty_chunks}->{$id} = 1;
    }
@@ -260,6 +279,15 @@ sub free_compiled_chunk {
    Games::Construder::Renderer::free_geom ($l) if $l;
    # WARNING FIXME XXX: this might not free up all chunks that were set/initialized by the server!
    Games::Construder::World::purge_chunk (@$c);
+}
+
+sub unload_geoms {
+   my ($self) = @_;
+
+   for (keys %{$self->{compiled_chunks}}) {
+      my $geom = delete $self->{compiled_chunks}->{$_};
+      Games::Construder::Renderer::free_geom ($geom);
+   }
 }
 
 sub compile_chunk {
@@ -344,7 +372,7 @@ sub remove_highlight_model {
 
 sub add_highlight_model {
    my ($self, $pos, $relposes, $id) = @_;
-
+# FIXME: might need to be rebuilt on init_gl()! (resizes!)
    $self->{model_highlights}->{$id} = OpenGL::List::glpList {
       glPushMatrix;
       glBindTexture (GL_TEXTURE_2D, 0);
