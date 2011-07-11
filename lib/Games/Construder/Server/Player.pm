@@ -194,6 +194,7 @@ sub init {
    $self->new_ui (score         => "Games::Construder::Server::UI::Score");
    $self->new_ui (slots         => "Games::Construder::Server::UI::Slots");
    $self->new_ui (status        => "Games::Construder::Server::UI::Status");
+   $self->new_ui (server_info   => "Games::Construder::Server::UI::ServerInfo");
    $self->new_ui (material_view => "Games::Construder::Server::UI::MaterialView");
    $self->new_ui (inventory     => "Games::Construder::Server::UI::Inventory");
    $self->new_ui (cheat         => "Games::Construder::Server::UI::Cheat");

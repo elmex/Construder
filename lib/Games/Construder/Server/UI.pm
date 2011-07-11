@@ -323,7 +323,20 @@ sub layout {
       ui_key_explain ("h",               "Cheat."),
       ui_key_explain ("F3",              "Displays this help screen."),
       ui_key_explain ("F4",              "Opens your trophy overview."),
+      ui_key_explain ("F7",              "Display Server Information."),
       ui_key_explain ("F8",              "Commit suicide, when you want to start over."),
+   )
+}
+
+package Games::Construder::Server::UI::ServerInfo;
+use Games::Construder::UI;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub layout {
+   ui_window ("Server Info",
+      ui_text ("Server Map Directory: $Games::Construder::Server::Resources::MAPDIR"),
+      ui_text ("Server Player Directory: $Games::Construder::Server::Resources::PLAYERDIR"),
    )
 }
 
@@ -351,8 +364,8 @@ sub commands {
       f2  => "menu",
       f3  => "help",
       f4  => "trophies",
+      f7  => "server_info",
       f8  => "kill",
-      f9  => "teleport_home",
       f11 => "text_script",
       f10 => "text_script_hide",
       f12 => "exit_server",
@@ -386,8 +399,6 @@ sub handle_command {
       $self->show_ui ('cheat');
    } elsif ($cmd eq 'contact') {
       $self->show_ui ('ship_transmission');
-   } elsif ($cmd eq 'teleport_home') {
-      $pl->teleport ([0, 0, 0]);
    } elsif ($cmd eq 'interact') {
       $pl->interact ($pos->[0]) if @{$pos->[0] || []};
    } elsif ($cmd eq 'query') {
@@ -404,6 +415,8 @@ sub handle_command {
       $self->show_ui ('text_script');
    } elsif ($cmd eq 'text_script_hide') {
       $self->hide_ui ('text_script');
+   } elsif ($cmd eq 'server_info') {
+      $self->show_ui ('server_info');
    } elsif ($cmd eq 'encounter') {
       $self->{pl}->create_encounter;
    } elsif ($cmd eq 'kill') {
@@ -428,7 +441,19 @@ sub handle_command {
    } elsif ($cmd eq 'trophies') {
       $self->show_ui ("trophies");
    } elsif ($cmd eq 'exit_server') {
-      $Games::Construder::Server::World::SRV->shutdown;
+      $self->new_ui (shutdown =>
+         "Games::Construder::Server::UI::ConfirmQuery",
+         msg       => "Do you really want to shutdown the server?",
+         cb => sub {
+            $self->delete_ui ('shutdown');
+            $self->{pl}->msg (0, "Shutting down the server in 2 seconds...");
+            my $t; $t = AE::timer 2, 0, sub {
+               $Games::Construder::Server::World::SRV->shutdown;
+               undef $t;
+            };
+         });
+      $self->hide;
+      $self->show_ui ('shutdown');
    }
 }
 
