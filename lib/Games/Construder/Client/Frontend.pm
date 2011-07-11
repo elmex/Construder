@@ -261,6 +261,7 @@ sub _render_highlight {
 sub set_ambient_light {
    my ($self, $l) = @_;
    Games::Construder::Renderer::set_ambient_light ($l);
+   $self->all_chunks_dirty;
 }
 
 sub all_chunks_dirty {
