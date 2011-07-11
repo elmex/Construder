@@ -51,7 +51,7 @@ sub _tokens {
    while ($line ne '') {
       next if $line =~ s/^\s+//;
 
-      if ($line =~ s/^"([^"]+)"//) {
+      if ($line =~ s/^"([^"]*)"//) {
          push @tokens, [str => $1];
       } elsif ($line =~ s/^call:(\S+)//) {
          push @tokens, [call => [str => $1]];
@@ -297,6 +297,7 @@ our %BLTINS = (
       }
 
       my $do_follow;
+      warn "IF A'$a'$op'$b'\n";
 
       if ($op eq '==') {
          $do_follow = ($a == $b);

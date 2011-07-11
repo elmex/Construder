@@ -2261,7 +2261,7 @@ sub layout {
       return
       ui_window_special ("Programmer Reference", [ left => "center" ],
 
-         ui_small_text (<<REF),
+         ui_small_text (<<REF, wrap => 90),
 <string> looks like: '"abc d e ef"', '"test"' or just bare 'test'.
 <direction> is a string that can one of 6 values: forward, backward, left, right, up, down
 <color> is a number from 0 to 15.
@@ -2274,6 +2274,17 @@ return <arguments>        - Return from a call and set variables ret0, ret1, ...
 stop                      - Halt the PCB.
 
 mat <direction> <material> <color> <callback> - Materializes the material from inventory with color to direction.
+vapo <direction> <callback> - Vaporizes the block in a certain direction. Calling/Jumping the callback with the material name that was vaporized.
+move <direction> <callback> - Moves into the direction, calling/jumping the callback when the move failed with the name of the blocking material.
+probe <direction> <callback> - Probes into a direction, calling/jumping the callback with the material name.
+demat <direction> <callback> - Dematerializes material in a direction, calling the callback with an error as first and material name as second argument.
+print <arguments> - Prints out the arguments as message to the player.
+if <value_1> <cmp> <value_2> <callback> - Compares first with second value according to the comparator, calling/jumping the callback if comparions results in true. Available comparsions: ==, !=, <, >, <=, >=, eq, ne
+var <variable name> <op> <value> [<output name>] - Executes an operation on the variable with the specified name. Possible operations: add, sub, mul, div, mod, set, append, prepend, pop, shift, unshift, push, at, turn
+
+Notes:
+The callback is always optional.
+
 REF
          ui_key_inline_expl (F8 => "Hide Reference Sheet."),
       )
