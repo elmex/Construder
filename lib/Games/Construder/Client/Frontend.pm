@@ -572,15 +572,15 @@ sub render_scene {
       }
       my $tok = time - $tc;
 
-      if ($tok > $tleft) {
-         warn "compiled $cnt chunks in $tok, but only had $tleft ($ac) left, but "
-              . scalar (@compl_end) . " chunks still to compile...\n";
-      }
+#d#      if ($tok > $tleft) {
+#d#         warn "compiled $cnt chunks in $tok, but only had $tleft ($ac) left, but "
+#d#              . scalar (@compl_end) . " chunks still to compile...\n";
+#d#      }
 
       (@compl_end) = ();
 
       if (@request) {
-         warn "requesting " . scalar (@request) . " chnks\n";
+#d#         warn "requesting " . scalar (@request) . " chnks\n";
          $self->visible_chunks_changed ([], [], \@request);
       }
    }
@@ -753,7 +753,7 @@ sub setup_event_poller {
       my $dlta = $start_time - $last_frame;
       if ($dlta > $frame_time) {
          $dlta -= $frame_time;
-         warn "frame too late, delta is $dlta\n";
+ #d#        warn "frame too late, delta is $dlta\n";
       }
 
       $self->handle_sdl_events;
