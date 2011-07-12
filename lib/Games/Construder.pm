@@ -301,23 +301,6 @@ sub init {
    }
 }
 
-package AnyEvent::Debug::shell;
-use common::sense;
-use Data::Dumper;
-
-sub d {
-   my ($d) = @_;
-   Dumper ($d)
-}
-
-sub wf {
-   my ($name, $data) = @_;
-   open my $fh, ">", "/tmp/$name.debug"
-      or die "Couldn't open /tmp/$name.debug: $!\n";
-   binmode $fh;
-   print $fh $data;
-}
-
 =back
 
 =head1 AUTHOR

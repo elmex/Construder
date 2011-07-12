@@ -1,4 +1,7 @@
 Revision history for Games::Construder
 
+0.93    Tue Jul 12 23:09:06 CEST 2011
+        - removed debugging definitions.
+
 0.92    Tue Jul 12 22:37:24 CEST 2011
         - initial release

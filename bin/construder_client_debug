@@ -1,0 +1,28 @@
+#!/opt/perl/bin/perl
+package AnyEvent::Debug::shell;
+use common::sense;
+use Data::Dumper;
+
+sub d {
+   my ($d) = @_;
+   Dumper ($d)
+}
+
+sub wf {
+   my ($name, $data) = @_;
+   open my $fh, ">", "/tmp/$name.debug"
+      or die "Couldn't open /tmp/$name.debug: $!\n";
+   binmode $fh;
+   print $fh $data;
+}
+
+package main;
+use common::sense;
+use Games::Construder;
+use Games::Construder::Client;
+
+Games::Construder::Debug::init ("client");
+
+our $game = Games::Construder::Client->new (auto_login => $ARGV[0]);
+
+$game->start;
