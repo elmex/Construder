@@ -65,6 +65,11 @@ my $PL_HEIGHT  = 1.3;
 my $PL_RAD     = 0.3;
 my $PL_VIS_RAD = 3;
 my $FAR_PLANE  = 26;
+my $FOG_DEFAULT = "Darkness";
+my %FOGS = (
+   Darkness    => [0, 0, 0, 1],
+   Athmosphere => [0.45, 0.45, 0.65, 1],
+);
 
 sub new {
    my $this  = shift;
@@ -187,18 +192,31 @@ sub init_gl {
    glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
    glEnable (GL_TEXTURE_2D);
    glEnable (GL_FOG);
-   glClearColor (0.45,0.45,0.65,1);
    glClearDepth (1.0);
    glShadeModel (GL_FLAT);
 
    glFogi (GL_FOG_MODE, GL_LINEAR);
-   glFogfv_p (GL_FOG_COLOR, 0.45, 0.45, 0.65, 1);
    glFogf (GL_FOG_DENSITY, 0.45);
    glHint (GL_FOG_HINT, GL_FASTEST);
 
    $self->visibility_radius ($PL_VIS_RAD);
+   $self->update_fog;
 
    glViewport (0, 0, $WIDTH, $HEIGHT);
+}
+
+sub fog {
+   my ($self) = @_;
+   $self->{res}->{config}->{fog} eq ''
+      ? $FOG_DEFAULT
+      : $self->{res}->{config}->{fog}
+}
+
+sub update_fog {
+   my ($self) = @_;
+   my $fog = $FOGS{$self->fog ()} || $FOGS{$FOG_DEFAULT};
+   glClearColor (@$fog);
+   glFogfv_p (GL_FOG_COLOR, @$fog);
 }
 
 #  0 front  1 top    2 back   3 left   4 right  5 bottom
@@ -1042,6 +1060,15 @@ sub show_video_settings {
          ui_subdesc (sprintf "%0.2f", $self->{res}->{config}->{ambient_light}),
          ui_range (ambl => 0.0, 0.3, 0.05, "%0.2f",
                    $self->{res}->{config}->{ambient_light}),
+      ),
+      ui_pad_box (hor =>
+         ui_desc ("Fog: "),
+         ui_subdesc ($self->fog),
+      ),
+      (
+         map {
+            ui_select_item (fog => $_, ui_desc ("$_"))
+         } sort keys %FOGS
       )
    );
 
@@ -1056,6 +1083,12 @@ sub show_video_settings {
          if ($cmd eq 'change') {
             $self->{res}->{config}->{ambient_light} = $arg->{ambl};
             $self->set_ambient_light ($self->{res}->{config}->{ambient_light});
+
+            if ($arg->{fog} ne '') {
+               $self->{res}->{config}->{fog} = $arg->{fog};
+               $self->update_fog;
+            }
+
             $self->{res}->save_config;
             $self->show_video_settings;
             return 1;
