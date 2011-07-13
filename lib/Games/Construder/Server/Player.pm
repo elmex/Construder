@@ -46,6 +46,7 @@ Games::Construder::Server::Player - desc
 
 my $PL_VIS_RAD = 3;
 my $PL_MAX_INV = 24;
+my $PL_MAX_QUEUE_SIZE = 100; # max 100 chunks
 
 sub new {
    my $this  = shift;
@@ -537,6 +538,8 @@ sub push_chunk_to_network {
       <=>
       vlength (vsub ($plchnk, $b))
    } @upds;
+
+   splice @upds, $PL_MAX_QUEUE_SIZE;
 
    my $cnt = scalar @upds;
    print "$cnt chunk upodates in queue!\n";
