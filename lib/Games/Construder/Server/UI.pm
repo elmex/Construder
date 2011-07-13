@@ -945,20 +945,20 @@ sub layout {
 
    my @subtxts;
    push @subtxts,
-      "It's complexity is " . _perc_to_word ($o->{complexity})
-      . " and it's density is " . _perc_to_word ($o->{density});
+      "Its complexity is " . _perc_to_word ($o->{complexity})
+      . " and its density is " . _perc_to_word ($o->{density});
    push @subtxts,
       @sec
-         ? "This can be found in sectors with following types: " . join (", ", @sec)
-         : "This can not be found in any sector.";
+         ? "It can be found in sectors with following types: " . join (", ", @sec)
+         : "It cannot be found in any sector.";
    push @subtxts,
       @destmat
-         ? "This can be used as source material for: "
+         ? "It can be used as source material for: "
            . join (", ", map { $_->{name} } @destmat)
-         : "This can't be processed any further.";
+         : "It can't be processed any further.";
    push @subtxts,
       $inv_cnt
-         ? "You have $inv_cnt of this in your inventory."
+         ? "You have $inv_cnt of it in your inventory."
          : "You don't have any of it in your inventory.";
 
    ui_window ($o->{name},
