@@ -1061,7 +1061,7 @@ sub show_video_settings {
       ui_pad_box (hor =>
          ui_desc ("Ambien light: "),
          ui_subdesc (sprintf "%0.2f", $self->{res}->{config}->{ambient_light}),
-         ui_range (ambl => 0.0, 0.3, 0.05, "%0.2f",
+         ui_range (ambl => 0.0, 0.5, 0.05, "%0.2f",
                    $self->{res}->{config}->{ambient_light}),
       ),
       ui_pad_box (hor =>
