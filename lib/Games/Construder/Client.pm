@@ -102,7 +102,7 @@ sub new {
                $rereq =
                   (time - $self->{requested_chunks}->{$id}) > 2;
 
-               ctr_log (info => "re-requesting chunk %s!", $id) if $rereq;
+               ctr_log (network => "re-requesting chunk %s!", $id) if $rereq;
             }
             if ($rereq) {
                $self->{requested_chunks}->{$id} = time;
