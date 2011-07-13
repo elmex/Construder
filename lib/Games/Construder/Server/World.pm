@@ -23,6 +23,7 @@ use Carp qw/confess/;
 use Compress::LZF qw/decompress compress/;
 use JSON;
 use Storable qw/dclone/;
+use Games::Construder::Logging;
 
 require Exporter;
 our @ISA = qw/Exporter/;
@@ -114,7 +115,8 @@ sub world_init {
       },
       sub {
          my ($x, $y, $z, $type, $ent) = @_;
-         warn "ACTIVE CHANGE: $type ($x,$y,$z) ($ent)\n";
+         ctr_log (debug => "change active cell: %d (%d,%d,%d) (%s)",
+                  $type, $x, $y, $z, $ent);
          my $sec = world_chnkpos2secpos (world_pos2chnkpos ([$x, $y, $z]));
          my $id  = world_pos2id ($sec);
          return unless exists $SECTORS{$id};
@@ -122,18 +124,21 @@ sub world_init {
 
          my $e = delete $SECTORS{$id}->{entities}->{$eid};
          if ($e) {
-            warn "ENTITY $e DESTROY at sector $id ent $eid\n";
+            ctr_log (debug => "entity %s destroy at sector %s entid %s",
+                     $e, $id, $eid);
             Games::Construder::Server::Objects::destroy ($e);
          }
 
          unless ($ent) {
             $ent = Games::Construder::Server::Objects::instance ($type);
-            warn "INSTANCE entity $eid at sector $id with type $type: $ent\n";
+            ctr_log (debug => "instance entity %s at sector %s type %s: %s",
+                     $eid, $id, $type, $ent);
          } else {
-            warn "PUT INSTANCED ENTITY $eid in sec $id with type $type: $ent\n";
+            ctr_log (debug => "put entity %s at sector %s type %s: %s",
+                     $eid, $id, $type, $ent);
          }
+
          $SECTORS{$id}->{entities}->{$eid} = $ent if $ent;
-         warn "inst done\n";
       }
    );
 
@@ -165,10 +170,12 @@ sub world_init {
       } keys %SECTORS;
 
       for (@invisible_sectors) {
-         warn "freeing invisible sector $_\n";
+         ctr_log (debug => "freeing invisible sector %s", $_);
          world_free_sector ($_);
       }
-      warn "SECTORS LOADED ON FREE: " . scalar (keys %SECTORS) . ": " . join (", ", keys %SECTORS) . "\n";
+      my $cntloaded = scalar (keys %SECTORS);
+      ctr_log (debug => "sectors loaded after free: %d, %s",
+               $cntloaded, join (", ", keys %SECTORS));
    };
 
    $TICK_TMR = AE::timer 0, 0.15, sub {
@@ -238,7 +245,8 @@ sub world_free_sector {
          }
       }
    }
-   warn "chunks from @$fchunk purged!\n";
+
+   ctr_log (debug => "chunks from @$fchunk +5x5x5 purged");
 }
 
 my $light_upd_chunks_wait;
@@ -257,16 +265,17 @@ sub _calc_some_lights {
          unless (exists $SECTORS{$secid}) {
             next;
          }
-         warn "calc light at @$pos\n";
+
          Games::Construder::World::flow_light_query_setup (@$pos, @$pos);
          Games::Construder::World::flow_light_at (@$pos);
-         Games::Construder::World::query_desetup ();
+         my $dirty = Games::Construder::World::query_desetup ();
+         ctr_log (debug => "%d chunks dirty after light calculation at @$pos", $dirty);
          $calced++;
       }
    }
    if ($calced) {
-      printf "calclight step %0.4f, calced %d lights, %d lights to go\n",
-             time - $t1, $calced, scalar @LIGHTQUEUE;
+      ctr_log (profile => "calclight step %0.4f, calced %d lights, %d lights to go\n",
+               time - $t1, $calced, scalar @LIGHTQUEUE);
    }
 }
 
@@ -294,8 +303,8 @@ sub _world_make_sector {
 
    my $seed = Games::Construder::Region::get_sector_seed (@$sec);
 
-   warn "Create sector @$sec, with seed $seed value $val and "
-        . "type $stype->{type} and param $param\n";
+   ctr_log (info => "create sector @$sec, with seed %d value %f and tyoe %s and param %f", 
+            $seed, $val, $stype->{type}, $param);
 
    my $cube = $CHNKS_P_SEC * $CHNK_SIZE;
    Games::Construder::VolDraw::alloc ($cube);
@@ -367,13 +376,13 @@ sub _world_make_sector {
       entities   => { },
    };
    _world_save_sector ($sec);
-   warn "created sector @$sec in $smeta->{creation_time} seconds\n";
+   ctr_log (profile => "created sector @$sec in $smeta->{creation_time} seconds");
 
    {
       Games::Construder::World::query_desetup (2);
    }
 
-   warn "PLACED $cnt / $plcnt lights $type ($flot) in $tsum!\n";
+   ctr_log (debug => "placed $cnt / $plcnt lights $type ($flot) in $tsum!\n");
 }
 
 sub _world_load_sector {
@@ -396,7 +405,7 @@ sub _world_load_sector {
       binmode $mf, ":raw";
       my $cont = eval { decompress (do { local $/; <$mf> }) };
       if ($@) {
-         warn "map sector data corrupted '$file': $@\n";
+         ctr_log (error => "map sector data corrupted '$file': $@\n");
          return -1;
       }
 
@@ -404,22 +413,24 @@ sub _world_load_sector {
 
       my ($metadata, $mapdata, $data) = split /\n\n\n*/, $cont, 3;
       unless ($mapdata =~ /MAPDATA/) {
-         warn "map sector file '$file' corrupted! Can't find 'MAPDATA'. "
-              . "Please delete or move it away!\n";
+         ctr_log (error =>
+              "map sector file '$file' corrupted! Can't find 'MAPDATA'. "
+              . "Please delete or move it away!");
          return -1;
       }
 
       my ($md, $datalen, @lens) = split /\s+/, $mapdata;
       #d#warn "F $md, $datalen, @lens\n";
       unless (length ($data) == $datalen) {
-         warn "map sector file '$file' corrupted, sector data truncated, "
-              . "expected $datalen bytes, but only got ".length ($data)."!\n";
+         ctr_log (error =>
+              "map sector file '$file' corrupted, sector data truncated, "
+              . "expected $datalen bytes, but only got ".length ($data)."!");
          return -1;
       }
 
       my $meta = eval { JSON->new->relaxed->utf8->decode ($metadata) };
       if ($@) {
-         warn "map sector meta data corrupted '$file': $@\n";
+         ctr_log (error => "map sector meta data corrupted '$file': $@");
          return -1;
       }
 
@@ -460,14 +471,12 @@ sub _world_load_sector {
       my ($ecnt) = scalar (keys %{$SECTORS{$id}->{entities}});
 
       delete $SECTORS{$id}->{dirty}; # saved with the sector
-      warn "loaded sector $id from '$file', got $ecnt entities, took "
-           . sprintf ("%.3f seconds", time - $t1)
-           . ".\n";
-
+      ctr_log (info => "loaded sector %s from '%s', got %d entities, loading took %0.3f seconds",
+               $id, $file, $ecnt, time - $t1);
       return 1;
 
    } else {
-      warn "couldn't open map sector '$file': $!\n";
+      ctr_log (error => "couldn't open sector file '$file': $!");
       return -1;
    }
 }
@@ -481,7 +490,7 @@ sub _world_save_sector {
    my $meta = $SECTORS{$id};
 
    if ($meta->{broken}) {
-      warn "map sector '$id' marked as broken, won't save!\n";
+      ctr_log (error => "map sector '$id' marked as broken, won't save!");
       return;
    }
 
@@ -522,22 +531,22 @@ sub _world_save_sector {
       print $mf $filedata;
       close $mf;
       unless (-s "$file~" == length ($filedata)) {
-         warn "couldn't save sector completely to '$file~': $!\n";
+         ctr_log (error => "couldn't save sector completely to '$file~': $!");
          return;
       }
 
       if (rename "$file~", $file) {
          delete $SECTORS{$id}->{dirty};
-         warn "saved sector $id to '$file', saved $ecnt entities, took "
-              . sprintf ("%.3f seconds", time - $t1)
-              . "wrote " . length($filedata) . " bytes\n";
+         ctr_log (info =>
+              "saved sector $id to '$file', saved $ecnt entities, took %.3f seconds, wrote %d bytes",
+              time - $t1, length($filedata));
 
       } else {
-         warn "couldn't rename '$file~' to '$file': $!\n";
+         ctr_log (error => "couldn't rename sector file '$file~' to '$file': $!");
       }
 
    } else {
-      warn "couldn't save sector $id to '$file~': $!\n";
+      ctr_log (error => "couldn't save sector $id to '$file~': $!");
    }
 }
 
@@ -546,7 +555,7 @@ sub region_init {
 
    my $t1 = time;
 
-   warn "calculating region, with seed $REGION_SEED.\n";
+   ctr_log (info => "calculating region map with seed %d", $REGION_SEED);
    Games::Construder::VolDraw::alloc ($REGION_SIZE);
 
    Games::Construder::VolDraw::draw_commands (
@@ -555,7 +564,8 @@ sub region_init {
    );
 
    $REGION = Games::Construder::Region::new_from_vol_draw_dst ();
-   warn "done, took " . (time - $t1) . " seconds.\n";
+   ctr_log (info => "calculating region map with seed %d took %.3f",
+            $REGION_SEED, time - $t1);
 }
 
 sub world_sector_info_at {
@@ -661,7 +671,8 @@ sub world_load_sector {
 
    my $secid = world_pos2id ($sec);
    unless ($SECTORS{$secid}) {
-      warn "LOAD SECTOR $secid\n";
+      ctr_log (info => "getting unloaded sector %s", $secid);
+
       my $r = _world_load_sector ($sec);
       if ($r == 0) {
          _world_make_sector ($sec);
@@ -669,8 +680,7 @@ sub world_load_sector {
    }
    $cb->() if $cb;
 
-   warn "SECTORS LOADED: " . scalar (keys %SECTORS) . ": "
-                           . join (", ", keys %SECTORS) . " \n";
+   ctr_log (debug => "%d sectors loaded: %s", scalar (keys %SECTORS), join (", ", keys %SECTORS));
 
    local $in_mutate = 0;
 
@@ -769,13 +779,14 @@ sub world_mutate_at {
          unless ($arg{no_light}) {
             my $t1 = time;
             Games::Construder::World::flow_light_at (@{vfloor ($pos)});
-            printf "mult light calc took: %f\n", time - $t1;
+            ctr_log (profile => "mult light calc at pos @$pos took: %f secs\n", time - $t1);
          }
       }
    }
 
    {
-      Games::Construder::World::query_desetup ();
+     my $dirty = Games::Construder::World::query_desetup ();
+     ctr_log (debug => "%d chunks dirty after mutation and possible light flow", $dirty);
    }
 
    local $in_mutate = 0;

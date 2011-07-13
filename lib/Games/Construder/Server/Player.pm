@@ -22,6 +22,7 @@ use Games::Construder::Server::World;
 use Games::Construder::Server::UI;
 use Games::Construder::Server::Objects;
 use Games::Construder::Server::PatStorHandle;
+use Games::Construder::Logging;
 use Games::Construder::Vector;
 use Time::HiRes qw/time/;
 use base qw/Object::Event/;
@@ -70,14 +71,14 @@ sub _check_file {
       my $cont = do { local $/; <$plf> };
       my $data = eval { JSON->new->relaxed->utf8->decode ($cont) };
       if ($@) {
-         warn "Couldn't parse player data from file '$file': $!\n";
+         ctr_log (error => "Couldn't parse player data from file '%s': %s", $file, $!);
          return;
       }
 
       return $data
 
    } else {
-      warn "Couldn't open player file $file: $!\n";
+      ctr_log (error => "Couldn't open player file '%s': %s", $file, $!);
       return;
    }
 }
@@ -126,19 +127,19 @@ sub save {
       close $plf;
 
       if (-s "$file~" != length ($cont)) {
-         warn "Couldn't write out player file completely to '$file~': $!\n";
+         ctr_log (error => "Couldn't write out player file completely to '%s': %s", $file, $!);
          return;
       }
 
       unless (rename "$file~", "$file") {
-         warn "Couldn't rename $file~ to $file: $!\n";
+         ctr_log (error => "Couldn't rename $file~ to $file: $!");;
          return;
       }
 
-      warn "saved player $self->{name} to $file.\n";
+      ctr_log (info => "Saved player %s to %s", $self->{name}, $file);
 
    } else {
-      warn "Couldn't open player file $file~ for writing: $!\n";
+      ctr_log (error => "Couldn't open player file $file~ for writing: $!");
       return;
    }
 }
@@ -226,7 +227,7 @@ sub init {
       if ($wself->{uis}->{inventory}->{shown}) {
          $wself->{uis}->{inventory}->show;
       }
-      warn "INVENTORY CHANGED!\n";
+
       $wself->{uis}->{slots}->show;
    });
 
@@ -403,7 +404,8 @@ sub logout {
    delete $self->{upd_score_hl_tmout};
    delete $self->{death_timer};
    delete $self->{tick_timer};
-   warn "player $self->{name} logged out\n";
+
+   ctr_log (info => "Player %s logged out", $self->{name});
    #d# print Devel::FindRef::track $self;
 }
 
@@ -413,7 +415,7 @@ sub update_pos {
    my ($self, $pos, $lv) = @_;
 
    if ($self->{freeze_update_pos} ne '') {
-      warn "update_pos thrown away, awaiting teleport confirmation!\n";
+      ctr_log (debug => "update_pos thrown away, awaiting teleport confirmation!");
       return;
    }
 
@@ -542,7 +544,8 @@ sub push_chunk_to_network {
    splice @upds, $PL_MAX_QUEUE_SIZE;
 
    my $cnt = scalar @upds;
-   print "$cnt chunk upodates in queue!\n";
+   ctr_log (debug => "player %s: %d chunk updates in queue", $self->{name}, $cnt)
+      if $cnt;
    for (my $i = 0; $i < 5; $i++) {
       my $q = shift @upds
          or return;
@@ -597,7 +600,6 @@ sub interact {
 
    world_at ($pos, sub {
       my ($pos, $cell) = @_;
-      print "interact position [@$pos]: @$cell\n";
       Games::Construder::Server::Objects::interact ($self, $pos, $cell->[0], $cell->[5]);
    });
 }
@@ -630,7 +632,7 @@ sub debug_at {
    });
    world_mutate_at ($pos, sub {
       my ($data) = @_;
-      print "position [@$pos]: @$data\n";
+      ctr_log (debug => "player %s: debug position @$pos: @$data", $self->{name});
       if ($data->[0] == 1) {
          $data->[0] = 0;
          return 1;
@@ -911,7 +913,7 @@ sub take_assignment {
    my $vec  = vsmul (vnorm (vrand ()), $offer->{distance});
    my $wpos = vfloor (vadd ($vec, $self->get_pos_normalized));
 
-   warn "assignment at @$vec => @$wpos\n";
+   ctr_log (debug => "took assignment at @$vec => @$wpos");
 
    my $size = $offer->{size};
    Games::Construder::VolDraw::alloc ($size);
@@ -949,7 +951,6 @@ sub take_assignment {
    $cal->{pos}        = $wpos;
    $cal->{materials}  = [sort keys %$materials];
    $cal->{sel_mat}    = $cal->{materials}->[0];
-   print "ASSIGNMENT : " . JSON->new->pretty->encode ($cal) . "\n";
    $cal->{pos_types}  = $positions;
    $cal->{mat_models} = $materials;
 
@@ -1112,7 +1113,7 @@ sub create_encounter {
    my ($teledist, $nxttime, $lifetime) =
       $Games::Construder::Server::RES->encounter_values ();
 
-   warn "NEXT ENC $nxttime ($teledist, $lifetime)\n";
+   ctr_log (debug => "next encounter for player %s is %d (%d, %d)", $self->{name}, $nxttime, $teledist, $lifetime);
    $self->{data}->{next_encounter} = $nxttime;
 
    world_mutate_at ($new_pos, sub {
@@ -1164,17 +1165,15 @@ sub teleport {
    my ($self, $pos) = @_;
 
    $pos ||= $self->{data}->{pos};
-   warn "START TELEPORT @$pos\n";
    $self->msg (0, "Teleport in progress, please wait...");
    world_load_around_at ($pos, sub {
-      warn "TELEPORT @$pos\n";
       my $new_pos = world_find_free_spot ($pos, 1);
       unless ($new_pos) {
          $new_pos = world_find_free_spot ($pos, 0); # without floor on second try
       }
 
       unless (@$new_pos) {
-         warn "new position for player at @$pos had no free spot! moving him up!\n";
+         ctr_log (debug => "new position for player at @$pos had no free spot! moving him up!");
          viaddd ($pos, 0, 10, 0);
          my $t; $t = AE::timer 0, 0, sub {
             $self->teleport ($pos);
@@ -1182,16 +1181,13 @@ sub teleport {
          };
       }
 
-      warn "FREESPOT @$new_pos\n";
       $new_pos = vaddd ($new_pos, 0.5, 0.5, 0.5);
-      warn "FREESPOT AT EXACTLY @$new_pos\n";
       my $fid = "$new_pos";
       $self->{data}->{pos} = $new_pos;
       $self->{freeze_update_pos} = $fid;
       $self->upd_visible_chunks;
       $self->send_client ({ cmd => "place_player", pos => $new_pos, id => $fid });
    });
-   warn "END TELEPORT @$pos\n";
 }
 
 sub unfreeze_update_pos {
@@ -1229,7 +1225,8 @@ sub display_ui {
 
 sub ui_res : event_cb {
    my ($self, $ui, $cmd, $arg, $pos) = @_;
-   warn "ui response $ui: $cmd ($arg) (@$pos)\n";
+
+   ctr_log (debug => "player %s: ui response %s: %s (%s) (@$pos)", $ui, $cmd, $arg);
 
    if (my $o = $self->{uis}->{$ui}) {
       $o->react ($cmd, $arg, $pos);
@@ -1241,7 +1238,7 @@ sub ui_res : event_cb {
 
 sub DESTROY {
    my ($self) = @_;
-   warn "player $self->{name} [$self] destroyed!\n";
+   ctr_log (debug => "player %s [%s] destroyed", $self->{name}, $self);
 }
 
 =back

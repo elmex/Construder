@@ -3,6 +3,9 @@ use EV;
 use common::sense;
 use Games::Construder;
 use Games::Construder::Server;
+use Games::Construder::Logging;
+
+ctr_enable_log_categories ('info', 'error', 'warn');
 
 Games::Construder::Debug::init ("server");
 
