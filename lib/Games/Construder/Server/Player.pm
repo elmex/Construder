@@ -351,6 +351,7 @@ sub try_eat_something {
       if ($item->[1] <= $amount) {
          my ($ov) = $self->{inv}->remove ($item->[0]);
          if ($ov) {
+            $self->{uis}->{status}->show ([@$item]);
             $self->refill_bio ($item->[1]);
             return 1;
          }
@@ -359,6 +360,7 @@ sub try_eat_something {
    } else {
       my ($ov) = $self->{inv}->remove ($item->[0]);
       if ($ov) {
+         $self->{uis}->{status}->show ([@$item]);
          $self->refill_bio ($item->[1]);
          return 1;
       }

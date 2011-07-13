@@ -1,5 +1,14 @@
 Revision history for Games::Construder
 
+0.94
+        - Added feedback for eating bio energy stuff. A small little box is
+          now displayed right next to the bio energy now.
+        - I had it with Module::Install, so I switched back to ExtUtils::MakeMaker.
+          The problem was the outdated META.json generation (non existing one
+          maybe fits more. And with File::ShareDir::Install any reason for me
+          for Module::Install just vanished into thin air. Now I can also specify
+          the C build flags much more straight forward.
+
 0.93    Tue Jul 12 23:09:06 CEST 2011
         - removed debugging definitions.
 

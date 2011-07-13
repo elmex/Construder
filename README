@@ -1,1 +1,43 @@
-See also http://ue.o---o.eu/ for the moment.
+NAME
+    Games::Construder - A 3D game written in Perl, which is actually
+    playable!
+
+SYNOPSIS
+       Starting the server:
+
+       user@host ~# construder_server
+
+       Starting the client:
+
+       user@host ~# construder_client
+
+DESCRIPTION
+    This is the source code documentation for the game called "Construder".
+
+    If you search for information on how to actually play it please look at
+    the official website for introduction videos:
+
+    <http://ue.o---o.eu/>
+
+    You can also find other interesting information there, such as
+    screenshots, the motivation of writing this game or where to go with
+    questions and/or bug reports.
+
+PACKAGES
+    This specific module file provides the XS bindings and also some utility
+    functions that are used in many places in the game.
+
+AUTHOR
+    Robin Redeker, "<elmex@ta-sa.org>"
+
+SEE ALSO
+    <http://www.deliantra.net/> - Another game written with a lot of Perl,
+    facilitating "Coro", "IO::AIO", "AnyEvent", "JSON" and many other Perl
+    modules.
+
+COPYRIGHT & LICENSE
+    Copyright 2011 Robin Redeker, all rights reserved.
+
+    This program is free software; you can redistribute it and/or modify it
+    under the terms of the GNU Affero General Public License.
+

@@ -485,7 +485,18 @@ sub layout {
 
    my $sinfo = world_sector_info ($chnk_pos);
 
-   if ($bio_usage) {
+   if (ref $bio_usage) {
+      my $wself = $self;
+      weaken $wself;
+      $self->{bio_intake} = $bio_usage;
+      warn "BIO INTKE @$bio_usage\n";
+      $self->{bio_intake_tmr} = AE::timer 2, 0, sub {
+         delete $wself->{bio_intake};
+         $wself->show;
+         delete $wself->{bio_intake_tmr};
+      };
+
+   } elsif ($bio_usage) {
       my $wself = $self;
       weaken $wself;
       $self->{bio_usage} = $bio_usage;
@@ -531,7 +542,11 @@ sub layout {
         [box => { },
            [text => { align => "right", font => "big", color => _range_color ($self->{pl}->{data}->{bio}, 60), max_chars => 4 },
               sprintf ("%d%%", $self->{pl}->{data}->{bio})],
-           [text => { align => "center", color => "#888888" }, "bio"],
+           ($self->{bio_intake}
+              ? [box => { dir => "hor", align => "left" },
+                   [text => { align => "center", font => "big", color => "#00ff00", wrap => -2 }, "+"],
+                   [model => { animated => 0, align => "center", width => 30 }, $self->{bio_intake}->[0]]]
+              : [text => { align => "center", color => "#888888" }, "bio"])
         ],
         ($self->{bio_usage}
            ? [box => { },

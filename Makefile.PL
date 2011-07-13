@@ -1,68 +1,74 @@
 use strict;
 use warnings;
-use inc::Module::Install;
+use ExtUtils::MakeMaker;
+use File::ShareDir::Install;
 use Alien::SDL;
 use OpenGL::Config;
 
-name      'Games-Construder';
-author    'Robin Redeker <elmex@ta-sa.org>';
-license   'gpl';
-all_from  'lib/Games/Construder.pm';
+install_share 'res';
 
-makemaker_args (
-    #(LIBS => Alien::SDL->config('libs')),
+WriteMakefile(
+    NAME                => 'Games::Construder',
+    AUTHOR              => 'Robin Redeker <elmex@ta-sa.org>',
+    LICENSE             => 'agpl_3',
+    VERSION_FROM        => 'lib/Games/Construder.pm',
+    ABSTRACT_FROM       => 'lib/Games/Construder.pm',
+    PL_FILES            => {},
+    EXE_FILES           => [qw(bin/construder_server bin/construder_client)],
+    LIBS                => [Alien::SDL->config('libs')],
+    INC                 => Alien::SDL->config('cflags'),
     dynamic_lib  => {
-       OTHERLDFLAGS => Alien::SDL->config('libs') . " " . $OpenGL::Config->{LIBS}
-                       . ($^O eq 'MSWin32' ? " -lopengl32 -lglu32 -L\"C:\\strawberry\\perl\\site\\bin\" -lfreeglut " : "")
+       OTHERLDFLAGS =>
+          # Hack, to make it work on windows "somehow" :-)
+          Alien::SDL->config('libs') . " " . $OpenGL::Config->{LIBS}
+          . ($^O eq 'MSWin32'
+                ? " -lopengl32 -lglu32 -L\"C:\\strawberry\\perl\\site\\bin\" -lfreeglut "
+                : "")
     },
- #   DEFINE => $OpenGL::Config->{DEFINE},
     (CCFLAGS  => Alien::SDL->config('cflags') . " " . $OpenGL::Config->{INC}),
+    test                => { TESTS => "t/*.t t/methds/*.t" },
+    CONFIGURE_REQUIRES => {
+      'File::ShareDir::Install' => 0,
+      'Alien::SDL'              => 0,
+      'OpenGL'                  => 0,
+    },
+    PREREQ_PM => {
+      'Test::More'          => 0,
+      'Object::Event'       => 0,
+      'common::sense'       => 0,
+      'AnyEvent'            => 0,
+      'JSON'                => 0,
+      'OpenGL'              => 0,
+      'OpenGL::List'        => 0,
+      'SDL'                 => 0,
+      'Math::Trig'          => 0,
+      'Compress::LZF'       => 0,
+      'EV'                  => 0,
+      'File::ShareDir::PAR' => 0,
+      'Storable'            => 0,
+    },
+    META_MERGE => {
+      resources => {
+         repository => {
+            web => "http://git.ta-sa.org/git/Games-Construder/",
+            url => "http://git.ta-sa.org/Games-Construder.git",
+            type => "git",
+         },
+         bugtracker => {
+            web => "http://ue.o---o.eu/",
+            mailto => "elmex\@ta-sa.org",
+         },
+         homepage => "http://ue.o---o.eu/",
+      }
+    },
     depend => {
        "Construder.c" => "vectorlib.c world.c world_data_struct.c render.c queue.c "
                        . "world_drawing.c noise_3d.c volume_draw.c light.c"
     },
+    dist                => {
+       COMPRESS => 'gzip -9f',
+       SUFFIX   => 'gz',
+       PREOP => 'pod2text lib/Games/Construder.pm | tee README >$(DISTVNAME)/README; chmod -R u=rwX,go=rX . ;',
+    },
+    clean               => { FILES => 'Games-Construder' },
 );
-
-requires 'Test::More'          => 0;
-requires 'Object::Event'       => 0;
-requires 'common::sense'       => 0;
-requires 'AnyEvent'            => 0;
-requires 'JSON'                => 0;
-requires 'OpenGL'              => 0;
-requires 'OpenGL::List'        => 0;
-requires 'SDL'                 => 0;
-requires 'Math::Trig'          => 0;
-requires 'Compress::LZF'       => 0;
-requires 'EV'                  => 0;
-requires 'File::ShareDir::PAR' => 0;
-requires 'Storable'            => 0;
-
-install_script 'bin/construder_server';
-install_script 'bin/construder_client';
-
-install_share 'res';
-
-#make_par ();
-
-WriteAll;
-
-#WriteMakefile(
-#    NAME                => 'Games::Construder',
-#    AUTHOR              => 'Robin Redeker <elmex@ta-sa.org>',
-#    LICENSE             => 'perl',
-#    VERSION_FROM        => 'lib/Games/Construder.pm',
-#    ABSTRACT_FROM       => 'lib/Games/Construder.pm',
-#    PL_FILES            => {},
-#    EXE_FILES           => [qw(bin/construder_server bin/construder_client)],
-#    LIBS                => [Alien::SDL->config('libs')],
-#    INC                 => Alien::SDL->config('cflags'),
-#    test                => { TESTS => "t/*.t t/methds/*.t" },
-#    PREREQ_PM => {
-#    },
-#    dist                => {
-#       COMPRESS => 'gzip -9f',
-#       SUFFIX   => 'gz',
-#       PREOP => 'pod2text lib/Games/Construder.pm | tee README >$(DISTVNAME)/README; chmod -R u=rwX,go=rX . ;',
-#    },
-#    clean               => { FILES => 'Games-Construder' },
-#);
