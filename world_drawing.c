@@ -82,7 +82,6 @@ int ctr_world_query_desetup (int no_update) // no_update == 2 means: force updat
               z + QUERY_CONTEXT.chnk_z);
         }
 
-  printf ("%d chunk DIRTY at desetup (no_update: %d).\n", cnt, no_update);
   QUERY_CONTEXT.loaded = 0;
   return cnt;
 }
