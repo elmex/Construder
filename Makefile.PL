@@ -72,3 +72,6 @@ WriteMakefile(
     },
     clean               => { FILES => 'Games-Construder' },
 );
+
+package MY;
+use File::ShareDir::Install qw(postamble);

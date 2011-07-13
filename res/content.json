@@ -546,6 +546,7 @@
          "density" : 30,
          "complexity" : 55,
          "permanent" : 1, # this entity's data is stored permanently
+         "lore" : "Congratulations to anyone who earned this Trophy. You have officially reached the rank of a 'Construder'!",
          "trophy_score" : 10000000,
       },
    },
