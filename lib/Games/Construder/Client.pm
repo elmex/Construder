@@ -141,6 +141,7 @@ sub connect {
    tcp_connect $host, $port, sub {
       my ($fh) = @_;
       unless ($fh) {
+         ctr_log (error => "Couldn't connect to server %s at port %d: %s", $host, $port, $!);
          $self->{front}->msg ("Couldn't connect to server: $!");
          $self->{recon} = AE::timer 5, 0, sub { $self->reconnect; };
          return;
@@ -175,20 +176,21 @@ sub send_server {
    my ($self, $hdr, $body) = @_;
    if ($self->{srv}) {
       $self->{srv}->push_write (packstring => "N", packet2data ($hdr, $body));
-      ctr_log (network => "send[%d]> %s: %s", length ($body), $hdr->{cmd}, keys %$hdr);
+      ctr_log (network => "send[%d]> %s: %s", length ($body), $hdr->{cmd}, join (',', keys %$hdr));
    }
 }
 
 sub connected : event_cb {
    my ($self) = @_;
    $self->{front}->msg ("Connected to Server!");
+   ctr_log (info => "connected to server %s on port %d", $self->{host}, $self->{port});
    $self->send_server ({ cmd => 'hello', version => "Games::Construder::Client 0.1" });
 }
 
 sub handle_packet : event_cb {
    my ($self, $hdr, $body) = @_;
 
-   ctr_log (network => "recv[%d]> %s: %s", length ($body), $hdr->{cmd}, keys %$hdr);
+   ctr_log (network => "recv[%d]> %s: %s", length ($body), $hdr->{cmd}, join (',', keys %$hdr));
 
    if ($hdr->{cmd} eq 'hello') {
       $self->{front}->{server_info} = $hdr->{info};
@@ -301,6 +303,7 @@ sub disconnected : event_cb {
    delete $self->{srv};
    $self->{front}->msg ("Disconnected from server!");
    $self->{recon} = AE::timer 5, 0, sub { $self->reconnect; };
+   ctr_log (info => "disconnected from server");
 }
 
 =back
