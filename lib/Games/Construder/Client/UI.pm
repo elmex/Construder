@@ -25,6 +25,7 @@ use JSON;
 use Games::Construder::Vector;
 use Games::Construder;
 use File::ShareDir::PAR;
+use Games::Construder::Logging;
 
 use base qw/Object::Event/;
 
@@ -542,11 +543,11 @@ sub update {
    $self->prepare_sdl_surface ($win->{bgcolor}, $size); # creates a new sdl surface for this window
 
    ctr_prof ("draw elements", sub {
-   $self->draw_element ($layout, [0, 0]);
+      $self->draw_element ($layout, [0, 0]);
    });
 
    ctr_prof ("render_view", sub {
-   $self->render_view; # refresh rendering to opengl texture
+      $self->render_view; # refresh rendering to opengl texture
    });
 }
 
@@ -853,7 +854,7 @@ sub do_multiline {
 
 sub input_key_press : event_cb {
    my ($self, $key, $name, $unicode, $rhandled) = @_;
-   warn "UI KP $key/$name/$unicode/\n";
+   ctr_log (debug => "UI(%s) keypress %s/%s/%d", $self->{name}, $key, $name, ord $unicode);
    my $cmd;
 
    my $el = $self->{active_element};

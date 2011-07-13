@@ -18,6 +18,8 @@ package Games::Construder;
 use JSON;
 use common::sense;
 use Time::HiRes qw/time/;
+use Games::Construder::Logging;
+
 require Exporter;
 our @ISA = qw/Exporter/;
 our @EXPORT = qw/
@@ -65,17 +67,14 @@ functions that are used in many places in the game.
 
 =cut
 
-our $PROF_DEBUG = 0;
-
 sub ctr_prof {
    my ($name, $sub) = @_;
-   if (!$PROF_DEBUG) {
+
+   ctr_cond_log (profile => sub {
+      my $t1 = time;
       $sub->();
-      return;
-   }
-   my $t1 = time;
-   $sub->();
-   printf "ctr_prof[%-20s] %0.4f\n", $name, time - $t1;
+      ctr_log (profile => "ctr_prof[%-20s] %0.4f\n", $name, time - $t1);
+   }, sub { $sub->() });
 }
 
 package Games::Construder::Util;
@@ -94,6 +93,7 @@ sub visible_chunks_at {
 }
 
 package Games::Construder::VolDraw;
+use Games::Construder::Logging;
 
 sub _get_file {
    my ($file) = @_;
@@ -260,7 +260,7 @@ sub draw_commands {
          my $s = $wg->{sector_types}->{$type};
          my $r = $s->{region_range};
          unless ($r) {
-            warn "No region range for sector type '$type' found!\n";
+            ctr_log (warn => "No region range for sector type '$type' found!\n");
          }
          show_map_range (@$r);
 
@@ -271,7 +271,7 @@ sub draw_commands {
          my $s = $wg->{sector_types}->{$type};
          my $r = $s->{ranges};
          unless ($r) {
-            warn "No ranges for sector type '$type' found!\n";
+            ctr_log (warn => "No ranges for sector type '$type' found!\n");
          }
          show_map_range ($r->[$range_idx * 3], $r->[($range_idx * 3) + 1]);
 
@@ -282,6 +282,7 @@ sub draw_commands {
 }
 
 package Games::Construder::Debug;
+use Games::Construder::Logging;
 use AnyEvent::Debug;
 
 our $SHELL;
@@ -297,7 +298,7 @@ sub init {
 
    $SHELL = AnyEvent::Debug::shell "unix/", $sock;
    if ($SHELL) {
-      warn "started shell at $sock, use with: 'socat readline $sock'\n";
+      ctr_log (info => "started shell at $sock, use with: 'socat readline $sock'\n");
    }
 }
 

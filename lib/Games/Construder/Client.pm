@@ -21,6 +21,7 @@ use Games::Construder::Client::Frontend;
 use Games::Construder::Client::World;
 use Games::Construder::Protocol;
 use Games::Construder::Vector;
+use Games::Construder::Logging;
 use Games::Construder;
 use AnyEvent;
 use AnyEvent::Socket;
@@ -65,6 +66,15 @@ sub new {
    $self->{front} =
       Games::Construder::Client::Frontend->new (res => $self->{res}, client => $self);
 
+   $self->{in_ex} = 0;
+   $self->{front}->set_exception_cb (sub {
+      my ($ex, $ev) = @_;
+      return if $self->{in_ex};
+      local $self->{in_ex} = 1;
+      ctr_log (error => "exception in frontend (%s): %s", $ev, $ex);
+      $self->{front}->msg ("Fatal Error: Exception in frontend caught: $ev: $ex");
+   });
+
    $self->{front}->reg_cb (
       update_player_pos => sub {
          $self->send_server ({
@@ -84,7 +94,6 @@ sub new {
       },
       visible_chunks_changed => sub {
          my ($front, $new, $old, $req) = @_;
- #        warn "NEW: @$new, OLD @$old\n";
          (@$req) = grep {
             my $p = $_;
             my $id = world_pos2id ($p);
@@ -92,9 +101,8 @@ sub new {
             if ($self->{requested_chunks}->{$id}) {
                $rereq =
                   (time - $self->{requested_chunks}->{$id}) > 2;
-               if ($rereq) {
-                  warn "re-requesting chunk $id!\n";
-               }
+
+               ctr_log (info => "re-requesting chunk %s!", $id) if $rereq;
             }
             if ($rereq) {
                $self->{requested_chunks}->{$id} = time;
@@ -167,7 +175,7 @@ sub send_server {
    my ($self, $hdr, $body) = @_;
    if ($self->{srv}) {
       $self->{srv}->push_write (packstring => "N", packet2data ($hdr, $body));
-      warn "cl> $hdr->{cmd}\n";
+      ctr_log (network => "send[%d]> %s: %s", length ($body), $hdr->{cmd}, keys %$hdr);
    }
 }
 
@@ -180,7 +188,7 @@ sub connected : event_cb {
 sub handle_packet : event_cb {
    my ($self, $hdr, $body) = @_;
 
-   warn "cl< $hdr->{cmd} (".length ($body).")\n";
+   ctr_log (network => "recv[%d]> %s: %s", length ($body), $hdr->{cmd}, keys %$hdr);
 
    if ($hdr->{cmd} eq 'hello') {
       $self->{front}->{server_info} = $hdr->{info};
@@ -210,7 +218,10 @@ sub handle_packet : event_cb {
       $self->{front}->msg;
       #print JSON->new->pretty->encode ($self->{front}->{res}->{resource});
       $self->{res}->post_proc;
-      $self->{res}->dump_resources;
+      ctr_cond_log (debug => sub {
+         ctr_log (debug => "dumping received resources:");
+         $self->{res}->dump_resources;
+      });
       $self->send_server (
          { cmd => 'login',
            ($self->{auto_login} ? (name => $self->{auto_login}) : ()) });

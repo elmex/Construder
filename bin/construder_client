@@ -1,10 +1,27 @@
 #!/opt/perl/bin/perl
 use common::sense;
 use Games::Construder;
+use Games::Construder::Logging;
 use Games::Construder::Client;
+
+#ctr_enable_log_categories ('all');
+ctr_enable_log_categories ('info', 'error', 'warn');
 
 Games::Construder::Debug::init ("client");
 
-our $game = Games::Construder::Client->new (auto_login => $ARGV[0]);
+our $game = eval { Games::Construder::Client->new (auto_login => $ARGV[0]) };
+if ($@) {
+   ctr_log (error => "Couldn't initialized client: %s", $@);
+   exit 1;
+}
+
+our $in_ex;
+$game->set_exception_cb (sub {
+   my ($ex, $ev) = @_;
+   return if $in_ex;
+   local $in_ex = 1;
+   ctr_log (error => "exception in client (%s): %s", $ev, $ex);
+   $game->{front}->msg ("Fatal Error: Exception in client caught: $ev: $ex");
+});
 
 $game->start;

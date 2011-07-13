@@ -38,6 +38,7 @@ use Games::Construder::Client::World;
 use Games::Construder::Client::Resources;
 use Games::Construder::UI;
 use Games::Construder::Client::UI;
+use Games::Construder::Logging;
 
 use base qw/Object::Event/;
 
@@ -572,15 +573,16 @@ sub render_scene {
       }
       my $tok = time - $tc;
 
-#d#      if ($tok > $tleft) {
-#d#         warn "compiled $cnt chunks in $tok, but only had $tleft ($ac) left, but "
-#d#              . scalar (@compl_end) . " chunks still to compile...\n";
-#d#      }
+      if ($tok > $tleft) {
+         ctr_log (debug =>
+            "compiled $cnt chunks in $tok, but only had $tleft ($ac) left, but "
+            . scalar (@compl_end) . " chunks still to compile...");
+      }
 
       (@compl_end) = ();
 
       if (@request) {
-#d#         warn "requesting " . scalar (@request) . " chnks\n";
+         ctr_log (debug => "requesting %d chnks", scalar (@request));
          $self->visible_chunks_changed ([], [], \@request);
       }
    }
@@ -676,10 +678,11 @@ sub handle_sdl_events {
          $self->resize_app ($sdle->resize_w, $sdle->resize_h);
 
       } elsif ($type == 12) {
-         warn "Exit event!\n";
+         ctr_log (info => "received sdl exit");
          exit;
+
       } else {
-         warn "unknown sdl type: $type\n";
+         ctr_log (debug => "unknown sdl event type: %d", $type);
       }
    }
 
@@ -694,8 +697,8 @@ sub setup_event_poller {
    my $fps_intv = 0.8;
    $self->{fps_w} = AE::timer 0, $fps_intv, sub {
       #printf "%.5f FPS\n", $fps / $fps_intv;
-      printf "%.5f secsPcoll\n", $collide_time / $collide_cnt if $collide_cnt;
-      printf "%.5f secsPrender\n", $render_time / $render_cnt if $render_cnt;
+      ctr_log (profile => "%.5f secsPcoll", $collide_time / $collide_cnt) if $collide_cnt;
+      ctr_log (profile => "%.5f secsPrender", $render_time / $render_cnt) if $render_cnt;
       $self->activate_ui (hud_fps =>
          ui_hud_window_transparent (
             pos => [left => 'up'],
@@ -753,7 +756,7 @@ sub setup_event_poller {
       my $dlta = $start_time - $last_frame;
       if ($dlta > $frame_time) {
          $dlta -= $frame_time;
- #d#        warn "frame too late, delta is $dlta\n";
+         ctr_log (profile => "frame too late, delta is %f", $dlta);
       }
 
       $self->handle_sdl_events;
@@ -1366,7 +1369,7 @@ sub input_key_down : event_cb {
       return;
    }
 
-   warn "Key down $key ($name)\n";
+   ctr_log (debug => "key press %s (%s)", $key, $name);
 
    my $move_x;
 
@@ -1452,7 +1455,7 @@ sub visibility_radius : event_cb {
    $FAR_PLANE = ($radius * 12) * 0.7;
    glFogf (GL_FOG_START, $FAR_PLANE - 20);
    glFogf (GL_FOG_END,   $FAR_PLANE - 1);
-   warn "RADIUS $PL_VIS_RAD\n";
+   ctr_log (info => "changed visibility radius to %d", $PL_VIS_RAD);
 }
 
 =back
