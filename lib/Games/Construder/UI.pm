@@ -42,6 +42,7 @@ our @EXPORT = qw/
    ui_select_item
    ui_range
    ui_entry
+   ui_entry_small
    ui_multiline
    ui_pad_box
 /;
@@ -192,6 +193,16 @@ sub ui_range {
        highlight => [$BG_COLOR, $BG_SEL_COLOR]
     }, $val]
 }
+
+sub ui_entry_small {
+   my ($arg, $txt, $maxchars) = @_;
+   [entry => { font => 'small', color => $TEXT_COLOR, arg => $arg,
+               align => "center",
+               (defined $maxchars ? (max_chars => $maxchars) : ()),
+               highlight => [$BG_COLOR, $BG_SEL_COLOR] },
+    $txt]
+}
+
 
 sub ui_entry {
    my ($arg, $txt, $maxchars) = @_;
