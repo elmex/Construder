@@ -1181,7 +1181,7 @@ sub show_key_help {
             "left shift",  "Hold to speedup [w/s/a/d] movement."),
          ui_key_explain (
             "space",
-            "Jump / Give upward boost (you can fly by repeatedly hitting this)."),
+            "Jump / Give upward thrust."),
          ui_key_explain (
             "f",
             "Toggle mouse look."),
