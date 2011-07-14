@@ -19,10 +19,10 @@ attic/
 Construder.c
 MYMETA.*
 code_resources/
-res/
 media_res/
 *.old
 *.local
 tests
 testprof
 testsprof
+res/music/
