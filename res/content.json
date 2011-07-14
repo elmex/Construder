@@ -834,5 +834,26 @@
             0.93, 0.99,  44,  # inner core: gold
          ]
       },
+      "F" : { # the empty sector
+         "region_range" : [1.5, 1.6],
+         "file" : "voldraw/sector_F.cmds",
+         "ranges" : [
+         ]
+      },
+      "X" : { # the center connector
+         "region_range" : [1.6, 1.7],
+         "file" : "voldraw/sector_X.cmds",
+         "ranges" : [
+            0.5, 1.01, 11,
+         ]
+      },
+      "Z" : { # the center pyramid
+         "region_range" : [1.8, 2],
+         "file" : "voldraw/sector_Z.cmds",
+         "ranges" : [
+            0.05, 0.5, 27,
+            0.5, 1.01, 44,
+         ]
+      }
    }
 }

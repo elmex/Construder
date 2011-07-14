@@ -12,6 +12,39 @@
 #include "volume_draw.c"
 #include "light.c"
 
+double region_get_sector_value (void *reg, int x, int y, int z)
+{
+  if (!reg)
+     return 0;
+
+  vec3_init (secpos, x, y, z);
+  double l = fabs (vec3_len (secpos));
+  if (l < 1)
+    return 1.85; // the core
+  else if (l < 131
+           && ((abs (x) < 1 && abs (y) < 1)
+               || (abs (z) < 1 && abs (y) < 1)
+               || (abs (x) < 1 && abs (z) < 1)))
+    return 1.65; // the axis
+  else if (l < 30 || l > 130)
+    return 1.55; // the void
+  else // we are in the sphere shell around that
+    {
+      double *region = reg;
+      int reg_size = region[0];
+      region++;
+
+      if (x < 0) x = -x;
+      if (y < 0) y = -y;
+      if (z < 0) z = -z;
+      x %= reg_size;
+      y %= reg_size;
+      z %= reg_size;
+
+      return region[x + y * reg_size + z * reg_size * reg_size];
+    }
+}
+
 unsigned int ctr_cone_sphere_intersect (double cam_x, double cam_y, double cam_z, double cam_v_x, double cam_v_y, double cam_v_z, double cam_fov, double sphere_x, double sphere_y, double sphere_z, double sphere_rad)
 {
   vec3_init(cam,    cam_x, cam_y, cam_z);
@@ -1025,25 +1058,4 @@ AV *region_get_nearest_sector_in_range (void *reg, int x, int y, int z, double a
   OUTPUT:
     RETVAL
 
-double region_get_sector_value (void *reg, int x, int y, int z)
-  CODE:
-    if (!reg)
-      XSRETURN_UNDEF;
-
-    double *region = reg;
-    int reg_size = region[0];
-    region++;
-
-    if (x < 0) x = -x;
-    if (y < 0) y = -y;
-    if (z < 0) z = -z;
-    x %= reg_size;
-    y %= reg_size;
-    z %= reg_size;
-
-    double xv = region[x + y * reg_size + z * reg_size * reg_size];
-    //d// printf ("REGGET %p %d %d %d %d => %f\n", reg, reg_size, x, y, z, xv);
-    RETVAL = xv;
-
-  OUTPUT:
-    RETVAL
+double region_get_sector_value (void *reg, int x, int y, int z);

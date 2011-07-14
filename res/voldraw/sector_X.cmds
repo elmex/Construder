@@ -1,0 +1,8 @@
+src_dst 0 0
+   src_blend 0
+   cubes 2 0
+
+src_dst 0 1
+   src_blend 1
+   src_range 0.85 1
+   fill

@@ -91,7 +91,7 @@ sub _initialize_player {
       happyness => 100,
       bio       => 100,
       score     => 0,
-      pos       => [0, 0, 0],
+      pos       => [1.5 * 60, 130 * 60, 1.5 * 60],
       time      => 0,
       inv       => $inv,
       next_encounter => 15 * 60, # 15 minutes newbie safety

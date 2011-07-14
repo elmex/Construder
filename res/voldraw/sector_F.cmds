@@ -1,0 +1,4 @@
+# the empty sector type
+src_dst 0 0
+   src_blend 0
+   fill 0
