@@ -948,6 +948,7 @@ sub physics_tick : event_cb {
    #d#   $gforce = [0, 9.5, 0];
    #d#}
    $gforce = [0,0,0] if $self->{ghost_mode};
+   $gforce = vsmul ($gforce, -1) if $self->{upboost};
 
    if ($self->{ghost_mode}) {
       $player->{vel} = [0, 0, 0];
@@ -1000,6 +1001,7 @@ sub physics_tick : event_cb {
           }
           #d# warn "downpart $down_part\n";
           vismul ($player->{vel}, $down_part);
+
       } elsif ($collide_normal == 1) {
          $self->msg ("Emergency Teleport Activated. You were teleported to a free spot so you are not intermixed with something solid!");
       }
@@ -1050,6 +1052,8 @@ sub input_key_up : event_cb {
       $self->{movement}->{speed} = 0;
    } elsif ($name eq 'left ctrl') {
       $self->{air_select_mode} = 0;
+   } elsif ($name eq 'space') {
+      $self->{upboost} = 0;
    }
 
 }
@@ -1375,6 +1379,7 @@ sub input_key_down : event_cb {
    my $move_x;
 
    if ($name eq 'space') {
+      $self->{upboost} = 1;
       viaddd ($self->{phys_obj}->{player}->{vel}, 0, 5, 0);
    } elsif ($name eq 'g') {
       $self->{ghost_mode} = not $self->{ghost_mode};
