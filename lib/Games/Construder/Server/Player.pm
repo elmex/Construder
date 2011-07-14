@@ -1168,12 +1168,12 @@ sub teleport {
    $self->msg (0, "Teleport in progress, please wait...");
    world_load_around_at ($pos, sub {
       my $new_pos = world_find_free_spot ($pos, 1);
-      unless ($new_pos) {
+      unless (@$new_pos) {
          $new_pos = world_find_free_spot ($pos, 0); # without floor on second try
       }
 
       unless (@$new_pos) {
-         ctr_log (debug => "new position for player at @$pos had no free spot! moving him up!");
+         ctr_log (error => "new position for player at @$pos had no free spot! moving him up!");
          viaddd ($pos, 0, 10, 0);
          my $t; $t = AE::timer 0, 0, sub {
             $self->teleport ($pos);

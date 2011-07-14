@@ -996,7 +996,7 @@ AV *region_get_nearest_sector_in_range (void *reg, int x, int y, int z, double a
      sv_2mortal ((SV *)RETVAL);
 
      int rad;
-     for (rad = 1; rad < (reg_size / 2); rad++)
+     for (rad = 1; rad < 200; rad++)
        {
          int fnd = 0;
          int dx, dy, dz;
@@ -1007,13 +1007,8 @@ AV *region_get_nearest_sector_in_range (void *reg, int x, int y, int z, double a
                  int ox = x + dx,
                      oy = y + dy,
                      oz = z + dz;
-                 if (ox < 0) ox = -ox;
-                 if (oy < 0) oy = -oy;
-                 if (oz < 0) oz = -oz;
-                 ox %= reg_size;
-                 oy %= reg_size;
-                 oz %= reg_size;
-                 double v = region[ox + oy * reg_size + oz * reg_size * reg_size];
+
+                 double v = region_get_sector_value (reg, ox, oy, oz);
                  if (v < a || v >= b)
                    continue;
 
