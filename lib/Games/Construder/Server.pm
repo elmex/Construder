@@ -275,7 +275,7 @@ sub login {
    $pl->init;
 
    $self->send_client ($cid,
-      { cmd => "login" });
+      { cmd => "login", name => $name });
 }
 
 sub handle_packet : event_cb {

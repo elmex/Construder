@@ -216,6 +216,10 @@ sub handle_packet : event_cb {
       $self->{res}->set_resource_data ($hdr->{res}, $body);
       $self->send_server ({ cmd => 'transfer_poll' });
 
+   } elsif ($hdr->{cmd} eq 'login') {
+      $self->{front}->{res}->{config}->{chat}->{recent_login_name} = $hdr->{name};
+      $self->{front}->{res}->save_config;
+
    } elsif ($hdr->{cmd} eq 'transfer_end') {
       $self->{front}->msg;
       #print JSON->new->pretty->encode ($self->{front}->{res}->{resource});
