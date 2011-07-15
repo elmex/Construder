@@ -15,7 +15,6 @@ lib/Games/Construder/Client/Frontend.pm
 lib/Games/Construder/Client/Resources.pm
 lib/Games/Construder/Client/UI.pm
 lib/Games/Construder/Client/World.pm
-lib/Games/Construder/Noise.pm
 lib/Games/Construder/Protocol.pm
 lib/Games/Construder/Server.pm
 lib/Games/Construder/Server/Objects.pm
