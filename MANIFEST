@@ -16,6 +16,7 @@ lib/Games/Construder/Client/Resources.pm
 lib/Games/Construder/Client/UI.pm
 lib/Games/Construder/Client/World.pm
 lib/Games/Construder/Protocol.pm
+lib/Games/Construder/Logging.pm
 lib/Games/Construder/Server.pm
 lib/Games/Construder/Server/Objects.pm
 lib/Games/Construder/Server/PatStorHandle.pm
@@ -63,3 +64,6 @@ res/voldraw/sector_D2.cmds
 res/voldraw/sector_D3.cmds
 res/voldraw/sector_D4.cmds
 res/voldraw/sector_E1234.cmds
+res/voldraw/sector_F.cmds
+res/voldraw/sector_X.cmds
+res/voldraw/sector_Z.cmds

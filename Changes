@@ -1,6 +1,53 @@
 Revision history for Games::Construder
 
-0.94
+0.94    Fri Jul 15 16:26:44 CEST 2011
+        - gamelogic: pattern storage handling was broken in corner
+          cases of full inventory.
+        - code: remove more debugging output from server.
+        - code: documented purpose of each file and removed unneccesary
+          POD.
+        - world: expanded the world a bit to be infinite again.
+          The sphere hull is sitting in the center of a giant void
+          box now, which is 400x400x400 sectors big.
+        - engine: properly read the initial player position from the
+          resource file.
+        - gameplay: the player is not teleported to void sectors
+          anymore when he is randomly teleported.
+        - world: rethought light distribution a bit.
+          The world is now a bit brighter in general due to many more placed lights.
+          I hope the iterative server light calculation does not overwhelm anyone's
+          computer.
+        - Moved configure dependency to runtime dependency for now.
+          Just want to see the effect on the test results on CPAN.
+        - Removed EV dependency and usage, there really was no reason
+          for a direct dependency.
+        - client documentation fix for space key.
+        - Redesign of the world.
+          The World is now a gigantic sphere hull which is 100 sectors thick.
+          There is a center at sector 0,0,0 from which X, Y and Z axises are
+          expanding 131 sectors in each direction. The center has a nice
+          golden pyramid with a diamond core at the moment.
+          The player starts at the top of the sphere at Sector 1,130,1.
+        - Fixed teleportation to places without floor.
+        - Made space ignite the upward booster the whole time space is
+          pressed down.
+          This allows flying upwards.
+        - added ui_small_entry for small text entry.
+        - replaced debugging output in server with a proper logging
+          interface.
+        - added client connection log messages.
+        - fixed some spellings, thanks go to Zaba for spotting!
+        - added maximum queue length for server player chunk queue, so
+          the server has a fighting chance to keep up.
+        - raised max ambient light.
+        - remove M::I.
+        - Changed client side logging (and part of the server) to use
+          the new logging interface.
+        - Implemented logging module.
+        - fixed Makefile.PL, added lore to 10million trophy and fixed
+          typo in changes.
+        - moved back to ExtUtils::MakeMaker. added bio energy intake
+          feedback.
         - Added lore to the last earnable trophy.
         - Added feedback for eating bio energy stuff. A small little box is
           now displayed right next to the bio energy now.
