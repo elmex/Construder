@@ -21,12 +21,15 @@ double region_get_sector_value (void *reg, int x, int y, int z)
   double l = fabs (vec3_len (secpos));
   if (l < 1)
     return 1.85; // the core
-  else if (l < 131
+  else if (l < 200
            && ((abs (x) < 1 && abs (y) < 1)
                || (abs (z) < 1 && abs (y) < 1)
                || (abs (x) < 1 && abs (z) < 1)))
-    return 1.65; // the axis
-  else if (l < 30 || l > 130)
+    return 1.65; // the axis, going from center to the outer construct connection
+  else if (l < 30 // here we check the void: void is in the inner shell surface
+           || (l > 130 // and beyond the outer shell surface, but only if inside the
+                       // huge construct cube which spans 200 in each direction
+               && (abs (x) < 200 && abs (y) < 200 && abs (z) < 200)))
     return 1.55; // the void
   else // we are in the sphere shell around that
     {
