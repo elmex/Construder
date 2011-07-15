@@ -1,0 +1,2 @@
+#!/bin/bash
+perl bin/3dnoise res/voldraw/sector_$1.cmds 60
