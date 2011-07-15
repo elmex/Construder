@@ -292,6 +292,25 @@ sub init {
 
    return unless $ENV{PERL_GAMES_CONSTRUDER_DEBUG};
 
+   eval <<'ADDFUNCS';
+require Data::Dumper;
+
+sub ::AnyEvent::Debug::shell::d {
+   my ($d) = @_;
+   Data::Dumper::Dumper ($d)
+}
+
+sub ::AnyEvent::Debug::shell::wf {
+   my ($name, $data) = @_;
+   open my $fh, ">", "/tmp/$name.construder_debug"
+      or die "Couldn't open /tmp/$name.debug: $!\n";
+   binmode $fh;
+   print $fh $data;
+   close $fh;
+   print "wrote /tmp/$name.construder_debug";
+}
+ADDFUNCS
+
    $Data::Dumper::Indent = 2;
 
    my $sock = "/tmp/construder_shell_$name";
