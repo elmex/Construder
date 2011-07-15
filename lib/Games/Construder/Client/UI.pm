@@ -31,17 +31,9 @@ use base qw/Object::Event/;
 
 =head1 NAME
 
-Games::Construder::Client::UI - A simple and small GUI library for the game
-
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
-=head1 METHODS
+Games::Construder::Client::UI - Client GUI implementation
 
 =over 4
-
-=item my $obj = Games::Construder::Client::UI->new (%args)
 
 =cut
 
@@ -971,8 +963,6 @@ sub DESTROY {
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 

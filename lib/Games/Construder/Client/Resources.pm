@@ -25,17 +25,9 @@ use Games::Construder::Logging;
 
 =head1 NAME
 
-Games::Construder::Client::Resources - Manage textures for the Client
-
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
-=head1 METHODS
+Games::Construder::Client::Resources - Manage textures and object type attributes for the Client
 
 =over 4
-
-=item my $obj = Games::Construder::Client::Resources->new (%args)
 
 =cut
 
@@ -331,8 +323,6 @@ sub get_sdl {
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 

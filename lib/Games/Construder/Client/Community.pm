@@ -10,15 +10,7 @@ use base qw/Object::Event/;
 
 Games::Construder::Client::Community - Module that implements some community functions
 
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
-=head1 METHODS
-
 =over 4
-
-=item my $obj = Games::Construder::Client::Community->new (%args)
 
 =cut
 
@@ -303,8 +295,6 @@ sub show_chat {
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 

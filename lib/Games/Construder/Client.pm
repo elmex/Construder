@@ -34,17 +34,9 @@ use base qw/Object::Event/;
 
 =head1 NAME
 
-Games::Construder::Client - desc
-
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
-=head1 METHODS
+Games::Construder::Client - Client Networking Implementation
 
 =over 4
-
-=item my $obj = Games::Construder::Client->new (%args)
 
 =cut
 
@@ -322,8 +314,6 @@ sub disconnected : event_cb {
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 

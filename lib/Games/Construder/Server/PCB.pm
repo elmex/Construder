@@ -19,17 +19,9 @@ use common::sense;
 
 =head1 NAME
 
-Games::Construder::Server::PCB - desc
-
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
-=head1 METHODS
+Games::Construder::Server::PCB - Programming Language implementation for the PCBs
 
 =over 4
-
-=item my $obj = Games::Construder::Server::PCB->new (%args)
 
 =cut
 
@@ -544,8 +536,6 @@ sub step {
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 

@@ -49,12 +49,6 @@ our @EXPORT = qw/
 
 Games::Construder::Vector - Vector Math Utilities
 
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
-=head1 METHODS
-
 =over 4
 
 =cut
@@ -183,8 +177,6 @@ sub vcompres {
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 

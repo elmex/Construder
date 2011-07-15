@@ -31,10 +31,6 @@ our @EXPORT = qw/
 
 Games::Construder::Logging - This module takes care of logging construder client and server output.
 
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
 =over 4
 
 =cut
@@ -110,8 +106,6 @@ sub ctr_log {
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 

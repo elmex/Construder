@@ -34,17 +34,9 @@ use base qw/Object::Event/;
 
 =head1 NAME
 
-Games::Construder::Server - desc
-
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
-=head1 METHODS
+Games::Construder::Server - Server side networking and player management
 
 =over 4
-
-=item my $obj = Games::Construder::Server->new (%args)
 
 =cut
 
@@ -345,8 +337,6 @@ sub handle_packet : event_cb {
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 

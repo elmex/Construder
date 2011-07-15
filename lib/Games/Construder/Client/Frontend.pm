@@ -44,17 +44,9 @@ use base qw/Object::Event/;
 
 =head1 NAME
 
-Games::Construder::Client::Frontend - desc
-
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
-=head1 METHODS
+Games::Construder::Client::Frontend - Client Rendering, Physics, Keyboard handling and UI management
 
 =over 4
-
-=item my $obj = Games::Construder::Client::Frontend->new (%args)
 
 =cut
 
@@ -1474,8 +1466,6 @@ sub show_community : event_cb {
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 

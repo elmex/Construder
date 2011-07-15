@@ -49,13 +49,7 @@ our @EXPORT = qw/
 
 =head1 NAME
 
-Games::Construder::UI - desc
-
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
-=head1 METHODS
+Games::Construder::UI - Construder Userinterface Theme Definition
 
 =over 4
 
@@ -296,8 +290,6 @@ sub ui_hud_window_above {
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 

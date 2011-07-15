@@ -24,13 +24,7 @@ use Scalar::Util qw/weaken/;
 
 =head1 NAME
 
-Games::Construder::Server::Objects - desc
-
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
-=head1 METHODS
+Games::Construder::Server::Objects - Implementation of Object Type specific behaviour
 
 =over 4
 
@@ -718,8 +712,6 @@ sub tmr_auto {
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 

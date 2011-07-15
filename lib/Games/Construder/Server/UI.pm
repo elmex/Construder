@@ -27,13 +27,7 @@ our @EXPORT = qw/
 
 =head1 NAME
 
-Games::Construder::Server::UI - desc
-
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
-=head1 METHODS
+Games::Construder::Server::UI - Server-side Userinterface for Player interaction
 
 =over 4
 
@@ -2348,8 +2342,6 @@ REF
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 

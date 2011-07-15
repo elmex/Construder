@@ -45,13 +45,7 @@ our @EXPORT = qw/
 
 =head1 NAME
 
-Games::Construder::Client::World - desc
-
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
-=head1 METHODS
+Games::Construder::Client::World - Client collision detection and world utilities
 
 =over 4
 
@@ -276,8 +270,6 @@ sub world_find_free_spot {
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 

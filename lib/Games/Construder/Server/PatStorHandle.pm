@@ -20,17 +20,9 @@ use base qw/Object::Event/;
 
 =head1 NAME
 
-Games::Construder::Server::PatStorHandle - desc
-
-=head1 SYNOPSIS
-
-=head1 DESCRIPTION
-
-=head1 METHODS
+Games::Construder::Server::PatStorHandle - Generic handling of Inventory and Storage
 
 =over 4
-
-=item my $obj = Games::Construder::Server::PatStorHandle->new (%args)
 
 =cut
 
@@ -268,8 +260,6 @@ sub changed : event_cb {
 =head1 AUTHOR
 
 Robin Redeker, C<< <elmex@ta-sa.org> >>
-
-=head1 SEE ALSO
 
 =head1 COPYRIGHT & LICENSE
 
