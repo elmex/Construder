@@ -280,7 +280,7 @@ sub _calc_some_lights {
 }
 
 sub _query_push_lightqueue {
-   my $lightposes = Games::Construder::World::query_search_types (35, 41, 41);
+   my $lightposes = Games::Construder::World::query_search_types (35, 41, 40);
    while (@$lightposes) {
       my $pos = [shift @$lightposes, shift @$lightposes, shift @$lightposes];
       my $id = world_pos2id ($pos);
@@ -339,13 +339,19 @@ sub _world_make_sector {
          [shift @$pospos, shift @$pospos, shift @$pospos];
    }
    my $cnt = scalar @poses;
-   my @types = qw/41 41 35/;
+   my @types = qw/40 41 41 35 35 35 35/;
+   my %type_cnt = (
+      40 => 25,
+      41 => 100,
+      35 => 60,
+   );
    my $rnd_type = Games::Construder::Random::rnd_xor ($seed);
-   my $flot = Games::Construder::Random::rnd_float ($rnd_type) * 2.99999;
+   my $flot = Games::Construder::Random::rnd_float ($rnd_type) * 6.99999;
    my $type = $types[int $flot];
 
    my $nxt = $rnd_type;
-   for (my $i = 0; $i < 50; $i++) {
+   my $type_cnt = $type_cnt{$type};
+   for (my $i = 0; $i < $type_cnt; $i++) {
       $nxt        = Games::Construder::Random::rnd_xor ($nxt);
       my $nxt_flt = Games::Construder::Random::rnd_float ($nxt) - 0.00000001;
       $nxt_flt    = 0 if $nxt_flt < 0;
