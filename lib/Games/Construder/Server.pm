@@ -19,7 +19,6 @@ use common::sense;
 use AnyEvent;
 use AnyEvent::Handle;
 use AnyEvent::Socket;
-use EV;
 use JSON;
 
 use Games::Construder::Protocol;
@@ -120,7 +119,7 @@ sub shutdown {
    for (values %{$self->{players}}) {
       $_->save;
    }
-   EV::unloop;
+   $::CV->send;
 }
 
 sub handle_protocol {

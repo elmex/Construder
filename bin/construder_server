@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl
-use EV;
 use common::sense;
+use AnyEvent;
 use Games::Construder;
 use Games::Construder::Server;
 use Games::Construder::Logging;
@@ -9,9 +9,11 @@ ctr_enable_log_categories ('info', 'error', 'warn');
 
 Games::Construder::Debug::init ("server");
 
+our $CV = AE::cv;
+
 our $server;
 $server = Games::Construder::Server->new;
 $server->init;
 $server->listen;
 
-EV::loop;
+$CV->recv;

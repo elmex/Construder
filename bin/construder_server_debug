@@ -17,10 +17,12 @@ sub wf {
 }
 
 package main;
-use EV;
 use common::sense;
+use AnyEvent;
 use Games::Construder;
 use Games::Construder::Server;
+
+our $CV = AE::cv;
 
 Games::Construder::Debug::init ("server");
 
@@ -29,4 +31,4 @@ $server = Games::Construder::Server->new;
 $server->init;
 $server->listen;
 
-EV::loop;
+$CV->recv;

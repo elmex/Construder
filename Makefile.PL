@@ -44,7 +44,6 @@ WriteMakefile(
       'SDL'                 => 0,
       'Math::Trig'          => 0,
       'Compress::LZF'       => 0,
-      'EV'                  => 0,
       'File::ShareDir::PAR' => 0,
       'Storable'            => 0,
     },
