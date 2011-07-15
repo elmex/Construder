@@ -920,6 +920,12 @@ sub get_teleport_destination_region_range {
    my ($self) = @_;
    @{$self->{content}->{teleport_region_rage}}
 }
+
+sub get_initial_position {
+   my ($self) = @_;
+   @{$self->{content}->{initial_position}}
+}
+
 sub credits {
    my ($self) = @_;
    $self->{content}->{credits}

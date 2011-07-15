@@ -91,7 +91,10 @@ sub _initialize_player {
       happyness => 100,
       bio       => 100,
       score     => 0,
-      pos       => [1.5 * 60, 130 * 60, 1.5 * 60],
+ #     pos       => [1.1 * 60, -29 * 60, 1.1 * 60],
+      pos       => [
+         map { 60 * $_ } $Games::Construder::Server::RES->get_initial_position
+      ],
       time      => 0,
       inv       => $inv,
       next_encounter => 15 * 60, # 15 minutes newbie safety
