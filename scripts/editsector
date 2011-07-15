@@ -1,2 +1,6 @@
 #!/bin/bash
-perl bin/3dnoise res/voldraw/sector_$1.cmds 60
+if [ "$2" = "filter" ]; then
+   perl bin/3dnoise res/voldraw/sector_$1.cmds 60 scripts/editsector_filter.cmds pid
+else
+   perl bin/3dnoise res/voldraw/sector_$1.cmds 60
+fi

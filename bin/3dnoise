@@ -323,6 +323,10 @@ if ($ARGV[0] eq '-') {
 }
 
 my $edit_file = $ARGV[0];
+my $filter_file = $ARGV[2];
+if ($ARGV[3] eq 'pid') {
+   system ("echo $$ > /tmp/3dnoise.pid");
+}
 
 my $ltime = -M $edit_file;
 
@@ -353,9 +357,15 @@ renderer::set_recalc_cb ($cube, $ARGV[0], 0, sub {
 
    Games::Construder::VolDraw::alloc ($cube);
 
+   my $filter_cmds = "";
+   if (open my $f, "<", $filter_file) {
+      $filter_cmds = do { local $/; <$f> };
+   }
+
    if (open my $f, "<", $edit_file) {
      Games::Construder::VolDraw::draw_commands (
-       do { local $/; <$f> },
+       do { local $/; <$f> }
+       . "\n$filter_cmds",
        { size => $cube, seed => $seed, param => $param }
      );
 
