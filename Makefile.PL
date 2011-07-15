@@ -43,7 +43,6 @@ WriteMakefile(
       'Object::Event'       => 0,
       'common::sense'       => 0,
       'AnyEvent'            => 0,
-      'AnyEvent::IRC'       => 0,
       'JSON'                => 0,
       'OpenGL'              => 0,
       'OpenGL::List'        => 0,
