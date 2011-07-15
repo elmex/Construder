@@ -33,6 +33,12 @@ WriteMakefile(
       'OpenGL'                  => 0,
     },
     PREREQ_PM => {
+      # For now try to require them for runtime too:
+      # (Seems old cpans don't know about CONFIGURE_REQUIRES...)
+      'File::ShareDir::Install' => 0,
+      'Alien::SDL'              => 0,
+      'OpenGL'                  => 0,
+
       'Test::More'          => 0,
       'Object::Event'       => 0,
       'common::sense'       => 0,
