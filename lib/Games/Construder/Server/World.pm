@@ -46,6 +46,7 @@ our @EXPORT = qw/
    world_load_at_player
    world_load_around_at
    world_save_all
+   world_find_random_teleport_destination_at_dist
 /;
 
 
@@ -808,6 +809,38 @@ sub world_find_free_spot {
    $wflo = 0 unless defined $wflo;
    Games::Construder::World::find_free_spot (@$pos, $wflo);
 }
+
+sub world_find_random_teleport_destination_at_dist {
+   my ($pos, $dist) = @_;
+
+   my $new_pos = vadd ($pos, vsmul (vnorm (vrand ()), $dist));
+
+   my $sec = world_chnkpos2secpos (world_pos2chnkpos ($new_pos));
+
+   my $coord =
+      Games::Construder::Region::get_nearest_sector_in_range (
+         $Games::Construder::Server::World::REGION,
+         @$sec,
+         $Games::Construder::Server::RES->get_teleport_destination_region_range
+      );
+
+   my @coords;
+   while (@$coord) {
+      my $p = [shift @$coord, shift @$coord, shift @$coord];
+      push @coords, $p;
+   }
+
+   if (!@coords) {
+      ctr_log (
+         error => "Couldn't find proper teleportation destination at @$new_pos (@$sec), not teleporting player!");
+      return ($pos, 0, 0);
+   }
+
+   $new_pos = vsmul ($coords[0], $CHNK_SIZE * $CHNKS_P_SEC);
+   my $dist = vlength (vsub ($pos, $new_pos));
+   ($new_pos, $dist, int ($dist / ($CHNK_SIZE * $CHNKS_P_SEC)))
+}
+
 
 =back
 

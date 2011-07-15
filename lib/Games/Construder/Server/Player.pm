@@ -385,9 +385,10 @@ sub refill_bio {
 
 sub kill_player {
    my ($self, $reason) = @_;
-   my $new_pl_pos = vsmul (vnorm (vrand ()), 780);
-   $self->teleport ($new_pl_pos);
-   $self->msg (1, "You died of $reason, your stats and inventory were reset and you have been teleported 13 sectors away!");
+   my $pp = $self->{data}->{pos};
+   my ($new_pos, $dist, $secdist) = world_find_random_teleport_destination_at_dist ($pp, 780);
+   $self->teleport ($new_pos);
+   $self->msg (1, "You died of $reason, your stats and inventory were reset and you have been teleported $secdist sectors away!");
    $self->{inv}->remove ('all');
    my $inv = $Games::Construder::Server::RES->get_initial_inventory;
    $self->{data}->{inv}->{$_} = $inv->{$_} for keys %$inv;

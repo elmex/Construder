@@ -358,7 +358,9 @@ sub drone_check_player_hit {
 
    if (vlength (vsub ($pl->{data}->{pos}, $pos)) <= 1.1) {
       my $dist = $entity->{teleport_dist} * 60;
-      my $new_pl_pos = vsmul (vnorm (vrand ()), $dist);
+      my ($new_pl_pos, $dist, $secdist) =
+         world_find_random_teleport_destination_at_dist ($pl->{data}->{pos}, $dist);
+      $dist = int $dist;
       $pl->teleport ($new_pl_pos);
       $pl->push_tick_change (happyness => -100);
       $pl->msg (1, "A Drone displaced you by $dist.");

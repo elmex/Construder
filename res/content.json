@@ -612,6 +612,22 @@
       },
       "ent" : { },
    },
+# unused at the moment:
+#   "teleport_points" : [ # dron teleports randomly to one of these:
+#      [1.1,   130,    1.1],
+#      [1.1,    30.5,  1.1],
+#      [1.1,   -29,    1.1],
+#      [1.1,  -129,    1.1],
+#      [  29.9,  1.0,  0.2],
+#      [ 130.1,  1.0,  0.2],
+#      [ -30,    1.0,  0.2],
+#      [-130,    1.0,  0.2],
+#      [1.5,     1.0,   29],
+#      [1.5,     1.0,128.9], # check following for sanity:
+#      [1.5,     1.0,  -30 ],
+#      [1.5,     1.0,  -130],
+#   ],
+   "teleport_region_rage" : [0, 1.1], # possible random teleportation destination sector types
    "region" : {
       "file" : "voldraw/region_noise.cmds",
    },

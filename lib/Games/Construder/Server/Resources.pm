@@ -916,6 +916,10 @@ sub get_trophy_type_by_score {
    $trophyt
 }
 
+sub get_teleport_destination_region_range {
+   my ($self) = @_;
+   @{$self->{content}->{teleport_region_rage}}
+}
 sub credits {
    my ($self) = @_;
    $self->{content}->{credits}
