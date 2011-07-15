@@ -1760,6 +1760,7 @@ package Games::Construder::Server::UI::PatternStorage;
 use Games::Construder::UI;
 use Games::Construder::Server::World;
 use Games::Construder::Server::Player;
+use Games::Construder::Logging;
 
 use base qw/Games::Construder::Server::UI/;
 
@@ -1802,7 +1803,6 @@ sub handle_command {
                   return 0 unless $cell->[0] == 31;
                   my $ent = $cell->[-1];
                   $ent->{label} = $txt;
-                  warn "set label @$pos: $cell->[0], $ent | $ent->{label}\n";
                   $self->show;
                   1
                });
@@ -1824,16 +1824,18 @@ sub handle_command {
                my ($num) = $self->{pl}->{inv}->get_count ($invid);
                my ($cnt, $ent) = $self->{pl}->{inv}->remove ($invid, $num);
                if ($cnt) {
-                  warn "OK TRANSFE $invid : $ent  | $num\n";
-                  if ($ps_hdl->add ($invid, $ent ? $ent : $num)) {
+                  my $cnt_added = $ps_hdl->add ($invid, $ent ? $ent : $num);
+                  ctr_log (debug => "pattern_storage: transfer %s from inv %d added, %d num", $invid, $cnt_added, $num);
+                  my $put_back = $num - $cnt_added;
+                  if ($cnt_added) {
                      $self->{pl}->msg (
-                        0, "Transfered $num $o->{name} into the pattern storage.");
+                        0, "Transfered $cnt_added $o->{name} into the pattern storage.");
                   } else {
-                  warn "TRANSFER FAILED\n";
-                     $self->{pl}->{inv}->add ($invid, $ent ? $ent : $num);
                      $self->{pl}->msg (
                         1, "$num $o->{name} does not fit into the pattern storage.");
                   }
+
+                  $self->{pl}->{inv}->add ($invid, $ent ? $ent : $put_back) if $put_back;
                }
             }
             $self->delete_ui ('label_pattern_store');
@@ -1853,14 +1855,18 @@ sub handle_command {
                my ($num) = $ps_hdl->get_count ($invid);
                my ($cnt, $ent) = $ps_hdl->remove ($invid, $num);
                if ($cnt) {
-                  if ($self->{pl}->{inv}->add ($invid, $ent ? $ent : $num)) {
+                  my $cnt_added = $self->{pl}->{inv}->add ($invid, $ent ? $ent : $num);
+                  ctr_log (debug => "pattern_storage: transfer %s to inv %d added, %d num", $invid, $cnt_added, $num);
+                  my $put_back = $num - $cnt_added;
+                  if ($cnt_added) {
                      $self->{pl}->msg (
-                        0, "Transfered $num $o->{name} into your inventory.");
+                        0, "Transfered $cnt_added $o->{name} into your inventory.");
                   } else {
-                     $ps_hdl->add ($invid, $ent ? $ent : $num);
                      $self->{pl}->msg (
                         1, "$num $o->{name} does not fit into your inventory.");
                   }
+
+                  $ps_hdl->add ($invid, $ent ? $ent : $put_back) if $put_back;
                }
             }
             $self->delete_ui ('label_pattern_store');
