@@ -1,0 +1,32 @@
+#!/opt/perl/bin/perl
+use Text::Wrap;
+use common::sense;
+
+$Text::Wrap::columns = 72;
+$Text::Wrap::unexpand = 0;
+
+my (@tags) = split /\s+/, `git tag`;
+my $last_version_tag;
+for (reverse sort @tags) {
+   if (/^version_/) {
+      $last_version_tag = $_;
+      last;
+   }
+}
+
+$last_version_tag ne '' or die "no version tag found!";
+
+my $log = `git log --format=format:\"%s%n%b%n#########%n\" $last_version_tag..HEAD`;
+for (split /\n#####*\n/, $log) {
+   s/^\n//s;
+   my ($head, $body) = split /\n/, $_, 2;
+   my $h = Text::Wrap::wrap ((" " x 8) . "- ", " " x 10, $head);
+   my (@bl) = split /\n/, $body;
+   my $pad = " " x 8;
+   $body = join "\n", map { "$pad  $_" } @bl;
+   if ($body ne '') {
+      print "$h\n$body\n";
+   } else {
+      print "$h\n";
+   }
+}
