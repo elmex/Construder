@@ -13,6 +13,9 @@
 #include "volume_draw.c"
 #include "light.c"
 
+
+unsigned char *ctr_chunk_read_data[CHUNK_ALEN * 4];
+
 double region_get_sector_value (void *reg, int x, int y, int z)
 {
   if (!reg)
@@ -278,11 +281,8 @@ ctr_world_get_chunk_data (int x, int y, int z)
       }
 
     int len = CHUNK_ALEN * 4;
-    unsigned char *data = malloc (sizeof (unsigned char) * len);
-    ctr_world_get_chunk_data (chnk, data);
-
-    RETVAL = newSVpv (data, len);
-    free (data);
+    ctr_world_get_chunk_data (chnk, (unsigned char *) &ctr_chunk_read_data);
+    RETVAL = newSVpv ((unsigned char *) &ctr_chunk_read_data, len);
   OUTPUT:
     RETVAL
 
