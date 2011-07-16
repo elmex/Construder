@@ -69,10 +69,22 @@ ctr_axis_array *ctr_axis_array_new ()
   ctr_axis_array *na = safemalloc (sizeof (ctr_axis_array));
   ctr_prof_cnt.allocated_axises++;
   memset (na, 0, sizeof (ctr_axis_array));
-  na->len = 0;
-  na->alloc = 0;
   ctr_axis_array_grow (na, 1);
   return na;
+}
+
+int ctr_axis_empty (ctr_axis_array *a)
+{
+  return a->len == 0;
+}
+
+void ctr_axis_array_free (ctr_axis_array *a)
+{
+  ctr_prof_cnt.allocated_axises_size -= sizeof (ctr_axis_node) * a->alloc;
+  ctr_prof_cnt.allocated_axises--;
+  if (a->nodes)
+    safefree (a->nodes);
+  safefree (a);
 }
 
 void ctr_axis_array_dump (ctr_axis_array *arr)

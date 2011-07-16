@@ -594,6 +594,18 @@ void ctr_world_purge_chunk (int x, int y, int z)
       else
         safefree (c);
       ctr_prof_cnt.allocated_chunks--;
+
+      if (ctr_axis_empty (zn))
+        {
+          ctr_axis_remove (xn, x);
+          ctr_axis_array_free (zn);
+
+          if (ctr_axis_empty (xn))
+            {
+              ctr_axis_remove (WORLD.y, y);
+              ctr_axis_array_free (xn);
+            }
+        }
     }
 }
 
