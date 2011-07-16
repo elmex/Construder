@@ -563,7 +563,9 @@ sub send_chunk {
       return;
    }
 
-   $self->send_client ({ cmd => "chunk", pos => $chnk }, compress ($data));
+   my $buf = compress ($data);
+
+   $self->send_client ({ cmd => "chunk", pos => $chnk }, \$buf);
    $self->{sent_chunks}->{$id} = $chnk;
    delete $self->{to_send_chunks}->{$id};
 }
