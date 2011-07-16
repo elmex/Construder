@@ -926,7 +926,7 @@ MODULE = Games::Construder PACKAGE = Games::Construder::Region PREFIX = region_
 void *region_new_from_vol_draw_dst ()
   CODE:
     double *region =
-       malloc ((sizeof (double) * DRAW_CTX.size * DRAW_CTX.size * DRAW_CTX.size) + 1);
+       safemalloc ((sizeof (double) * DRAW_CTX.size * DRAW_CTX.size * DRAW_CTX.size) + 1);
     RETVAL = region;
 
     region[0] = DRAW_CTX.size;
