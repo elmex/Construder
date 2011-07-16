@@ -305,20 +305,6 @@ int ctr_world_set_chunk_data (int x, int y, int z, unsigned char *data, unsigned
     ctr_world_emit_chunk_change (x, y, z);
 
     //d// ctr_world_dump ();
-
-    /*
-    unsigned char *datac = malloc (sizeof (unsigned char) * lenc);
-    ctr_world_get_chunk_data (chnk, datac);
-    int i;
-    for (i = 0; i < lenc; i++)
-      {
-        if (data[i] != datac[i])
-          {
-            printf ("BUG! AT %d %x %d\n", i, data[i], datac[i]);
-            exit (1);
-          }
-      }
-    */
   OUTPUT:
     RETVAL
 
