@@ -543,7 +543,6 @@ void vol_draw_fill_simple_noise_octaves (unsigned int seed, unsigned int octaves
       for (x = 0; x < DRAW_CTX.size; x++)
         DRAW_DST(x,y,z) = 0;
 
-
   int i;
   for (i = 0; i <= octaves; i++)
     {

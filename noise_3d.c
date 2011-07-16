@@ -96,6 +96,8 @@ void *mk_3d_noise (unsigned int slen, unsigned int seed)
 
    unsigned int *noise_arr =
       safemalloc (sizeof (unsigned int) * (slen * slen * slen + 1));
+   ctr_prof_cnt.noise_cnt++;
+   ctr_prof_cnt.noise_size += sizeof (unsigned int) * (slen * slen * slen + 1);
 
    noise_arr[0] = slen;
 
@@ -159,7 +161,11 @@ unsigned int sample_3d_noise_at (void *noise, unsigned int x, unsigned int y, un
 
 void free_3d_noise (void *noise)
 {
-  safefree (noise);
+   unsigned int *noise_3d = noise;
+   int slen = noise_3d[0];
+   safefree (noise);
+   ctr_prof_cnt.noise_cnt--;
+   ctr_prof_cnt.noise_size -= sizeof (unsigned int) * (slen * slen * slen + 1);
 }
 
 

@@ -103,6 +103,8 @@ void ctr_dyn_buf_init (ctr_dyn_buf *db, GLfloat **ptr, unsigned int pa_items,
 {
   db->ptr = ptr;
   *(db->ptr) = safemalloc (pa_items * item_size);
+  ctr_prof_cnt.dyn_buf_cnt++;
+  ctr_prof_cnt.dyn_buf_size += db->item * db->alloc;
   db->item = item_size;
   db->alloc = pa_items;
 }
@@ -114,15 +116,21 @@ void ctr_dyn_buf_grow (ctr_dyn_buf *db, unsigned int items)
 
   items *= 2;
 
+  ctr_prof_cnt.dyn_buf_size -= db->item * db->alloc;
+
   void *nb = safemalloc (items * db->item);
   memcpy (nb, *(db->ptr), db->alloc * db->item);
   free (*(db->ptr));
   *(db->ptr) = nb;
   db->alloc = items;
+
+  ctr_prof_cnt.dyn_buf_size += db->item * db->alloc;
 }
 
 void ctr_dyn_buf_free (ctr_dyn_buf *db)
 {
+  ctr_prof_cnt.dyn_buf_cnt--;
+  ctr_prof_cnt.dyn_buf_size -= db->item * db->alloc;
   free (*(db->ptr));
 }
 
@@ -181,8 +189,6 @@ void ctr_render_clear_geom (void *c)
   geom->zoff = 0;
 }
 
-static int cgeom = 0;
-
 // FIXME: this should be dependend on the visible radisu, so we maybe want to change
 //        this value dynamically adaptively to the current usage.
 #define GEOM_PRE_ALLOC 150 // enought for radius of 3 (~93 visible chunks)
@@ -201,7 +207,7 @@ void *ctr_render_new_geom ()
   else
     {
       c = safemalloc (sizeof (ctr_render_geom));
-      cgeom++;
+      ctr_prof_cnt.geom_cnt++;
       memset (c, 0, sizeof (ctr_render_geom));
       c->dl = glGenLists (1);
 
@@ -250,7 +256,6 @@ void *ctr_render_new_geom ()
 
   c->dl_dirty = 1;
 
-  //d// printf ("geoms allocated: %d x %d (prealloc %d)\n", cgeom, sizeof (ctr_render_geom), geom_last_free);
   return c;
 }
 
@@ -281,7 +286,7 @@ void ctr_render_free_geom (void *c)
       ctr_dyn_buf_free (&geom->db_uvs);
 #endif
       safefree (geom);
-      cgeom--;
+      ctr_prof_cnt.geom_cnt--;
     }
 }
 

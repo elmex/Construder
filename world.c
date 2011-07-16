@@ -201,6 +201,7 @@ void ctr_world_emit_chunk_change (int x, int y, int z)
       XPUSHs(sv_2mortal(newSViv (z)));
       PUTBACK;
       call_sv (WORLD.chunk_change_cb, G_DISCARD | G_VOID);
+      ctr_prof_cnt.chunk_changes++;
       SPAGAIN;
       FREETMPS;
       LEAVE;
@@ -223,6 +224,7 @@ void ctr_world_emit_active_cell_change (int x, int y, int z, ctr_cell *c, SV *sv
         XPUSHs(sv);
       PUTBACK;
       call_sv (WORLD.active_cell_change_cb, G_DISCARD | G_VOID);
+      ctr_prof_cnt.active_cell_changes++;
       SPAGAIN;
       FREETMPS;
       LEAVE;
@@ -503,8 +505,6 @@ void ctr_world_get_chunk_data (ctr_chunk *chnk, unsigned char *data)
         }
 }
 
-static int chnk_alloc = 0;
-
 ctr_chunk *ctr_world_chunk (int x, int y, int z, int alloc)
 {
   ctr_axis_array *xn = (ctr_axis_array *) ctr_axis_get (WORLD.y, y);
@@ -535,9 +535,8 @@ ctr_chunk *ctr_world_chunk (int x, int y, int z, int alloc)
   if (alloc && !c)
     {
       c = safemalloc (sizeof (ctr_chunk));
+      ctr_prof_cnt.allocated_chunks++;
       memset (c, 0, sizeof (ctr_chunk));
-      chnk_alloc++;
-      //printf ("ALLOC CHUNK %d %d %d (%d)\n", x, y, z, chnk_alloc);
       c->x = x;
       c->y = y;
       c->z = z;
@@ -569,8 +568,8 @@ void ctr_world_purge_chunk (int x, int y, int z)
   ctr_chunk *c = (ctr_chunk *) ctr_axis_remove (zn, z);
   if (c)
     {
-      chnk_alloc--;
       safefree (c);
+      ctr_prof_cnt.allocated_chunks--;
     }
 }
 

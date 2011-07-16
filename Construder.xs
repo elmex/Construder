@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <math.h>
 
+#include "counters.c"
 #include "vectorlib.c"
 #include "world.c"
 #include "world_drawing.c"
@@ -228,9 +229,31 @@ void ctr_render_set_ambient_light (double l)
 
 MODULE = Games::Construder PACKAGE = Games::Construder::World PREFIX = ctr_world_
 
+AV *
+ctr_world_get_prof_counters ()
+  CODE:
+    RETVAL = newAV ();
+    sv_2mortal ((SV *)RETVAL);
+
+    av_push (RETVAL, newSViv (ctr_prof_cnt.chunk_changes));
+    av_push (RETVAL, newSViv (ctr_prof_cnt.active_cell_changes));
+    av_push (RETVAL, newSViv (ctr_prof_cnt.allocated_axises));
+    av_push (RETVAL, newSViv (ctr_prof_cnt.allocated_axises_size));
+    av_push (RETVAL, newSViv (ctr_prof_cnt.noise_cnt));
+    av_push (RETVAL, newSViv (ctr_prof_cnt.noise_size));
+    av_push (RETVAL, newSViv (ctr_prof_cnt.dyn_buf_cnt));
+    av_push (RETVAL, newSViv (ctr_prof_cnt.dyn_buf_size));
+    av_push (RETVAL, newSViv (ctr_prof_cnt.geom_cnt));
+    av_push (RETVAL, newSViv (ctr_prof_cnt.allocated_chunks));
+
+  OUTPUT:
+    RETVAL
+
+
 void ctr_world_init (SV *change_cb, SV *cell_change_cb)
   CODE:
      ctr_world_init ();
+     ctr_prof_init ();
      SvREFCNT_inc (change_cb);
      WORLD.chunk_change_cb = change_cb;
      SvREFCNT_inc (cell_change_cb);

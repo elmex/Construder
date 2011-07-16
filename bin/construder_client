@@ -5,7 +5,7 @@ use Games::Construder::Logging;
 use Games::Construder::Client;
 
 #ctr_enable_log_categories ('all');
-ctr_enable_log_categories ('info', 'error', 'warn', 'chat');
+ctr_enable_log_categories ('info', 'error', 'warn', 'chat', 'memory_prof');
 
 Games::Construder::Debug::init ("client");
 
