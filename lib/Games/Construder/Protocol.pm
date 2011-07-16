@@ -34,9 +34,12 @@ Games::Construder::Protocol - Client-Server Protocol Utility Functions
 
 =cut
 
+my $JS = JSON->new;
+
 sub packet2data {
    my ($header, $body) = @_;
-   my $hdr_data = JSON->new->encode ($header);
+   my $hdr_data = $JS->encode ($header);
+   $body = $$body if ref $body;
    my $data = (pack "N", length $hdr_data) . $hdr_data . $body;
    $data
 }
@@ -46,7 +49,7 @@ sub data2packet {
    my $hdr_len  = unpack "N", substr ($data, 0, 4, '');
    my $hdr      = substr $data, 0, $hdr_len, '';
    my $body     = $data;
-   $hdr = JSON->new->relaxed->decode ($hdr);
+   $hdr = $JS->decode ($hdr);
    ($hdr, $body)
 }
 
