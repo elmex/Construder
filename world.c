@@ -106,6 +106,8 @@ static ctr_queue *light_upd_queue   = 0;
 static ctr_queue *light_upd_queue_1 = 0;
 static ctr_queue *light_upd_queue_2 = 0;
 
+void ctr_world_chunk_buffer_init ();
+
 void ctr_world_init ()
 {
   int i;
@@ -122,6 +124,7 @@ void ctr_world_init ()
   light_upd_queue_2 =
      ctr_queue_new (sizeof (ctr_light_item),
                     CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 9 * 2);
+  ctr_world_chunk_buffer_init ();
 }
 
 // Clears light queues for light computation.
@@ -505,6 +508,20 @@ void ctr_world_get_chunk_data (ctr_chunk *chnk, unsigned char *data)
         }
 }
 
+#define CTR_BUF_CHUNKS 2000
+static ctr_chunk *ctr_buffered_chunks_buf[CTR_BUF_CHUNKS];
+static int ctr_buffered_chunks = 0;
+
+void ctr_world_chunk_buffer_init ()
+{
+  int i;
+  for (i = 0; i < CTR_BUF_CHUNKS; i++)
+    {
+      ctr_buffered_chunks_buf[i] = safemalloc (sizeof (ctr_chunk));
+      ctr_buffered_chunks++;
+    }
+}
+
 ctr_chunk *ctr_world_chunk (int x, int y, int z, int alloc)
 {
   ctr_axis_array *xn = (ctr_axis_array *) ctr_axis_get (WORLD.y, y);
@@ -534,7 +551,11 @@ ctr_chunk *ctr_world_chunk (int x, int y, int z, int alloc)
   ctr_chunk *c = (ctr_chunk *) ctr_axis_get (zn, z);
   if (alloc && !c)
     {
-      c = safemalloc (sizeof (ctr_chunk));
+      if (ctr_buffered_chunks > 0)
+        c = ctr_buffered_chunks_buf[--ctr_buffered_chunks];
+      else
+        c = safemalloc (sizeof (ctr_chunk));
+
       ctr_prof_cnt.allocated_chunks++;
       memset (c, 0, sizeof (ctr_chunk));
       c->x = x;
@@ -568,7 +589,10 @@ void ctr_world_purge_chunk (int x, int y, int z)
   ctr_chunk *c = (ctr_chunk *) ctr_axis_remove (zn, z);
   if (c)
     {
-      safefree (c);
+      if (ctr_buffered_chunks < CTR_BUF_CHUNKS)
+        ctr_buffered_chunks_buf[ctr_buffered_chunks++] = c;
+      else
+        safefree (c);
       ctr_prof_cnt.allocated_chunks--;
     }
 }
