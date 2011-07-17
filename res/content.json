@@ -6,7 +6,7 @@
       "Materialization" : {
         "type"            : 1,
         "texture"         : ["textures.png", 128, 64, 64, 64],
-        "lore"            : "This is the whirl of materialization, the colorful appearance is created by the nano bots at work.",
+        "lore"            : "A whirl of materialization. The colorful appearance is created by the nanobots at work.",
         "untransformable" : true,
       },
       "Stones" : {
@@ -25,7 +25,7 @@
       "Steel" : {
         "type"    : 11,
         "texture" : ["textures.png", 64, 0, 64, 64],
-        "lore"    : "Steel is a very sturdy build material.",
+        "lore"    : "Steel is a very sturdy building material.",
         "complexity" : 10,
         "density" : 45,
         "model" : [2, 1, 10, 2, 10, 3, 10, 4, 10],
@@ -43,7 +43,7 @@
       "Aluminum" : {
         "type" : 13,
         "texture" : ["textures.png", 0, 64, 64, 64],
-        "lore" : "Not that sturdy metal, but quite light on the other hand.",
+        "lore" : "A quite light, but not very strudy metal.",
         "complexity" : 15,
         "density" : 25,
         "model" : [3,
@@ -67,7 +67,7 @@
       "Concrete" : {
         "type" : 15,
         "texture" : ["textures.png", 192, 64, 64, 64],
-        "lore" : "Much sturdier than the stones and used a lot for building.",
+        "lore" : "Much sturdier than stone and widely used for building.",
         "complexity" : 17,
         "density" : 40,
         "model" : [2, 1, 2, 2, 2, 3, 2, 4, 2],
@@ -76,7 +76,7 @@
       "Brickwall" : {
         "type" : 16,
         "texture" : ["textures.png", 0, 128, 64, 64],
-        "lore" : "Very anachronistic build material. But still used these days.",
+        "lore" : "A very anachronistic building material that is still used these days.",
         "complexity" : 20,
         "density" : 27,
         "model" : [2, 1, 2, 2, 21, 5, 21, 6, 2],
@@ -85,7 +85,7 @@
       "Asphalt" : {
         "type" : 17,
         "texture" : ["textures.png", 128, 128, 64, 64],
-        "lore" : "Brought to you straight from the 20th and 21st century. Back in those days it was used as ground for automobile routes. These days it still serves well as ground material.",
+        "lore" : "Brought to you straight from the 20th and 21st centuries. Back in those days it was used as ground for automobile routes. These days it still serves well as ground material.",
         "complexity" : 20,
         "density" : 20,
         "model" : [2, 1, 28, 2, 12, 5, 2, 6, 2],
@@ -109,7 +109,7 @@
       "Granite" : {
          "type" : 20,
          "texture" : ["textures.png", 0, 192, 64, 64],
-         "lore" : "You'll almost bite your teeth out on granite. But never the less, it's great stuff for building.",
+         "lore" : "You'll almost bite your teeth out on granite. But nevertheless, it's great stuff for building.",
          "complexity" : 15,
          "density" : 85,
       },
@@ -130,7 +130,7 @@
       "Silicon" : {
          "type" : 23,
          "texture" : ["textures.png", 256, 192, 64, 64],
-         "lore" : "Similiar to gold, it's required for any CPU.",
+         "lore" : "Like gold, Silicon is required for any CPU.",
          "complexity" : 12,
          "density" : 20,
          "model" : [2, 1, 21, 2, 21, 3, 21, 4, 21],
@@ -156,14 +156,14 @@
       "Uran" : {
          "type" : 25,
          "texture" : ["textures.png", 384, 192, 64, 64],
-         "lore" : "Uran, a powerful energy source. But be careful of the radiation!",
+         "lore" : "Uran, a powerful energy source. But be cautious of the radiation!",
          "complexity" : 40,
          "density" : 50,
       },
       "Plutonium" : {
          "type" : 26,
          "texture" : ["textures.png", 448, 192, 64, 64],
-         "lore" : "Plutonium, a very powerful energy source. But be very careful of the radiation!",
+         "lore" : "Plutonium, a very powerful energy source. But be very cautious of the radiation!",
          "complexity" : 45,
          "density" : 50,
       },
@@ -212,7 +212,7 @@
       "CPU" : {
         "type" : 32,
         "texture" : ["textures.png", 384, 0, 64, 64],
-        "lore" : "A CPU is used in nearly any advanced electronical device you will build.",
+        "lore" : "A CPU is used in nearly any advanced electronic device you can build.",
         "complexity" : 75,
         "density" : 20,
         "model" : [3,
@@ -229,7 +229,7 @@
       "Jammer" : {
         "type" : 33,
         "texture" : ["textures.png", 448, 0, 64, 64],
-        "lore" : "This is a jamming device. It jams your bio signature from the drones in the construct, which may cause harm to you.",
+        "lore" : "A Jammer prevents drones in the Construct from reading your bio signature and detecting you.",
         "complexity" : 80,
         "density" : 10,
         "model" : [3,
@@ -277,19 +277,19 @@
         ],
         "model_cnt" : 7,
       },
-      "Hydrogencell" : {
+      "Hydrogen Cell" : {
         "type" : 37,
         "texture" : ["textures.png", 448, 64, 64, 64],
-        "lore" : "If you need more power than a Minicell provides, your next option is the Hydrogencell.",
+        "lore" : "If you need more power than a Minicell provides, your next option is the Hydrogen Cell.",
         "complexity" : 45,
         "density" : 20,
         "model" : [2, 1, 10, 3, 42, 5, 13],
         "model_cnt" : 8,
       },
-      "Nuclearcell" : {
+      "Nuclear Cell" : {
         "type" : 38,
         "texture" : ["textures.png", 0, 256, 64, 64],
-        "lore" : "A powerful energy generator, but not as powerful as a Fusioncell.",
+        "lore" : "A powerful energy generator, but not as powerful as a Fusion Cell.",
         "complexity" : 60,
         "density" : 30,
         "model" : [3,
@@ -301,7 +301,7 @@
         ],
         "model_cnt" : 6,
       },
-      "Fusioncell" : {
+      "Fusion Cell" : {
         "type" : 39,
         "texture" : ["textures.png", 64, 256, 64, 64],
         "lore" : "Probably the most powerful energy generator.",
@@ -325,7 +325,7 @@
       "Floodlight" : {
         "type" : 40,
         "texture" : ["textures.png", 128, 256, 64, 64],
-        "lore" : "Very bright light source. You will love it. Unfortunately it needs lots of energy.",
+        "lore" : "A very bright light source. You will love it. Unfortunately, it needs a lot of energy.",
         "complexity" : 50,
         "density" : 13,
         "model" : [2, 1, 38, 2, 12, 3, 27, 5, 23],
@@ -334,7 +334,7 @@
       "Safelight" : {
         "type" : 41,
         "texture" : ["textures.png", 192, 256, 64, 64],
-        "lore" : "Quite dim light source, but it's easy to build.",
+        "lore" : "A quite dim but easy-to-build light source.",
         "complexity" : 25,
         "density" : 5,
         "model": [2, 1, 30, 2, 12, 5, 23],
@@ -343,7 +343,7 @@
       "Circuits" : {
         "type" : 42,
         "texture" : ["textures.png", 384, 256, 64, 64],
-        "lore" : "Base component for any electronical device.",
+        "lore" : "The base component of any electronic device.",
         "complexity" : 50,
         "density" : 5,
         "model" : [2, 1, 23, 2, 12, 5, 18],
@@ -359,7 +359,7 @@
       "Gold" : {
          "type" : 44,
          "texture" : ["textures.png", 192, 192, 64, 64],
-         "lore" : "Gold, as precious as it is, it's required for almost any electronic circuit that consists of a CPU.",
+         "lore" : "Gold, as precious as it is, is required for almost any electronic circuit that consists of a CPU.",
          "complexity" : 40,
          "density" : 33,
       },
@@ -404,13 +404,13 @@
       "Drone" : {
         "type" : 50,
         "texture" : ["textures.png", 64, 128, 64, 64],
-        "lore" : "A building Drone. Usually only annoying, due to their bad programming they still teleport everyone who seems to got lost away.",
+        "lore" : "A building Drone. Bothersome due to their bad programming, which makes them teleport everyone who seems to be lost.",
          "untransformable" : true
       },
 
       "PCB" : {
          "type" : 51,
-         "lore" : "A PCB (Programmable Construction Bot). It can vaporize, materialize, dematerialize, move and probe around in the world. It's behaviour is completely determined by the program you feed it with.",
+         "lore" : "A PCB (Programmable Construction Bot). It can vaporize, materialize, dematerialize, move and probe around in the world. Its behaviour is completely determined by the program you feed it with.",
          "model" : [3,
            1, 42,  2, 27,   3, 42,
              4, 37, 5, 32, 6, 37,
@@ -474,7 +474,7 @@
       "Marble" : {
         "type" : 63,
         "texture" : ["textures.png", 192, 128, 64, 64],
-        "lore" : "Very dense and hard material. Very nice for building.",
+        "lore" : "A very dense and hard material. Very nice for building.",
         "complexity" : 15,
         "density" : 75,
         "model" : [1, 1, 20],

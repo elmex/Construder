@@ -1,20 +1,20 @@
 :obj:Stones:lore
 Stones are probably the most basic material found in the Construct.
-They were collected by the nano bot probes from asteroids and planets
+They were collected by the nanobot probes from asteroids and planets
 of the starsystem Anthymarsio. It proved to be a good foundation for
-the Construct but eventually it was processed into further materials.
+the Construct, but eventually it was processed into further materials.
 .
 :obj:Iron:lore
 Probably the most useful metal found in the Construct. It's used in a wide
-range of other materials and also any techical device can't but built without
-at least on part that has some iron in it.
+range of other materials, and no techical device can be built without at least
+one part that has some iron in it.
 .
 :obj:Pattern Storage:lore
 The Pattern Storage can hold the matter and energy patterns of materials. Your
 inventory is designed after this. You can use this as external storage for
-gathered materials that don't fit into your inventory. Even though your inventory
-can not hold an arbitrary number of complex materials, it can hold multiple
-Pattern Storages.
+gathered materials that don't fit into your inventory. Even though your
+inventory cannot hold an arbitrary number of complex materials, it can hold
+multiple Pattern Storages.
 .
 :obj:Vaporizer A:lore
 :obj:Vaporizer B:lore
@@ -22,58 +22,56 @@ Pattern Storages.
 :obj:Vaporizer D:lore
 A Vaporizer vaporizes materials in a certain radius around it. It's much faster
 than dematerialization, as the atom bondings are dissolved in a destructive
-way. You use it by building it in a place you want to vaporize blocks,
-and apply it afterwards.
-Because of too many accidents they have been enhanced to not harm the
-users in any way.
+way. You use it by building it where you want to vaporize blocks and applying
+it. After many accidents, they have been enhanced to not vaporize the users.
 There are multiple types of Vaporizers with different characteristics. 
 .
 :obj:Vaporizer A:lore
-The basic and simplest type is the Vaporizer A, which destructs in a radius of
-1 blocks around it (which are all 8 blocks).
+The basic and simplest type is the Vaporizer A, which destructs blocks in a
+radius of 1 around itself (which are all 8 blocks).
 .
 :obj:Vaporizer B:lore
-The type B destructs in a radius of 2.
+The type B destructs blocks in a radius of 2.
 .
 :obj:Vaporizer C:lore
-The type C vaporizes in a radius of 4 blocks. But it's slightly unreliable
-due to the higher energy output, which means that it sometimes does not work.
+The type C vaporizes blocks in a radius of 4. However, it's slightly unreliable
+due to the higher energy output, which means that sometimes it does not work.
 .
 :obj:Vaporizer D:lore
-Type D vaporizers are the most destructive ones, they can vaporize blocks in
-a radius up to 10 around them. But they are so unreliable, that their radius
-can vary a lot.
+Type D vaporizers are the most destructive ones. They can vaporize blocks in
+a radius of up to 10 blocks around themselves. But they are so unreliable that
+their radius varies a lot.
 .
 :obj:VapoModule:lore
 This is a base module, used for building vaporizers.
 .
 :obj:Message Beacon:lore
-A Message beacon that can be used to mark a small region and inform you or
-others with a small message. The message is shown in your HUD when you get near
-to a beacon. The location of a message beacon will be synchronized with your
-navigator for 30 minutes. The synchronized location can be used to navigate
-back to the beacon or synchronize a teleporter destination.
+A Message Beacon can be used to mark a small region of the Construct with a text
+message that will show up in the HUD of those in its vicinity. The location of a
+message beacon will be synchronized with your navigator for 30 minutes, which
+can be used for navigating or teleporting to the beacon.
 .
 :obj:Transformer:lore
-Probably the most useful piece of equipment you will regularily use. A
-Transformer transforms material. You have to build a transformation plane with
+Probably the most useful piece of equipment you will regularly use. A
+Transformer transforms materials. You have to build a transformation plane with
 the sizes 1x1, 2x2, 3x3 or 4x4. On these you can construct the patterns found
-in the material handbook to form other pieces of equipment and material. When
-you constructed the pattern, you have to hit the interaction key [e] and the
-transformer will do it's job or complain if the pattern is not recognized.
+in the material handbook to form other pieces of equipment and material. Once
+you have constructed a pattern, you have to hit the interaction key [e] to make
+the transformer will do its job. It will complain if the pattern is not
+recognized.
 .
 :obj:Teleporter:lore
-Teleporters can bring you instantly from one place to another in the Construct.
+Teleporters can instantly bring you from one place to another in the Construct.
 You can direct a teleporter to the position of any synchronized message beacon
 and travel there at free will by invoking the teleporter.
 .
 :obj:Materializer V2:lore
 This is an upgrade to your integrated materializer tool. It makes
 dematerialization and materialization many times faster. But be careful, it
-also need as much more power and will drain your bio energy much much faster!
-This also means, that harvesting moss will probably need as much energy as it
-could provide. So be careful! The upgrade can always be disabled by throwing
-it away or storing it somewhere.
+also need as much more power and will drain your bio energy much faster! This
+also means that harvesting moss will probably need as much energy as it could
+provide. So be careful! The upgrade can always be disabled by throwing it away
+or storing it somewhere.
 .
 :ship:gen_i:content
 Generic Inquiry
@@ -86,7 +84,7 @@ What is your inquiry?
 Where am I?
 .
 :ship:where_am_i:content
-Where you are?
+Where are you?
 
 You are in "The Construct".
 .
