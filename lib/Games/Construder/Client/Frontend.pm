@@ -1203,7 +1203,7 @@ sub show_credits {
       map {
          ref $_
             ? (ui_subdesc ("* $_->[0]", font => "small"),
-               ui_small_text ($_->[1], align => "center"))
+               ui_small_text ($_->[1], align => "center", wrap => 100))
             : ui_subdesc ($_, font => "small")
       } @{$si->{credits}}
    ));
