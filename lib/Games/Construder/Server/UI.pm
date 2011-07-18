@@ -263,6 +263,7 @@ sub layout {
    my $slots = $self->{pl}->{data}->{slots};
 
    my @slots;
+   my $selected_type;
    for (my $i = 0; $i < 10; $i++) {
       my $invid = $slots->{selection}->[$i];
 
@@ -273,23 +274,31 @@ sub layout {
       }
 
       my ($type, $invid) = $self->{pl}->{inv}->split_invid ($invid);
+      if ($slots->{selected} == $i) {
+         $selected_type = $type;
+      }
 
       push @slots,
-      ui_hlt_border (($i == $slots->{selected}),
-         [box => { padding => 2, align => "center" },
-           [model => { color => "#00ff00", width => 30 }, $type]],
-         [text => { font => "small",
-                    color =>
-                       (!defined ($cnt) || $cnt <= 0) ? "#990000" : "#999999",
-                    align => "center" },
-          sprintf ("[%d] %d", $i + 1, $cnt * 1)]
-      );
+         ui_hlt_border (($i == $slots->{selected}),
+            [box => { padding => 2, align => "center" },
+              [model => { color => "#00ff00", width => 30 }, $type]],
+            [text => { font => "small",
+                       color =>
+                          (!defined ($cnt) || $cnt <= 0) ? "#990000" : "#999999",
+                       align => "center" },
+             sprintf ("[%d] %d", $i + 1, $cnt * 1)]
+         );
    }
    my @grid;
    $grid[0] = [splice @slots, 0, 5, ()];
    $grid[1] = \@slots;
 
+   my $obj =
+      $Games::Construder::Server::RES->get_object_by_type ($selected_type)
+         if $selected_type;
+
    ui_hud_window ([left => "down"],
+      $obj ? (ui_small_text ("Selected: " . $obj->{name})) : (),
       [box => { dir => "hor" }, @{$grid[0]}],
       [box => { dir => "hor" }, @{$grid[1]}]
    )
