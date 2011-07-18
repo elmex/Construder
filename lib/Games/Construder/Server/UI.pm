@@ -2346,6 +2346,60 @@ REF
    }
 }
 
+package Games::Construder::Server::UI::Jumper;
+use Games::Construder::UI;
+
+use base qw/Games::Construder::Server::UI/;
+
+sub commands {
+   (
+      return => "activate"
+   )
+}
+
+sub handle_command {
+   my ($self, $cmd, $arg) = @_;
+
+   if ($cmd eq 'activate') {
+      $self->{entity}->{time_active} = 1;
+      $self->{entity}->{disp_vec} =
+         [$arg->{xdisp}, $arg->{ydisp}, $arg->{zdisp}];
+      $self->hide;
+   }
+}
+
+sub layout {
+   my ($self, $type, $entity) = @_;
+
+   $self->{entity} = $entity;
+
+   my $obj =
+      $Games::Construder::Server::RES->get_object_by_type ($type);
+
+   my $r = $entity->{range};
+
+   ui_window ($obj->{name},
+      ui_desc ("Enter displacement direction:"),
+      ui_subdesc ("Range: " . $entity->{range} . " sectors"),
+      ui_subdesc ("Accuracy: " . (100 * $entity->{accuracy}) . "%"),
+      ui_subdesc ("Malfunction: " . (100 * $entity->{fail_chance}) . "%"),
+      ui_pad_box (hor =>
+         ui_text ("X"),
+         ui_range (xdisp => -$r, $r, $r > 40 ? 5 : 1, "%d", 0),
+      ),
+      ui_pad_box (hor =>
+         ui_text ("Y"),
+         ui_range (ydisp => -$r, $r, $r > 40 ? 5 : 1, "%d", 0),
+      ),
+      ui_pad_box (hor =>
+         ui_text ("Z"),
+         ui_range (zdisp => -$r, $r, $r > 40 ? 5 : 1, "%d", 0),
+      ),
+      ui_key_explain (return => "Activate jumper"),
+   )
+}
+
+
 =back
 
 =head1 AUTHOR

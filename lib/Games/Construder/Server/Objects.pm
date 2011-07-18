@@ -41,6 +41,10 @@ our %TYPES = (
    48 => \&ia_vaporizer,
    62 => \&ia_teleporter,
    51 => \&ia_auto,
+   71 => \&ia_jumper,
+   72 => \&ia_jumper,
+   73 => \&ia_jumper,
+   74 => \&ia_jumper,
 );
 
 our %TYPES_INSTANCIATE = (
@@ -55,6 +59,10 @@ our %TYPES_INSTANCIATE = (
    51 => \&in_auto,
    62 => \&in_teleporter,
    70 => \&in_mat_upgrade,
+   71 => \&in_jumper,
+   72 => \&in_jumper,
+   73 => \&in_jumper,
+   74 => \&in_jumper,
    500 => \&in_trophy,
    501 => \&in_trophy,
    502 => \&in_trophy,
@@ -72,6 +80,10 @@ our %TYPES_TIMESENSITIVE = (
    48 => \&tmr_vaporizer,
    50 => \&tmr_drone,
    51 => \&tmr_auto,
+   71 => \&tmr_jumper,
+   72 => \&tmr_jumper,
+   73 => \&tmr_jumper,
+   74 => \&tmr_jumper,
 );
 
 our %TYPES_PERSISTENT = (
@@ -793,6 +805,88 @@ sub tmr_auto {
          return 0;
       });
    }
+}
+
+sub in_jumper {
+   my ($type) = @_;
+   my $obj =
+      $Games::Construder::Server::RES->get_object_by_type ($type);
+   {
+      range       => $obj->{jumper_range},
+      accuracy    => $obj->{jumper_accuracy},
+      accuracy_vec => $obj->{jumper_accuracy_vec},
+      fail_chance => $obj->{jumper_fail_chance},
+      act_time    => 5,
+   }
+}
+
+sub tmr_jumper {
+   my ($pos, $entity, $type, $dt) = @_;
+
+   unless ($entity->{did_hl}) {
+      for ($Games::Construder::Server::World::SRV->players_near_pos ($pos)) {
+         $_->[0]->highlight ($pos, $entity->{act_time}, [0, 1, 1]);
+      }
+      $entity->{did_hl} = 1;
+   }
+
+   $entity->{act_time} -= $dt;
+
+   return if $entity->{act_time} > 0;
+
+   world_mutate_at ($pos, sub {
+      my ($d) = @_;
+
+      if ($d->[0] == $type) {
+         $d->[0] = 0;
+         $d->[3] &= 0xF0;
+
+         my ($pl) =
+            $Games::Construder::Server::World::SRV->get_player ($entity->{player});
+         return 1 unless $pl;
+
+         if (rand () < $entity->{fail_chance}) {
+            ctr_log (debug => "Jumper (failed) values: %s",
+               JSON->new->encode ($entity));
+            $pl->msg (1, "Jumper malfunction. Please retry.");
+            return 1;
+         }
+
+         my $displ = $entity->{disp_vec};
+         my $miss;
+
+         if (rand () < $entity->{accuracy}) {
+            my $len = vlength ($displ);
+            $miss = [map {
+               int (
+                  ($entity->{accuracy} - rand ($entity->{accuracy} * 2))
+                  * $len
+                  + 0.5
+               )
+            } 0..2];
+            $displ = vadd ($displ, $miss);
+         }
+
+         $pl->teleport (
+            vadd ($pl->{data}->{pos}, vsmul ($displ, 60)),
+            1
+         );
+         $pl->msg (0, "Jumper displaces you by @$displ sectors..."
+                      . ($miss ? "Target missed by @$miss sectors..." : ""));
+
+         ctr_log (debug => "Jumper (ok) values: %s, %s",
+            JSON->new->encode ($entity), JSON->new->encode ($displ));
+
+         return 1;
+      }
+      0
+   });
+}
+
+sub ia_jumper {
+   my ($PL, $POS, $type, $entity) = @_;
+   $entity->{player} = $PL->{name};
+   $PL->{uis}->{jumper}->show ($type, $entity);
 }
 
 =back

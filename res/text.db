@@ -73,6 +73,28 @@ also means that harvesting moss will probably need as much energy as it could
 provide. So be careful! The upgrade can always be disabled by throwing it away
 or storing it somewhere.
 .
+:obj:Jumper B:lore
+:obj:Jumper B+:lore
+:obj:Jumper A:lore
+:obj:Jumper A+:lore
+A jumper can teleport you away in a certain direction before
+it desintegrates itself. The main difference between the models
+are their range and their accuracy.
+.
+:obj:Jumper B:lore
+The B type has a low range, but has a high accuracy and low malfunction rate.
+.
+:obj:Jumper B+:lore
+The B+ type has a high range, but comes with very low accuracy and high
+malfunction rates.
+.
+:obj:Jumper A:lore
+The A type has a mediocre range, but is highly accurate and reliable, similar
+to the type B Jumpers.
+.
+:obj:Jumper A+:lore
+The A+ type has a extremely high range, but is highly inaccurate and barely reliable.
+.
 :ship:gen_i:content
 Generic Inquiry
 

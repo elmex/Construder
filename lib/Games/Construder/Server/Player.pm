@@ -214,6 +214,7 @@ sub init {
    $self->new_ui (trophies      => "Games::Construder::Server::UI::Trophies");
    $self->new_ui (help          => "Games::Construder::Server::UI::Help");
    $self->new_ui (pcb_prog      => "Games::Construder::Server::UI::PCBProg");
+   $self->new_ui (jumper        => "Games::Construder::Server::UI::Jumper");
 
    $self->{inv} =
       Games::Construder::Server::PatStorHandle->new (data => $self->{data}, slot_cnt => $PL_MAX_INV);
