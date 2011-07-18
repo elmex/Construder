@@ -18,6 +18,7 @@ package Games::Construder::Client;
 use common::sense;
 use Compress::LZF;
 use Games::Construder::Client::Frontend;
+use Games::Construder::Client::Community;
 use Games::Construder::Client::World;
 use Games::Construder::Protocol;
 use Games::Construder::Vector;
@@ -58,6 +59,9 @@ sub new {
    $self->{front} =
       Games::Construder::Client::Frontend->new (res => $self->{res}, client => $self);
 
+   $self->{comm} =
+      Games::Construder::Client::Community->new (front => $self->{front});
+
    $self->{in_ex} = 0;
    $self->{front}->set_exception_cb (sub {
       my ($ex, $ev) = @_;
@@ -68,6 +72,9 @@ sub new {
    });
 
    $self->{front}->reg_cb (
+      show_community => sub {
+         $self->{comm}->show;
+      },
       update_player_pos => sub {
          $self->send_server ({
             cmd => "p", p => vcompres ($_[1]), l => vcompres ($_[2])

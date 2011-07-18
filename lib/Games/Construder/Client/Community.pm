@@ -261,6 +261,7 @@ sub show_chat {
       my $l = pop @backlog
          or last;
       my ($type, $txt) = @$l;
+      my $txt = sprintf "%10s: %s", $type, $txt;
       if ($type eq 'public') {
          $txt = [text => { font => "normal", align => "left", wrap => -60, color => "#ffffff" }, $txt];
       } elsif ($type eq 'private') {

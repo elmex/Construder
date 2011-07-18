@@ -1172,6 +1172,7 @@ sub show_key_help {
             . "when not in any dialog in the client."),
          ui_subdesc (
             "(For more key bindings hit [F2] to bring up the server menu!)"),
+         ui_key_explain ([qw/F9/], "Open Chat."),
          ui_key_explain (
             [qw/w s a d/], "Move forward / backward / left / right."),
          ui_key_explain (
@@ -1402,6 +1403,8 @@ sub input_key_down : event_cb {
       $self->visibility_radius ($PL_VIS_RAD - 1);
    } elsif ($name eq 'f6') {
       $self->visibility_radius ($PL_VIS_RAD + 1);
+   } elsif ($name eq 'f9') {
+      $self->show_community ();
    }
    $self->{change} = 1;
 }
@@ -1459,6 +1462,9 @@ sub visibility_radius : event_cb {
    glFogf (GL_FOG_START, $FAR_PLANE - 20);
    glFogf (GL_FOG_END,   $FAR_PLANE - 1);
    ctr_log (info => "changed visibility radius to %d", $PL_VIS_RAD);
+}
+
+sub show_community : event_cb {
 }
 
 =back
