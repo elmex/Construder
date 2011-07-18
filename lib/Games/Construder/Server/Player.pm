@@ -639,32 +639,6 @@ sub debug_at {
    });
 }
 
-sub do_materialize {
-   my ($self, $pos, $time, $energy, $score, $type, $ent) = @_;
-
-   my $id = world_pos2id ($pos);
-
-   $self->highlight ($pos, $time, [0, 1, 0]);
-
-   $self->push_tick_change (bio => -$energy);
-
-   $self->{materializings}->{$id} = 1;
-   my $tmr;
-   $tmr = AE::timer $time, 0, sub {
-      world_mutate_at ($pos, sub {
-         my ($data) = @_;
-         undef $tmr;
-
-         $data->[0] = $type;
-         $data->[5] = $ent if $ent;
-         $data->[3] = $self->{colorifyer} & 0x0f;
-         delete $self->{materializings}->{$id};
-         $self->push_tick_change (score => $score);
-         return 1;
-      });
-   };
-}
-
 sub get_selected_slot {
    my ($self) = @_;
    my $id = $self->{data}->{slots}->{selection}->[$self->{data}->{slots}->{selected}];
@@ -678,11 +652,6 @@ sub get_selected_slot {
 
 sub start_materialize {
    my ($self, $pos) = @_;
-
-   my $id = world_pos2id ($pos);
-   if ($self->{materializings}->{$id}) {
-      return;
-   }
 
    my ($invid)
       = $self->{data}->{slots}->{selection}->[$self->{data}->{slots}->{selected}];
@@ -707,43 +676,20 @@ sub start_materialize {
       return 0 unless $cnt;
 
       $data->[0] = 1;
-      $self->do_materialize ($pos, $time, $energy, $score, $type, $ent);
+      $data->[5] =
+         Games::Construder::Server::Objects::instance (
+            1, $time, materialize =>
+                        m_type     => $type,
+                        m_type_ent => $ent,
+                        color      => $self->{colorifyer},
+                        player     => $self->{name},
+                        score      => $score,
+         );
+
+      $self->highlight ($pos, $time, [0, 1, 0]);
+      $self->push_tick_change (bio => -$energy);
       return 1;
    }, no_light => 1);
-}
-
-sub do_dematerialize {
-   my ($self, $pos, $time, $energy, $type, $ent) = @_;
-
-   my $id = world_pos2id ($pos);
-   $self->highlight ($pos, $time, [1, 0, 0]);
-
-   $self->push_tick_change (bio => -$energy);
-
-   $self->{dematerializings}->{$id} = 1;
-   my $tmr;
-   $tmr = AE::timer $time, 0, sub {
-      undef $tmr;
-
-      world_mutate_at ($pos, sub {
-         my ($data) = @_;
-
-         if ($self->{inv}->add ($type, $ent || 1)) {
-            $data->[0] = 0;
-            $data->[5] = undef;
-            $data->[3] &= 0xF0; # clear color :)
-            if ($ent) {
-               Games::Construder::Server::Objects::destroy ($ent);
-            }
-         } else {
-            $data->[0] = $type;
-            $data->[5] = $ent;
-            $data->[3] &= 0xF0; # clear color :) FIXME: should set previous
-         }
-         delete $self->{dematerializings}->{$id};
-         return 1;
-      }, need_entity => 1);
-   };
 }
 
 sub has_matter_transformer_upgrade {
@@ -754,27 +700,10 @@ sub has_matter_transformer_upgrade {
 sub start_dematerialize {
    my ($self, $pos) = @_;
 
-   my $id = world_pos2id ($pos);
-   if ($self->{dematerializings}->{$id}) {
-      return;
-   }
-
    world_mutate_at ($pos, sub {
       my ($data) = @_;
       my $type = $data->[0];
       my $obj = $Games::Construder::Server::RES->get_object_by_type ($type);
-      if ($type == 1) { # materialization, due to glitches
-         world_mutate_at ($pos, sub {
-            my ($data) = @_;
-            $data->[0] = 0;
-            $data->[5] = undef;
-            $data->[3] &= 0xF0;
-            return 1;
-         });
-
-         return;
-      }
-
       if ($obj->{untransformable}) {
          return;
       }
@@ -795,9 +724,16 @@ sub start_dematerialize {
 
       $data->[0] = 1; # materialization!
       my $ent = $data->[5];
-      $data->[5] = undef;
-      $self->do_dematerialize ($pos, $time, $energy, $type, $ent);
+      $data->[5] =
+         Games::Construder::Server::Objects::instance (
+            1, $time, dematerialize =>
+                        m_type     => $type,
+                        m_type_ent => $ent,
+                        player     => $self->{name},
+         );
 
+      $self->highlight ($pos, $time, [1, 0, 0]);
+      $self->push_tick_change (bio => -$energy);
       return 1;
    }, no_light => 1, need_entity => 1);
 }

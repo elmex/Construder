@@ -43,6 +43,7 @@ our %TYPES = (
 );
 
 our %TYPES_INSTANCIATE = (
+   1  => \&in_materialization,
    31 => \&in_pattern_storage,
    34 => \&in_message_beacon,
    45 => \&in_vaporizer,
@@ -62,6 +63,7 @@ our %TYPES_INSTANCIATE = (
 );
 
 our %TYPES_TIMESENSITIVE = (
+   1  => \&tmr_materialization,
    31 => \&tmr_pattern_storage,
    45 => \&tmr_vaporizer,
    46 => \&tmr_vaporizer,
@@ -114,6 +116,98 @@ sub in_trophy {
 
 sub in_mat_upgrade {
    { }
+}
+
+sub in_materialization {
+   my ($type, $time, $end_action, %args) = @_;
+   {
+      time_active => 1,
+      rest_time   => $time,
+      action      => $end_action,
+      %args
+   }
+}
+
+sub tmr_materialization {
+   my ($pos, $entity, $type, $dt) = @_;
+
+   $entity->{rest_time} -= $dt;
+   #d# warn "ENTITIY MAT DONE: " . JSON->new->pretty->encode ($entity) . "\n";
+
+   return unless $entity->{rest_time} <= 0;
+
+   my $handled = 0;
+   if (my $act = $entity->{action}) {
+      my ($pl) =
+         $Games::Construder::Server::World::SRV->get_player ($entity->{player});
+      my $mtype = $entity->{m_type};
+      my $ment  = $entity->{m_type_ent};
+
+      if ($act eq 'dematerialize') {
+         my $unsuccessful = sub {
+            world_mutate_at ($pos, sub {
+               my ($d) = @_;
+               if ($d->[0] == 1) {
+                  $d->[0] = $mtype;
+                  $d->[5] = $ment;
+                  return 1;
+               }
+               0
+            });
+         };
+
+         unless ($pl) {
+            $unsuccessful->();
+            return;
+         }
+
+         if ($pl->{inv}->add ($mtype, $ment || 1)) {
+            world_mutate_at ($pos, sub {
+               my ($d) = @_;
+               if ($d->[0] == 1) {
+                  $d->[0] = 0;
+                  $d->[3] &= 0xF0;
+                  return 1;
+               }
+               0
+            });
+
+         } else {
+            $unsuccessful->();
+         }
+
+         $handled = 1;
+
+      } elsif ($act eq 'materialize') {
+         world_mutate_at ($pos, sub {
+            my ($d) = @_;
+
+            if ($d->[0] == 1) {
+               $d->[0] = $mtype;
+               $d->[5] = $ment;
+               $d->[3] &= 0xF0; # clear color :)
+               $d->[3] |= $entity->{color} & 0xF0;
+               $pl->push_tick_change (score => $entity->{score}) if $pl;
+               return 1
+            }
+            0
+         });
+
+         $handled = 1;
+      }
+   }
+
+   unless ($handled) {
+      world_mutate_at ($pos, sub {
+         my ($d) = @_;
+         if ($d->[0] == 1) {
+            $d->[0] = 0;
+            $d->[3] &= 0xF0;
+            return 1;
+         }
+         return 0
+      });
+   }
 }
 
 sub in_vaporizer {
