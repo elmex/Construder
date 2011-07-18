@@ -120,7 +120,7 @@ void ctr_dyn_buf_grow (ctr_dyn_buf *db, unsigned int items)
 
   void *nb = safemalloc (items * db->item);
   memcpy (nb, *(db->ptr), db->alloc * db->item);
-  free (*(db->ptr));
+  safefree (*(db->ptr));
   *(db->ptr) = nb;
   db->alloc = items;
 
@@ -131,7 +131,7 @@ void ctr_dyn_buf_free (ctr_dyn_buf *db)
 {
   ctr_prof_cnt.dyn_buf_cnt--;
   ctr_prof_cnt.dyn_buf_size -= db->item * db->alloc;
-  free (*(db->ptr));
+  safefree (*(db->ptr));
 }
 
 /* The main data structure that holds the information to
