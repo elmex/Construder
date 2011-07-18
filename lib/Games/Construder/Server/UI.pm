@@ -249,8 +249,6 @@ sub commands {
 sub handle_command {
    my ($self, $cmd, $arg, $pos) = @_;
 
-   warn "CMD @_\n";
-
    if ($cmd =~ /slot_(\d+)/) {
       $self->{pl}->{data}->{slots}->{selected} = $1;
       $self->show;
@@ -492,7 +490,6 @@ sub layout {
       my $wself = $self;
       weaken $wself;
       $self->{bio_intake} = $bio_usage;
-      warn "BIO INTKE @$bio_usage\n";
       $self->{bio_intake_tmr} = AE::timer 2, 0, sub {
          delete $wself->{bio_intake};
          $wself->show;
@@ -926,8 +923,6 @@ sub handle_command {
 
 sub layout {
    my ($self, $type, $ent) = @_;
-
-   warn "LAYOUT MATVIEW $type | $ent\n";
 
    $self->{invid} = $type;
    my ($type, $invid) = $self->{pl}->{inv}->split_invid ($type);
@@ -1887,7 +1882,6 @@ sub handle_command {
 
 sub layout {
    my ($self, $pos, $entity) = @_;
-   warn "LAYOUt PSTOR $entity\n";
    $self->{pat_stor} = [$pos, $entity] if $pos;
    ($pos, $entity) = @{$self->{pat_stor}};
 
