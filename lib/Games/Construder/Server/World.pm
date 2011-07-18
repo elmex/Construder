@@ -205,8 +205,10 @@ sub world_sector_dirty {
    my ($sec) = @_;
    my $id  = world_pos2id ($sec);
    return unless exists $SECTORS{$id};
-   $SECTORS{$id}->{dirty} = 1;
-   push @SAVE_SECTORS_QUEUE, [$id, $sec];
+   unless ($SECTORS{$id}->{dirty}) {
+      $SECTORS{$id}->{dirty} = 1;
+      push @SAVE_SECTORS_QUEUE, [$id, $sec];
+   }
 }
 
 # still unused:
