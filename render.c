@@ -98,33 +98,43 @@ typedef struct _ctr_dyn_buf {
     unsigned int item;
 } ctr_dyn_buf;
 
+void ctr_dyn_buf_set_size (ctr_dyn_buf *db, unsigned int items)
+{
+  ctr_prof_cnt.dyn_buf_size -= db->item * db->alloc;
+
+  void *nb = safemalloc (items * db->item);
+  if (db->alloc > items)
+    memset (nb, 0, items * db->item);
+  else
+    memcpy (nb, *(db->ptr), db->alloc * db->item);
+
+  if (*(db->ptr))
+    safefree (*(db->ptr));
+  *(db->ptr) = nb;
+
+  db->alloc = items;
+
+  ctr_prof_cnt.dyn_buf_size += db->item * db->alloc;
+}
+
 void ctr_dyn_buf_init (ctr_dyn_buf *db, GLfloat **ptr, unsigned int pa_items,
                        unsigned int item_size)
 {
   db->ptr = ptr;
-  *(db->ptr) = safemalloc (pa_items * item_size);
-  ctr_prof_cnt.dyn_buf_cnt++;
-  ctr_prof_cnt.dyn_buf_size += db->item * db->alloc;
+  *(db->ptr) = 0;
   db->item = item_size;
-  db->alloc = pa_items;
+  db->alloc = 0;
+
+  ctr_dyn_buf_set_size (db, pa_items);
+  ctr_prof_cnt.dyn_buf_cnt++;
 }
 
 void ctr_dyn_buf_grow (ctr_dyn_buf *db, unsigned int items)
 {
   if (db->alloc >= items)
     return;
-
   items *= 2;
-
-  ctr_prof_cnt.dyn_buf_size -= db->item * db->alloc;
-
-  void *nb = safemalloc (items * db->item);
-  memcpy (nb, *(db->ptr), db->alloc * db->item);
-  safefree (*(db->ptr));
-  *(db->ptr) = nb;
-  db->alloc = items;
-
-  ctr_prof_cnt.dyn_buf_size += db->item * db->alloc;
+  ctr_dyn_buf_set_size (db, items);
 }
 
 void ctr_dyn_buf_free (ctr_dyn_buf *db)
