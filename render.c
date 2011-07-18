@@ -199,6 +199,19 @@ void ctr_render_clear_geom (void *c)
   geom->zoff = 0;
 }
 
+void ctr_render_cleanup_geom (void *c)
+{
+  ctr_render_geom *geom = c;
+  ctr_render_clear_geom (c);
+#if USE_SINGLE_BUFFER
+  ctr_dyn_buf_set_size (&geom->db_geom, 10);
+#else
+  ctr_dyn_buf_set_size (&geom->db_vertexes, 10);
+  ctr_dyn_buf_set_size (&geom->db_colors, 10);
+  ctr_dyn_buf_set_size (&geom->db_uvs, 10);
+#endif
+}
+
 // FIXME: this should be dependend on the visible radisu, so we maybe want to change
 //        this value dynamically adaptively to the current usage.
 #define GEOM_PRE_ALLOC 150 // enought for radius of 3 (~93 visible chunks)
@@ -272,7 +285,10 @@ void *ctr_render_new_geom ()
 void ctr_render_free_geom (void *c)
 {
   if (geom_last_free < GEOM_PRE_ALLOC)
-    geom_pre_alloc[geom_last_free++] = c;
+    {
+      geom_pre_alloc[geom_last_free++] = c;
+      ctr_render_cleanup_geom (c); // make some buffers smaller
+    }
   else
     {
       ctr_render_geom *geom = c;
