@@ -19,6 +19,7 @@ use common::sense;
 use Games::Construder::Server::PCB;
 use Games::Construder::Server::World;
 use Games::Construder::Vector;
+use Games::Construder::Logging;
 use Games::Construder;
 use Scalar::Util qw/weaken/;
 
@@ -293,6 +294,8 @@ sub ia_construction_pad {
 
    my $a = Games::Construder::World::get_pattern (@$POS, 0);
    if ($a) {
+      ctr_log (devel => "construction pad pattern at @$POS: %s", JSON->new->encode ($a));
+
       my $obj = $Games::Construder::Server::RES->get_object_by_pattern ($a);
       if ($obj) {
          my ($score, $time) =
