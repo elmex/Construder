@@ -717,6 +717,7 @@ sub display {
 
    for (@{$self->{models}}) {
       my ($pos, $size, $model, $anim) = @$_;
+      next if $model == 0;
 
       glPushMatrix;
       my ($w, $h) = ($size->[0] * 0.65, $size->[1] * 0.65);
@@ -727,10 +728,10 @@ sub display {
       glRotatef (45, 0, 1, 0);
 
       if ($anim) {
-         my $model_blocks = $RES->type_model_blocks ($_->[2]);
-         render_object_type_sample ($_->[2], $self->{anim_step} % $model_blocks);
+         my $model_blocks = $RES->type_model_blocks ($model);
+         render_object_type_sample ($model, $self->{anim_step} % $model_blocks);
       } else {
-         render_object_type_sample ($_->[2], -1);
+         render_object_type_sample ($model, -1);
       }
       glPopMatrix;
    }
