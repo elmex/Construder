@@ -287,7 +287,6 @@ sub free_compiled_chunk {
    my $c = [$cx, $cy, $cz];
    my $id = world_pos2id ($c);
    my $l = delete $self->{compiled_chunks}->{$id};
-   delete $self->{dirty_chunks}->{$id};
    Games::Construder::Renderer::free_geom ($l) if $l;
    # WARNING FIXME XXX: this might not free up all chunks that were set/initialized by the server!
    Games::Construder::World::purge_chunk (@$c);
@@ -710,6 +709,12 @@ sub setup_event_poller {
          unless ($self->can_see_chunk (@$p, 1)) {
             $self->free_compiled_chunk (@$p);
             #d# warn "freeed compiled chunk $kx, $ky, $kz\n";
+         }
+      }
+
+      for my $id (keys %{$self->{dirty_chunks}}) {
+         unless (exists $self->{compiled_chunks}->{$_}) {
+            delete $self->{dirty_chunks}->{$_};
          }
       }
    };

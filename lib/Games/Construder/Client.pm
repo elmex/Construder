@@ -89,22 +89,23 @@ sub new {
          (@$req) = grep {
             my $p = $_;
             my $id = world_pos2id ($p);
-            my $rereq = 1;
-            if ($self->{requested_chunks}->{$id}) {
-               $rereq =
-                  (time - $self->{requested_chunks}->{$id}) > 2;
-
-               ctr_log (network => "re-requesting chunk %s!", $id) if $rereq;
-            }
-            if ($rereq) {
-               $self->{requested_chunks}->{$id} = time;
-            }
+            my $rereq = not $self->{requested_chunks}->{$id};
+            $self->{requested_chunks}->{$id} = time if $rereq;
             $rereq
          } @$req; # Frontend will retry until it succeeds (at least it should)!
+
          return unless @$new || @$old || @$req;
          $self->send_server ({ cmd => "vis_chunks", old => $old, new => $new, req => $req });
       }
    );
+
+   $self->{req_chnk_cleanup} = AE::timer 1, 0.5, sub {
+      for (keys %{$self->{requested_chunks}}) {
+         my $to = $self->{requested_chunks}->{$_};
+         my $td = time - $to;
+         delete $self->{requested_chunks}->{$_} if $td > 2;
+      }
+   };
 
    $self->connect ($ARGV[1] || localhost => $ARGV[2] || 9364);
 
