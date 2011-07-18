@@ -1,5 +1,27 @@
 Revision history for Games::Construder
 
+0.95    Mon Jul 18 16:41:30 CEST 2011
+        - gameplay: added jumper items, which can teleport the player
+          once into a certain direction.
+        - code: remove some debugging output from server UI stuff.
+        - ui: display the name of the object in the selected slot.
+        - engine: rewrote (de)materialization to be more generic, tick
+          driven and handle player logouts more gracefully.
+        - renderer: try to cleanup unused ctr_dyn_bufs more eagerly.
+          the client now eats ram much much slower.
+        - code: small init memleak fix. which did not occur yet.
+        - engine: cleanup more data structures that were filled
+          needlessly.
+        - engine: plugged a small memory leak that had the potential to
+          grow really big.
+        - game: english corrections, thanks a lot Zaba!
+        - engine: cleaning up the axis arrays, even though they are
+          really not _that_ expensive memory wise.
+        - engine: use static buffer for chunk data serialization.
+        - engine: added memory profiling counters.
+        - code: moved debugging code into Construder.pm again.
+          Hopefully the CPAN indexer doesn't find it this time...
+
 0.94    Fri Jul 15 16:26:44 CEST 2011
         - gamelogic: pattern storage handling was broken in corner
           cases of full inventory.
