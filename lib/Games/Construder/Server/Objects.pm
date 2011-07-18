@@ -311,23 +311,14 @@ sub ia_construction_pad {
             world_mutate_at (\@poses, sub {
                my ($data) = @_;
                $data->[0] = 1;
-               $data->[3] &= 0xF0; # clear color :)
-               my $ent = $data->[5]; # kill entity
-               $data->[5] = undef;
-               if ($ent) {
-                  Games::Construder::Server::Objects::destroy ($ent);
-               }
+               $data->[5] =
+                  Games::Construder::Server::Objects::instance (
+                     1, $time, 'disappear');
                1
             }, no_light => 1);
 
             my $tmr;
             $tmr = AE::timer $time, 0, sub {
-               world_mutate_at (\@poses, sub {
-                  my ($data) = @_;
-                  $data->[0] = 0;
-                  1
-               });
-
                my $gen_cnt = $obj->{model_cnt} || 1; # || 1 shouldn't happen... but u never know
 
                my $cnt =
