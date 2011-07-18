@@ -620,6 +620,7 @@ sub render_hud {
       next unless $_->{sticky};
       $_->display;
    }
+
    if (@{$self->{active_ui_stack}}) {
       $self->{active_ui_stack}->[-1]->[1]->display;
    }
