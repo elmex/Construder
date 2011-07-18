@@ -1096,12 +1096,12 @@ sub send_client : event_cb {
 }
 
 sub teleport {
-   my ($self, $pos) = @_;
+   my ($self, $pos, $in_air) = @_;
 
    $pos ||= $self->{data}->{pos};
    $self->msg (0, "Teleport in progress, please wait...");
    world_load_around_at ($pos, sub {
-      my $new_pos = world_find_free_spot ($pos, 1);
+      my $new_pos = world_find_free_spot ($pos, $in_air ? 0 : 1);
       unless (@$new_pos) {
          $new_pos = world_find_free_spot ($pos, 0); # without floor on second try
       }
