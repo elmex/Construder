@@ -279,12 +279,12 @@ sub layout {
       push @slots,
          ui_hlt_border (($i == $slots->{selected}),
             [box => { padding => 2, align => "center" },
-              [model => { color => "#00ff00", width => 30 }, $type]],
-            [text => { font => "small",
-                       color =>
-                          (!defined ($cnt) || $cnt <= 0) ? "#990000" : "#999999",
-                       align => "center" },
-             sprintf ("[%d] %d", $i + 1, $cnt * 1)]
+              [model => { color => "#00ff00", width => 30 }, ($cnt * 1) <= 0 ? 0 : $type]],
+            [text => { font => "small", color => "#ffffff", align => "center" },
+             $cnt
+                ? sprintf ("[%d] %d", $i + 1, $cnt * 1)
+                : sprintf ("[%d]", $i + 1)
+             ]
          );
    }
    my @grid;
@@ -1016,7 +1016,7 @@ sub build_grid {
    for (0..5) {
       my @row;
       for (0..3) {
-         my $i = (shift @invids) || 1;
+         my $i = (shift @invids) || 0;
          my ($type, $i) = $inv->split_invid ($i);
          my $o = $Games::Construder::Server::RES->get_object_by_type ($type);
          my ($cnt) = $inv->get_count ($i);
@@ -1036,7 +1036,8 @@ sub commands {
    (
       return => "select",
       map { $_->[3] => "short_" . $_->[0] }
-         map { @$_ } @$grid
+         grep { $_->[2]->{type} }
+            map { @$_ } @$grid
    )
 }
 
@@ -1044,6 +1045,7 @@ sub handle_command {
    my ($self, $cmd, $arg) = @_;
 
    if ($cmd eq 'select') {
+      return unless $arg->{item}->[1];
       $self->hide;
       $self->{cb}->($arg->{item}->[0]);
 
@@ -1088,11 +1090,11 @@ sub layout {
                         [box => { dir => "vert", padding => 4 },
                            [box => { dir => "hor", align => "left" },
                               [model => { align => "center", width => 60 }, $_->[0]],
-                              ui_pad_box (vert => ui_text ($_->[1] ? $_->[1] : "0")),
+                              ui_pad_box (vert => ui_text ($_->[1] ? $_->[1] : "")),
                            ],
                            [box => { dir => "hor", align => "left" },
-                              ui_key ($_->[3], font => "small"),
-                              ui_small_text ($_->[0] == 1 ? "<empty>" : $_->[2]->{name})
+                              ui_key ($_->[1] ? $_->[3] : "", font => "small"),
+                              ui_small_text ($_->[1] ? $_->[2]->{name} : "")
                            ]
                         ]
                      )
