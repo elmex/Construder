@@ -859,13 +859,16 @@ sub commands {
    my ($self) = @_;
 
    my ($inv_cnt) = $self->{pl}->{inv}->get_count ($self->{invid});
-   $inv_cnt or return ();
+   $inv_cnt or return (
+      return => "select",
+   );
 
    (
       (map {
          $_ => "slot_" . ($_ == 0 ? 9 : $_ - 1)
       } 0..9),
       d => "discard",
+      return => "select",
    )
 }
 
@@ -897,6 +900,8 @@ sub handle_command {
 
    my $invid = $self->{invid};
 
+   warn "CMD $cmd | " . $arg->{material} . "<\n";
+
    if ($cmd =~ /slot_(\d+)/) {
       $self->{pl}->{data}->{slots}->{selection}->[$1] = $invid;
       $self->{pl}->{data}->{slots}->{selected} = $1;
@@ -918,6 +923,9 @@ sub handle_command {
             $self->delete_ui ('discard_material');
          });
       $self->show_ui ('discard_material');
+
+   } elsif ($cmd eq 'select') {
+      $self->show ($arg->{material}) if $arg->{material};
    }
 }
 
@@ -950,29 +958,40 @@ sub layout {
          ? "It can be found in sectors with following types: " . join (", ", @sec)
          : "It cannot be found in any sector.";
    push @subtxts,
-      @destmat
-         ? "It can be used as source material for: "
-           . join (", ", map { $_->{name} } @destmat)
-         : "It can't be processed any further.";
-   push @subtxts,
       $inv_cnt
          ? "You have $inv_cnt of it in your inventory."
          : "You don't have any of it in your inventory.";
 
+   my @add;
+   if (@destmat) {
+      push @add,
+         ui_subtext ("It can be used as source material for: "),
+         map {
+            ui_select_item (material => $_->{type},
+               ui_small_text ($_->{name}))
+         } @destmat
+   } else {
+      push @subtxts, "It can't be processed any further.";
+   }
+
    ui_window ($o->{name},
       ui_pad_box (hor =>
          [box => { dir => "vert", align => "left" },
-            ui_text ($o->{lore}, align => "left", wrap => 36),
+            ui_text ($o->{lore}, align => "left", wrap => 40),
             ($ent && $ent->{label} ne ''
                ? (ui_subtext ("This $o->{name} is labelled:"),
                  ui_text ("$ent->{label}"))
                : ()),
             (map { ui_subtext ($_, wrap => 36, align => "left") } @subtxts),
+            @add,
             [box => { dir => "vert", align => "center" },
                $inv_cnt ? (
                   ui_key_explain ("0-9", "Assign to slot."),
                   ui_key_explain (d => "Discard material."),
-               ) : ()
+                  ui_key_explain (return => "View selected material."),
+               ) : (
+                  ui_key_explain (return => "View selected material."),
+               )
             ],
             [text => { color => "#666666", font => "small" }, "(" . $o->{type} . ")"],
          ],
@@ -981,10 +1000,13 @@ sub layout {
                [model => { align => "center", animated => 0, width => 140 }, $o->{type}],
                (@srcmat && $o->{model_cnt} > 0
                   ? [box => { dir => "vert", align => "left" },
-                     ui_small_text (
-                        "Build Pattern:\n"
-                        . join ("\n", map { $_->[1] . "x " . $_->[0]->{name} } @srcmat)
-                       . "\nYields " . ($o->{model_cnt} || 1) . " $o->{name}"),
+                     ui_small_text ("Build Pattern:"),
+                     (map {
+                        ui_select_item (
+                           material => $_->[0]->{type},
+                           ui_small_text ($_->[1] . "x " . $_->[0]->{name}))
+                     } @srcmat),
+                     ui_small_text ("Yields " . ($o->{model_cnt} || 1) . " $o->{name}"),
                     [model => { animated => 1, width => 120, align => "center" }, $o->{type}],
                   ] : ()),
             )
