@@ -1384,7 +1384,7 @@ sub input_key_down : event_cb {
 
    if ($name eq 'space') {
       $self->{upboost} = 1;
-      viaddd ($self->{phys_obj}->{player}->{vel}, 0, 5, 0);
+      viaddd ($self->{phys_obj}->{player}->{vel}, 0, 2.5, 0);
    } elsif ($name eq 'g') {
       $self->{ghost_mode} = not $self->{ghost_mode};
    } elsif ($name eq 'f') {
