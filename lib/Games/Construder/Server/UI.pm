@@ -205,7 +205,7 @@ sub layout {
    });
 
    ui_hud_window_transparent (
-      [center => "center", -0.25],
+      [center => "center", -0.3],
       ui_warning ($msg)
    );
 }

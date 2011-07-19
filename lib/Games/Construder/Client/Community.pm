@@ -38,6 +38,9 @@ sub new {
 
    $self->{con} = AnyEvent::IRC::Client->new;
 
+   $self->{con}->ctcp_auto_reply ('VERSION', ['VERSION', "Games-Construder:$Games::Construder::VERSION\:Perl"]);
+   $self->{con}->ctcp_auto_reply ('PING', sub { ['PING', $_[4]] });
+
    $self->{con}->reg_cb (
       registered => sub {
          my ($con) = @_;
@@ -48,6 +51,7 @@ sub new {
       disconnect => sub {
          my ($con) = @_;
          $self->chat_log (error => "Disconnected from $con->{host}:$con->{port}: $_[1]");
+         $self->check_chat_update;
       },
       connect => sub {
          my ($con, $err) = @_;
@@ -57,6 +61,11 @@ sub new {
          } else {
             $self->chat_log (info => "Connected to $con->{host}:$con->{port}.");
          }
+
+         $self->{show_hud} = 1;
+         $self->show_hud;
+
+         $self->check_chat_update;
       },
       error => sub {
          my ($con, $code, $msg, $ircmsg) = @_;
@@ -64,13 +73,43 @@ sub new {
       },
       privatemsg => sub {
          my ($con, $nick, $ircmsg) = @_;
-         $self->chat_log (private => "{$nick} $ircmsg->{params}->[-1]");
+         my $n = prefix_nick ($ircmsg);
+         my $msg = sprintf "{%s} %s", $n, $ircmsg->{params}->[-1];
+         if ($ircmsg->{command} eq 'NOTICE') {
+            $self->chat_log (info => $msg);
+         } else {
+            $self->chat_log (private => $msg);
+            unless ($self->{privhelp}->{$n}) {
+               $self->chat_log (info => "(private message from '$n', answer with '/msg $n <your message here>')");
+               $self->{privhelp}->{$n} = 1;
+            }
+         }
       },
       publicmsg => sub {
          my ($con, $targ, $ircmsg) = @_;
-         $self->chat_log (public =>
-            sprintf "<%10s> %s",
-               prefix_nick ($ircmsg), $ircmsg->{params}->[-1]);
+         if ($ircmsg->{command} eq 'NOTICE') {
+            $self->chat_log (info => sprintf "{%s} %s", prefix_nick ($ircmsg), $ircmsg->{params}->[-1]);
+            return;
+         }
+
+         my $nick = $con->nick;
+         if ($ircmsg->{params}->[-1] =~ /^\b$nick\b/i) {
+            $self->chat_log (public_hl =>
+               sprintf "<%s> %s",
+                  prefix_nick ($ircmsg), $ircmsg->{params}->[-1]);
+         } else {
+            $self->chat_log (public =>
+               sprintf "<%s> %s",
+                  prefix_nick ($ircmsg), $ircmsg->{params}->[-1]);
+         }
+      },
+      ctcp_action => sub {
+         my ($con, $src, $targ, $msg, $type) = @_;
+         if ($con->is_channel_name ($targ)) {
+            $self->chat_log (public => sprintf "* %s %s", $src, $msg);
+         } else {
+            $self->chat_log (private => sprintf "* %s %s", $src, $msg);
+         }
       },
       quit => sub {
          my ($con, $nick, $msg) = @_;
@@ -81,7 +120,6 @@ sub new {
          if ($is_me) {
             $self->chat_log (public => "* $nick was kicked from $chan by $kicker: $msg");
             my $settings = ($self->{front}->{res}->{config}->{chat} ||= {});
-            $settings->{con} = "disconnect";
             $self->check_connection;
 
          } else {
@@ -121,18 +159,22 @@ sub chat_log {
 sub get_chat_settings {
    my ($self) = @_;
    my $settings = ($self->{front}->{res}->{config}->{chat} ||= {});
+   my $srv_chat = $self->{front}->{res}->{config}->{srv_chat};
    my $nick = $settings->{nick} ne '' ? $settings->{nick} : $settings->{recent_login_name};
-   my $chan = $settings->{chan} ne '' ? $settings->{chan} : "#construder";
-   my $host = $settings->{host} ne '' ? $settings->{host} : "irc.perl.org";
-   my $port = $settings->{port} ne '' ? $settings->{port} : 6667;
+   my $chan = $settings->{chan} ne '' ? $settings->{chan} : $srv_chat->{channel};
+   my $host = $settings->{host} ne '' ? $settings->{host} : $srv_chat->{host};
+   my $port = $settings->{port} ne '' ? $settings->{port} : $srv_chat->{port};
 
-   ($nick, $chan, $host, $port, $settings->{con})
+   ($nick, $chan, $host, $port)
 }
 
 sub check_chat_update {
    my ($self) = @_;
-   if ($self->{mode} eq 'chat' && $self->{front}->{active_uis}->{irc_chat}) {
+   if ($self->{front}->{active_uis}->{irc_chat}) {
       $self->show;
+   }
+   if ($self->{front}->{active_uis}->{irc_chat_hud}) {
+      $self->show_hud;
    }
 }
 
@@ -154,38 +196,22 @@ sub show_chat_settings {
    $self->{front}->activate_ui (irc_chat => {
       %{
          ui_window ("Chat Settings",
-            ui_key_explain (F6 => "Show Chat"),
-            ui_pad_box (hor =>
-               $con eq 'connect'
-                 ? ui_select_item (chat_conn => "disconnect", ui_subtext ("Leave Chat"))
-                 : ui_select_item (chat_conn => "connect",    ui_subtext ("Enter Chat"))),
+            ui_key_inline_expl (F6 => "Show Chat"),
+            ui_key_inline_expl (c => "Toggle HUD Chat"),
+            ui_desc ("Chat Status: "
+                     . ($self->{con}->is_connected ? "connected" : "disconnected")),
+            ($self->{con}->is_connected
+               ? ui_select_item (chat_conn => "disconnect", ui_subtext ("Disconnect"))
+               : ui_select_item (chat_conn => "connect",    ui_subtext ("Connect"))),
             ui_pad_box (hor =>
                ui_desc ("Used Nickname: "), ui_subdesc ($nick)),
             ui_pad_box (hor =>
                ui_desc ("Custom Nickname:"),
                ui_entry (cust_nick => $settings->{nick}, 10)),
-            ui_pad_box (hor =>
-               ui_desc ("Used Host: "),
-               ui_subdesc ($host)),
-            ui_pad_box (hor =>
-               ui_desc ("Custom Host:"),
-               ui_entry (cust_host => $settings->{host}, 30)),
-            ui_pad_box (hor =>
-               ui_desc ("Used Port: "),
-               ui_subdesc ($port)),
-            ui_pad_box (hor =>
-               ui_desc ("Custom Port:"),
-               ui_entry (cust_port => $settings->{port}, 6)),
-            ui_pad_box (hor =>
-               ui_desc ("Used Channel: "),
-               ui_subdesc ($chan)),
-            ui_pad_box (hor =>
-               ui_desc ("Custom Channel:"),
-               ui_entry (cust_chan => $settings->{chan}, 6)),
          )
       },
       commands => {
-         default_keys => { return => "set", f6 => "chat" }
+         default_keys => { return => "set", f6 => "chat", c => "hud" }
       },
       command_cb => sub {
          my ($cmd, $arg, $need_selection) = @_;
@@ -194,14 +220,19 @@ sub show_chat_settings {
             $settings->{nick} = $arg->{cust_nick};
             $settings->{host} = $arg->{cust_host};
             $settings->{port} = $arg->{cust_port};
-            $settings->{con}  = $arg->{chat_conn};
+            if ($arg->{chat_conn} eq 'connect') {
+               $self->chat_connect;
+            } elsif ($arg->{chat_conn} eq 'disconnect') {
+               $self->chat_disconnect;
+            }
             $self->{front}->{res}->save_config;
             $self->check_connection;
-            if ($settings->{con} eq 'connect') {
-               $self->{mode} = "chat";
-            }
             $self->show;
             return 1;
+
+         } elsif ($cmd eq 'hud') {
+            $self->{show_hud} = not $self->{show_hud};
+            $self->show_hud;
 
          } elsif ($cmd eq 'chat') {
             $self->{mode} = "chat";
@@ -212,35 +243,22 @@ sub show_chat_settings {
    });
 }
 
+sub chat_connect {
+   my ($self) = @_;
+   my ($nick, $chan, $host, $port, $connect) = $self->get_chat_settings;
+   my $info = { nick => $nick, real => "G:C:C $Games::Construder::VERSION ($^O)" };
+   $self->{con}->connect ($host, $port, $info);
+}
+
+sub chat_disconnect {
+   my ($self) = @_;
+   $self->{con}->disconnect ("user request");
+}
+
 sub check_connection {
    my ($self) = @_;
 
    my ($nick, $chan, $host, $port, $connect) = $self->get_chat_settings;
-
-   my $info = { nick => $nick, real => "G:C:C $Games::Construder::VERSION ($^O)" };
-
-   if ($connect eq 'connect'
-       && !$self->{con}->is_connected
-   ) {
-      $self->{con}->connect ($host, $port, $info);
-      return;
-   }
-
-   if ($connect eq 'disconnect'
-       && $self->{con}->is_connected
-   ) {
-      $self->{con}->disconnect ("user request");
-      return;
-   }
-
-   if ($self->{con}->is_connected) {
-      if ($self->{con}->{host} ne $host
-          || $self->{con}->{port} ne $port
-      ) {
-         $self->{con}->connect ($host, $port, $info);
-         return;
-      }
-   }
 
    if ($self->{con}->registered) {
       if ($self->{con}->nick ne $nick) {
@@ -249,44 +267,71 @@ sub check_connection {
    }
 }
 
+sub show_hud {
+   my ($self) = @_;
+   unless ($self->{show_hud}) {
+      $self->{front}->deactivate_ui ('irc_chat_hud');
+      return;
+   }
+
+   my @txt = $self->chat_backlog_as_ui (4, 0, "small");
+
+   $self->{front}->activate_ui (irc_chat_hud => {
+      %{
+         ui_hud_window_transparent (
+            [left => "center", 0, 0.15], ui_border (@txt))
+      }
+   });
+
+}
+
+sub chat_backlog_as_ui {
+   my ($self, $lines, $scroll, $font) = @_;
+   $font = "normal" if $font eq '';
+   my @backlog = @{$self->{backlog}};
+
+   my @txt;
+   for (my $i = 0; $i < $lines; $i++) {
+      my $l = pop @backlog
+         or last;
+      my ($type, $txt) = @$l;
+      my $txt = sprintf "%7s: %s", $type, $txt;
+      if ($type eq 'public') {
+         $txt = [text => { font => $font, align => "left", wrap => -60, color => "#ffffff" }, $txt];
+      } elsif ($type eq 'public_hl') {
+         $txt = [text => { font => $font, align => "left", wrap => -60, color => "#ffffaa" }, $txt];
+      } elsif ($type eq 'private') {
+         $txt = [text => { font => $font, align => "left", wrap => -60, color => "#ffaaaa" }, $txt];
+      } elsif ($type eq 'error') {
+         $txt = [text => { font => $font, align => "left", wrap => -60, color => "#ff0000" }, $txt];
+      } elsif ($type eq 'info') {
+         $txt = [text => { font => $font, align => "left", wrap => -60, color => "#6666FF" }, $txt];
+      } else {
+         $txt = [text => { font => $font, align => "left", wrap => -60, color => "#dddddd" }, $txt];
+      }
+      unshift @txt, $txt;
+   }
+
+   @txt
+}
+
 sub show_chat {
    my ($self) = @_;
 
    my $mode = $self->{mode};
 
-   my @backlog = @{$self->{backlog}};
-
-   my @txt;
-   for (my $i = 0; $i < 15; $i++) {
-      my $l = pop @backlog
-         or last;
-      my ($type, $txt) = @$l;
-      my $txt = sprintf "%10s: %s", $type, $txt;
-      if ($type eq 'public') {
-         $txt = [text => { font => "normal", align => "left", wrap => -60, color => "#ffffff" }, $txt];
-      } elsif ($type eq 'private') {
-         $txt = [text => { font => "normal", align => "left", wrap => -60, color => "#ffaaaa" }, $txt];
-      } elsif ($type eq 'error') {
-         $txt = [text => { font => "normal", align => "left", wrap => -60, color => "#ff0000" }, $txt];
-      } elsif ($type eq 'info') {
-         $txt = [text => { font => "normal", align => "left", wrap => -60, color => "#0000dd" }, $txt];
-      } else {
-         $txt = [text => { font => "normal", align => "left", wrap => -60, color => "#dddddd" }, $txt];
-      }
-      unshift @txt, $txt;
-   }
+   my @txt = $self->chat_backlog_as_ui (12);
 
    $self->{front}->activate_ui (irc_chat => {
       %{
          ui_window (($mode eq 'community' ? "Community Chat" : "Chat"),
-            ui_border (
-               @txt
-            ),
-            ui_entry_small (irc => "", 100),
+            ui_border (@txt),
+            ui_border (ui_pad_box (hor =>
+               ui_subdesc ("Entry: "), ui_entry_small (irc => "", 90)
+            )),
             ui_key_inline_expl (return => "Send message"),
             ui_key_inline_expl ("page up"   => "Scroll backlog up"),
             ui_key_inline_expl ("page down" => "Scroll backlog down"),
- #           ui_key_inline_expl ("F5"        => "Toggle Minichat visibility"),
             ui_key_inline_expl ("F6"        => "Chat Settings"),
             ui_key_inline_expl ("F9"        => "Hide Chat"),
          )
@@ -304,18 +349,18 @@ sub show_chat {
          my ($nick, $chan, $host, $port, $connect) = $self->get_chat_settings;
 
          if ($cmd eq 'send') {
-            if ($arg->{irc} =~ /^\/(\S+)\s*(.*)/) {
+            if ($arg->{irc} =~ /^\s*\/(\S+)\s*(.*)/) {
                my ($c, $a) = ($1, $2);
                if ($c eq 'msg' && $a =~ /(\S+)\s+(.*)$/) {
                   $self->{con}->send_srv (PRIVMSG => $1, $2);
-                  $self->chat_log (private => sprintf "<%10s -> %-10s> %s", $self->{con}->nick, $1, $2);
+                  $self->chat_log (private => sprintf "<%s -> %s> %s", $self->{con}->nick, $1, $2);
                } else {
                   $self->chat_log (error => "unknown command: /$c");
                }
 
             } else {
                $self->{con}->send_srv (PRIVMSG => $chan, $arg->{irc});
-               $self->chat_log (public => sprintf "<%10s> %s", $self->{con}->nick, $arg->{irc});
+               $self->chat_log (public => sprintf "<%s> %s", $self->{con}->nick, $arg->{irc});
             }
             $self->show;
             return 1;
