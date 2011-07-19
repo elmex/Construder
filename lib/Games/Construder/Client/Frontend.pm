@@ -275,6 +275,17 @@ sub set_ambient_light {
    $self->all_chunks_dirty;
 }
 
+sub clear_chunks {
+   my ($self) = @_;
+
+   for (keys %{$self->{compiled_chunks}}) {
+      my $p = world_id2pos ($_);
+      $self->free_compiled_chunk (@$p);
+   }
+
+   $self->{dirty_chunks} = {};
+}
+
 sub all_chunks_dirty {
    my ($self) = @_;
    for my $id (keys %{$self->{compiled_chunks}}) {

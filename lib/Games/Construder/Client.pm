@@ -299,6 +299,7 @@ sub disconnected : event_cb {
    my ($self) = @_;
    delete $self->{srv};
    $self->{front}->msg ("Disconnected from server!");
+   $self->{front}->clear_chunks;
    $self->{recon} = AE::timer 5, 0, sub { $self->reconnect; };
    ctr_log (info => "disconnected from server");
 }
