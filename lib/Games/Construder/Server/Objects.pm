@@ -199,7 +199,7 @@ sub tmr_materialization {
                $d->[0] = $mtype;
                $d->[5] = $ment;
                $d->[3] &= 0xF0; # clear color :)
-               $d->[3] |= $entity->{color} & 0xF0;
+               $d->[3] |= $entity->{color} & 0x0F;
                $pl->push_tick_change (score => $entity->{score}) if $pl;
                return 1
             }
