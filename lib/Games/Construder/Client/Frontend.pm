@@ -995,13 +995,9 @@ sub physics_tick : event_cb {
 
       if (ref $collide_normal) {
           # figure out how much downward velocity is removed:
-          my $down_part;
+          my $down_part = 0;
           my $coll_depth = vlength ($collide_normal);
-          if ($coll_depth == 0) {
-             #d#warn "collidedd vector == 0, set vel = 0\n";
-             $down_part = 0;
-
-          } else {
+          if (vlength ($player->{vel}) > 0) {
              vinorm ($collide_normal, $coll_depth);
 
              my $vn = vnorm ($player->{vel});
