@@ -1,4 +1,9 @@
 {
+   "chat" : {
+      "host" : "localhost",#irc.perl.org",
+      "port" : 6667,
+      "channel" : "#construder",
+   },
    "text_db" : {
       "file" : "text.db",
    },

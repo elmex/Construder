@@ -266,7 +266,7 @@ sub login {
    $pl->init;
 
    $self->send_client ($cid,
-      { cmd => "login", name => $name });
+      { cmd => "login", name => $name, chat => $RES->{content}->{chat} });
 }
 
 sub handle_packet : event_cb {

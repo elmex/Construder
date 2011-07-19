@@ -218,6 +218,7 @@ sub handle_packet : event_cb {
 
    } elsif ($hdr->{cmd} eq 'login') {
       $self->{front}->{res}->{config}->{chat}->{recent_login_name} = $hdr->{name};
+      $self->{front}->{res}->{config}->{srv_chat} = $hdr->{chat};
       $self->{front}->{res}->save_config;
 
    } elsif ($hdr->{cmd} eq 'transfer_end') {
