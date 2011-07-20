@@ -38,6 +38,7 @@ our @EXPORT = qw/
    world_change_chunk_at world_change_chunk
    world_pos2id
    world_id2pos
+   world_has_chunk_at
    world_find_free_spot
    world_init
    world
@@ -263,6 +264,11 @@ sub world_find_free_spot {
    my ($pos, $wflo) = @_;
    $wflo = 0 unless defined $wflo;
    Games::Construder::World::find_free_spot (@$pos, $wflo);
+}
+
+sub world_has_chunk_at {
+   my ($pos) = @_;
+   Games::Construder::World::has_chunk (world_pos2chunk ($pos))
 }
 
 =back
