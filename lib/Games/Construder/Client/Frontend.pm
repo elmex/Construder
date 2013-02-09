@@ -144,7 +144,7 @@ sub resize_app {
 sub init_app {
    my ($self) = @_;
    $self->{app} = SDLx::App->new (
-      title  => "Construder 0.01alpha",
+      title  => "Construder " . $Games::Construder::VERSION . "alpha",
       width  => $WIDTH,
       height => $HEIGHT,
       d      => $DEPTH,
