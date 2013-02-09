@@ -57,8 +57,7 @@ Transformer transforms materials. You have to build a transformation plane with
 the sizes 1x1, 2x2, 3x3 or 4x4. On these you can construct the patterns found
 in the material handbook to form other pieces of equipment and material. Once
 you have constructed a pattern, you have to hit the interaction key [e] to make
-the transformer will do its job. It will complain if the pattern is not
-recognized.
+the transformer do its job. It will complain if the pattern is not recognized.
 .
 :obj:Teleporter:lore
 Teleporters can instantly bring you from one place to another in the Construct.
