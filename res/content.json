@@ -616,7 +616,7 @@
       "max_materialize_score"  : 500,
       "max_construction_score" : 250,        # for most complex item
       "max_construction_clear_time" : 15,    # for most complex item
-      "score_per_happyness"    : 10,         # 20 score points are 1 happyness
+      "score_per_happyness"    : 10,         # 10 score points are 1 happyness
       "max_inventory_density"  : 12000,      # max sum of densities of items in inventory
       "player" : {
          "unhappy_rate" : 0.25,  # 0.25% per second
