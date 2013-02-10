@@ -1245,7 +1245,7 @@ sub esc_menu {
             f => "fullscreen",
             m => "mouse",
             v => "video",
-            a => "audio",
+#            a => "audio",
          }
       },
       command_cb => sub {
@@ -1260,10 +1260,10 @@ sub esc_menu {
             $self->show_credits;
             return 1;
 
-         } elsif ($cmd eq 'audio') {
-            $self->deactivate_ui ('esc_menu');
-            $self->show_audio_settings;
-            return 1;
+#         } elsif ($cmd eq 'audio') {
+#            $self->deactivate_ui ('esc_menu');
+#            $self->show_audio_settings;
+#            return 1;
 
          } elsif ($cmd eq 'mouse') {
             $self->deactivate_ui ('esc_menu');
