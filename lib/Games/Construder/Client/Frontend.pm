@@ -1068,7 +1068,7 @@ sub show_video_settings {
 
    my $win = ui_window ("Video Settings",
       ui_pad_box (hor =>
-         ui_desc ("Ambien light: "),
+         ui_desc ("Ambient light: "),
          ui_subdesc (sprintf "%0.2f", $self->{res}->{config}->{ambient_light}),
          ui_range (ambl => 0.0, 0.4, 0.05, "%0.2f",
                    $self->{res}->{config}->{ambient_light}),
