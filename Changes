@@ -1,5 +1,8 @@
 Revision history for Games::Construder
 
+upcoming / not yet released
+	- ...
+
 0.95    Mon Jul 18 16:41:30 CEST 2011
         - gameplay: added jumper items, which can teleport the player
           once into a certain direction.
