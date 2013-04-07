@@ -5,7 +5,8 @@ use Games::Construder::Logging;
 use Games::Construder::Client;
 
 #ctr_enable_log_categories ('all');
-ctr_enable_log_categories ('info', 'error', 'warn', 'chat', 'memory_prof');
+#ctr_enable_log_categories ('info', 'error', 'warn', 'chat', 'memory_prof');
+ctr_enable_log_categories ('info', 'error', 'warn', 'chat');
 
 Games::Construder::Debug::init ("client");
 
@@ -25,3 +26,4 @@ $game->set_exception_cb (sub {
 });
 
 $game->start;
+ctr_log (debug => "shutting down cleanly.");
