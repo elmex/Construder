@@ -912,9 +912,13 @@ void vol_draw_dst_to_world (int sector_x, int sector_y, int sector_z, AV *range_
 
 MODULE = Games::Construder PACKAGE = Games::Construder::Random PREFIX = random_
 
-unsigned int rnd_xor (unsigned int x);
+unsigned int random_rnd_xor (unsigned int x)
+  CODE:
+    RETVAL = rnd_xor (x);
+  OUTPUT:
+    RETVAL
 
-double rnd_float (unsigned int x)
+double random_rnd_float (unsigned int x)
   CODE:
     double val = (double) x / (double) 0xFFFFFFFF;
     RETVAL = val;
