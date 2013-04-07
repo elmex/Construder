@@ -28,8 +28,10 @@ our @EXPORT = qw/
 
 our $VERSION = '0.95';
 
-use XSLoader;
+eval {
+require XSLoader;
 XSLoader::load "Games::Construder", $Games::Construder::VERSION;
+};
 
 =head1 NAME
 
